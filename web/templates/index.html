@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZenFlow — Availability</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<header>
+  <span class="logo">🌿 ZenFlow Clinic</span>
+  <span class="tagline">Therapist Availability Manager</span>
+</header>
+
+<div id="legend">
+  <span class="chip busy">● Busy</span>
+  <span class="chip available">● Available</span>
+  <span class="hint">Click or drag an empty slot to mark as available &nbsp;·&nbsp; Click a green slot to remove it</span>
+</div>
+
+<div id="toast"></div>
+<div id="calendar"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
