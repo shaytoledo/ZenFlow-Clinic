@@ -126,6 +126,40 @@ tail -f botLogs.text
 
 ---
 
+## Therapist availability frontend
+
+The therapist has a web dashboard to manage their available slots on Google Calendar.
+
+### Step 1 — Google Cloud setup
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Create a project → **APIs & Services → Enable APIs** → enable **Google Calendar API**
+3. **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
+   - Application type: **Web application**
+   - Authorised redirect URI: `http://localhost:8000/auth/callback`
+4. Download / copy the **Client ID** and **Client Secret**
+
+### Step 2 — Add to `.env`
+```
+GOOGLE_CLIENT_ID=<your client id>
+GOOGLE_CLIENT_SECRET=<your client secret>
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback
+```
+
+### Step 3 — Run the frontend
+```bash
+python run_web.py
+```
+Open `http://localhost:8000` in the therapist's browser → sign in with Google → the calendar appears.
+
+### How it works
+- The therapist **clicks or drags** on empty time slots to mark them green (available)
+- Clicking a green slot removes it
+- Availability is stored as **"✅ Available"** events in a dedicated **"ZenFlow Availability"** Google Calendar (auto-created on first use)
+- The patient bot reads from this calendar automatically — no extra steps needed
+- If Google Calendar is not configured, the bot falls back to a hardcoded stub schedule
+
+---
+
 ## Switching AI provider
 
 **Ollama → Anthropic (production)**
