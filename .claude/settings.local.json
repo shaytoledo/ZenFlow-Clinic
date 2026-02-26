@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tail:*)",
+      "Bash(cd:*)",
+      "Bash(pkill:*)",
+      "Bash(wmic process:*)",
+      "Bash(xargs kill)",
+      "Bash(.venv/Scripts/python run.py)"
+    ]
+  }
+}

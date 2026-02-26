@@ -1,0 +1,123 @@
+2026-02-26 14:26:54,239 [INFO] bot.main — Starting ZenFlow Clinic Bot...
+2026-02-26 14:26:54,974 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getMe "HTTP/1.1 200 OK"
+2026-02-26 14:26:54,990 [INFO] bot.main — Checking Ollama...
+2026-02-26 14:26:55,757 [INFO] httpx — HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-02-26 14:26:55,758 [INFO] bot.main — Ollama running. Available models: ['llama3.2:latest', 'gemma:7b', 'gemma3:4b', 'mistral:latest', 'gemma3:latest']
+2026-02-26 14:26:55,868 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/deleteWebhook "HTTP/1.1 200 OK"
+2026-02-26 14:26:55,870 [INFO] telegram.ext.Application — Application started
+2026-02-26 14:27:00,803 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:00,803 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:06,831 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:27:07,243 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/sendMessage "HTTP/1.1 200 OK"
+2026-02-26 14:27:07,291 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:07,294 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:09,725 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:27:09,833 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-02-26 14:27:09,834 [INFO] bot.handlers.schedule — [918187404] show_days
+2026-02-26 14:27:09,973 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
+2026-02-26 14:27:10,868 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:27:10,993 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-02-26 14:27:10,993 [INFO] bot.handlers.schedule — [918187404] show_hours for 2026-03-03
+2026-02-26 14:27:11,134 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
+2026-02-26 14:27:11,875 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:27:11,988 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-02-26 14:27:11,989 [INFO] bot.handlers.schedule — [918187404] slot chosen 2026-03-03 13:00
+2026-02-26 14:27:12,146 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
+2026-02-26 14:27:13,425 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:27:13,574 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-02-26 14:27:13,576 [INFO] bot.services.appointments — Appointment saved: C:\Users\shayt\PycharmProjects\Clinic\data\appointments\918187404\2026-03-03_13-00.json
+2026-02-26 14:27:13,576 [INFO] bot.handlers.schedule — [918187404] appointment saved (no intake)
+2026-02-26 14:27:13,708 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
+2026-02-26 14:27:14,866 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:14,868 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:20,076 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:20,077 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:23,468 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:27:23,840 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-02-26 14:27:23,842 [INFO] 2026-02-26 14:27:24,683 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:24,685 [ERROR] telegram.ext.App2026-02-26 14:27:25,744 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:27:25,890 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-2026-02-26 14:27:30,002 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:30,003 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:35,336 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:35,339 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:41,069 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:41,070 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:46,961 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:46,962 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:54,540 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:27:54,540 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:27:59,982 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:04,049 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:04,050 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:06,098 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:09,284 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:09,285 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:11,012 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:14,531 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:14,532 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:19,748 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:19,749 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:24,974 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:24,975 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:31,218 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:31,220 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:39,343 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:39,344 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:44,746 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:48,680 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:48,680 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:53,883 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:53,885 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:28:59,961 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:59,962 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:29:06,941 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:29:06,942 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:29:15,800 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:29:15,800 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:29:29,546 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:29:29,546 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:29:42,077 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:29:42,078 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:29:57,889 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:29:57,890 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:30:19,360 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:30:19,361 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:30:49,387 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:30:49,387 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:31:23,814 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:31:23,815 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:31:58,235 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:31:58,236 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:32:32,715 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:32:32,716 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:33:07,150 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:33:07,152 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+FO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
+2026-02-26 14:28:14,086 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:14,280 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-02-26 14:28:14,283 [INFO] bot.handlers.cancel — [918187404] cancel: looking up appointments
+2026-02-26 14:28:14,286 [INFO] bot.services.appointments — Found 0 active appointments for patient 918187404
+2026-02-26 14:28:14,441 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
+2026-02-26 14:28:15,640 [INFO] httpx —2026-02-26 14:28:18,957 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:19,277 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-02-26 14:28:19,278 [INFO] bot.handlers.cancel — [918187404] cancel: looking up appointments
+2026-02-26 14:28:19,279 [INFO] bot.services.appointments — Found 0 active appointments for patient 918187404
+2026-02-26 14:28:19,403 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
+2026-02-26 14:28:20,114 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates 2026-02-26 14:28:202026-02-26 14:28:21,371 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:21,371 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot inst2026-02-26 14:28:25,464 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 142026-02-26 14:28:27,106 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:27,107 [ERROR] telegram.ex2026-02-26 14:28:30,330 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:30,333 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; ma2026-02-26 14:28:32,704 [INFO] httpx — HTTP Req2026-02-26 14:28:36,833 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:36,834 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; ma2026-02-26 14:28:37,716 [INFO] httpx — HTTP Req2026-02-26 14:28:41,376 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:43,935 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:44,527 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-02-26 14:28:44,746 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:44,746 [ERROR] telegram.ext.Application — No error handlers ar2026-02-26 14:28:48,862 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:48,863 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: term2026-02-26 14:28:49,775 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bo2026-02-26 14:28:55,492 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:28:55,493 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:29:05,027 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:29:05,028 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:29:19,420 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 409 Conflict"
+2026-02-26 14:29:19,422 [ERROR] telegram.ext.Application — No error handlers are registered, logging exception. | Conflict('Conflict: terminated by other getUpdates request; make sure that only one bot instance is running')
+2026-02-26 14:29:37,500 [INFO] httpx — HTTP Request: POST https://api.telegr
