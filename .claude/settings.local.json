@@ -6,7 +6,8 @@
       "Bash(pkill:*)",
       "Bash(wmic process:*)",
       "Bash(xargs kill)",
-      "Bash(.venv/Scripts/python run.py)"
+      "Bash(.venv/Scripts/python run.py)",
+      "Bash(python:*)"
     ]
   }
 }
