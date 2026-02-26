@@ -131,6 +131,7 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         intake_history=[],
         summary="Patient opted to skip the intake questionnaire.",
     )
+    clear_intake(user.id)
     logger.info(f"[{user.id}] appointment saved (no intake)")
     context.user_data.clear()
 

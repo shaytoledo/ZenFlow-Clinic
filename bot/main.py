@@ -145,7 +145,7 @@ def build_app() -> Application:
             CommandHandler("start", start),
             MessageHandler(filters.ALL, start),
         ],
-        allow_reentry=True,
+        allow_reentry=False,
     )
 
     app.add_handler(conv)

@@ -54,11 +54,18 @@ ollama pull gemma3:latest
 
 ## 4. Run the bot
 
+**Option A — automated (recommended):**
+```bash
+python setup_and_run.py
+```
+This checks Python version, creates the venv, installs dependencies, validates `.env`, starts Ollama if needed, then launches the bot. All in one command.
+
+**Option B — manual (venv active, Ollama already running):**
 ```bash
 python run.py
 ```
 
-That's it. The bot is now live on Telegram.
+The bot is now live on Telegram.
 
 ---
 
@@ -80,8 +87,8 @@ tail -f botLogs.text
 
 | Path | Contents |
 |------|----------|
-| `data/appointments/{user_id}/` | One JSON file per appointment |
-| `data/chat_history/{user_id}_intake.json` | LangChain conversation history (cleared after each intake) |
+| `data/appointments/{user_id}/` | One JSON file per **active** appointment; file is deleted on cancel |
+| `data/chat_history/{user_id}_intake.json` | Temporary LangChain conversation history — cleared after each completed/skipped intake |
 | `data/therapist_messages/` | Messages sent to the therapist |
 
 ---
