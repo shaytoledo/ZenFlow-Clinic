@@ -8,11 +8,11 @@ ZenFlow Clinic — Telegram bot for a Traditional Chinese Medicine (TCM) acupunc
 ## Commands
 
 ```bash
+# Run directly (venv must be active, .env must exist)
+python run.py
+
 # Easiest start — checks everything, installs deps, starts Ollama, runs bot
 python setup_and_run.py
-
-# Run directly (venv must be active, .env must exist, Ollama must be running)
-python run.py
 
 # Pull the required AI model (first time only)
 ollama pull gemma3:latest
@@ -22,7 +22,7 @@ ollama pull gemma3:latest
 
 ```
 bot/
-├── main.py            # ConversationHandler wiring + entry point
+├── main.py            # Wires patient ConversationHandler + runs both bots via asyncio
 ├── states.py          # Integer state constants (SELECTING, SCHEDULE_DAY, …)
 ├── config.py          # Env vars via python-dotenv
 ├── utils.py           # Shared: get_main_keyboard()
@@ -30,16 +30,22 @@ bot/
 │   ├── start.py       # Entry point + back_to_main callback
 │   ├── schedule.py    # show_days → show_hours → confirm_appointment → handle_intake_answer
 │   ├── cancel.py      # show_appointments → confirm_cancel
-│   └── therapist.py   # ask_therapist_message → forward_to_therapist
+│   └── therapist.py   # ask_therapist_message → start_relay → relay_to_therapist → end_chat
+├── therapist_bot/
+│   ├── __init__.py
+│   ├── main.py        # build_therapist_app() — separate bot for therapist
+│   └── handlers.py    # handle_therapist_reply — routes therapist replies to patients
 └── services/
     ├── availability.py   # get_available_days / get_available_hours (stub → Google Calendar)
     ├── appointments.py   # File-based JSON storage in data/appointments/
-    └── ai_intake.py      # Ollama AsyncClient; fallback questions if Ollama is down
+    ├── ai_intake.py      # Ollama AsyncClient; fallback questions if Ollama is down
+    └── relay.py          # data/relay_sessions.json — maps therapist msg IDs → patient IDs
 
 data/
 ├── appointments/{patient_id}/   # one JSON per active appointment: {YYYY-MM-DD}_{HH-MM}.json
 ├── chat_history/                # {user_id}_intake.json — temp LangChain history, cleared after intake
-└── therapist_messages/          # {patient_id}_{timestamp}.json
+├── therapist_messages/          # legacy save dir (kept for reference)
+└── relay_sessions.json          # active relay mappings
 ```
 
 ## Conversation state machine
@@ -49,8 +55,18 @@ Any message / /start → SELECTING (main menu)
                           → Yes → INTAKE (×5 adaptive AI questions) → SELECTING
                           → No  → SELECTING (saved without intake)
   SELECTING → cancel    → CANCEL_SELECT → SELECTING (file deleted on confirm)
-  SELECTING → therapist → THERAPIST_INPUT → SELECTING
+  SELECTING → therapist → THERAPIST_INPUT → THERAPIST_RELAY (loop) → SELECTING
+                                             patient types → forwarded to therapist bot
+                                             therapist replies → delivered to patient
+                                             patient presses End Chat → SELECTING
 ```
+
+## Two-bot relay architecture
+- **Patient bot** (`TELEGRAM_TOKEN`): patient-facing; forwards messages to therapist via `Bot(THERAPIST_BOT_TOKEN)`
+- **Therapist bot** (`THERAPIST_BOT_TOKEN`): therapist-facing; receives forwarded messages, routes replies back via `Bot(TELEGRAM_TOKEN)`
+- Both bots run concurrently in the same process via `asyncio.run(_run(patient_app, therapist_app))`
+- Routing key: `relay_sessions.json` maps therapist-bot message ID → patient user ID
+- Therapist **must reply** to the forwarded message (not type freely) for routing to work
 
 ## Key conventions
 - All Telegram handlers are `async def (update, context) -> int` returning the next state constant.
@@ -63,7 +79,9 @@ Any message / /start → SELECTING (main menu)
 ## Environment variables (`.env`)
 | Variable | Default | Purpose |
 |---|---|---|
-| `TELEGRAM_TOKEN` | — | Bot token from @BotFather |
+| `TELEGRAM_TOKEN` | — | Patient bot token from @BotFather |
+| `THERAPIST_BOT_TOKEN` | — | Therapist bot token (separate bot from @BotFather) |
+| `THERAPIST_TELEGRAM_ID` | — | Therapist's Telegram user ID (integer) |
 | `OLLAMA_MODEL` | `gemma3:latest` | Local LLM model name |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `USE_AI` | `ollama` | `ollama` or `anthropic` (future) |
@@ -71,12 +89,11 @@ Any message / /start → SELECTING (main menu)
 ## Current status — what works
 - Schedule appointment: pick day/hour → optional 5-question AI intake → appointment saved with clinical summary
 - Cancel appointment: lists active appointments, deletes the file on confirm, clears chat history
-- Connect to therapist: user types message → saved to `data/therapist_messages/`
+- Connect to therapist: two-way relay via dedicated therapist bot; patient sees ✅ Sent + End Chat button after each message; therapist replies are delivered instantly
 - All back buttons functional
 - Ollama auto-starts on bot startup; fallback questions if model is unavailable
 
 ## Planned next steps
 - Google Calendar integration for real availability
 - `PicklePersistence` to survive bot restarts
-- Forward therapist messages to a Telegram group/chat
 - Switch `USE_AI=anthropic` for production

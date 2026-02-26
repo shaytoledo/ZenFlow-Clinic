@@ -25,7 +25,13 @@ from bot.handlers.schedule import (
     start_intake,
 )
 from bot.handlers.start import back_to_main, start
-from bot.handlers.therapist import ask_therapist_message, forward_to_therapist
+from bot.handlers.therapist import (
+    ask_therapist_message,
+    end_chat,
+    relay_to_therapist,
+    start_relay,
+)
+from bot.therapist_bot.main import build_therapist_app
 from bot.states import (
     CANCEL_SELECT,
     INTAKE,
@@ -34,6 +40,7 @@ from bot.states import (
     SCHEDULE_HOUR,
     SELECTING,
     THERAPIST_INPUT,
+    THERAPIST_RELAY,
 )
 
 
@@ -99,7 +106,7 @@ async def _ensure_ollama(app: Application) -> None:
 
 # ── app builder ───────────────────────────────────────────────────────────────
 
-def build_app() -> Application:
+def build_patient_app() -> Application:
     app = (
         Application.builder()
         .token(TELEGRAM_TOKEN)
@@ -138,7 +145,11 @@ def build_app() -> Application:
                 CallbackQueryHandler(back_to_main,   pattern="^back_main$"),
             ],
             THERAPIST_INPUT: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_therapist),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, start_relay),
+            ],
+            THERAPIST_RELAY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, relay_to_therapist),
+                CallbackQueryHandler(end_chat, pattern="^therapist_end$"),
             ],
         },
         fallbacks=[
@@ -152,9 +163,23 @@ def build_app() -> Application:
     return app
 
 
+async def _run(patient_app: Application, therapist_app: Application | None) -> None:
+    if therapist_app is None:
+        patient_app.run_polling(allowed_updates=Update.ALL_TYPES)
+        return
+
+    async with patient_app, therapist_app:
+        await patient_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        await therapist_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        await patient_app.start()
+        await therapist_app.start()
+        logger.info("Both bots running — press Ctrl+C to stop")
+        await asyncio.Event().wait()
+
+
 def main() -> None:
     logger.info("Starting ZenFlow Clinic Bot...")
-    build_app().run_polling(allowed_updates=Update.ALL_TYPES)
+    asyncio.run(_run(build_patient_app(), build_therapist_app()))
 
 
 if __name__ == "__main__":
