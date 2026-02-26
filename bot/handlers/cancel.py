@@ -4,6 +4,7 @@ from datetime import date
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+from bot.services.ai_intake import clear_intake
 from bot.services.appointments import cancel_appointment, get_patient_appointments
 from bot.states import CANCEL_SELECT, SELECTING
 from bot.utils import get_main_keyboard
@@ -50,6 +51,7 @@ async def confirm_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     idx = int(query.data.replace("cancel_apt_", ""))
     apt = context.user_data.get("apts_to_cancel", [])[idx]
     cancel_appointment(apt["_filepath"])
+    clear_intake(apt["patient_id"])
 
     day_display = date.fromisoformat(apt["date"]).strftime("%A, %d %b")
     logger.info(f"[{update.effective_user.id}] cancelled appointment {apt['date']} {apt['time']}")

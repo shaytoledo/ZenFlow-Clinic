@@ -86,15 +86,12 @@ def get_patient_appointments(patient_id: int) -> list[dict]:
 
 
 def cancel_appointment(filepath: str) -> bool:
-    """Mark an appointment as cancelled."""
+    """Delete an appointment file."""
     try:
         p = Path(filepath)
-        data = json.loads(p.read_text(encoding="utf-8"))
-        data["status"] = "cancelled"
-        data["cancelled_at"] = datetime.now().isoformat()
-        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        logger.info(f"Appointment cancelled: {filepath}")
+        p.unlink()
+        logger.info(f"Appointment deleted: {filepath}")
         return True
     except Exception as e:
-        logger.error(f"Could not cancel appointment {filepath}: {e}")
+        logger.error(f"Could not delete appointment {filepath}: {e}")
         return False
