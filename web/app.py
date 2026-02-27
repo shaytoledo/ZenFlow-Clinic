@@ -56,6 +56,17 @@ async def index(request: Request):
 
 # ── Events API ────────────────────────────────────────────────────────────────
 
+@app.get("/api/calendars")
+async def get_calendars():
+    if not is_authenticated():
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        return JSONResponse(GCalClient.load().get_calendar_list())
+    except Exception as e:
+        logger.error(f"get_calendars error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/events")
 async def get_events(start: str, end: str):
     if not is_authenticated():
