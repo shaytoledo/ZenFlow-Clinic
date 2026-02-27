@@ -7,7 +7,20 @@
       "Bash(wmic process:*)",
       "Bash(xargs kill)",
       "Bash(.venv/Scripts/python run.py)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(netstat -ano)",
+      "Bash(xargs -I{} taskkill /F /PID {})",
+      "Bash(taskkill:*)",
+      "Bash(cmd:*)",
+      "Bash(powershell:*)",
+      "Bash(xargs -I{} powershell -Command \"Stop-Process -Id {} -Force\")",
+      "Bash(while read pid)",
+      "Bash(do powershell -Command \"Stop-Process -Id $pid -Force\")",
+      "Bash(done)"
     ]
   }
 }
