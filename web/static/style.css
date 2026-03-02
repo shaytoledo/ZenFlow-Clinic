@@ -230,13 +230,25 @@ body {
   font-size: 12.5px;
   color: var(--text-2);
   transition: background var(--transition);
+  cursor: pointer;
 }
 .cal-item:hover { background: var(--primary-tint); }
-.cal-dot {
-  width: 10px; height: 10px;
-  border-radius: 3px;
+.cal-checkbox {
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  margin: 0;
 }
+.cal-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity var(--transition), text-decoration var(--transition);
+}
+.cal-hidden .cal-name { opacity: 0.35; text-decoration: line-through; }
 
 
 /* ── Main ──────────────────────────────────────────────────────────────────── */

@@ -17,9 +17,9 @@ function fmt(d) {
   return new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-// ── Calendar list ──────────────────────────────────────────────────────────────
+// ── Calendar list + visibility ─────────────────────────────────────────────────
 
-const calColors = {};
+const _hiddenCals = new Set();
 
 async function loadCalendarList() {
   try {
@@ -27,10 +27,26 @@ async function loadCalendarList() {
     const el = $('cal-items');
     el.innerHTML = '';
     data.forEach(c => {
-      calColors[c.id] = c.color;
-      const row = document.createElement('div');
+      const row = document.createElement('label');
       row.className = 'cal-item';
-      row.innerHTML = `<span class="cal-dot" style="background:${c.color}"></span><span>${c.name}</span>`;
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.className = 'cal-checkbox';
+      cb.style.accentColor = c.color;
+      cb.addEventListener('change', () => {
+        if (cb.checked) { _hiddenCals.delete(c.id); row.classList.remove('cal-hidden'); }
+        else            { _hiddenCals.add(c.id);    row.classList.add('cal-hidden'); }
+        mainCal.refetchEvents();
+      });
+
+      const name = document.createElement('span');
+      name.className = 'cal-name';
+      name.textContent = c.name;
+
+      row.appendChild(cb);
+      row.appendChild(name);
       el.appendChild(row);
     });
   } catch (_) {}
@@ -120,6 +136,96 @@ async function saveSlot(start, end) {
   } catch { showToast('Could not save slot', '⚠️'); }
 }
 
+// ── Event popover ──────────────────────────────────────────────────────────────
+
+let _popEventId = null;
+let _popCalId   = null;
+let _autoCloseTimer = null;
+
+function closeEventPopover() {
+  $('event-popover').classList.add('hidden');
+  $('overlay').classList.add('hidden');
+  if (_autoCloseTimer) { clearTimeout(_autoCloseTimer); _autoCloseTimer = null; }
+  _popEventId = null;
+  _popCalId   = null;
+}
+
+function _positionPopover(anchorEl) {
+  const pop  = $('event-popover');
+  const rect = anchorEl.getBoundingClientRect();
+  const pw   = pop.offsetWidth  || 300;
+  const ph   = pop.offsetHeight || 240;
+  const vw   = window.innerWidth;
+  const vh   = window.innerHeight;
+
+  let left = rect.right + 12;
+  let top  = rect.top;
+
+  if (left + pw > vw - 12) left = Math.max(12, rect.left - pw - 12);
+  if (top  + ph > vh - 12) top  = Math.max(8,  vh - ph  - 12);
+
+  pop.style.left = `${left}px`;
+  pop.style.top  = `${top}px`;
+}
+
+function showEventPopover(event, anchorEl) {
+  closeEventPopover();          // dismiss any previously open popover first
+  const props = event.extendedProps;
+  const type  = props.type || 'busy';
+
+  // Color bar
+  $('pop-color-bar').style.background = event.backgroundColor || '#4285f4';
+
+  // Title
+  $('pop-title').textContent = event.title;
+
+  // Date + time
+  const dateStr = event.start.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
+  const timeStr = event.end ? `${fmt(event.start)} – ${fmt(event.end)}` : fmt(event.start);
+  $('pop-time').textContent = `${dateStr}  ·  ${timeStr}`;
+
+  if (type === 'available') {
+    // Confirmation mode — ask before removing
+    _popEventId = event.id;
+    _popCalId   = props.calendarId;
+    $('pop-cal-row').classList.add('hidden');
+    $('pop-confirm-msg').classList.remove('hidden');
+    $('pop-delete-btn').classList.remove('hidden');
+    $('pop-close-btn').textContent = 'Keep';
+  } else {
+    // Info mode — read-only busy event
+    $('pop-cal-name').textContent = props.calendarName || 'Calendar';
+    $('pop-cal-row').classList.remove('hidden');
+    $('pop-confirm-msg').classList.add('hidden');
+    $('pop-delete-btn').classList.add('hidden');
+    $('pop-close-btn').textContent = 'Close';
+  }
+
+  $('overlay').classList.remove('hidden');
+  $('event-popover').classList.remove('hidden');
+  requestAnimationFrame(() => _positionPopover(anchorEl));
+
+  // Auto-close after 5 seconds
+  _autoCloseTimer = setTimeout(closeEventPopover, 5000);
+}
+
+async function deleteSlot() {
+  if (!_popEventId || !_popCalId) return;
+  try {
+    const r = await fetch(
+      `/api/availability/${encodeURIComponent(_popEventId)}?calendarId=${encodeURIComponent(_popCalId)}`,
+      { method: 'DELETE' },
+    );
+    if (!r.ok) throw new Error(await r.text());
+    closeEventPopover();
+    mainCal.refetchEvents();
+    showToast('Slot removed', '🗑️');
+  } catch (err) {
+    console.error('deleteSlot error:', err);
+    showToast('Could not remove slot', '⚠️');
+  }
+}
+
 // ── Event content renderer ─────────────────────────────────────────────────────
 
 function renderEvent(info) {
@@ -143,6 +249,20 @@ function renderEvent(info) {
 let mainCal;
 
 document.addEventListener('DOMContentLoaded', () => {
+  $('pop-close').addEventListener('click', closeEventPopover);
+  $('pop-close-btn').addEventListener('click', closeEventPopover);
+  $('pop-delete-btn').addEventListener('click', deleteSlot);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEventPopover(); });
+
+  $('overlay').addEventListener('click', closeEventPopover);
+
+  // Close when any button outside the popover is clicked
+  document.addEventListener('click', e => {
+    if ($('event-popover').classList.contains('hidden')) return;
+    const btn = e.target.closest('button, [role="button"], .fc-button, .mini-week-row, .cal-item');
+    if (btn && !$('event-popover').contains(btn)) closeEventPopover();
+  });
+
   loadCalendarList();
   renderMiniCal(new Date());
 
@@ -168,13 +288,31 @@ document.addEventListener('DOMContentLoaded', () => {
     events(info, ok, fail) {
       fetch(`/api/events?start=${encodeURIComponent(info.startStr)}&end=${encodeURIComponent(info.endStr)}`)
         .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
-        .then(ok)
+        .then(events => ok(
+          _hiddenCals.size === 0
+            ? events
+            : events.filter(e => !_hiddenCals.has(e.extendedProps?.calendarId))
+        ))
         .catch(err => { showToast('Could not load events', '⚠️'); fail(err); });
     },
+
+    // selectMinDistance > 0 means a plain click does NOT trigger select —
+    // the user must drag to create a slot. This prevents accidental slot creation
+    // and stops single-clicks from triggering a refetchEvents that disrupts the popover.
+    selectMinDistance: 5,
 
     select(info) {
       mainCal.unselect();
       saveSlot(info.start, info.end);
+    },
+
+    // Use eventClick (FullCalendar's own hook) so stopPropagation() fully
+    // prevents FullCalendar's internal click processing and any resulting
+    // re-renders that would close the popover.
+    eventClick(info) {
+      info.jsEvent.stopPropagation();
+      info.jsEvent.preventDefault();
+      showEventPopover(info.event, info.el);
     },
 
     eventContent: renderEvent,

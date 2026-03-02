@@ -129,10 +129,11 @@ except Exception as e:
     print(f"  ??  Could not verify model: {e}")
 
 
-# ── 6. Start bot ──────────────────────────────────────────────────────────────
-step("6 / 6  Starting ZenFlow Clinic Bot")
-print("  Logs  ->  botLogs.text")
+# ── 6. Start all services ─────────────────────────────────────────────────────
+step("6 / 6  Starting ZenFlow Clinic (all services)")
+print("  Bots logs  ->  botLogs.text")
+print("  Web dashboard  ->  http://localhost:8000")
 print("  Stop with Ctrl+C\n")
 
 os.chdir(ROOT)
-os.execv(str(PYTHON), [str(PYTHON), "run.py"])
+os.execv(str(PYTHON), [str(PYTHON), "start.py"])
