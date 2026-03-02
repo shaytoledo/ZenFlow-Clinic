@@ -133,6 +133,7 @@ class GCalClient:
         for cal in all_cals:
             if cal["id"] == avail_cal_id:
                 continue
+            cal_color = cal.get("backgroundColor", "#4285f4")
             try:
                 resp = self.service.events().list(
                     calendarId=cal["id"],
@@ -153,8 +154,8 @@ class GCalClient:
                     "title": e.get("summary", "(busy)"),
                     "start": e["start"].get("dateTime", e["start"].get("date")),
                     "end": e["end"].get("dateTime", e["end"].get("date")),
-                    "backgroundColor": "#c0392b",
-                    "borderColor": "#c0392b",
+                    "backgroundColor": cal_color,
+                    "borderColor": cal_color,
                     "editable": False,
                     "extendedProps": {"type": "busy", "calendarName": cal.get("summary", "")},
                 })

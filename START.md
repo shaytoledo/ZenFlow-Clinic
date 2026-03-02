@@ -1,19 +1,17 @@
-# ZenFlow Clinic Bot — How to Start
+# ZenFlow Clinic — Quick Start
 
 ## Prerequisites
 
 | Tool | Version | Install |
-|------|---------|---------|
+|---|---|---|
 | Python | 3.11+ | https://python.org |
 | Ollama | latest | https://ollama.com |
-| Git | any | https://git-scm.com |
 
 ---
 
 ## 1. Install dependencies
 
 ```bash
-cd Clinic
 python -m venv .venv
 
 # Windows
@@ -27,74 +25,80 @@ pip install -r requirements.txt
 
 ---
 
-## 2. Configure environment
+## 2. Configure `.env`
 
-Create a `.env` file in the project root (already exists — do not commit it):
+Create a `.env` file in the project root:
 
 ```
-TELEGRAM_TOKEN=<patient bot token from @BotFather>
-THERAPIST_BOT_TOKEN=<therapist bot token from @BotFather>
+TELEGRAM_TOKEN=<patient bot token>
+THERAPIST_BOT_TOKEN=<therapist bot token>
 THERAPIST_TELEGRAM_ID=<therapist's numeric Telegram user ID>
 OLLAMA_MODEL=gemma3:latest
 OLLAMA_HOST=http://localhost:11434
-USE_AI=ollama
 ```
 
----
+**Getting the tokens:**
+- Create two bots on Telegram via `@BotFather` → `/newbot`
+- Get the therapist's user ID: have them message `@userinfobot` on Telegram
+- The therapist must send `/start` to **both** bots once before they can receive messages
 
-## 3. Set up the two bots
-
-### Patient bot
-Create via `@BotFather` → `/newbot` → copy the token → paste as `TELEGRAM_TOKEN`.
-
-### Therapist bot
-Create a **second** bot via `@BotFather` → `/newbot` → copy the token → paste as `THERAPIST_BOT_TOKEN`.
-
-This bot is the therapist's private workspace. Patients never see or interact with it.
-
-### Therapist Telegram ID
-1. Ask the therapist to message `@userinfobot` on Telegram
-2. It replies with their numeric ID, e.g. `Your ID: 918187404`
-3. Paste that number as `THERAPIST_TELEGRAM_ID`
-
-### Therapist must start both bots once
-Telegram does not allow bots to message a user who has never contacted them.
-The therapist must open **both** the patient bot and the therapist bot and send any message (e.g. `/start`) **once each**.
+**Optional — Google Calendar integration:**
+```
+GOOGLE_CLIENT_ID=<from Google Cloud Console>
+GOOGLE_CLIENT_SECRET=<from Google Cloud Console>
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback
+```
+Without this, the bot uses a built-in stub schedule. See `ARCHITECTURE.md` for setup steps.
 
 ---
 
-## 4. Set up Ollama
-
-Install the AI model used for intake questions:
+## 3. Pull the AI model
 
 ```bash
 ollama pull gemma3:latest
 ```
 
-> The bot will also try to start Ollama automatically on startup.
+The bot also tries to start Ollama automatically on startup.
 
 ---
 
-## 5. Run the bot
+## 4. Run everything
 
 ```bash
-python run.py
+python start.py
 ```
 
-This starts **both** bots concurrently in a single process.
+This starts all three services at once:
+- Patient Telegram bot
+- Therapist Telegram bot
+- Web dashboard at `http://localhost:8000`
 
-> **Important:** Only one instance should be running at a time.
-> If you get `409 Conflict` errors, kill any old instances first:
+Press **Ctrl+C** to stop everything.
+
+**Run individual services:**
+```bash
+python run.py        # Telegram bots only
+python run_web.py    # Web dashboard only
+```
+
+> If you see `409 Conflict` errors, an old instance is still running. Kill it first:
 > ```bash
-> # Windows
-> taskkill /F /IM python.exe
+> taskkill /F /IM python.exe   # Windows
 > ```
 
 ---
 
-## 6. Monitor logs
+## 5. Therapist web dashboard
 
-Logs are written to `botLogs.text` in the project root:
+Open `http://localhost:8000` → sign in with Google → the weekly calendar appears.
+
+- **Click or drag** an empty slot to mark it available (green)
+- **Click a green slot** to remove it
+- The patient bot reads these slots automatically — no extra steps needed
+
+---
+
+## 6. Monitor logs
 
 ```bash
 # Windows (PowerShell)
@@ -108,73 +112,13 @@ tail -f botLogs.text
 
 ## How the therapist relay works
 
-- Patient taps **Connect to Therapist** → types a message → forwarded to the therapist's dedicated bot
-- Therapist **replies** to that forwarded message → patient receives it instantly
-- Patient can keep typing freely — each message is forwarded automatically
-- Every message the patient sees has a **🔚 End Chat** button — they can end at any time
-- The therapist **must reply** to the forwarded message (not type freely) — this is how the bot knows which patient to route to when multiple patients are active simultaneously
+1. Patient taps **Connect to Therapist** → types a message → forwarded to the therapist's bot
+2. Therapist **replies to** the forwarded message → patient receives it instantly
+3. Either side can end the session with the **End Chat** button
+
+> The therapist must **reply to** the message (not type freely). This is how the system
+> routes replies to the correct patient when multiple patients are active simultaneously.
 
 ---
 
-## Data storage
-
-| Path | Contents |
-|------|----------|
-| `data/appointments/{user_id}/` | One JSON file per **active** appointment; deleted on cancel |
-| `data/chat_history/{user_id}_intake.json` | Temporary LangChain history for AI intake questions — cleared after each booking |
-| `data/relay_sessions.json` | Maps therapist-bot message IDs → patient IDs for reply routing |
-
----
-
-## Therapist availability frontend
-
-The therapist has a web dashboard to manage their available slots on Google Calendar.
-
-### Step 1 — Google Cloud setup
-1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create a project → **APIs & Services → Enable APIs** → enable **Google Calendar API**
-3. **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
-   - Application type: **Web application**
-   - Authorised redirect URI: `http://localhost:8000/auth/callback`
-4. Download / copy the **Client ID** and **Client Secret**
-
-### Step 2 — Add to `.env`
-```
-GOOGLE_CLIENT_ID=<your client id>
-GOOGLE_CLIENT_SECRET=<your client secret>
-GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback
-```
-
-### Step 3 — Run the frontend
-```bash
-python run_web.py
-```
-Open `http://localhost:8000` in the therapist's browser → sign in with Google → the calendar appears.
-
-### How it works
-- The therapist **clicks or drags** on empty time slots to mark them green (available)
-- Clicking a green slot removes it
-- Availability is stored as **"✅ Available"** events in a dedicated **"ZenFlow Availability"** Google Calendar (auto-created on first use)
-- The patient bot reads from this calendar automatically — no extra steps needed
-- If Google Calendar is not configured, the bot falls back to a hardcoded stub schedule
-
----
-
-## Switching AI provider
-
-**Ollama → Anthropic (production)**
-
-1. In `.env`:
-   ```
-   USE_AI=anthropic
-   ANTHROPIC_API_KEY=your-key-here
-   ```
-2. Swap the LLM in `bot/services/ai_intake.py`.
-
-**Ollama → Redis for history storage**
-
-In `ai_intake.py`, replace `_get_history()`:
-```python
-from langchain_community.chat_message_histories import RedisChatMessageHistory
-return RedisChatMessageHistory(session_id=str(user_id), url="redis://localhost:6379")
-```
+For a full explanation of every file and how the system works internally, see `ARCHITECTURE.md`.
