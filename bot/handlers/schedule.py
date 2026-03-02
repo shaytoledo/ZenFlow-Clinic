@@ -12,8 +12,8 @@ from bot.services.ai_intake import (
     initialize_intake,
 )
 from bot.services.appointments import save_appointment
-from bot.services.availability import get_available_days, get_available_hours
-from bot.states import INTAKE, INTAKE_CONFIRM, SCHEDULE_DAY, SCHEDULE_HOUR, SELECTING
+from bot.services.availability import book_slot, get_available_days, get_available_hours
+from bot.states import INTAKE, INTAKE_CONFIRM, SCHEDULE_DAY, SCHEDULE_HOUR, SCHEDULE_WEEK, SELECTING
 from bot.utils import get_main_keyboard
 
 logger = logging.getLogger(__name__)
@@ -21,27 +21,63 @@ logger = logging.getLogger(__name__)
 OPENING_QUESTION = "What's the main issue or discomfort bringing you in today?"
 
 
-# ── day / hour selection ─────────────────────────────────────────────────────
+# ── week / day / hour selection ───────────────────────────────────────────────
 
-async def show_days(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def show_week_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 1 — ask whether the patient wants this week or next week."""
     query = update.callback_query
     await query.answer()
-    logger.info(f"[{update.effective_user.id}] show_days")
+    logger.info(f"[{update.effective_user.id}] show_week_choice")
 
-    days = get_available_days()
+    keyboard = [
+        [InlineKeyboardButton("📅 This week", callback_data="week_0")],
+        [InlineKeyboardButton("📅 Next week", callback_data="week_1")],
+        [InlineKeyboardButton("⬅️ Back",      callback_data="back_main")],
+    ]
+    await query.edit_message_text(
+        "Which week would you like to book?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return SCHEDULE_WEEK
+
+
+async def show_days(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 2 — show days that have available slots in the chosen week.
+
+    Triggered by:
+      • week_0 / week_1  (initial selection)
+      • back_days        (back from hour picker — reuses stored week)
+    """
+    query = update.callback_query
+    await query.answer()
+
+    if query.data.startswith("week_"):
+        week_offset = int(query.data.replace("week_", ""))
+        context.user_data["selected_week"] = week_offset
+    else:
+        week_offset = context.user_data.get("selected_week", 0)
+
+    week_label = "This week" if week_offset == 0 else "Next week"
+    logger.info(f"[{update.effective_user.id}] show_days week_offset={week_offset}")
+
+    days = get_available_days(week_offset=week_offset)
     if not days:
         await query.edit_message_text(
-            "No available days in the next week. Please contact the clinic directly.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back_main")]]),
+            f"No available slots for {week_label.lower()}. Please try another week or contact the clinic directly.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back_week")]]),
         )
-        return SELECTING
+        return SCHEDULE_WEEK
 
     keyboard = [
         [InlineKeyboardButton(d.strftime("%A, %d %b"), callback_data=f"day_{d.isoformat()}")]
         for d in days
     ]
-    keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_main")])
-    await query.edit_message_text("Choose a day:", reply_markup=InlineKeyboardMarkup(keyboard))
+    keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_week")])
+    await query.edit_message_text(
+        f"📅 *{week_label}* — choose a day:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
     return SCHEDULE_DAY
 
 
@@ -123,13 +159,16 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     day = date.fromisoformat(context.user_data["selected_day"])
     time_slot = context.user_data["selected_time"]
 
+    apt_summary = "Patient opted to skip the intake questionnaire."
+    gcal_id = book_slot(day, time_slot, user.full_name or user.first_name, apt_summary)
     save_appointment(
         patient_id=user.id,
         patient_name=user.full_name or user.first_name,
         day=day,
         time_slot=time_slot,
         intake_history=[],
-        summary="Patient opted to skip the intake questionnaire.",
+        summary=apt_summary,
+        gcal_apt_event_id=gcal_id,
     )
     clear_intake(user.id)
     logger.info(f"[{user.id}] appointment saved (no intake)")
@@ -165,6 +204,7 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         day = date.fromisoformat(context.user_data["selected_day"])
         time_slot = context.user_data["selected_time"]
 
+        gcal_id = book_slot(day, time_slot, user.full_name or user.first_name, summary)
         save_appointment(
             patient_id=user_id,
             patient_name=user.full_name or user.first_name,
@@ -172,6 +212,7 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
             time_slot=time_slot,
             intake_history=history,
             summary=summary,
+            gcal_apt_event_id=gcal_id,
         )
         clear_intake(user_id)
         context.user_data.clear()

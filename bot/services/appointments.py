@@ -48,6 +48,7 @@ def save_appointment(
     time_slot: str,
     intake_history: list[dict],
     summary: str,
+    gcal_apt_event_id: str | None = None,
 ) -> Path:
     """Save appointment JSON. Returns the file path."""
     filepath = _patient_dir(patient_id) / _apt_filename(day, time_slot)
@@ -60,6 +61,7 @@ def save_appointment(
         "status": "active",
         "intake_history": intake_history,
         "summary": summary,
+        "gcal_apt_event_id": gcal_apt_event_id,
     }
     filepath.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info(f"Appointment saved: {filepath}")

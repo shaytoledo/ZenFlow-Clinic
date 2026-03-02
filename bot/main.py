@@ -21,6 +21,7 @@ from bot.handlers.schedule import (
     handle_intake_answer,
     show_days,
     show_hours,
+    show_week_choice,
     skip_intake,
     start_intake,
 )
@@ -38,6 +39,7 @@ from bot.states import (
     INTAKE_CONFIRM,
     SCHEDULE_DAY,
     SCHEDULE_HOUR,
+    SCHEDULE_WEEK,
     SELECTING,
     THERAPIST_INPUT,
     THERAPIST_RELAY,
@@ -121,13 +123,17 @@ def build_patient_app() -> Application:
         ],
         states={
             SELECTING: [
-                CallbackQueryHandler(show_days,             pattern="^schedule$"),
+                CallbackQueryHandler(show_week_choice,      pattern="^schedule$"),
                 CallbackQueryHandler(show_appointments,     pattern="^cancel$"),
                 CallbackQueryHandler(ask_therapist_message, pattern="^therapist$"),
             ],
-            SCHEDULE_DAY: [
-                CallbackQueryHandler(show_hours,   pattern="^day_"),
+            SCHEDULE_WEEK: [
+                CallbackQueryHandler(show_days,    pattern="^week_"),
                 CallbackQueryHandler(back_to_main, pattern="^back_main$"),
+            ],
+            SCHEDULE_DAY: [
+                CallbackQueryHandler(show_hours,      pattern="^day_"),
+                CallbackQueryHandler(show_week_choice, pattern="^back_week$"),
             ],
             SCHEDULE_HOUR: [
                 CallbackQueryHandler(confirm_appointment, pattern="^hour_"),
