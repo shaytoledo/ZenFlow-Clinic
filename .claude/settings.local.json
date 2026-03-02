@@ -21,7 +21,14 @@
       "Bash(while read pid)",
       "Bash(do powershell -Command \"Stop-Process -Id $pid -Force\")",
       "Bash(done)",
-      "mcp__claude_ai_Figma__get_design_context"
+      "mcp__claude_ai_Figma__get_design_context",
+      "Bash(rm:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(do echo:*)",
+      "Bash(python3:*)",
+      "Bash(.venv/Scripts/python.exe:*)"
     ]
   }
 }
