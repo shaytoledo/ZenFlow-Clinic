@@ -1,21 +1,18 @@
 """
-AI intake service — uses LangChain ChatOllama with FileChatMessageHistory.
+AI intake service — uses LangChain ChatOllama with in-memory chat history.
 
-Each user gets their own persistent history file:
-  data/chat_history/{user_id}_intake.json
-
-Switch to Redis by replacing FileChatMessageHistory with RedisChatMessageHistory
-in _get_history() — nothing else needs to change.
+History is kept in a module-level dict for the duration of the intake session
+and discarded as soon as the appointment is saved or the flow is cancelled.
+Nothing is written to disk.
 """
 import asyncio
 import logging
-from pathlib import Path
 
-from langchain_community.chat_message_histories import FileChatMessageHistory
+from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
-from bot.config import DATA_DIR, OLLAMA_HOST, OLLAMA_MODEL
+from bot.config import OLLAMA_HOST, OLLAMA_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -53,20 +50,13 @@ FALLBACK_QUESTIONS = [
 
 # ── history helpers ──────────────────────────────────────────────────────────
 
-def _history_dir() -> Path:
-    d = Path(DATA_DIR).parent / "chat_history"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+_histories: dict[int, InMemoryChatMessageHistory] = {}
 
 
-def _get_history(user_id: int) -> FileChatMessageHistory:
-    """
-    Returns the persistent chat history for a user.
-    To switch to Redis, replace with:
-        from langchain_community.chat_message_histories import RedisChatMessageHistory
-        return RedisChatMessageHistory(session_id=str(user_id), url=REDIS_URL)
-    """
-    return FileChatMessageHistory(str(_history_dir() / f"{user_id}_intake.json"))
+def _get_history(user_id: int) -> InMemoryChatMessageHistory:
+    if user_id not in _histories:
+        _histories[user_id] = InMemoryChatMessageHistory()
+    return _histories[user_id]
 
 
 def _llm() -> ChatOllama:
@@ -139,6 +129,6 @@ def get_history_dicts(user_id: int) -> list[dict]:
 
 
 def clear_intake(user_id: int) -> None:
-    """Remove the intake history file after the appointment is saved."""
-    _get_history(user_id).clear()
+    """Drop the in-memory intake history after the appointment is saved."""
+    _histories.pop(user_id, None)
     logger.info(f"[{user_id}] Intake history cleared")

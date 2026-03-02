@@ -121,7 +121,8 @@ function renderMiniCal(selected) {
 
 // ── Sidebar toggle ─────────────────────────────────────────────────────────────
 
-$('menu-btn').addEventListener('click', () => $('sidebar').classList.toggle('collapsed'));
+const _menuBtn = $('menu-btn');
+if (_menuBtn) _menuBtn.addEventListener('click', () => { const sb = $('sidebar'); if (sb) sb.classList.toggle('collapsed'); });
 
 async function saveSlot(start, end) {
   try {

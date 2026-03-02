@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZenFlow — {% block page_title_tag %}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<div class="zf-app">
+
+  <!-- Sidebar -->
+  <aside class="zf-sidebar">
+    <div class="zf-sidebar-brand">
+      <span>🌿</span>
+      <span class="zf-brand-text">ZenFlow AI</span>
+    </div>
+
+    <nav class="zf-nav">
+      <a href="/" class="zf-nav-item {% if active == 'dashboard' %}active{% endif %}">
+        <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="/schedule" class="zf-nav-item {% if active == 'schedule' %}active{% endif %}">
+        <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        <span>Schedule</span>
+      </a>
+
+      <a href="/patients" class="zf-nav-item {% if active == 'patients' %}active{% endif %}">
+        <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span>Patients</span>
+      </a>
+
+      <a href="/messages" class="zf-nav-item {% if active == 'messages' %}active{% endif %}">
+        <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>Messages</span>
+        <span id="msg-badge" class="zf-nav-badge hidden">0</span>
+      </a>
+
+      <a href="/settings" class="zf-nav-item {% if active == 'settings' %}active{% endif %}">
+        <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <div class="zf-sidebar-footer">
+      <div class="zf-user-card">
+        <div class="zf-user-avatar">DR</div>
+        <div>
+          <span class="zf-user-name">Dr. Therapist</span>
+          <span class="zf-user-role">Acupuncturist · ZenFlow</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main area -->
+  <div class="zf-main">
+    <header class="zf-topbar">
+      <div class="zf-topbar-left">
+        <h1 class="zf-page-title">{% block page_heading %}{% endblock %}</h1>
+      </div>
+      <div class="zf-topbar-right">
+        {% block topbar_actions %}{% endblock %}
+        <div class="zf-topbar-date">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="topbar-datetime"></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="zf-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+</div>
+
+<script>
+  // Live clock in topbar
+  function updateClock() {
+    const el = document.getElementById('topbar-datetime');
+    if (el) {
+      const now = new Date();
+      el.textContent = now.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })
+        + ' · ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    }
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  // Active message badge
+  fetch('/api/messages/active').then(r => r.json()).then(d => {
+    const badge = document.getElementById('msg-badge');
+    if (badge && d.count > 0) {
+      badge.textContent = d.count;
+      badge.classList.remove('hidden');
+    }
+  }).catch(() => {});
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>
