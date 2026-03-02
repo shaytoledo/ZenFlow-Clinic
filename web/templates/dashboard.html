@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block page_title_tag %}Dashboard{% endblock %}
+{% block page_heading %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+<a href="/schedule" class="zf-btn zf-btn-primary" style="font-size:13px;padding:7px 14px;">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  Manage Availability
+</a>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 28px;">
+
+  <!-- Stat Cards -->
+  <div class="zf-stats-grid" id="stats-row">
+    <div class="zf-stat-card">
+      <div class="zf-stat-header">
+        <div>
+          <div class="zf-stat-label">Today's Appointments</div>
+        </div>
+        <div class="zf-stat-icon" style="background:#CCFBF1;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+      </div>
+      <div class="zf-stat-value" id="stat-today">—</div>
+      <div class="zf-stat-subtitle" id="stat-today-sub">loading…</div>
+    </div>
+
+    <div class="zf-stat-card">
+      <div class="zf-stat-header">
+        <div>
+          <div class="zf-stat-label">Intake Summaries</div>
+        </div>
+        <div class="zf-stat-icon" style="background:#FEF3C7;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.84A2.5 2.5 0 0 1 9.5 2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.84A2.5 2.5 0 0 0 14.5 2"/></svg>
+        </div>
+      </div>
+      <div class="zf-stat-value" id="stat-intake">—</div>
+      <div class="zf-stat-subtitle">with AI intake notes</div>
+    </div>
+
+    <div class="zf-stat-card">
+      <div class="zf-stat-header">
+        <div>
+          <div class="zf-stat-label">Total Patients</div>
+        </div>
+        <div class="zf-stat-icon" style="background:#DCFCE7;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+      </div>
+      <div class="zf-stat-value" id="stat-patients">—</div>
+      <div class="zf-stat-subtitle" id="stat-patients-sub">in the system</div>
+    </div>
+
+    <div class="zf-stat-card">
+      <div class="zf-stat-header">
+        <div>
+          <div class="zf-stat-label">Total Sessions</div>
+        </div>
+        <div class="zf-stat-icon" style="background:#CCFBF1;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+      </div>
+      <div class="zf-stat-value" id="stat-sessions">—</div>
+      <div class="zf-stat-subtitle">all time</div>
+    </div>
+  </div>
+
+  <!-- Main content row -->
+  <div style="display:grid; grid-template-columns: 1fr 320px; gap: 20px; margin-top: 20px;">
+
+    <!-- Today's schedule -->
+    <div class="zf-card">
+      <div class="zf-section-hdr">
+        <div class="zf-section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Today's Schedule
+        </div>
+        <a href="/schedule" class="zf-link">View Full Calendar →</a>
+      </div>
+      <div id="today-list">
+        <div class="zf-empty-state">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <p>Loading appointments…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Intake alerts -->
+    <div class="zf-card">
+      <div class="zf-section-hdr" style="margin-bottom:16px;">
+        <div class="zf-section-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Intake Alerts
+        </div>
+      </div>
+      <div id="intake-list">
+        <p style="font-size:13px;color:#9CA3AF;text-align:center;padding:20px 0;">Loading…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent appointments table -->
+  <div class="zf-card" style="margin-top: 20px;">
+    <div class="zf-section-hdr">
+      <div class="zf-section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Recent Appointments
+      </div>
+      <a href="/patients" class="zf-link">All Patients →</a>
+    </div>
+    <div class="zf-table-wrap" style="border:none;box-shadow:none;border-radius:10px;overflow:hidden;margin-top:4px;">
+      <table class="zf-table">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Intake</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="recent-table">
+          <tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:24px;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function loadDashboard() {
+  try {
+    // Load all patients/appointments data
+    const [patientsResp, todayResp] = await Promise.all([
+      fetch('/api/patients').then(r => r.json()),
+      fetch('/api/appointments/today').then(r => r.json()),
+    ]);
+
+    // Stats
+    const totalSessions = patientsResp.reduce((s, p) => s + p.sessions, 0);
+    document.getElementById('stat-today').textContent = todayResp.length;
+    document.getElementById('stat-today-sub').textContent = todayResp.length === 1 ? '1 appointment today' : `${todayResp.length} appointments today`;
+    document.getElementById('stat-intake').textContent = todayResp.filter(a => a.intake_history && a.intake_history.length > 0).length;
+    document.getElementById('stat-patients').textContent = patientsResp.length;
+    document.getElementById('stat-patients-sub').textContent = patientsResp.length === 1 ? '1 patient' : `${patientsResp.length} total patients`;
+    document.getElementById('stat-sessions').textContent = totalSessions;
+
+    // Today's schedule
+    const todayList = document.getElementById('today-list');
+    if (todayResp.length === 0) {
+      todayList.innerHTML = `<div class="zf-empty-state">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>
+        <p>No appointments today</p>
+      </div>`;
+    } else {
+      todayList.innerHTML = todayResp.map(apt => {
+        const initials = apt.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+        const hasIntake = apt.intake_history && apt.intake_history.length > 0;
+        return `<div class="zf-apt-row">
+          <div class="zf-apt-time">${apt.time}</div>
+          <div class="zf-avatar">${initials}</div>
+          <div class="zf-apt-info">
+            <div class="zf-apt-name">${apt.patient_name}</div>
+            ${hasIntake ? '<div class="zf-apt-sub">Intake form submitted</div>' : '<div class="zf-apt-sub">No intake form</div>'}
+          </div>
+          ${hasIntake ? '<span class="zf-badge zf-badge-teal">Intake ✓</span>' : '<span class="zf-badge zf-badge-gray">No intake</span>'}
+          <a href="/treatment/${apt.patient_id}/${apt.date}/${apt.time.replace(':','-')}" class="zf-btn zf-btn-primary" style="padding:6px 14px;font-size:12px;">
+            Open Session
+          </a>
+        </div>`;
+      }).join('');
+    }
+
+    // Intake alerts (today's appointments with intake)
+    const intakeList = document.getElementById('intake-list');
+    const withIntake = todayResp.filter(a => a.intake_history && a.intake_history.length > 0);
+    if (withIntake.length === 0) {
+      intakeList.innerHTML = `<p style="font-size:13px;color:#9CA3AF;text-align:center;padding:20px 0;">No intake forms for today</p>`;
+    } else {
+      intakeList.innerHTML = withIntake.map(apt => {
+        const initials = apt.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+        return `<div class="zf-alert-row">
+          <div class="zf-avatar" style="width:30px;height:30px;font-size:11px;">${initials}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:#111827;">${apt.patient_name}</div>
+            <div style="font-size:12px;color:#9CA3AF;">at ${apt.time}</div>
+          </div>
+          <a href="/treatment/${apt.patient_id}/${apt.date}/${apt.time.replace(':','-')}" style="font-size:12px;color:#0D9488;font-weight:500;text-decoration:none;">Review →</a>
+        </div>`;
+      }).join('');
+    }
+
+    // Recent appointments table (all patients, last 10)
+    const allApts = patientsResp.flatMap(p => (p.recent || []).map(a => ({...a, patient_name: p.name, patient_id: p.id})));
+    // Sort by date desc
+    allApts.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+    const recentApts = allApts.slice(0, 10);
+    const recentTable = document.getElementById('recent-table');
+    if (recentApts.length === 0) {
+      recentTable.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:24px;">No appointments yet</td></tr>`;
+    } else {
+      recentTable.innerHTML = recentApts.map(apt => {
+        const initials = apt.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+        const hasIntake = apt.intake_history && apt.intake_history.length > 0;
+        const d = new Date(apt.date);
+        const dateStr = d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+        return `<tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="zf-avatar">${initials}</div>
+              <span style="font-weight:500;">${apt.patient_name}</span>
+            </div>
+          </td>
+          <td>${dateStr}</td>
+          <td>${apt.time}</td>
+          <td>${hasIntake ? '<span class="zf-badge zf-badge-teal">Yes</span>' : '<span class="zf-badge zf-badge-gray">No</span>'}</td>
+          <td>
+            <a href="/treatment/${apt.patient_id}/${apt.date}/${apt.time.replace(':','-')}" style="font-size:13px;color:#0D9488;font-weight:500;text-decoration:none;">View Session</a>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+  } catch (e) {
+    console.error('Dashboard load error:', e);
+  }
+}
+loadDashboard();
+</script>
+{% endblock %}

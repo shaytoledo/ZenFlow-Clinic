@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+{% block page_title_tag %}Treatment Session{% endblock %}
+{% block page_heading %}Active Treatment Session{% endblock %}
+
+{% block topbar_actions %}
+<a href="/patients" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 12px;">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  All Patients
+</a>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 28px;" id="treatment-root">
+
+  <!-- Patient header bar -->
+  <div class="zf-treatment-hdr">
+    <div class="zf-avatar" id="pt-initials" style="width:44px;height:44px;font-size:14px;">—</div>
+    <div>
+      <h2 class="zf-treatment-name" id="pt-name">Loading…</h2>
+      <p class="zf-treatment-meta" id="pt-meta">Loading…</p>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+      <span class="zf-badge zf-badge-blue" id="pt-session-num">Session —</span>
+    </div>
+  </div>
+
+  <!-- Two-column layout -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+
+    <!-- LEFT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- AI Intake Summary -->
+      <div class="zf-card" id="intake-card">
+        <div class="zf-card-title">
+          <div class="zf-card-icon" style="background:#F3E8FF;color:#9333EA;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.84A2.5 2.5 0 0 1 9.5 2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.84A2.5 2.5 0 0 0 14.5 2"/></svg>
+          </div>
+          <span>AI Intake Summary</span>
+          <span style="margin-left:auto;font-size:11px;font-weight:500;background:#F3E8FF;color:#9333EA;padding:2px 8px;border-radius:999px;">From Telegram Bot</span>
+          <button onclick="toggleIntake()" id="intake-toggle" style="margin-left:8px;background:none;border:none;cursor:pointer;color:#9CA3AF;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" id="intake-chevron"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+        </div>
+        <div id="intake-body" style="margin-top:16px;">
+          <p style="font-size:13px;color:#9CA3AF;">Loading intake data…</p>
+        </div>
+      </div>
+
+      <!-- TCM Syndrome (from AI summary) -->
+      <div class="zf-card">
+        <div class="zf-card-title">
+          <div class="zf-card-icon" style="background:#CCFBF1;color:#0D9488;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <span>Clinical Summary</span>
+        </div>
+        <div id="summary-body" style="margin-top:14px;">
+          <p style="font-size:13px;color:#9CA3AF;">Loading summary…</p>
+        </div>
+      </div>
+
+      <!-- Tongue & Pulse -->
+      <div class="zf-card">
+        <div class="zf-card-title">
+          <div class="zf-card-icon" style="background:#FEE2E2;color:#DC2626;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <span>Tongue &amp; Pulse Findings</span>
+        </div>
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label class="zf-field-label">Tongue Observation</label>
+            <input type="text" class="zf-input" id="tongue-input" placeholder="e.g. Red body, thin yellow coating, slight cracks…" />
+          </div>
+          <div>
+            <label class="zf-field-label">Pulse Observation</label>
+            <input type="text" class="zf-input" id="pulse-input" placeholder="e.g. Wiry, slightly rapid, thin on right guan…" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Points Used -->
+      <div class="zf-card">
+        <div class="zf-card-title">
+          <div class="zf-card-icon" style="background:#DBEAFE;color:#2563EB;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <span>Acupuncture Points Used</span>
+        </div>
+        <div style="margin-top:14px;">
+          <!-- Suggested points -->
+          <div id="suggested-points" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:32px;">
+            <!-- filled dynamically -->
+          </div>
+          <!-- Points input (tag-style) -->
+          <div class="zf-points-input-wrap" id="points-wrap">
+            <div id="points-tags" class="zf-points-tags"></div>
+            <input type="text" id="point-input" class="zf-points-input" placeholder="Type point code (e.g. ST36) and press Enter…" />
+            <button class="zf-points-add" onclick="addPoint()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <p style="font-size:11px;color:#9CA3AF;margin-top:6px;" id="point-count">0 points selected · Press Enter to add, Backspace to remove last</p>
+        </div>
+      </div>
+
+      <!-- Session Notes -->
+      <div class="zf-card">
+        <div class="zf-card-title">
+          <div class="zf-card-icon" style="background:#EEF2FF;color:#4F46E5;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <span>Session Notes</span>
+          <span style="margin-left:auto;font-size:11px;color:#9CA3AF;" id="notes-status">—</span>
+        </div>
+        <textarea id="session-notes" class="zf-textarea" rows="7" style="margin-top:14px;"
+          placeholder="Document session observations, treatment modifications, patient responses…"
+          oninput="onNotesChange()"></textarea>
+      </div>
+
+      <!-- Lifestyle Advice -->
+      <div class="zf-card">
+        <div class="zf-card-title">
+          <div class="zf-card-icon" style="background:#FEF3C7;color:#D97706;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </div>
+          <span>Lifestyle Advice</span>
+          <span style="margin-left:auto;font-size:11px;font-weight:500;background:#DCFCE7;color:#16A34A;padding:2px 8px;border-radius:999px;">Customisable</span>
+        </div>
+        <p style="font-size:12px;color:#9CA3AF;margin-top:8px;">Toggle recommendations to include in the patient's Telegram message</p>
+        <div id="advice-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+          <!-- filled dynamically -->
+        </div>
+        <button id="send-advice-btn" class="zf-btn zf-btn-primary" style="width:100%;margin-top:14px;justify-content:center;" onclick="sendAdvice()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send Approved Advice via Telegram
+        </button>
+      </div>
+
+      <!-- Complete Session -->
+      <button class="zf-btn zf-btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:15px;border-radius:14px;gap:8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Complete Session
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<!-- Point info panel -->
+<div id="point-panel" class="zf-point-panel hidden">
+  <div class="zf-point-panel-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 id="panel-code" style="font-size:20px;font-weight:700;color:#0D9488;"></h3>
+      <button onclick="closePointPanel()" style="background:none;border:none;cursor:pointer;color:#9CA3AF;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="panel-body"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Point info data (basic TCM reference)
+const POINT_INFO = {
+  'ST36': { name: 'Zusanli', channel: 'Stomach', location: '3 cun below ST35, one finger-width lateral to the anterior crest of the tibia', actions: 'Tonifies Qi and Blood, strengthens digestion, boosts immunity, calms Shen' },
+  'LI4':  { name: 'Hegu', channel: 'Large Intestine', location: 'Dorsum of the hand, between 1st and 2nd metacarpal bones, at the midpoint of the 2nd metacarpal', actions: 'Clears Wind and Heat, stops pain, promotes labour (contraindicated in pregnancy)' },
+  'PC6':  { name: 'Neiguan', channel: 'Pericardium', location: '2 cun above the wrist crease, between the tendons of palmaris longus and flexor carpi radialis', actions: 'Regulates Heart, calms the mind, stops nausea, opens the chest' },
+  'LR3':  { name: 'Taichong', channel: 'Liver', location: 'Dorsum of foot, in the depression between the 1st and 2nd metatarsal bones', actions: 'Moves Liver Qi, subdues Liver Yang, regulates menstruation, calms Wind' },
+  'SP6':  { name: 'Sanyinjiao', channel: 'Spleen', location: '3 cun above the medial malleolus, on the posterior border of the tibia', actions: 'Strengthens Spleen and Stomach, nourishes Blood and Yin, regulates menstruation' },
+  'GV20': { name: 'Baihui', channel: 'Governing Vessel', location: 'On the midline of the head, at the intersection with the line connecting the ear apices', actions: 'Clears the mind, lifts the spirit, raises Yang Qi, benefits the brain' },
+  'HT7':  { name: 'Shenmen', channel: 'Heart', location: 'At the wrist, on the radial side of the flexor carpi ulnaris tendon, in the depression at the proximal border of the pisiform bone', actions: 'Calms Shen, tonifies Heart Qi and Blood, treats insomnia and anxiety' },
+  'KD3':  { name: 'Taixi', channel: 'Kidney', location: 'In the depression between the medial malleolus and the Achilles tendon', actions: 'Tonifies Kidney Yin and Yang, strengthens the lower back, benefits the brain' },
+};
+
+const defaultAdvice = [
+  { id: 'sleep', icon: '🌙', category: 'Sleep', text: 'Establish a wind-down routine — dim lights 1 hour before bed, avoid screens, try 4-7-8 breathing.', enabled: true },
+  { id: 'diet',  icon: '🥗', category: 'Diet',  text: 'Reduce greasy and cold-raw foods. Favour warm, cooked meals with bitter greens and ginger tea.', enabled: true },
+  { id: 'stress',icon: '🧘', category: 'Stress',text: 'Practice 10 min of Liver Qi-moving stretches daily (side bends, hip openers). Consider journaling.', enabled: true },
+  { id: 'walk',  icon: '🚶', category: 'Movement', text: 'Gentle daily movement — 30-minute walks preferred over intense workouts during this treatment phase.', enabled: false },
+];
+
+let advice = JSON.parse(JSON.stringify(defaultAdvice));
+let usedPoints = [];
+
+// Get appointment data from URL path: /treatment/{patient_id}/{date}/{time}
+const pathParts = window.location.pathname.split('/').filter(Boolean);
+const patientId = pathParts[1];
+const aptDate   = pathParts[2];
+const aptTime   = (pathParts[3] || '').replace('-', ':');
+
+async function loadTreatment() {
+  if (!patientId || !aptDate) return;
+  try {
+    const data = await fetch(`/api/appointment/${patientId}/${aptDate}/${(pathParts[3]||'')}`).then(r => r.json());
+
+    // Header
+    const initials = data.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('pt-initials').textContent = initials;
+    document.getElementById('pt-name').textContent = data.patient_name;
+    const d = new Date(data.date);
+    document.getElementById('pt-meta').textContent =
+      d.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' at ' + data.time;
+    document.getElementById('pt-session-num').textContent = `Session`;
+
+    // Summary
+    const summaryBody = document.getElementById('summary-body');
+    if (data.summary) {
+      summaryBody.innerHTML = `<p style="font-size:14px;color:#374151;line-height:1.7;white-space:pre-wrap;">${data.summary}</p>`;
+    } else {
+      summaryBody.innerHTML = `<p style="font-size:13px;color:#9CA3AF;">No clinical summary recorded.</p>`;
+    }
+
+    // Intake history
+    const intakeBody = document.getElementById('intake-body');
+    if (data.intake_history && data.intake_history.length > 0) {
+      intakeBody.innerHTML = data.intake_history.map(msg => {
+        const isUser = msg.role === 'user';
+        return `<div class="zf-intake-msg ${isUser ? 'user' : 'ai'}">
+          <div class="zf-intake-role">${isUser ? '👤 Patient' : '🤖 AI'}</div>
+          <div class="zf-intake-text">${msg.content}</div>
+        </div>`;
+      }).join('');
+      // Add timestamp
+      intakeBody.innerHTML += `<div style="font-size:11px;color:#9CA3AF;margin-top:12px;padding-top:12px;border-top:1px solid #F3F4F6;">Collected via Telegram Bot on ${new Date(data.date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>`;
+    } else {
+      intakeBody.innerHTML = `<p style="font-size:13px;color:#9CA3AF;">Patient did not complete the intake questionnaire for this session.</p>`;
+    }
+
+    // Suggested points (from summary — simple keyword detection)
+    const suggestedDiv = document.getElementById('suggested-points');
+    const knownPoints = Object.keys(POINT_INFO);
+    const detectedPoints = knownPoints.filter(p =>
+      data.summary && data.summary.toUpperCase().includes(p));
+    if (detectedPoints.length > 0) {
+      suggestedDiv.innerHTML = '<span style="font-size:11px;color:#9CA3AF;width:100%;display:block;margin-bottom:4px;">Suggested from intake:</span>' +
+        detectedPoints.map(p => `<button class="zf-point-chip" onclick="openPointPanel('${p}')">${p} <span style="color:#5EEAD4;font-size:14px;">›</span></button>`).join('');
+    } else {
+      suggestedDiv.innerHTML = `<span style="font-size:12px;color:#9CA3AF;">No specific points detected in summary — add manually below.</span>`;
+    }
+
+  } catch(e) {
+    console.error('Treatment load error:', e);
+    document.getElementById('pt-name').textContent = 'Error loading session';
+  }
+}
+
+// -- Advice toggles --
+function renderAdvice() {
+  document.getElementById('advice-list').innerHTML = advice.map(item => `
+    <div class="zf-advice-item ${item.enabled ? 'on' : 'off'}">
+      <span style="font-size:18px;">${item.icon}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#111827;">${item.category}</div>
+        <p style="font-size:12px;color:#6B7280;line-height:1.5;margin-top:2px;">${item.text}</p>
+      </div>
+      <button class="zf-toggle ${item.enabled ? 'on' : ''}" onclick="toggleAdvice('${item.id}')"></button>
+    </div>
+  `).join('');
+}
+
+function toggleAdvice(id) {
+  const item = advice.find(a => a.id === id);
+  if (item) { item.enabled = !item.enabled; renderAdvice(); }
+}
+
+function sendAdvice() {
+  const enabled = advice.filter(a => a.enabled);
+  if (enabled.length === 0) { alert('No advice selected.'); return; }
+  alert(`Will send ${enabled.length} lifestyle tip${enabled.length !== 1 ? 's' : ''} to patient via Telegram.\n(Telegram API integration coming soon)`);
+}
+
+// -- Points input --
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('point-input');
+  if (!inp) return;
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addPoint(); }
+    if (e.key === 'Backspace' && inp.value === '' && usedPoints.length > 0) {
+      usedPoints.pop(); renderPoints();
+    }
+  });
+});
+
+function addPoint() {
+  const inp = document.getElementById('point-input');
+  const val = inp.value.trim().toUpperCase();
+  if (val && !usedPoints.includes(val)) {
+    usedPoints.push(val); inp.value = ''; renderPoints();
+  }
+}
+
+function removePoint(p) {
+  usedPoints = usedPoints.filter(x => x !== p);
+  renderPoints();
+}
+
+function renderPoints() {
+  document.getElementById('points-tags').innerHTML = usedPoints.map(p =>
+    `<span class="zf-point-tag">${p}<button onclick="removePoint('${p}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.7);padding:0 0 0 4px;line-height:1;">&times;</button></span>`
+  ).join('');
+  document.getElementById('point-count').textContent = `${usedPoints.length} point${usedPoints.length !== 1 ? 's' : ''} selected · Press Enter to add, Backspace to remove last`;
+}
+
+function openPointPanel(code) {
+  const panel = document.getElementById('point-panel');
+  const info  = POINT_INFO[code];
+  document.getElementById('panel-code').textContent = code;
+  if (info) {
+    document.getElementById('panel-body').innerHTML = `
+      <div style="margin-bottom:10px;"><span class="zf-badge zf-badge-teal">${info.channel} Channel</span></div>
+      <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:8px;">${info.name}</div>
+      <div style="margin-bottom:12px;"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Location</span><p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.location}</p></div>
+      <div><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Actions</span><p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.actions}</p></div>
+    `;
+  } else {
+    document.getElementById('panel-body').innerHTML = `<p style="font-size:13px;color:#9CA3AF;">No information available for <strong>${code}</strong>.</p>`;
+  }
+  panel.classList.remove('hidden');
+}
+
+function closePointPanel() {
+  document.getElementById('point-panel').classList.add('hidden');
+}
+
+function toggleIntake() {
+  const body = document.getElementById('intake-body');
+  const chevron = document.getElementById('intake-chevron');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  chevron.setAttribute('points', open ? '6 9 12 15 18 9' : '18 15 12 9 6 15');
+}
+
+let _notesTimer;
+function onNotesChange() {
+  document.getElementById('notes-status').textContent = 'Unsaved…';
+  clearTimeout(_notesTimer);
+  _notesTimer = setTimeout(() => {
+    document.getElementById('notes-status').textContent = 'Auto-saved ✓';
+  }, 1500);
+}
+
+// Init
+renderAdvice();
+loadTreatment();
+</script>
+{% endblock %}

@@ -39,6 +39,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* New multi-page app — .zf-app fills the body */
+.zf-app {
+  flex: 1;
+  overflow: hidden;
+}
+
 /* ── Top bar ───────────────────────────────────────────────────────────────── */
 #topbar {
   display: flex;
@@ -559,4 +565,770 @@ body {
 @media (max-width: 768px) {
   #sidebar { display: none; }
   #hint-badge { display: none; }
+}
+
+
+/* ============================================================
+   ZenFlow Multi-Page App Layout (zf- namespace)
+   ============================================================ */
+
+.zf-app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: #F9FAFB;
+}
+
+/* ── Sidebar ── */
+.zf-sidebar {
+  width: 232px;
+  background: white;
+  border-right: 1px solid #E5E7EB;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.zf-sidebar-brand {
+  padding: 18px 18px 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 18px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.zf-brand-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0D9488;
+  letter-spacing: -0.3px;
+}
+
+.zf-nav {
+  padding: 10px 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zf-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+.zf-nav-item:hover { background: #F3F4F6; color: #111827; }
+.zf-nav-item.active { background: #0D9488; color: white; }
+.zf-nav-item.active svg { color: white; }
+
+.zf-nav-icon { flex-shrink: 0; opacity: 0.8; }
+.zf-nav-item.active .zf-nav-icon { opacity: 1; }
+
+.zf-nav-badge {
+  background: #EF4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+
+.zf-sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid #F3F4F6;
+}
+
+.zf-user-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 6px;
+  border-radius: 8px;
+}
+
+.zf-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0D9488;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.zf-user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  display: block;
+  white-space: nowrap;
+}
+
+.zf-user-role {
+  font-size: 11px;
+  color: #9CA3AF;
+  display: block;
+  white-space: nowrap;
+}
+
+/* ── Main wrapper ── */
+.zf-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: #F9FAFB;
+}
+
+.zf-topbar {
+  height: 52px;
+  background: white;
+  border-bottom: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+.zf-topbar-left { display: flex; align-items: center; gap: 12px; }
+.zf-topbar-right { display: flex; align-items: center; gap: 12px; }
+
+.zf-page-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  letter-spacing: -0.2px;
+}
+
+.zf-topbar-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9CA3AF;
+  background: #F9FAFB;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #F3F4F6;
+}
+
+.zf-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #F9FAFB;
+}
+
+/* ── Cards ── */
+.zf-card {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #F3F4F6;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.zf-card-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.zf-card-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Stat cards ── */
+.zf-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.zf-stat-card {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #F3F4F6;
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.zf-stat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.zf-stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.zf-stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.zf-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+.zf-stat-subtitle {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin-top: 2px;
+}
+
+/* ── Badges ── */
+.zf-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.zf-badge-green  { background: #DCFCE7; color: #16A34A; }
+.zf-badge-teal   { background: #CCFBF1; color: #0D9488; }
+.zf-badge-blue   { background: #DBEAFE; color: #2563EB; }
+.zf-badge-amber  { background: #FEF3C7; color: #D97706; }
+.zf-badge-gray   { background: #F3F4F6; color: #6B7280; }
+.zf-badge-red    { background: #FEE2E2; color: #DC2626; }
+.zf-badge-purple { background: #F3E8FF; color: #9333EA; }
+
+/* ── Buttons ── */
+.zf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.zf-btn-primary {
+  background: #0D9488;
+  color: white;
+}
+.zf-btn-primary:hover { background: #0A7A6E; }
+
+.zf-btn-outline {
+  background: white;
+  color: #374151;
+  border: 1px solid #E5E7EB;
+}
+.zf-btn-outline:hover { background: #F9FAFB; border-color: #D1D5DB; }
+
+/* ── Table ── */
+.zf-table-wrap {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #F3F4F6;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.zf-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.zf-table thead th {
+  background: #F9FAFB;
+  padding: 11px 18px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.zf-table tbody tr {
+  border-bottom: 1px solid #F3F4F6;
+  transition: background 0.1s;
+}
+.zf-table tbody tr:last-child { border-bottom: none; }
+.zf-table tbody tr:hover { background: #F0FDFA55; }
+
+.zf-table td {
+  padding: 13px 18px;
+  font-size: 13.5px;
+  color: #374151;
+}
+
+/* ── Avatar ── */
+.zf-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #CCFBF1;
+  color: #0D9488;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Inputs ── */
+.zf-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #111827;
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+.zf-input:focus {
+  border-color: #0D9488;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+}
+.zf-input::placeholder { color: #9CA3AF; }
+
+.zf-textarea {
+  width: 100%;
+  padding: 10px 13px;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #111827;
+  background: #F9FAFB;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.6;
+}
+.zf-textarea:focus {
+  border-color: #0D9488;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+  background: white;
+}
+
+.zf-field-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #6B7280;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── Section headers ── */
+.zf-section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.zf-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.zf-link {
+  font-size: 12px;
+  color: #0D9488;
+  text-decoration: none;
+  font-weight: 500;
+}
+.zf-link:hover { text-decoration: underline; }
+
+/* ── Empty state ── */
+.zf-empty-state {
+  text-align: center;
+  padding: 36px 20px;
+  color: #9CA3AF;
+  font-size: 13px;
+}
+.zf-empty-state svg { display: block; margin: 0 auto 10px; }
+
+/* ── Dashboard: appointment row ── */
+.zf-apt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid #F3F4F6;
+}
+.zf-apt-row:last-child { border-bottom: none; }
+.zf-apt-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  width: 56px;
+  flex-shrink: 0;
+}
+.zf-apt-info { flex: 1; min-width: 0; }
+.zf-apt-name { font-size: 13px; font-weight: 600; color: #111827; }
+.zf-apt-sub  { font-size: 11px; color: #9CA3AF; margin-top: 1px; }
+
+/* ── Dashboard: intake alert row ── */
+.zf-alert-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+.zf-alert-row:last-child { border-bottom: none; }
+
+/* ── Patients: toolbar ── */
+.zf-patients-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.zf-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 360px;
+}
+.zf-filter-chips {
+  display: flex;
+  gap: 6px;
+}
+.zf-chip {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  background: white;
+  border: 1px solid #E5E7EB;
+  color: #374151;
+  transition: all 0.15s;
+}
+.zf-chip:hover { border-color: #0D9488; color: #0D9488; }
+.zf-chip.active { background: #0D9488; color: white; border-color: #0D9488; }
+
+/* ── Patient drawer ── */
+.zf-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.zf-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+}
+.zf-drawer-panel {
+  position: absolute;
+  right: -480px;
+  top: 0;
+  bottom: 0;
+  width: 480px;
+  background: white;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.zf-drawer.open .zf-drawer-panel { right: 0; }
+.zf-drawer-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #F3F4F6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.zf-drawer-title { font-size: 17px; font-weight: 700; color: #111827; }
+.zf-drawer-sub   { font-size: 12px; color: #9CA3AF; margin-top: 3px; }
+.zf-drawer-body  { flex: 1; overflow-y: auto; padding: 16px 20px; }
+
+.zf-history-item {
+  padding: 14px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+.zf-history-item:last-child { border-bottom: none; }
+.zf-history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.zf-history-date { font-size: 13px; font-weight: 600; color: #111827; }
+.zf-history-summary {
+  font-size: 12px;
+  color: #6B7280;
+  line-height: 1.6;
+  margin-top: 8px;
+  background: #F9FAFB;
+  border-radius: 8px;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
+/* ── Treatment page ── */
+.zf-treatment-hdr {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #F3F4F6;
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.zf-treatment-name { font-size: 18px; font-weight: 700; color: #111827; }
+.zf-treatment-meta { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+
+/* Intake messages */
+.zf-intake-msg {
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+.zf-intake-msg.user { background: #F0FDFA; border-left: 3px solid #0D9488; }
+.zf-intake-msg.ai   { background: #F9FAFB; border-left: 3px solid #E5E7EB; }
+.zf-intake-role { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: #9CA3AF; margin-bottom: 4px; }
+.zf-intake-text { font-size: 13px; color: #374151; line-height: 1.6; }
+
+/* Points input */
+.zf-points-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  min-height: 44px;
+}
+.zf-points-input-wrap:focus-within {
+  border-color: #0D9488;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+}
+.zf-points-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.zf-point-tag {
+  display: inline-flex;
+  align-items: center;
+  background: #0D9488;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+.zf-points-input {
+  flex: 1;
+  min-width: 120px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: #111827;
+}
+.zf-points-input::placeholder { color: #9CA3AF; }
+.zf-points-add {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #CCFBF1;
+  color: #0D9488;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.zf-points-add:hover { background: #99F6E4; }
+
+/* Suggested point chips */
+.zf-point-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #CCFBF1;
+  color: #0D9488;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.zf-point-chip:hover { background: #99F6E4; box-shadow: 0 2px 6px rgba(13,148,136,0.2); }
+
+/* Lifestyle advice items */
+.zf-advice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  border: 1px solid #F3F4F6;
+  transition: all 0.15s;
+}
+.zf-advice-item.on  { background: white; border-color: #99F6E4; box-shadow: 0 1px 4px rgba(13,148,136,0.1); }
+.zf-advice-item.off { background: #F9FAFB; opacity: 0.6; }
+
+.zf-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: #D1D5DB;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.2s;
+}
+.zf-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: left 0.2s;
+}
+.zf-toggle.on { background: #0D9488; }
+.zf-toggle.on::after { left: 18px; }
+
+/* Point info panel */
+.zf-point-panel {
+  position: fixed;
+  top: 52px;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  background: white;
+  border-left: 1px solid #E5E7EB;
+  box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+  z-index: 100;
+  animation: slideInRight 0.2s ease;
+}
+@keyframes slideInRight {
+  from { transform: translateX(40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.zf-point-panel-content {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* ── Messages page ── */
+.zf-convo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #F3F4F6;
+  transition: background 0.1s;
+}
+.zf-convo-item:hover { background: #F9FAFB; }
+.zf-convo-item.active { background: #F0FDFA; }
+
+.zf-msg-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  line-height: 1.5;
+}
+.zf-msg-bubble.user {
+  background: #0D9488;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+.zf-msg-bubble.ai {
+  background: white;
+  color: #374151;
+  border: 1px solid #E5E7EB;
+  border-bottom-left-radius: 4px;
+}
+
+/* ── Icon button (shared) ── */
+.zf-icon-btn {
+  background: none;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6B7280;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.zf-icon-btn:hover { background: #F3F4F6; border-color: #D1D5DB; color: #374151; }
+
+/* ── Schedule page inner layout ── */
+#sched-layout {
+  height: 100%;
+}
+#sched-sidebar {
+  padding: 14px;
 }

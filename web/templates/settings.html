@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block page_title_tag %}Settings{% endblock %}
+{% block page_heading %}Settings{% endblock %}
+
+{% block content %}
+<div style="padding: 28px; max-width: 780px;">
+
+  <!-- Google Calendar -->
+  <div class="zf-card" style="margin-bottom: 20px;">
+    <div class="zf-card-title" style="margin-bottom:16px;">
+      <div class="zf-card-icon" style="background:#DBEAFE;color:#2563EB;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <span>Google Calendar Integration</span>
+      <span id="gcal-status" class="zf-badge" style="margin-left:auto;"></span>
+    </div>
+    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:16px;">Connect your Google Calendar to sync availability. Once connected, the Schedule page lets you mark available time slots that patients can book through the Telegram bot.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="/auth/login" class="zf-btn zf-btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Connect / Reconnect Google
+      </a>
+      <a href="/schedule" class="zf-btn zf-btn-outline">
+        Open Availability Schedule →
+      </a>
+    </div>
+  </div>
+
+  <!-- Telegram Bot -->
+  <div class="zf-card" style="margin-bottom: 20px;">
+    <div class="zf-card-title" style="margin-bottom:16px;">
+      <div class="zf-card-icon" style="background:#DBEAFE;color:#2563EB;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.725 8.123c-.13.617-.473.77-.957.478l-2.65-1.951-1.279 1.23c-.141.141-.26.26-.534.26l.19-2.7 4.905-4.426c.213-.19-.047-.295-.33-.106l-6.062 3.817-2.612-.815c-.568-.177-.58-.568.119-.841l10.213-3.937c.473-.177.888.106.732.841z"/>
+        </svg>
+      </div>
+      <span>Telegram Bot</span>
+      <span id="bot-status" class="zf-badge zf-badge-gray" style="margin-left:auto;">Status Unknown</span>
+    </div>
+    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:16px;">The patient bot and therapist bot are configured via environment variables. Run <code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px;">python run.py</code> to start both bots.</p>
+    <div id="bot-info" style="background:#F9FAFB;border-radius:10px;padding:14px;font-size:13px;color:#374151;line-height:1.8;">
+      Loading bot info…
+    </div>
+  </div>
+
+  <!-- Clinic Info -->
+  <div class="zf-card" style="margin-bottom: 20px;">
+    <div class="zf-card-title" style="margin-bottom:16px;">
+      <div class="zf-card-icon" style="background:#CCFBF1;color:#0D9488;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <span>Clinic Information</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px;">
+      <div>
+        <label class="zf-field-label">Clinic Name</label>
+        <input type="text" class="zf-input" value="ZenFlow TCM Clinic" />
+      </div>
+      <div>
+        <label class="zf-field-label">Timezone</label>
+        <input type="text" class="zf-input" value="Asia/Jerusalem" />
+      </div>
+      <div>
+        <label class="zf-field-label">Therapist Name</label>
+        <input type="text" class="zf-input" placeholder="Your name…" />
+      </div>
+      <div>
+        <label class="zf-field-label">Session Duration (minutes)</label>
+        <input type="number" class="zf-input" value="60" />
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <button class="zf-btn zf-btn-primary" onclick="alert('Settings saved (persistence coming soon)')">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- Data Management -->
+  <div class="zf-card">
+    <div class="zf-card-title" style="margin-bottom:16px;">
+      <div class="zf-card-icon" style="background:#FEE2E2;color:#DC2626;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </div>
+      <span>Data Management</span>
+    </div>
+    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:14px;">Appointment data is stored locally in <code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px;">data/appointments/</code>. Each patient has a folder with one JSON file per appointment.</p>
+    <div id="data-stats" style="background:#F9FAFB;border-radius:10px;padding:14px;font-size:13px;color:#374151;line-height:1.8;">
+      Loading data stats…
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function loadSettings() {
+  // GCal status
+  try {
+    await fetch('/api/calendars');
+    document.getElementById('gcal-status').textContent = '✓ Connected';
+    document.getElementById('gcal-status').className = 'zf-badge zf-badge-green';
+  } catch {
+    document.getElementById('gcal-status').textContent = 'Not connected';
+    document.getElementById('gcal-status').className = 'zf-badge zf-badge-gray';
+  }
+
+  // Patients / data stats
+  try {
+    const patients = await fetch('/api/patients').then(r => r.json());
+    const totalSessions = patients.reduce((s, p) => s + p.sessions, 0);
+    const withIntake = patients.reduce((s, p) => s + p.intake_count, 0);
+    document.getElementById('data-stats').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${patients.length}</div><div style="font-size:12px;color:#9CA3AF;">Total Patients</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${totalSessions}</div><div style="font-size:12px;color:#9CA3AF;">Total Sessions</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${withIntake}</div><div style="font-size:12px;color:#9CA3AF;">Intake Forms</div></div>
+      </div>`;
+  } catch {
+    document.getElementById('data-stats').textContent = 'Error loading data stats';
+  }
+
+  // Bot info
+  document.getElementById('bot-info').innerHTML = `
+    <div style="display:grid;grid-template-columns:140px 1fr;row-gap:4px;">
+      <span style="color:#9CA3AF;">Patient Bot</span><span>@ZenFlowClinic_bot (via TELEGRAM_TOKEN)</span>
+      <span style="color:#9CA3AF;">Therapist Bot</span><span>@ZenFlowTherapist_bot (via THERAPIST_BOT_TOKEN)</span>
+      <span style="color:#9CA3AF;">AI Model</span><span>Ollama — gemma3:latest (localhost:11434)</span>
+    </div>`;
+}
+loadSettings();
+</script>
+{% endblock %}

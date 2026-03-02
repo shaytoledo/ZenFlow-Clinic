@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block page_title_tag %}Messages{% endblock %}
+{% block page_heading %}Messages{% endblock %}
+
+{% block content %}
+<div style="padding: 28px;">
+
+  <div style="display:grid; grid-template-columns: 280px 1fr; gap: 0; height: calc(100vh - 120px); border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+
+    <!-- Patient list panel -->
+    <div style="background: white; border-right: 1px solid #E5E7EB; display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding: 16px 16px 12px; border-bottom: 1px solid #F3F4F6;">
+        <div style="position:relative;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" class="zf-input" placeholder="Search conversations…" style="padding-left:30px;font-size:13px;" oninput="filterConvos(this.value)" />
+        </div>
+      </div>
+      <div id="convo-list" style="overflow-y:auto;flex:1;">
+        <div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Message thread panel -->
+    <div style="background: #F9FAFB; display:flex;flex-direction:column;overflow:hidden;">
+      <div id="thread-header" style="background:white;border-bottom:1px solid #E5E7EB;padding:14px 20px;display:flex;align-items:center;gap:12px;min-height:62px;">
+        <div style="font-size:13px;color:#9CA3AF;">Select a patient to view conversation</div>
+      </div>
+      <div id="thread-body" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;">
+        <!-- messages rendered here -->
+      </div>
+      <div id="thread-input" style="background:white;border-top:1px solid #E5E7EB;padding:14px 16px;display:flex;gap:10px;" class="hidden">
+        <input type="text" id="reply-input" class="zf-input" placeholder="Type a reply… (Telegram integration)" style="flex:1;" />
+        <button class="zf-btn zf-btn-primary" style="padding:9px 16px;" onclick="sendReply()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Info note -->
+  <div style="margin-top:16px;background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span style="font-size:13px;color:#0D9488;">Conversations happen in real-time through the Telegram bot. This view shows appointment-linked intake history. Direct replies require the therapist Telegram bot.</span>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let _patients = [];
+let _selectedId = null;
+
+async function loadMessages() {
+  try {
+    const data = await fetch('/api/patients').then(r => r.json());
+    _patients = data.filter(p => p.sessions > 0);
+    renderConvoList(_patients);
+  } catch(e) {
+    document.getElementById('convo-list').innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">Error loading</div>';
+  }
+}
+
+function filterConvos(q) {
+  const filtered = _patients.filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
+  renderConvoList(filtered);
+}
+
+function renderConvoList(patients) {
+  const el = document.getElementById('convo-list');
+  if (patients.length === 0) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">No patients found</div>';
+    return;
+  }
+  el.innerHTML = patients.map(p => {
+    const initials = p.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    const lastDate = p.last_appointment
+      ? new Date(p.last_appointment).toLocaleDateString('en-GB', {day:'numeric',month:'short'})
+      : '';
+    return `<div class="zf-convo-item ${_selectedId === p.id ? 'active' : ''}" onclick="openConvo(${p.id})">
+      <div class="zf-avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+        <div style="font-size:11px;color:#9CA3AF;">${p.sessions} session${p.sessions!==1?'s':''} · ${lastDate}</div>
+      </div>
+      ${p.intake_count > 0 ? '<span style="width:7px;height:7px;background:#0D9488;border-radius:50%;flex-shrink:0;"></span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+async function openConvo(patientId) {
+  _selectedId = patientId;
+  renderConvoList(_patients.filter(p => {
+    const q = document.querySelector('#convo-list').previousElementSibling.querySelector('input').value;
+    return p.name.toLowerCase().includes(q.toLowerCase());
+  }));
+
+  const patient = _patients.find(p => p.id === patientId);
+  const initials = patient ? patient.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() : '?';
+
+  document.getElementById('thread-header').innerHTML = `
+    <div class="zf-avatar" style="width:34px;height:34px;font-size:12px;">${initials}</div>
+    <div>
+      <div style="font-size:14px;font-weight:600;color:#111827;">${patient ? patient.name : 'Patient'}</div>
+      <div style="font-size:11px;color:#9CA3AF;">${patient ? patient.sessions + ' sessions recorded' : ''}</div>
+    </div>
+    <a href="/patients" style="margin-left:auto;font-size:12px;color:#0D9488;text-decoration:none;font-weight:500;">View Profile →</a>
+  `;
+
+  const threadBody = document.getElementById('thread-body');
+  threadBody.innerHTML = '<div style="text-align:center;color:#9CA3AF;font-size:13px;">Loading conversation…</div>';
+  document.getElementById('thread-input').classList.remove('hidden');
+
+  try {
+    const data = await fetch(`/api/patients/${patientId}`).then(r => r.json());
+    // Show intake conversations from appointments
+    const allMsgs = [];
+    data.appointments.forEach(apt => {
+      if (apt.intake_history && apt.intake_history.length > 0) {
+        allMsgs.push({ type: 'date', text: new Date(apt.date).toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' — Intake Session' });
+        apt.intake_history.forEach(msg => {
+          allMsgs.push({ role: msg.role, content: msg.content });
+        });
+      }
+    });
+
+    if (allMsgs.length === 0) {
+      threadBody.innerHTML = `<div style="text-align:center;color:#9CA3AF;font-size:13px;margin-top:40px;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round" style="display:block;margin:0 auto 10px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        No intake conversations recorded yet
+      </div>`;
+      return;
+    }
+
+    threadBody.innerHTML = allMsgs.map(msg => {
+      if (msg.type === 'date') {
+        return `<div style="text-align:center;font-size:11px;color:#9CA3AF;background:#F3F4F6;padding:4px 12px;border-radius:999px;align-self:center;">${msg.text}</div>`;
+      }
+      const isUser = msg.role === 'user';
+      return `<div style="display:flex;${isUser ? 'justify-content:flex-end;' : ''}">
+        <div class="zf-msg-bubble ${isUser ? 'user' : 'ai'}">
+          <div style="font-size:10px;font-weight:600;color:${isUser ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isUser ? '👤 Patient' : '🤖 AI Assistant'}</div>
+          <div style="font-size:13px;line-height:1.5;">${msg.content}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    threadBody.scrollTop = threadBody.scrollHeight;
+  } catch(e) {
+    threadBody.innerHTML = '<div style="text-align:center;color:#EF4444;font-size:13px;">Error loading conversation</div>';
+  }
+}
+
+function sendReply() {
+  const inp = document.getElementById('reply-input');
+  if (!inp.value.trim()) return;
+  alert('Sending replies via Telegram requires the therapist bot to be running.\nMessage: "' + inp.value + '"');
+  inp.value = '';
+}
+
+loadMessages();
+</script>
+{% endblock %}

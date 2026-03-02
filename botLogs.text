@@ -1,45 +1,25 @@
-2026-03-02 13:11:28,215 [INFO] bot.main — Starting ZenFlow Clinic Bot...
-2026-03-02 13:11:29,050 [INFO] bot.therapist_bot.main — Therapist bot ready for user ID 918187404
-2026-03-02 13:11:29,402 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getMe "HTTP/1.1 200 OK"
-2026-03-02 13:11:29,730 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getMe "HTTP/1.1 200 OK"
-2026-03-02 13:11:29,825 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/deleteWebhook "HTTP/1.1 200 OK"
-2026-03-02 13:11:29,940 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/deleteWebhook "HTTP/1.1 200 OK"
-2026-03-02 13:11:29,941 [INFO] telegram.ext.Application — Application started
-2026-03-02 13:11:29,941 [INFO] telegram.ext.Application — Application started
-2026-03-02 13:11:29,941 [INFO] bot.main — Both bots running — press Ctrl+C to stop
-2026-03-02 13:11:40,107 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:11:40,252 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:11:41,859 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:11:42,250 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/sendMessage "HTTP/1.1 200 OK"
-2026-03-02 13:11:44,114 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:11:44,228 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
-2026-03-02 13:11:44,231 [INFO] bot.handlers.schedule — [918187404] show_week_choice
-2026-03-02 13:11:44,347 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
-2026-03-02 13:11:45,790 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:11:45,901 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
-2026-03-02 13:11:45,903 [INFO] bot.handlers.schedule — [918187404] show_days week_offset=0
-2026-03-02 13:11:49,410 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
-2026-03-02 13:11:50,372 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:11:50,900 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:11:51,029 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
-2026-03-02 13:11:51,031 [INFO] bot.handlers.schedule — [918187404] show_hours for 2026-03-06
-2026-03-02 13:11:52,549 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
-2026-03-02 13:12:00,484 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:01,006 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:03,314 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:03,785 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
-2026-03-02 13:12:03,786 [INFO] bot.handlers.schedule — [918187404] slot chosen 2026-03-06 14:00
-2026-03-02 13:12:03,938 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
-2026-03-02 13:12:05,418 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:05,555 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/answerCallbackQuery "HTTP/1.1 200 OK"
-2026-03-02 13:12:09,786 [INFO] bot.services.availability — GCal appointment created: n85rggecjv70qqn600atn1o588 (2026-03-06 14:00)
-2026-03-02 13:12:09,791 [INFO] bot.services.appointments — Appointment saved: C:\Users\shayt\PycharmProjects\Clinic\data\appointments\918187404\2026-03-06_14-00.json
-2026-03-02 13:12:09,793 [INFO] bot.services.ai_intake — [918187404] Intake history cleared
-2026-03-02 13:12:09,793 [INFO] bot.handlers.schedule — [918187404] appointment saved (no intake)
-2026-03-02 13:12:09,930 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/editMessageText "HTTP/1.1 200 OK"
-2026-03-02 13:12:10,701 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:15,533 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:20,820 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:25,635 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:30,930 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 13:12:35,737 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:54:06,743 [INFO] bot.main — Starting ZenFlow Clinic Bot...
+2026-03-02 16:54:09,780 [INFO] bot.therapist_bot.main — Therapist bot ready for user ID 918187404
+2026-03-02 16:54:10,205 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getMe "HTTP/1.1 200 OK"
+2026-03-02 16:54:10,553 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getMe "HTTP/1.1 200 OK"
+2026-03-02 16:54:10,673 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-02 16:54:10,795 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-02 16:54:10,797 [INFO] telegram.ext.Application — Application started
+2026-03-02 16:54:10,797 [INFO] telegram.ext.Application — Application started
+2026-03-02 16:54:10,798 [INFO] bot.main — Both bots running — press Ctrl+C to stop
+2026-03-02 16:54:21,039 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:54:21,161 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:54:31,157 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:54:31,284 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:54:41,298 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:54:41,397 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:54:51,417 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:54:51,522 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:55:01,517 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:55:01,648 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:55:11,680 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:55:11,770 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:55:21,803 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:55:21,884 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:55:31,922 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-02 16:55:32,009 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"

@@ -20,7 +20,8 @@
       "Bash(xargs -I{} powershell -Command \"Stop-Process -Id {} -Force\")",
       "Bash(while read pid)",
       "Bash(do powershell -Command \"Stop-Process -Id $pid -Force\")",
-      "Bash(done)"
+      "Bash(done)",
+      "mcp__claude_ai_Figma__get_design_context"
     ]
   }
 }

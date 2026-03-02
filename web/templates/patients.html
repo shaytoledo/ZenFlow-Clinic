@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block page_title_tag %}Patients{% endblock %}
+{% block page_heading %}Patients{% endblock %}
+
+{% block content %}
+<div style="padding: 28px;">
+
+  <!-- Top bar: search + filter + add -->
+  <div class="zf-patients-toolbar">
+    <div class="zf-search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="patient-search" type="text" class="zf-input" placeholder="Search by name or Telegram ID…"
+        style="padding-left:36px;" oninput="filterPatients()" />
+    </div>
+
+    <div class="zf-filter-chips" id="filter-chips">
+      <button class="zf-chip active" onclick="setFilter('All', this)">All</button>
+      <button class="zf-chip" onclick="setFilter('Active', this)">Active</button>
+      <button class="zf-chip" onclick="setFilter('New', this)">New</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="zf-table-wrap" style="margin-top:16px;">
+    <table class="zf-table">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Last Appointment</th>
+          <th>Sessions</th>
+          <th>Intake Forms</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="patients-tbody">
+        <tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">Loading patients…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination info -->
+  <div style="margin-top:12px; font-size:13px; color:#9CA3AF;" id="patients-count"></div>
+
+</div>
+
+<!-- Patient detail drawer (slide-in panel) -->
+<div id="patient-drawer" class="zf-drawer hidden">
+  <div class="zf-drawer-backdrop" onclick="closeDrawer()"></div>
+  <div class="zf-drawer-panel">
+    <div class="zf-drawer-header">
+      <div>
+        <h2 class="zf-drawer-title" id="drawer-name">Patient</h2>
+        <p class="zf-drawer-sub" id="drawer-sub">Loading…</p>
+      </div>
+      <button class="zf-icon-btn" onclick="closeDrawer()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="zf-drawer-body" id="drawer-body">
+      <!-- Appointment history filled dynamically -->
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let _allPatients = [];
+let _filter = 'All';
+
+async function loadPatients() {
+  try {
+    const data = await fetch('/api/patients').then(r => r.json());
+    _allPatients = data;
+    renderTable();
+  } catch(e) {
+    document.getElementById('patients-tbody').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">Error loading patients</td></tr>';
+  }
+}
+
+function setFilter(f, btn) {
+  _filter = f;
+  document.querySelectorAll('.zf-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function filterPatients() {
+  renderTable();
+}
+
+function renderTable() {
+  const q = document.getElementById('patient-search').value.toLowerCase();
+  let rows = _allPatients.filter(p => {
+    const matchQ = p.name.toLowerCase().includes(q) || String(p.id).includes(q);
+    const matchF = _filter === 'All' ||
+      (_filter === 'New' && p.sessions <= 2) ||
+      (_filter === 'Active' && p.sessions > 2);
+    return matchQ && matchF;
+  });
+
+  document.getElementById('patients-count').textContent =
+    `${rows.length} of ${_allPatients.length} patients`;
+
+  if (rows.length === 0) {
+    document.getElementById('patients-tbody').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">No patients found</td></tr>';
+    return;
+  }
+
+  document.getElementById('patients-tbody').innerHTML = rows.map(p => {
+    const initials = p.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    const statusClass = p.sessions <= 2 ? 'zf-badge-blue' : 'zf-badge-green';
+    const statusLabel = p.sessions <= 2 ? 'New' : 'Active';
+    const lastDate = p.last_appointment
+      ? new Date(p.last_appointment).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
+      : 'Never';
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="zf-avatar">${initials}</div>
+          <div>
+            <div style="font-weight:600;color:#111827;">${p.name}</div>
+            <div style="font-size:12px;color:#9CA3AF;">ID: ${p.id}</div>
+          </div>
+        </div>
+      </td>
+      <td>${lastDate}</td>
+      <td><span class="zf-badge zf-badge-gray">${p.sessions} session${p.sessions !== 1 ? 's' : ''}</span></td>
+      <td><span class="zf-badge ${p.intake_count > 0 ? 'zf-badge-teal' : 'zf-badge-gray'}">${p.intake_count} form${p.intake_count !== 1 ? 's' : ''}</span></td>
+      <td><span class="zf-badge ${statusClass}">${statusLabel}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;" onclick="openDrawer(${p.id})">View History</button>
+          ${p.last_appointment ? `<a href="/treatment/${p.id}/${p.last_appointment}/${(p.last_time||'').replace(':','-')}" class="zf-btn zf-btn-primary" style="font-size:12px;padding:5px 12px;">Last Session</a>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function openDrawer(patientId) {
+  const drawer = document.getElementById('patient-drawer');
+  drawer.classList.remove('hidden');
+  drawer.classList.add('open');
+  document.getElementById('drawer-body').innerHTML = '<p style="color:#9CA3AF;padding:20px;">Loading history…</p>';
+
+  try {
+    const data = await fetch(`/api/patients/${patientId}`).then(r => r.json());
+    const p = _allPatients.find(x => x.id === patientId) || {};
+    const initials = data.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+
+    document.getElementById('drawer-name').textContent = data.name;
+    document.getElementById('drawer-sub').textContent = `${data.appointments.length} appointment${data.appointments.length !== 1 ? 's' : ''} · Telegram ID: ${data.id}`;
+
+    if (data.appointments.length === 0) {
+      document.getElementById('drawer-body').innerHTML = '<p style="color:#9CA3AF;text-align:center;padding:32px 0;">No appointment history</p>';
+      return;
+    }
+
+    document.getElementById('drawer-body').innerHTML = data.appointments.reverse().map(apt => {
+      const hasIntake = apt.intake_history && apt.intake_history.length > 0;
+      const d = new Date(apt.date);
+      const dateStr = d.toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short',year:'numeric'});
+      return `<div class="zf-history-item">
+        <div class="zf-history-header">
+          <div>
+            <div class="zf-history-date">${dateStr} at ${apt.time}</div>
+            ${hasIntake ? '<span class="zf-badge zf-badge-teal" style="font-size:11px;margin-top:4px;">Intake ✓</span>' : ''}
+          </div>
+          <a href="/treatment/${data.id}/${apt.date}/${apt.time.replace(':','-')}" class="zf-btn zf-btn-outline" style="font-size:11px;padding:5px 10px;">Open Session</a>
+        </div>
+        ${apt.summary ? `<div class="zf-history-summary">${apt.summary}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('drawer-body').innerHTML = '<p style="color:#EF4444;padding:20px;">Error loading patient history</p>';
+  }
+}
+
+function closeDrawer() {
+  const drawer = document.getElementById('patient-drawer');
+  drawer.classList.remove('open');
+  setTimeout(() => drawer.classList.add('hidden'), 300);
+}
+
+loadPatients();
+</script>
+{% endblock %}

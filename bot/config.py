@@ -16,7 +16,6 @@ THERAPIST_BOT_TOKEN = os.getenv("THERAPIST_BOT_TOKEN", "")
 
 _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(_base, "data", "appointments")
-THERAPIST_DIR = os.path.join(_base, "data", "therapist_messages")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
