@@ -23,6 +23,14 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), na
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
+@app.middleware("http")
+async def no_cache_static(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.get("/auth/login")

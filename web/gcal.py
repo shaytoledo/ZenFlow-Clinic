@@ -157,7 +157,7 @@ class GCalClient:
                     "backgroundColor": cal_color,
                     "borderColor": cal_color,
                     "editable": False,
-                    "extendedProps": {"type": "busy", "calendarName": cal.get("summary", "")},
+                    "extendedProps": {"type": "busy", "calendarId": cal["id"], "calendarName": cal.get("summary", "")},
                 })
 
         # Availability calendar — shown as green (editable/deletable)
