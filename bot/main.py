@@ -15,8 +15,8 @@ from telegram.ext import (
 )
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, TELEGRAM_TOKEN
-from bot.handlers.cancel import confirm_cancel, show_appointments
-from bot.handlers.schedule import (
+from bot.patient_bot.cancel import confirm_cancel, show_appointments
+from bot.patient_bot.schedule import (
     confirm_appointment,
     handle_intake_answer,
     show_days,
@@ -25,8 +25,8 @@ from bot.handlers.schedule import (
     skip_intake,
     start_intake,
 )
-from bot.handlers.start import back_to_main, start
-from bot.handlers.therapist import (
+from bot.patient_bot.start import back_to_main, start
+from bot.patient_bot.therapist import (
     ask_therapist_message,
     end_chat,
     relay_to_therapist,

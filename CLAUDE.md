@@ -8,11 +8,12 @@ ZenFlow Clinic — Telegram bot for a Traditional Chinese Medicine (TCM) acupunc
 ## Commands
 
 ```bash
-# Run the Telegram bots (patient + therapist)
-python run.py
+# Start everything (setup + bots + web dashboard)
+python launch.py
 
-# Run the therapist web frontend (Google Calendar availability manager)
-python run_web.py        # opens at http://localhost:8000
+# Individual services (development)
+python run_bots.py       # Telegram bots only (patient + therapist)
+python run_web.py        # Web dashboard only  →  http://localhost:8000
 
 # Pull the required AI model (first time only)
 ollama pull gemma3:latest

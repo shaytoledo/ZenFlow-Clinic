@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from bot.config import DATA_DIR, GOOGLE_CLIENT_ID
+from bot.services.appointments import find_patient_dir
 from web.gcal import GCalClient, exchange_code, get_auth_url, is_authenticated
 
 logger = logging.getLogger(__name__)
@@ -240,8 +241,8 @@ async def get_patients_api():
 
 @app.get("/api/patients/{patient_id}")
 async def get_patient_detail(patient_id: int):
-    base = Path(DATA_DIR) / str(patient_id)
-    if not base.exists():
+    base = find_patient_dir(patient_id)
+    if not base:
         raise HTTPException(status_code=404, detail="Patient not found")
     appointments = []
     for f in sorted(base.glob("*.json")):
@@ -275,11 +276,13 @@ async def get_appointment_detail(patient_id: int, apt_date: str, apt_time: str):
     # apt_time comes as HH-MM from URL
     time_str = apt_time.replace("-", ":")
     filename = f"{apt_date}_{apt_time}.json"
-    filepath = Path(DATA_DIR) / str(patient_id) / filename
+    pdir = find_patient_dir(patient_id)
+    if not pdir:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    filepath = pdir / filename
     if not filepath.exists():
-        # Try alternate naming
         alt = f"{apt_date}_{apt_time.replace('-', ':')}.json"
-        filepath = Path(DATA_DIR) / str(patient_id) / alt
+        filepath = pdir / alt
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Appointment not found")
     try:

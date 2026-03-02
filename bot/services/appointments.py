@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import date, datetime
 from pathlib import Path
 
@@ -9,11 +10,28 @@ logger = logging.getLogger(__name__)
 
 # ── path helpers ────────────────────────────────────────────────────────────
 
-def _patient_dir(patient_id: int) -> Path:
-    """data/appointments/{patient_id}/"""
-    p = Path(DATA_DIR) / str(patient_id)
+def _sanitize_name(name: str) -> str:
+    """Convert a patient name to a safe folder-name component."""
+    return re.sub(r"[^\w\-]", "_", name).strip("_") or "Unknown"
+
+
+def _patient_dir(patient_id: int, patient_name: str = "") -> Path:
+    """data/appointments/{Name}_{patient_id}/  — creates if missing."""
+    safe = _sanitize_name(patient_name) if patient_name else "Unknown"
+    p = Path(DATA_DIR) / f"{safe}_{patient_id}"
     p.mkdir(parents=True, exist_ok=True)
     return p
+
+
+def find_patient_dir(patient_id: int) -> Path | None:
+    """Find an existing patient folder by scanning for *_{patient_id} suffix."""
+    base = Path(DATA_DIR)
+    if not base.exists():
+        return None
+    for d in base.iterdir():
+        if d.is_dir() and d.name.endswith(f"_{patient_id}"):
+            return d
+    return None
 
 
 def _apt_filename(day: date, time_slot: str) -> str:
@@ -51,7 +69,7 @@ def save_appointment(
     gcal_apt_event_id: str | None = None,
 ) -> Path:
     """Save appointment JSON. Returns the file path."""
-    filepath = _patient_dir(patient_id) / _apt_filename(day, time_slot)
+    filepath = _patient_dir(patient_id, patient_name) / _apt_filename(day, time_slot)
     data = {
         "patient_id": patient_id,
         "patient_name": patient_name,
@@ -70,8 +88,8 @@ def save_appointment(
 
 def get_patient_appointments(patient_id: int) -> list[dict]:
     """Return all active appointments for a patient, sorted by date/time."""
-    pdir = Path(DATA_DIR) / str(patient_id)
-    if not pdir.exists():
+    pdir = find_patient_dir(patient_id)
+    if not pdir:
         logger.info(f"No appointment directory for patient {patient_id}")
         return []
     appointments = []
