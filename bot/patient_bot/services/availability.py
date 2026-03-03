@@ -26,7 +26,7 @@ def _token_file():
     global _TOKEN_FILE
     if _TOKEN_FILE is None:
         from pathlib import Path
-        _TOKEN_FILE = Path(__file__).parent.parent.parent / "data" / "google_token.json"
+        _TOKEN_FILE = Path(__file__).parent.parent.parent.parent / "data" / "google_token.json"
     return _TOKEN_FILE
 
 
@@ -124,7 +124,7 @@ def get_available_days(week_offset: int = 0) -> list[date]:
 
 def get_available_hours(day: date) -> list[str]:
     """All bookable 1-hour slots on the given day (multi-hour windows are expanded)."""
-    from bot.services.appointments import get_booked_slots
+    from bot.patient_bot.services.appointments import get_booked_slots
 
     service = _gcal_service()
     if service is None:
@@ -347,6 +347,6 @@ def _stub_days_range(start: date, end: date) -> list[date]:
 
 
 def _stub_hours(day: date) -> list[str]:
-    from bot.services.appointments import get_booked_slots
+    from bot.patient_bot.services.appointments import get_booked_slots
     booked = get_booked_slots(day)
     return [s for s in _STUB_SLOTS if s not in booked]

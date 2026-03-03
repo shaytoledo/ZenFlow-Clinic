@@ -24,31 +24,39 @@ ollama pull gemma3:latest
 ```
 bot/
 ├── main.py            # Wires patient ConversationHandler + runs both bots via asyncio
-├── states.py          # Integer state constants (SELECTING, SCHEDULE_DAY, …)
+├── states.py          # 9 integer state constants (SELECTING, SCHEDULE_WEEK, SCHEDULE_DAY, …)
 ├── config.py          # Env vars via python-dotenv (incl. GOOGLE_* vars)
 ├── utils.py           # Shared: get_main_keyboard()
-├── handlers/
+├── patient_bot/
 │   ├── start.py       # Entry point + back_to_main callback
-│   ├── schedule.py    # show_days → show_hours → confirm_appointment → handle_intake_answer
+│   ├── schedule.py    # show_week_choice → show_days → show_hours → confirm_appointment → handle_intake_answer
 │   ├── cancel.py      # show_appointments → confirm_cancel
-│   └── therapist.py   # ask_therapist_message → start_relay → relay_to_therapist → end_chat
-├── therapist_bot/
-│   ├── __init__.py
-│   ├── main.py        # build_therapist_app() — separate bot for therapist
-│   └── handlers.py    # handle_therapist_reply — routes therapist replies to patients
-└── services/
-    ├── availability.py   # Google Calendar integration; stubs if not configured
-    ├── appointments.py   # File-based JSON storage in data/appointments/
-    ├── ai_intake.py      # Ollama AsyncClient; fallback questions if Ollama is down
-    └── relay.py          # data/relay_sessions.json — maps therapist msg IDs → patient IDs
+│   ├── therapist.py   # ask_therapist_message → start_relay → relay_to_therapist → end_chat
+│   └── services/
+│       ├── ai_intake.py      # LangChain + Ollama adaptive intake questionnaire
+│       ├── appointments.py   # File-based JSON storage in data/appointments/
+│       ├── availability.py   # Google Calendar integration; stubs if not configured
+│       └── relay.py          # relay_sessions.json — maps therapist msg IDs → patient IDs
+└── therapist_bot/
+    ├── main.py        # build_therapist_app() — separate bot for therapist
+    ├── handlers.py    # handle_therapist_reply — routes therapist replies to patients
+    └── services/
+        └── relay.py          # relay_sessions.json — same file as patient_bot's relay
 
-web/                         # Therapist availability frontend (FastAPI)
-├── app.py                   # Routes: /, /auth/*, /api/events, /api/availability
+web/                         # Therapist web dashboard (FastAPI — multi-page)
+├── app.py                   # Routes: /, /schedule, /patients, /messages, /settings, /treatment/…
 ├── gcal.py                  # Google Calendar OAuth + API wrapper
-├── templates/index.html     # FullCalendar week view
+├── templates/
+│   ├── base.html            # Shared sidebar layout (zf- CSS namespace)
+│   ├── dashboard.html       # / — today's schedule + stats
+│   ├── schedule.html        # /schedule — FullCalendar availability manager
+│   ├── patients.html        # /patients — searchable patient list
+│   ├── treatment.html       # /treatment/{id}/{date}/{time}
+│   ├── messages.html        # /messages — intake conversation viewer
+│   └── settings.html        # /settings
 └── static/
-    ├── style.css
-    └── app.js               # Calendar interactions (select → create, click → delete)
+    ├── style.css            # zf- prefixed styles + calendar styles
+    └── app.js               # FullCalendar JS (schedule page only)
 
 data/
 ├── appointments/{patient_id}/   # one JSON per active appointment: {YYYY-MM-DD}_{HH-MM}.json
@@ -60,7 +68,8 @@ data/
 ## Conversation state machine
 ```
 Any message / /start → SELECTING (main menu)
-  SELECTING → schedule  → SCHEDULE_DAY → SCHEDULE_HOUR → INTAKE_CONFIRM
+  SELECTING → schedule  → SCHEDULE_WEEK (This week / Next week)
+                          → SCHEDULE_DAY → SCHEDULE_HOUR → INTAKE_CONFIRM
                           → Yes → INTAKE (×5 adaptive AI questions) → SELECTING
                           → No  → SELECTING (saved without intake)
   SELECTING → cancel    → CANCEL_SELECT → SELECTING (file deleted on confirm)
@@ -83,7 +92,7 @@ Any message / /start → SELECTING (main menu)
 - `allow_reentry=False` is critical — setting it True causes the catch-all entry point `MessageHandler(filters.ALL, start)` to intercept text messages in active states (INTAKE, THERAPIST_INPUT), breaking those flows.
 - Cancelled appointments are **deleted** (not marked). `get_patient_appointments()` returns only files that exist and have `status == "active"`.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions are used if Ollama is unreachable or slow.
-- `availability.py` imports `appointments.py` (not the other way around) to avoid circular imports.
+- `patient_bot/services/availability.py` imports `patient_bot/services/appointments.py` (not the other way around) to avoid circular imports.
 
 ## Environment variables (`.env`)
 | Variable | Default | Purpose |
@@ -99,7 +108,7 @@ Any message / /start → SELECTING (main menu)
 | `GOOGLE_REDIRECT_URI` | `http://localhost:8000/auth/callback` | OAuth redirect URI |
 
 ## Current status — what works
-- Schedule appointment: pick day/hour → optional 5-question AI intake → appointment saved with clinical summary
+- Schedule appointment: pick week → pick day → pick hour → optional 5-question AI intake → appointment saved with clinical summary
 - Cancel appointment: lists active appointments, deletes the file on confirm, clears chat history
 - Connect to therapist: two-way relay via dedicated therapist bot; End Chat button on every message
 - Therapist availability frontend: FastAPI + FullCalendar at http://localhost:8000

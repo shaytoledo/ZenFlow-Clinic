@@ -6,11 +6,11 @@ ZenFlow is a Telegram-based clinic management system for a Traditional Chinese M
 
 | Service | Entry point | Purpose |
 |---|---|---|
-| Patient bot | `run.py` | Patient-facing Telegram bot |
+| Patient bot | `run_bots.py` | Patient-facing Telegram bot |
 | Therapist bot | (same process as patient bot) | Therapist-facing Telegram bot |
-| Web dashboard | `run_web.py` | Therapist availability manager |
+| Web dashboard | `run_web.py` | Therapist web dashboard |
 
-All three start together with `python start.py`.
+All three start together with `python launch.py`.
 
 ---
 
@@ -19,44 +19,49 @@ All three start together with `python start.py`.
 ```
 Clinic/
 │
-├── start.py                  # Unified launcher — starts all services
-├── run.py                    # Bots only (dev shortcut)
+├── launch.py                 # Unified launcher — setup + starts all services
+├── run_bots.py               # Bots only (dev shortcut)
 ├── run_web.py                # Web dashboard only (dev shortcut)
-├── setup_and_run.py          # First-time setup (venv, deps, Ollama) then start.py
 ├── requirements.txt          # Python dependencies
 ├── .env                      # Secrets and config (never commit)
 │
 ├── bot/                      # All Telegram bot code
 │   ├── main.py               # Wires ConversationHandler; runs both bots via asyncio
 │   ├── config.py             # Loads all env vars; exposes DATA_DIR
-│   ├── states.py             # 8 conversation state constants (integers)
+│   ├── states.py             # 9 conversation state constants (integers)
 │   ├── utils.py              # get_main_keyboard() — the 3-button main menu
 │   │
-│   ├── handlers/             # Patient bot conversation handlers
+│   ├── patient_bot/          # Patient bot handlers + services
 │   │   ├── start.py          # /start entry point; back_to_main callback
-│   │   ├── schedule.py       # Booking flow: days → hours → intake confirm → intake Q&A
+│   │   ├── schedule.py       # Booking flow: week → days → hours → intake confirm → intake Q&A
 │   │   ├── cancel.py         # Cancel flow: list appointments → confirm delete
-│   │   └── therapist.py      # Relay flow: prompt → forward to therapist → end chat
+│   │   ├── therapist.py      # Relay flow: prompt → forward to therapist → end chat
+│   │   └── services/
+│   │       ├── ai_intake.py      # LangChain + Ollama adaptive intake questionnaire
+│   │       ├── appointments.py   # File-based JSON appointment storage in data/appointments/
+│   │       ├── availability.py   # Google Calendar availability; stub fallback if not set up
+│   │       └── relay.py          # relay_sessions.json — maps msg IDs to patient IDs
 │   │
-│   ├── therapist_bot/        # Therapist-facing bot (separate Telegram bot)
-│   │   ├── main.py           # build_therapist_app() — registers the reply handler
-│   │   └── handlers.py       # handle_therapist_reply — routes replies back to patients
-│   │
-│   └── services/             # Business logic (no Telegram dependencies)
-│       ├── config.py         # (see bot/config.py — same file, imported via bot.config)
-│       ├── availability.py   # Google Calendar availability; stub fallback if not set up
-│       ├── appointments.py   # File-based JSON appointment storage in data/appointments/
-│       ├── ai_intake.py      # LangChain + Ollama adaptive intake questionnaire
-│       └── relay.py          # relay_sessions.json — maps msg IDs to patient IDs
+│   └── therapist_bot/        # Therapist-facing bot (separate Telegram bot)
+│       ├── main.py           # build_therapist_app() — registers the reply handler
+│       ├── handlers.py       # handle_therapist_reply — routes replies back to patients
+│       └── services/
+│           └── relay.py      # relay_sessions.json — same shared file as patient_bot
 │
-├── web/                      # Therapist web dashboard (FastAPI)
-│   ├── app.py                # Routes: /, /auth/*, /api/events, /api/availability
+├── web/                      # Therapist web dashboard (FastAPI — multi-page)
+│   ├── app.py                # Routes: /, /schedule, /patients, /messages, /settings, /treatment/…
 │   ├── gcal.py               # Google Calendar OAuth + API wrapper
 │   ├── templates/
-│   │   └── index.html        # FullCalendar week view
+│   │   ├── base.html         # Shared sidebar layout (zf- CSS namespace)
+│   │   ├── dashboard.html    # / — today's schedule + stats
+│   │   ├── schedule.html     # /schedule — FullCalendar availability manager
+│   │   ├── patients.html     # /patients — searchable patient list
+│   │   ├── treatment.html    # /treatment/{id}/{date}/{time}
+│   │   ├── messages.html     # /messages — intake conversation viewer
+│   │   └── settings.html     # /settings
 │   └── static/
-│       ├── style.css
-│       └── app.js            # Calendar interactions: click to add/remove slots
+│       ├── style.css         # zf- prefixed styles + calendar styles
+│       └── app.js            # FullCalendar JS (schedule page only)
 │
 └── data/                     # Runtime data — auto-created, do not commit
     ├── appointments/
@@ -106,28 +111,29 @@ Loads `.env` via `python-dotenv`. All other modules import from here — nothing
 
 ### `bot/states.py` — State machine constants
 
-Eight integer constants unpacked from `range(8)`:
+Nine integer constants unpacked from `range(9)`:
 
 ```
-SELECTING → SCHEDULE_DAY → SCHEDULE_HOUR → INTAKE_CONFIRM → INTAKE
-         → CANCEL_SELECT
-         → THERAPIST_INPUT → THERAPIST_RELAY
+SELECTING → SCHEDULE_WEEK → SCHEDULE_DAY → SCHEDULE_HOUR → INTAKE_CONFIRM → INTAKE
+          → CANCEL_SELECT
+          → THERAPIST_INPUT → THERAPIST_RELAY
 ```
 
 ---
 
-### `bot/handlers/start.py` — Entry point
+### `bot/patient_bot/start.py` — Entry point
 
 - `start()` — shown on `/start` or any unrecognised message; renders main menu
 - `back_to_main()` — callback for every "⬅️ Back" button; returns to `SELECTING`
 
 ---
 
-### `bot/handlers/schedule.py` — Booking flow
+### `bot/patient_bot/schedule.py` — Booking flow
 
 | Function | State transition |
 |---|---|
-| `show_days()` | `SELECTING → SCHEDULE_DAY` |
+| `show_week_choice()` | `SELECTING → SCHEDULE_WEEK` |
+| `show_days()` | `SCHEDULE_WEEK → SCHEDULE_DAY` |
 | `show_hours()` | `SCHEDULE_DAY → SCHEDULE_HOUR` |
 | `confirm_appointment()` | `SCHEDULE_HOUR → INTAKE_CONFIRM` |
 | `start_intake()` | `INTAKE_CONFIRM → INTAKE` (patient said Yes) |
@@ -138,7 +144,7 @@ The intake loop asks 5 adaptive questions via Ollama, then calls `generate_summa
 
 ---
 
-### `bot/handlers/cancel.py` — Cancellation flow
+### `bot/patient_bot/cancel.py` — Cancellation flow
 
 | Function | What it does |
 |---|---|
@@ -149,7 +155,7 @@ Cancellation is a hard delete — no soft-delete or status flag. `get_patient_ap
 
 ---
 
-### `bot/handlers/therapist.py` — Patient side of relay
+### `bot/patient_bot/therapist.py` — Patient side of relay
 
 | Function | What it does |
 |---|---|
@@ -180,7 +186,7 @@ Registers a single `MessageHandler` that only accepts text messages from the the
 
 ---
 
-### `bot/services/availability.py` — Slot availability
+### `bot/patient_bot/services/availability.py` — Slot availability
 
 Two modes:
 
@@ -196,7 +202,7 @@ Two modes:
 
 ---
 
-### `bot/services/appointments.py` — Appointment storage
+### `bot/patient_bot/services/appointments.py` — Appointment storage
 
 Pure file I/O — no database. Each appointment is one JSON file:
 
@@ -221,7 +227,7 @@ data/appointments/{patient_id}/{YYYY-MM-DD}_{HH-MM}.json
 
 ---
 
-### `bot/services/ai_intake.py` — Adaptive intake questionnaire
+### `bot/patient_bot/services/ai_intake.py` — Adaptive intake questionnaire
 
 Uses **LangChain** with **Ollama** (`gemma3:latest` by default):
 
@@ -234,7 +240,7 @@ History is persisted to `data/chat_history/{user_id}_intake.json` via `FileChatM
 
 ---
 
-### `bot/services/relay.py` — Relay session tracking
+### `bot/patient_bot/services/relay.py` + `bot/therapist_bot/services/relay.py` — Relay session tracking
 
 Manages `data/relay_sessions.json`:
 
@@ -302,11 +308,12 @@ Two separate Telegram bots; both run in the same Python process, each with its o
 Any message / /start
     └──> SELECTING  (main menu: 3 buttons)
           │
-          ├── [Schedule] ──> SCHEDULE_DAY
-          │                     └── [pick day] ──> SCHEDULE_HOUR
-          │                                           └── [pick hour] ──> INTAKE_CONFIRM
-          │                                                                   ├── [Yes] ──> INTAKE (×5) ──> SELECTING
-          │                                                                   └── [No]  ──> SELECTING
+          ├── [Schedule] ──> SCHEDULE_WEEK (This week / Next week)
+          │                     └── [pick week] ──> SCHEDULE_DAY
+          │                                           └── [pick day] ──> SCHEDULE_HOUR
+          │                                                                  └── [pick hour] ──> INTAKE_CONFIRM
+          │                                                                                         ├── [Yes] ──> INTAKE (×5) ──> SELECTING
+          │                                                                                         └── [No]  ──> SELECTING
           │
           ├── [Cancel] ──> CANCEL_SELECT
           │                   └── [pick appointment] ──> SELECTING

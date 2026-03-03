@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from bot.config import DATA_DIR, GOOGLE_CLIENT_ID
-from bot.services.appointments import find_patient_dir
+from bot.patient_bot.services.appointments import find_patient_dir
 from web.gcal import GCalClient, exchange_code, get_auth_url, is_authenticated
 
 logger = logging.getLogger(__name__)
