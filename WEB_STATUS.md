@@ -146,8 +146,7 @@ web/
 │   ├── patients.html       ← /patients route
 │   ├── treatment.html      ← /treatment/{id}/{date}/{time}
 │   ├── messages.html       ← /messages route
-│   ├── settings.html       ← /settings route
-│   └── index.html          ← ORPHANED — was the old / route, no longer used
+│   └── settings.html       ← /settings route
 └── static/
     ├── style.css           ← Old calendar styles + new zf- styles appended at bottom
     └── app.js              ← FullCalendar JS (schedule page only)
@@ -155,8 +154,7 @@ web/
 data/
 ├── appointments/{patient_id}/{date}_{time}.json   ← One file per appointment
 ├── relay_sessions.json                             ← Active Telegram relay sessions
-├── google_token.json                               ← Google OAuth token (do not commit)
-└── therapist_messages/                             ← ORPHANED — no longer written to
+└── google_token.json                               ← Google OAuth token (do not commit)
 ```
 
 ---
@@ -179,7 +177,7 @@ data/
 ## Quick Start
 
 ```bash
-# Start everything
+# Start everything (setup + bots + web dashboard)
 python launch.py
 
 # Or individually (development)

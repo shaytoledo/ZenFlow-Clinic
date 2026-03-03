@@ -51,7 +51,6 @@ def get_patient_for_msg(forwarded_msg_id: int) -> int | None:
     return _load()["msg_to_patient"].get(str(forwarded_msg_id))
 
 
-
 def end_relay(patient_id: int) -> None:
     """Mark patient as no longer in active relay (therapist can still reply though)."""
     data = _load()

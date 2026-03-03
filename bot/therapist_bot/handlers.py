@@ -4,7 +4,7 @@ from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bot.config import TELEGRAM_TOKEN
-from bot.services.relay import get_patient_for_msg
+from bot.therapist_bot.services.relay import get_patient_for_msg
 
 _END_KB = InlineKeyboardMarkup([[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]])
 

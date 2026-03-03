@@ -65,7 +65,7 @@ The bot also tries to start Ollama automatically on startup.
 ## 4. Run everything
 
 ```bash
-python start.py
+python launch.py
 ```
 
 This starts all three services at once:
@@ -77,7 +77,7 @@ Press **Ctrl+C** to stop everything.
 
 **Run individual services:**
 ```bash
-python run.py        # Telegram bots only
+python run_bots.py   # Telegram bots only
 python run_web.py    # Web dashboard only
 ```
 

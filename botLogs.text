@@ -1,25 +1,11 @@
-2026-03-02 16:54:06,743 [INFO] bot.main — Starting ZenFlow Clinic Bot...
-2026-03-02 16:54:09,780 [INFO] bot.therapist_bot.main — Therapist bot ready for user ID 918187404
-2026-03-02 16:54:10,205 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getMe "HTTP/1.1 200 OK"
-2026-03-02 16:54:10,553 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getMe "HTTP/1.1 200 OK"
-2026-03-02 16:54:10,673 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/deleteWebhook "HTTP/1.1 200 OK"
-2026-03-02 16:54:10,795 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/deleteWebhook "HTTP/1.1 200 OK"
-2026-03-02 16:54:10,797 [INFO] telegram.ext.Application — Application started
-2026-03-02 16:54:10,797 [INFO] telegram.ext.Application — Application started
-2026-03-02 16:54:10,798 [INFO] bot.main — Both bots running — press Ctrl+C to stop
-2026-03-02 16:54:21,039 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:54:21,161 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:54:31,157 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:54:31,284 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:54:41,298 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:54:41,397 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:54:51,417 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:54:51,522 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:55:01,517 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:55:01,648 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:55:11,680 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:55:11,770 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:55:21,803 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:55:21,884 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:55:31,922 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
-2026-03-02 16:55:32,009 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
+2026-03-03 18:09:02,797 [INFO] bot.main — Starting ZenFlow Clinic Bot...
+2026-03-03 18:09:03,945 [INFO] bot.therapist_bot.main — Therapist bot ready for user ID 918187404
+2026-03-03 18:09:06,824 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getMe "HTTP/1.1 200 OK"
+2026-03-03 18:09:07,123 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getMe "HTTP/1.1 200 OK"
+2026-03-03 18:09:07,201 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-03 18:09:07,279 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-03 18:09:07,281 [INFO] telegram.ext.Application — Application started
+2026-03-03 18:09:07,282 [INFO] telegram.ext.Application — Application started
+2026-03-03 18:09:07,282 [INFO] bot.main — Both bots running — press Ctrl+C to stop
+2026-03-03 18:09:17,460 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8695231289:AAFhPhB3BhtRbz_EYzmSpoHPCDBkshXsa_0/getUpdates "HTTP/1.1 200 OK"
+2026-03-03 18:09:17,481 [INFO] httpx — HTTP Request: POST https://api.telegram.org/bot8577124266:AAGlBOI7qCTUPn_yKLPTWkz4SBBS21eRIBU/getUpdates "HTTP/1.1 200 OK"
