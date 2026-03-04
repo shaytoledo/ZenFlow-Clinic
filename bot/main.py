@@ -19,17 +19,19 @@ from bot.patient_bot.cancel import confirm_cancel, show_appointments
 from bot.patient_bot.schedule import (
     confirm_appointment,
     handle_intake_answer,
+    select_therapist_and_continue,
     show_days,
     show_hours,
+    show_therapist_choice,
     show_week_choice,
     skip_intake,
     start_intake,
 )
 from bot.patient_bot.start import back_to_main, start
 from bot.patient_bot.therapist import (
-    ask_therapist_message,
     end_chat,
     relay_to_therapist,
+    show_therapist_for_contact,
     start_relay,
 )
 from bot.therapist_bot.main import build_therapist_app
@@ -43,6 +45,7 @@ from bot.states import (
     SELECTING,
     THERAPIST_INPUT,
     THERAPIST_RELAY,
+    THERAPIST_SELECT,
 )
 
 
@@ -123,13 +126,18 @@ def build_patient_app() -> Application:
         ],
         states={
             SELECTING: [
-                CallbackQueryHandler(show_week_choice,      pattern="^schedule$"),
-                CallbackQueryHandler(show_appointments,     pattern="^cancel$"),
-                CallbackQueryHandler(ask_therapist_message, pattern="^therapist$"),
+                CallbackQueryHandler(show_therapist_choice,      pattern="^schedule$"),
+                CallbackQueryHandler(show_appointments,          pattern="^cancel$"),
+                CallbackQueryHandler(show_therapist_for_contact, pattern="^therapist$"),
+            ],
+            THERAPIST_SELECT: [
+                CallbackQueryHandler(select_therapist_and_continue, pattern="^sel_t_"),
+                CallbackQueryHandler(back_to_main, pattern="^back_main$"),
             ],
             SCHEDULE_WEEK: [
-                CallbackQueryHandler(show_days,    pattern="^week_"),
-                CallbackQueryHandler(back_to_main, pattern="^back_main$"),
+                CallbackQueryHandler(show_days,        pattern="^week_"),
+                CallbackQueryHandler(show_week_choice, pattern="^back_week$"),
+                CallbackQueryHandler(back_to_main,     pattern="^back_main$"),
             ],
             SCHEDULE_DAY: [
                 CallbackQueryHandler(show_hours,      pattern="^day_"),

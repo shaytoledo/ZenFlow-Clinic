@@ -28,7 +28,19 @@
       "Bash(mkdir:*)",
       "Bash(do echo:*)",
       "Bash(python3:*)",
-      "Bash(.venv/Scripts/python.exe:*)"
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(xargs cat:*)",
+      "Bash(curl:*)",
+      "Bash(where:*)",
+      "Bash(wsl redis-cli:*)",
+      "Bash(wsl:*)",
+      "Bash(winget search:*)",
+      "Bash(winget install:*)",
+      "Bash(\"/c/Program Files/Redis/redis-cli.exe\" ping:*)",
+      "Bash(\"/c/Program Files/Redis/redis-cli.exe\" get:*)",
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(/c/Users/shayt/PycharmProjects/Clinic/data/therapists.json:*)",
+      "Bash(redis-cli ping:*)"
     ]
   }
 }

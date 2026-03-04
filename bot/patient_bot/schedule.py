@@ -4,6 +4,7 @@ from datetime import date
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+from bot.config import THERAPISTS
 from bot.patient_bot.services.ai_intake import (
     clear_intake,
     generate_summary,
@@ -13,12 +14,70 @@ from bot.patient_bot.services.ai_intake import (
 )
 from bot.patient_bot.services.appointments import save_appointment
 from bot.patient_bot.services.availability import book_slot, get_available_days, get_available_hours
-from bot.states import INTAKE, INTAKE_CONFIRM, SCHEDULE_DAY, SCHEDULE_HOUR, SCHEDULE_WEEK, SELECTING
+from bot.states import (
+    INTAKE, INTAKE_CONFIRM, SCHEDULE_DAY, SCHEDULE_HOUR, SCHEDULE_WEEK,
+    SELECTING, THERAPIST_INPUT, THERAPIST_SELECT,
+)
 from bot.utils import get_main_keyboard
 
 logger = logging.getLogger(__name__)
 
 OPENING_QUESTION = "What's the main issue or discomfort bringing you in today?"
+
+
+# ── therapist selection ───────────────────────────────────────────────────────
+
+async def show_therapist_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 0 — patient picks a therapist before seeing availability."""
+    query = update.callback_query
+    await query.answer()
+    context.user_data["therapist_flow"] = "schedule"
+
+    active = [t for t in THERAPISTS if t.get("active")]
+    if not active:
+        await query.edit_message_text(
+            "No therapists are available at the moment. Please contact the clinic.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back_main")]]),
+        )
+        return SELECTING
+
+    keyboard = [
+        [InlineKeyboardButton(t["name"], callback_data=f"sel_t_{t['id']}")]
+        for t in active
+    ]
+    keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_main")])
+    await query.edit_message_text(
+        "Choose your therapist:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return THERAPIST_SELECT
+
+
+async def select_therapist_and_continue(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Patient chose a therapist — route to welcome / schedule / contact flow."""
+    query = update.callback_query
+    therapist_id = query.data.replace("sel_t_", "")
+    context.user_data["selected_therapist"] = therapist_id
+    flow = context.user_data.pop("therapist_flow", "schedule")
+
+    if flow == "contact":
+        await query.answer()
+        await query.edit_message_text("What would you like to say to the therapist?\n\nType your message below:")
+        return THERAPIST_INPUT
+
+    if flow == "welcome":
+        therapist = next((t for t in THERAPISTS if t["id"] == therapist_id), None)
+        t_name = therapist["name"] if therapist else "your therapist"
+        await query.answer()
+        await query.edit_message_text(
+            f"Great! You'll be working with *{t_name}*. 🌿\n\nWhat would you like to do?",
+            parse_mode="Markdown",
+            reply_markup=get_main_keyboard(),
+        )
+        return SELECTING
+
+    # Schedule flow: show_week_choice handles query.answer()
+    return await show_week_choice(update, context)
 
 
 # ── week / day / hour selection ───────────────────────────────────────────────
@@ -60,7 +119,8 @@ async def show_days(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     week_label = "This week" if week_offset == 0 else "Next week"
     logger.info(f"[{update.effective_user.id}] show_days week_offset={week_offset}")
 
-    days = get_available_days(week_offset=week_offset)
+    therapist_id = context.user_data.get("selected_therapist")
+    days = await get_available_days(week_offset=week_offset, therapist_id=therapist_id)
     if not days:
         await query.edit_message_text(
             f"No available slots for {week_label.lower()}. Please try another week or contact the clinic directly.",
@@ -90,7 +150,8 @@ async def show_hours(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["selected_day"] = day_iso
     logger.info(f"[{update.effective_user.id}] show_hours for {day_iso}")
 
-    hours = get_available_hours(selected_day)
+    therapist_id = context.user_data.get("selected_therapist")
+    hours = await get_available_hours(selected_day, therapist_id=therapist_id)
     if not hours:
         await query.edit_message_text(
             "No available hours on this day. Please choose another.",
@@ -160,7 +221,8 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     time_slot = context.user_data["selected_time"]
 
     apt_summary = "Patient opted to skip the intake questionnaire."
-    gcal_id = book_slot(day, time_slot, user.full_name or user.first_name, apt_summary)
+    gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name, apt_summary,
+                               therapist_id=context.user_data.get("selected_therapist"))
     save_appointment(
         patient_id=user.id,
         patient_name=user.full_name or user.first_name,
@@ -169,6 +231,7 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         intake_history=[],
         summary=apt_summary,
         gcal_apt_event_id=gcal_id,
+        therapist_id=context.user_data.get("selected_therapist", ""),
     )
     clear_intake(user.id)
     logger.info(f"[{user.id}] appointment saved (no intake)")
@@ -204,7 +267,8 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         day = date.fromisoformat(context.user_data["selected_day"])
         time_slot = context.user_data["selected_time"]
 
-        gcal_id = book_slot(day, time_slot, user.full_name or user.first_name, summary)
+        gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name, summary,
+                                   therapist_id=context.user_data.get("selected_therapist"))
         save_appointment(
             patient_id=user_id,
             patient_name=user.full_name or user.first_name,
@@ -213,6 +277,7 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
             intake_history=history,
             summary=summary,
             gcal_apt_event_id=gcal_id,
+            therapist_id=context.user_data.get("selected_therapist", ""),
         )
         clear_intake(user_id)
         context.user_data.clear()

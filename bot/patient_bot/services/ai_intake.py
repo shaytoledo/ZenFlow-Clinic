@@ -1,18 +1,19 @@
 """
-AI intake service — uses LangChain ChatOllama with in-memory chat history.
+AI intake service — uses LangChain ChatOllama with Redis-backed chat history.
 
-History is kept in a module-level dict for the duration of the intake session
-and discarded as soon as the appointment is saved or the flow is cancelled.
-Nothing is written to disk.
+History is stored in Redis (key: zenflow:intake:{user_id}) with a 1-hour TTL.
+This means intake context survives bot restarts and is accessible across processes.
+History is explicitly cleared after the appointment is saved or the flow is cancelled.
 """
 import asyncio
 import logging
 
-from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
+from langchain_redis import RedisChatMessageHistory
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL
+from bot.redis_client import get_sync_redis
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +51,12 @@ FALLBACK_QUESTIONS = [
 
 # ── history helpers ──────────────────────────────────────────────────────────
 
-_histories: dict[int, InMemoryChatMessageHistory] = {}
-
-
-def _get_history(user_id: int) -> InMemoryChatMessageHistory:
-    if user_id not in _histories:
-        _histories[user_id] = InMemoryChatMessageHistory()
-    return _histories[user_id]
+def _get_history(user_id: int) -> RedisChatMessageHistory:
+    return RedisChatMessageHistory(
+        session_id=f"zenflow:intake:{user_id}",
+        redis_client=get_sync_redis(),
+        ttl=3600,  # 1 hour — cleared after appointment saved anyway
+    )
 
 
 def _llm() -> ChatOllama:
@@ -129,6 +129,6 @@ def get_history_dicts(user_id: int) -> list[dict]:
 
 
 def clear_intake(user_id: int) -> None:
-    """Drop the in-memory intake history after the appointment is saved."""
-    _histories.pop(user_id, None)
+    """Drop the Redis intake history after the appointment is saved."""
+    _get_history(user_id).clear()
     logger.info(f"[{user_id}] Intake history cleared")
