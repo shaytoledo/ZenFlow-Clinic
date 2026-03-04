@@ -35,6 +35,13 @@ AVAILABILITY_CAL_NAME = "ZenFlow Availability"
 AVAILABILITY_TITLE = "✅ Available"
 
 
+def token_file_for(therapist_id: str | None = None) -> Path:
+    """Return the token file path for a given therapist (or the default)."""
+    if therapist_id:
+        return Path(__file__).parent.parent / "data" / f"google_token_{therapist_id}.json"
+    return TOKEN_FILE
+
+
 # ── OAuth ─────────────────────────────────────────────────────────────────────
 
 def get_auth_url() -> str:
@@ -43,13 +50,16 @@ def get_auth_url() -> str:
     return url
 
 
-def exchange_code(code: str) -> None:
+def exchange_code(code: str, token_file: Path | None = None) -> None:
     flow = _make_flow()
     flow.fetch_token(code=code)
-    _save_token(flow.credentials)
+    _save_token(flow.credentials, token_file)
 
 
-def is_authenticated() -> bool:
+def is_authenticated(therapist_id: str | None = None) -> bool:
+    # Each therapist only sees their own token — no cross-therapist fallback
+    if therapist_id:
+        return token_file_for(therapist_id).exists()
     return TOKEN_FILE.exists()
 
 
@@ -66,9 +76,13 @@ def _make_flow() -> Flow:
     return Flow.from_client_config(config, scopes=SCOPES, redirect_uri=GOOGLE_REDIRECT_URI)
 
 
-def _save_token(creds: Credentials) -> None:
-    TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
-    TOKEN_FILE.write_text(creds.to_json(), encoding="utf-8")
+def _save_token(creds: Credentials, token_file: Path | None = None) -> None:
+    tf = token_file or TOKEN_FILE
+    tf.parent.mkdir(parents=True, exist_ok=True)
+    tf.write_text(creds.to_json(), encoding="utf-8")
+    # Keep the legacy default token in sync so the bot's availability service can still find it
+    if tf != TOKEN_FILE:
+        TOKEN_FILE.write_text(creds.to_json(), encoding="utf-8")
 
 
 # ── Client ────────────────────────────────────────────────────────────────────
@@ -78,11 +92,13 @@ class GCalClient:
         self.service = service
 
     @classmethod
-    def load(cls) -> "GCalClient":
-        creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+    def load(cls, token_file: Path | None = None) -> "GCalClient":
+        tf = token_file or TOKEN_FILE
+        # No cross-therapist fallback — raise if the requested token doesn't exist
+        creds = Credentials.from_authorized_user_file(str(tf), SCOPES)
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            _save_token(creds)
+            _save_token(creds, tf)
         return cls(build("calendar", "v3", credentials=creds, cache_discovery=False))
 
     # ── availability calendar ──────────────────────────────────────────────

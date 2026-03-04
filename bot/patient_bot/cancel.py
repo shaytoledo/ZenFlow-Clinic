@@ -53,10 +53,11 @@ async def confirm_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     apt = context.user_data.get("apts_to_cancel", [])[idx]
     cancel_appointment(apt["_filepath"])
     clear_intake(apt["patient_id"])
-    restore_slot(
+    await restore_slot(
         date.fromisoformat(apt["date"]),
         apt["time"],
         apt.get("gcal_apt_event_id"),
+        therapist_id=apt.get("therapist_id"),
     )
 
     day_display = date.fromisoformat(apt["date"]).strftime("%A, %d %b")

@@ -21,9 +21,24 @@ function fmt(d) {
 
 const _hiddenCals = new Set();
 
+function _showLocalCalendarBadge() {
+  $('cal-items').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0 6px;">
+      <span style="width:10px;height:10px;background:#27ae60;border-radius:50%;flex-shrink:0;"></span>
+      <span style="font-size:12px;color:#374151;font-weight:500;">Local Calendar</span>
+    </div>
+    <p style="font-size:11px;color:#9CA3AF;line-height:1.5;margin-top:2px;">
+      Slots saved here are visible to patients.<br>
+      <a href="/settings" style="color:#0D9488;">Connect Google</a> to sync.
+    </p>`;
+}
+
 async function loadCalendarList() {
   try {
-    const data = await fetch('/api/calendars').then(r => r.json());
+    const r = await fetch('/api/calendars');
+    if (!r.ok) { _showLocalCalendarBadge(); return; }
+    const data = await r.json();
+    if (!data.length) { _showLocalCalendarBadge(); return; }
     const el = $('cal-items');
     el.innerHTML = '';
     data.forEach(c => {
@@ -49,7 +64,7 @@ async function loadCalendarList() {
       row.appendChild(name);
       el.appendChild(row);
     });
-  } catch (_) {}
+  } catch (_) { _showLocalCalendarBadge(); }
 }
 
 // ── Mini calendar ──────────────────────────────────────────────────────────────

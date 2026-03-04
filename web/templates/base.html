@@ -61,11 +61,14 @@
 
     <div class="zf-sidebar-footer">
       <div class="zf-user-card">
-        <div class="zf-user-avatar">DR</div>
-        <div>
-          <span class="zf-user-name">Dr. Therapist</span>
+        <div class="zf-user-avatar">{{ (therapist.name[:2] if therapist else 'DR') | upper }}</div>
+        <div style="flex:1;min-width:0;">
+          <span class="zf-user-name">{{ therapist.name if therapist else 'Guest' }}</span>
           <span class="zf-user-role">Acupuncturist · ZenFlow</span>
         </div>
+        <a href="/logout" title="Sign out" style="color:#9CA3AF;text-decoration:none;flex-shrink:0;display:flex;align-items:center;padding:4px;" onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='#9CA3AF'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </a>
       </div>
     </div>
   </aside>
@@ -105,14 +108,7 @@
   updateClock();
   setInterval(updateClock, 10000);
 
-  // Active message badge
-  fetch('/api/messages/active').then(r => r.json()).then(d => {
-    const badge = document.getElementById('msg-badge');
-    if (badge && d.count > 0) {
-      badge.textContent = d.count;
-      badge.classList.remove('hidden');
-    }
-  }).catch(() => {});
+  // Active message badge — only loaded on the /messages page (see messages.html)
 </script>
 {% block extra_scripts %}{% endblock %}
 </body>
