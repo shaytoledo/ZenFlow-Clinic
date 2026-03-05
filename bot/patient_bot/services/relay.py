@@ -26,6 +26,10 @@ def save_relay_mapping(forwarded_msg_id: int, patient_id: int, therapist_id: str
         ex=86400,  # 24 h TTL
     )
     r.set(f"zenflow:relay:active:{patient_id}", "1")
+    # Track current patient for each therapist so they can type freely without
+    # having to reply to a specific forwarded message.
+    if therapist_id:
+        r.set(f"zenflow:relay:current:{therapist_id}", str(patient_id), ex=86400)
     logger.info(f"Relay mapped: therapist msg {forwarded_msg_id} -> patient {patient_id} (therapist {therapist_id})")
 
 

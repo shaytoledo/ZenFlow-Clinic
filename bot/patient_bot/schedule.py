@@ -28,7 +28,12 @@ OPENING_QUESTION = "What's the main issue or discomfort bringing you in today?"
 # ── therapist selection ───────────────────────────────────────────────────────
 
 async def show_therapist_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Step 0 — patient picks a therapist before seeing availability."""
+    """Step 0 — patient picks a therapist before seeing availability.
+
+    Skipped automatically when:
+    - Only one active therapist (auto-selected)
+    - Patient already chose a therapist this session
+    """
     query = update.callback_query
     await query.answer()
     context.user_data["therapist_flow"] = "schedule"
@@ -40,6 +45,14 @@ async def show_therapist_choice(update: Update, context: ContextTypes.DEFAULT_TY
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back_main")]]),
         )
         return SELECTING
+
+    # Auto-select: only one therapist, or patient already picked one
+    existing = context.user_data.get("selected_therapist")
+    if len(active) == 1:
+        context.user_data["selected_therapist"] = active[0]["id"]
+        return await show_week_choice(update, context)
+    if existing and any(t["id"] == existing for t in active):
+        return await show_week_choice(update, context)
 
     keyboard = [
         [InlineKeyboardButton(t["name"], callback_data=f"sel_t_{t['id']}")]
@@ -221,8 +234,9 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     time_slot = context.user_data["selected_time"]
 
     apt_summary = "Patient opted to skip the intake questionnaire."
+    selected_therapist = context.user_data.get("selected_therapist")
     gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name, apt_summary,
-                               therapist_id=context.user_data.get("selected_therapist"))
+                               therapist_id=selected_therapist)
     save_appointment(
         patient_id=user.id,
         patient_name=user.full_name or user.first_name,
@@ -231,11 +245,13 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         intake_history=[],
         summary=apt_summary,
         gcal_apt_event_id=gcal_id,
-        therapist_id=context.user_data.get("selected_therapist", ""),
+        therapist_id=selected_therapist or "",
     )
     clear_intake(user.id)
     logger.info(f"[{user.id}] appointment saved (no intake)")
     context.user_data.clear()
+    if selected_therapist:
+        context.user_data["selected_therapist"] = selected_therapist
 
     await query.edit_message_text(
         f"✅ *Appointment confirmed!*\n"
@@ -267,8 +283,9 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         day = date.fromisoformat(context.user_data["selected_day"])
         time_slot = context.user_data["selected_time"]
 
+        selected_therapist = context.user_data.get("selected_therapist")
         gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name, summary,
-                                   therapist_id=context.user_data.get("selected_therapist"))
+                                   therapist_id=selected_therapist)
         save_appointment(
             patient_id=user_id,
             patient_name=user.full_name or user.first_name,
@@ -277,10 +294,12 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
             intake_history=history,
             summary=summary,
             gcal_apt_event_id=gcal_id,
-            therapist_id=context.user_data.get("selected_therapist", ""),
+            therapist_id=selected_therapist or "",
         )
         clear_intake(user_id)
         context.user_data.clear()
+        if selected_therapist:
+            context.user_data["selected_therapist"] = selected_therapist
 
         await update.message.reply_text(
             f"✅ *Appointment confirmed!*\n"

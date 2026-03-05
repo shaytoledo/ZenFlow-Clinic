@@ -156,19 +156,55 @@
       margin-top: 20px;
     }
     .logout-link:hover { color: #6B7280; }
-    .success-banner {
+    /* Activation popup overlay */
+    .popup-overlay {
       display: none;
-      background: #ECFDF5;
-      border: 1px solid #A7F3D0;
-      border-radius: 10px;
-      padding: 14px 18px;
-      color: #065F46;
-      font-size: 14px;
-      font-weight: 500;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .popup-overlay.show { display: flex; }
+    .popup {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      padding: 40px 36px;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .popup-icon {
+      font-size: 52px;
+      line-height: 1;
       margin-bottom: 16px;
+    }
+    .popup h2 { font-size: 21px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+    .popup p  { font-size: 14px; color: #6B7280; line-height: 1.6; margin-bottom: 24px; }
+    .btn-dashboard {
+      display: inline-flex;
       align-items: center;
       gap: 8px;
+      background: #0D9488;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
     }
+    .btn-dashboard:hover { background: #0f766e; }
   </style>
 </head>
 <body>
@@ -180,10 +216,6 @@
   <div class="status-badge">
     <span class="dot"></span>
     Awaiting bot activation
-  </div>
-
-  <div id="success-banner" class="success-banner">
-    ✅ Account activated! Redirecting to dashboard…
   </div>
 
   <div class="code-box">
@@ -228,11 +260,24 @@
     </div>
     <div class="step">
       <span class="step-num">4</span>
-      <span class="step-text">This page will automatically redirect you to the dashboard once activated</span>
+      <span class="step-text">A confirmation popup will appear — click "Go to Dashboard" to continue</span>
     </div>
   </div>
 
   <a href="/logout" class="logout-link">Sign out and use a different account</a>
+</div>
+
+<!-- Activation success popup -->
+<div class="popup-overlay" id="activation-popup">
+  <div class="popup">
+    <div class="popup-icon">🎉</div>
+    <h2>Account Activated!</h2>
+    <p>Welcome to ZenFlow, <strong id="popup-name"></strong>!<br>Your therapist account is now active and ready to use.</p>
+    <a href="/" class="btn-dashboard">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      Go to Dashboard
+    </a>
+  </div>
 </div>
 
 <script>
@@ -309,8 +354,9 @@ async function checkActivation() {
     const data = await res.json();
     if (data.active) {
       clearInterval(pollTimer);
-      document.getElementById('success-banner').style.display = 'flex';
-      setTimeout(() => { window.location.href = '/'; }, 1500);
+      // Show activation popup instead of auto-redirecting
+      document.getElementById('popup-name').textContent = data.name || 'Doctor';
+      document.getElementById('activation-popup').classList.add('show');
     }
   } catch (e) { /* ignore */ }
 }

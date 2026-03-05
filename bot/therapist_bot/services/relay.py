@@ -19,3 +19,9 @@ def get_patient_for_msg(forwarded_msg_id: int) -> dict | None:
     """Return {"patient_id": int, "therapist_id": str} for a therapist message ID, or None."""
     raw = _redis().get(f"zenflow:relay:msg:{forwarded_msg_id}")
     return json.loads(raw) if raw else None
+
+
+def get_current_patient(therapist_id: str) -> int | None:
+    """Return the patient_id currently in relay with this therapist, or None."""
+    raw = _redis().get(f"zenflow:relay:current:{therapist_id}")
+    return int(raw) if raw else None
