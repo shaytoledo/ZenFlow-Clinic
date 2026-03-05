@@ -67,13 +67,18 @@ def _get_session_therapist_id(request: Request) -> str | None:
     return request.session.get("therapist_id")
 
 
+def _load_therapists_fresh() -> list[dict]:
+    """Read therapists.json from disk each time so bot-process writes are visible immediately."""
+    tpath = Path(DATA_DIR).parent / "therapists.json"
+    return json.loads(tpath.read_text(encoding="utf-8")) if tpath.exists() else []
+
+
 def _active_therapist_or_redirect(request: Request):
     """Return (therapist, None) if signed-in + active, or (None, redirect_url)."""
     tid = request.session.get("therapist_id")
     if not tid:
         return None, "/register"
-    from bot.config import THERAPISTS
-    therapist = next((t for t in THERAPISTS if t.get("id") == tid), None)
+    therapist = next((t for t in _load_therapists_fresh() if t.get("id") == tid), None)
     if not therapist:
         return None, "/register"
     if not therapist.get("active"):
@@ -85,8 +90,7 @@ def _get_session_therapist(request: Request) -> dict | None:
     tid = _get_session_therapist_id(request)
     if not tid:
         return None
-    from bot.config import THERAPISTS
-    return next((t for t in THERAPISTS if t.get("id") == tid), None)
+    return next((t for t in _load_therapists_fresh() if t.get("id") == tid), None)
 
 
 def _set_session(request: Request, therapist_id: str) -> None:
@@ -866,12 +870,15 @@ async def register_done(request: Request, code: str = ""):
 
 @app.get("/api/my/status")
 async def get_my_status(request: Request):
-    """Return activation status for the signed-in therapist (used by activation page poller)."""
+    """Return activation status for the signed-in therapist (used by activation page poller).
+
+    Reads therapists.json fresh from disk so changes made by the bot process
+    (which runs in a separate process) are visible immediately.
+    """
     tid = request.session.get("therapist_id")
     if not tid:
         raise HTTPException(status_code=401, detail="Not signed in")
-    from bot.config import THERAPISTS
-    therapist = next((t for t in THERAPISTS if t.get("id") == tid), None)
+    therapist = next((t for t in _load_therapists_fresh() if t.get("id") == tid), None)
     if not therapist:
         raise HTTPException(status_code=404, detail="Therapist not found")
     return JSONResponse({"active": bool(therapist.get("active")), "name": therapist.get("name", "")})

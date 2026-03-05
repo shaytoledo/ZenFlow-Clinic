@@ -43,6 +43,12 @@ async def show_therapist_for_contact(update: Update, context: ContextTypes.DEFAU
         await query.edit_message_text("What would you like to say to the therapist?\n\nType your message below:")
         return THERAPIST_INPUT
 
+    # Already chose a therapist this session — skip re-selection
+    existing = context.user_data.get("selected_therapist")
+    if existing and any(t["id"] == existing for t in active):
+        await query.edit_message_text("What would you like to say to the therapist?\n\nType your message below:")
+        return THERAPIST_INPUT
+
     context.user_data["therapist_flow"] = "contact"
     keyboard = [
         [InlineKeyboardButton(t["name"], callback_data=f"sel_t_{t['id']}")]

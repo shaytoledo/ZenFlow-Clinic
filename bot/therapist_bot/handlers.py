@@ -8,7 +8,7 @@ from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bot.config import TELEGRAM_TOKEN, THERAPIST_MAP
-from bot.therapist_bot.services.relay import get_patient_for_msg
+from bot.therapist_bot.services.relay import get_current_patient, get_patient_for_msg
 
 _END_KB = InlineKeyboardMarkup([[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]])
 _REG_CODE_RE = re.compile(r"^[A-Z0-9]{8}$")
@@ -44,32 +44,45 @@ async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT
 
 
 async def _handle_relay(msg, therapist_id: str) -> None:
-    """Route a therapist reply back to the correct patient."""
+    """Route a therapist message back to the correct patient.
+
+    If the therapist replies to a specific forwarded message, use that message's
+    relay key. Otherwise fall back to their current active patient so they can
+    type freely without having to reply to a particular message each time.
+    """
     therapist_name = msg.from_user.full_name or "Therapist"
 
-    if not msg.reply_to_message:
-        await msg.reply_text(
-            "⚠️ Please *reply directly* to the patient's message so I know who to send it to.",
-            parse_mode="Markdown",
-        )
-        return
+    if msg.reply_to_message:
+        info = get_patient_for_msg(msg.reply_to_message.message_id)
+        if info is None:
+            # The replied-to message has no relay key — fall back to current patient
+            patient_id = get_current_patient(therapist_id)
+            if patient_id is None:
+                await msg.reply_text(
+                    "⚠️ Could not find the patient for this message. "
+                    "They may have ended the chat or restarted the bot."
+                )
+                return
+        else:
+            # Security check: ensure the replying therapist owns this relay session
+            if info.get("therapist_id") and info["therapist_id"] != therapist_id:
+                await msg.reply_text("⚠️ This message belongs to another therapist's session.")
+                logger.warning(
+                    f"Therapist {therapist_id} tried to reply to a message owned by {info['therapist_id']}"
+                )
+                return
+            patient_id = info["patient_id"]
+    else:
+        # No reply-to — use current active patient for this therapist
+        patient_id = get_current_patient(therapist_id)
+        if patient_id is None:
+            await msg.reply_text(
+                "⚠️ No active patient chat. Wait for a patient to message you first, "
+                "or reply directly to one of their forwarded messages.",
+                parse_mode="Markdown",
+            )
+            return
 
-    info = get_patient_for_msg(msg.reply_to_message.message_id)
-    if info is None:
-        await msg.reply_text(
-            "⚠️ Could not find the patient for this message. They may have restarted the bot."
-        )
-        return
-
-    # Security check: ensure the replying therapist owns this relay session
-    if info.get("therapist_id") and info["therapist_id"] != therapist_id:
-        await msg.reply_text("⚠️ This message belongs to another therapist's session.")
-        logger.warning(
-            f"Therapist {therapist_id} tried to reply to a message owned by {info['therapist_id']}"
-        )
-        return
-
-    patient_id = info["patient_id"]
     try:
         await _patient_bot.send_message(
             chat_id=patient_id,
