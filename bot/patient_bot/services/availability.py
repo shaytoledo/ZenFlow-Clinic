@@ -2,48 +2,36 @@
 availability.py — returns available days/hours for patient booking,
 and manages Google Calendar slot booking/restoration.
 
-When Google Calendar is configured (data/google_token.json exists), reads
-"✅ Available" events from the therapist's calendar (per therapists.json)
-and creates/removes appointment events in the primary calendar.
+When Google Calendar is configured (data/google_tokens/{therapist_id}.json exists), reads
+"✅ Available" events from the therapist's calendar and creates/removes appointment events
+in the primary calendar. Falls back to local SQLite availability table when no token exists.
 
 All Google Calendar calls are wrapped in asyncio.to_thread() to avoid
 blocking the asyncio event loop.
 
-Falls back to local availability file when Google Calendar is not connected.
+Falls back to SQLite local availability when Google Calendar is not connected.
 Returns empty results when neither Google nor local availability is configured.
 """
 import asyncio
 import json
 import logging
+import uuid
 from datetime import date, datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
-_TOKEN_FILE = None  # lazy-loaded to avoid import-time side effects
 _AVAILABILITY_CAL_NAME = "ZenFlow Availability"
 _CLINIC_TZ_NAME = "Asia/Jerusalem"  # passed as string to Google Calendar API
 
 
-def _token_file():
-    global _TOKEN_FILE
-    if _TOKEN_FILE is None:
-        from pathlib import Path
-        _TOKEN_FILE = Path(__file__).parent.parent.parent.parent / "data" / "google_token.json"
-    return _TOKEN_FILE
-
-
 def _resolve_token_file(therapist_id: str | None = None):
-    """Return the token file for the given therapist, or None if not connected.
-    No cross-therapist fallback — each therapist only sees their own token.
-    """
+    """Return the token file for the given therapist, or None if not connected."""
     from pathlib import Path
-    base = Path(__file__).parent.parent.parent.parent / "data"
+    tokens_dir = Path(__file__).parent.parent.parent.parent / "data" / "google_tokens"
     if therapist_id:
-        tf = base / f"google_token_{therapist_id}.json"
+        tf = tokens_dir / f"{therapist_id}.json"
         return tf if tf.exists() else None
-    # No specific therapist — use the legacy default token
-    tf = _token_file()
-    return tf if tf.exists() else None
+    return None
 
 
 # ── Google Calendar service ───────────────────────────────────────────────────
@@ -131,7 +119,7 @@ async def get_available_days(week_offset: int = 0, therapist_id: str | None = No
 
     service = _gcal_service(therapist_id)
     if service is None:
-        local = _read_local_avail(therapist_id)
+        local = await asyncio.to_thread(_read_local_avail, therapist_id)
         if local:
             result = sorted({
                 datetime.fromisoformat(s["start"]).date()
@@ -170,10 +158,10 @@ async def get_available_days(week_offset: int = 0, therapist_id: str | None = No
                 logger.warning(f"get_available_days error: {e}")
                 result = []
 
-    # Cache result
+    # Cache result (10 min TTL)
     if r and cache_key and result:
         try:
-            await r.set(cache_key, json.dumps([d.isoformat() for d in result]), ex=300)
+            await r.set(cache_key, json.dumps([d.isoformat() for d in result]), ex=600)
         except Exception:
             pass
 
@@ -197,7 +185,7 @@ async def get_available_hours(day: date, therapist_id: str | None = None) -> lis
 
     service = _gcal_service(therapist_id)
     if service is None:
-        local = _read_local_avail(therapist_id)
+        local = await asyncio.to_thread(_read_local_avail, therapist_id)
         if local:
             result = await _local_hours(day, local)
         else:
@@ -242,10 +230,10 @@ async def get_available_hours(day: date, therapist_id: str | None = None) -> lis
                 logger.warning(f"get_available_hours error: {e}")
                 result = []
 
-    # Cache result
+    # Cache result (10 min TTL)
     if r and cache_key:
         try:
-            await r.set(cache_key, json.dumps(result), ex=300)
+            await r.set(cache_key, json.dumps(result), ex=600)
         except Exception:
             pass
 
@@ -262,17 +250,22 @@ async def book_slot(day: date, time_slot: str, patient_name: str, summary: str,
 
     Returns the Google Calendar appointment event ID, a "local_{...}" sentinel, or None.
     """
-    # Invalidate booked-slots cache for this day
+    # Invalidate booked-slots cache and availability caches for this day
     try:
         from bot.redis_client import get_async_redis
         r = get_async_redis()
         await r.delete(f"zenflow:slots:{day.isoformat()}")
+        # Purge avail days caches for this therapist (all week offsets)
+        tid = therapist_id or "default"
+        async for key in r.scan_iter(f"zenflow:avail:days:{tid}:*"):
+            await r.delete(key)
+        await r.delete(f"zenflow:avail:hours:{tid}:{day.isoformat()}")
     except Exception:
         pass
 
     service = _gcal_service(therapist_id)
     if service is None:
-        # No Google Calendar — update local availability file
+        # No Google Calendar — update local availability in SQLite
         await asyncio.to_thread(_remove_hour_from_local, therapist_id, day, time_slot)
         return f"local_{therapist_id or 'default'}_{day.isoformat()}_{time_slot.replace(':', '')}"
 
@@ -439,13 +432,8 @@ def _remove_hour_from_event(service, cal_id: str, event: dict,
 # ── Booked-slot helpers ────────────────────────────────────────────────────────
 
 def get_booked_slots(day: date) -> set[str]:
-    """Scan all patient dirs for appointments on `day`; return booked time slots.
-
-    Results are cached in Redis for 5 minutes (key: zenflow:slots:{date}).
-    """
+    """Return booked time slots for a given day (Redis-cached, 5 min TTL)."""
     import json as _json
-    from pathlib import Path
-    from bot.config import DATA_DIR
 
     # Try sync Redis cache
     try:
@@ -459,20 +447,15 @@ def get_booked_slots(day: date) -> set[str]:
         r = None
         key = None
 
-    booked: set[str] = set()
-    base = Path(DATA_DIR)
-    if not base.exists():
-        return booked
-    for apt_file in base.glob(f"*/{day.isoformat()}_*.json"):
-        try:
-            data = _json.loads(apt_file.read_text(encoding="utf-8"))
-            if data.get("status") == "active":
-                booked.add(data["time"])
-        except Exception as e:
-            logger.warning(f"Could not read {apt_file}: {e}")
+    from bot.db import get_db
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT time FROM appointments WHERE date=? AND status='active'",
+        (day.isoformat(),),
+    ).fetchall()
+    booked = {row[0] for row in rows}
     logger.debug(f"Booked slots on {day}: {booked}")
 
-    # Cache result
     if r and key is not None:
         try:
             r.set(key, _json.dumps(list(booked)), ex=300)
@@ -482,30 +465,17 @@ def get_booked_slots(day: date) -> set[str]:
     return booked
 
 
-# ── Local availability (no Google Calendar) ───────────────────────────────────
-
-def _local_avail_path(therapist_id: str | None) -> "Path":
-    from pathlib import Path
-    return Path(__file__).parent.parent.parent.parent / "data" / f"local_avail_{therapist_id or 'default'}.json"
-
+# ── Local availability (SQLite-backed, no Google Calendar) ───────────────────
 
 def _read_local_avail(therapist_id: str | None) -> list[dict]:
-    """Read local availability slots for a therapist."""
-    import json as _j
-    p = _local_avail_path(therapist_id)
-    if not p.exists():
-        return []
-    try:
-        return _j.loads(p.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-
-
-def _write_local_avail(therapist_id: str | None, slots: list[dict]) -> None:
-    import json as _j
-    p = _local_avail_path(therapist_id)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(_j.dumps(slots, indent=2, ensure_ascii=False), encoding="utf-8")
+    """Read local availability slots for a therapist from SQLite."""
+    from bot.db import get_db
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, start_dt AS start, end_dt AS end FROM availability WHERE therapist_id=?",
+        (therapist_id or "default",),
+    ).fetchall()
+    return [dict(row) for row in rows]
 
 
 async def _local_hours(day: date, slots: list[dict]) -> list[str]:
@@ -530,54 +500,73 @@ async def _local_hours(day: date, slots: list[dict]) -> list[str]:
 
 
 def _remove_hour_from_local(therapist_id: str | None, day: date, time_slot: str) -> None:
-    """Shrink or split the local availability slot that covers the booked hour."""
-    import json as _j
-    slots = _read_local_avail(therapist_id)
-    slot_min = _hhmm_min(time_slot)
-    slot_end_min = slot_min + 60
+    """Shrink or split the SQLite availability slot that covers the booked hour."""
+    from bot.db import get_db
+    conn = get_db()
 
-    new_slots = []
-    for s in slots:
+    slot_min     = _hhmm_min(time_slot)
+    slot_end_min = slot_min + 60
+    tid = therapist_id or "default"
+
+    rows = conn.execute(
+        "SELECT id, start_dt, end_dt FROM availability WHERE therapist_id=?",
+        (tid,),
+    ).fetchall()
+
+    fmt = "%Y-%m-%dT%H:%M:%S"
+    for row in rows:
         try:
-            ev_start = datetime.fromisoformat(s["start"]).replace(tzinfo=None)
-            ev_end   = datetime.fromisoformat(s["end"]).replace(tzinfo=None)
+            ev_start = datetime.fromisoformat(row["start_dt"]).replace(tzinfo=None)
+            ev_end   = datetime.fromisoformat(row["end_dt"]).replace(tzinfo=None)
         except Exception:
-            new_slots.append(s)
             continue
         if ev_start.date() != day:
-            new_slots.append(s)
             continue
         ev_s_min = _hhmm_min(ev_start.strftime("%H:%M"))
         ev_e_min = _hhmm_min(ev_end.strftime("%H:%M"))
         if not (ev_s_min <= slot_min and ev_e_min >= slot_end_min):
-            new_slots.append(s)
             continue
-        # This slot covers the booked hour — shrink/split
+
+        # This slot covers the booked hour — delete and replace
         sl_s = _slot_dt(day, time_slot)
         sl_e = sl_s + timedelta(hours=1)
-        fmt = "%Y-%m-%dT%H:%M:%S"
-        import uuid as _uuid
+
+        conn.execute("DELETE FROM availability WHERE id=?", (row["id"],))
         if ev_start == sl_s and ev_end == sl_e:
-            pass  # exact match — delete entirely
+            pass  # exact match — just delete
         elif ev_start == sl_s:
-            new_slots.append({"id": s["id"], "start": sl_e.strftime(fmt), "end": ev_end.strftime(fmt)})
+            conn.execute(
+                "INSERT INTO availability (id, therapist_id, start_dt, end_dt) VALUES (?, ?, ?, ?)",
+                (row["id"], tid, sl_e.strftime(fmt), ev_end.strftime(fmt)),
+            )
         elif ev_end == sl_e:
-            new_slots.append({"id": s["id"], "start": ev_start.strftime(fmt), "end": sl_s.strftime(fmt)})
+            conn.execute(
+                "INSERT INTO availability (id, therapist_id, start_dt, end_dt) VALUES (?, ?, ?, ?)",
+                (row["id"], tid, ev_start.strftime(fmt), sl_s.strftime(fmt)),
+            )
         else:
             # Split into two
-            new_slots.append({"id": s["id"], "start": ev_start.strftime(fmt), "end": sl_s.strftime(fmt)})
-            new_slots.append({"id": _uuid.uuid4().hex, "start": sl_e.strftime(fmt), "end": ev_end.strftime(fmt)})
-    _write_local_avail(therapist_id, new_slots)
+            conn.execute(
+                "INSERT INTO availability (id, therapist_id, start_dt, end_dt) VALUES (?, ?, ?, ?)",
+                (row["id"], tid, ev_start.strftime(fmt), sl_s.strftime(fmt)),
+            )
+            conn.execute(
+                "INSERT INTO availability (id, therapist_id, start_dt, end_dt) VALUES (?, ?, ?, ?)",
+                (uuid.uuid4().hex, tid, sl_e.strftime(fmt), ev_end.strftime(fmt)),
+            )
+        conn.commit()
+        break  # only one covering slot per hour
 
 
 def _add_hour_to_local(therapist_id: str | None, day: date, time_slot: str) -> None:
-    """Add a 1-hour availability slot back to the local file (used on cancellation)."""
-    import uuid as _uuid
-    slots = _read_local_avail(therapist_id)
+    """Add a 1-hour availability slot back to SQLite (used on cancellation)."""
+    from bot.db import get_db
+    conn = get_db()
     sl_s = _slot_dt(day, time_slot)
     sl_e = sl_s + timedelta(hours=1)
     fmt = "%Y-%m-%dT%H:%M:%S"
-    slots.append({"id": _uuid.uuid4().hex, "start": sl_s.strftime(fmt), "end": sl_e.strftime(fmt)})
-    _write_local_avail(therapist_id, slots)
-
-
+    conn.execute(
+        "INSERT INTO availability (id, therapist_id, start_dt, end_dt) VALUES (?, ?, ?, ?)",
+        (uuid.uuid4().hex, therapist_id or "default", sl_s.strftime(fmt), sl_e.strftime(fmt)),
+    )
+    conn.commit()

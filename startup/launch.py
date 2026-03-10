@@ -1,9 +1,9 @@
 """
 ZenFlow Clinic — Launch everything
 ===================================
-Run this one file to set up and start the whole system:
+Run from the project root:
 
-    python launch.py
+    python startup/launch.py
 
 What it does:
   1. Checks Python version (3.11+)
@@ -15,8 +15,8 @@ What it does:
   7. Launches the Telegram bots + the therapist web dashboard in parallel
 
 Individual services (for development):
-    python run_bots.py    # Telegram bots only
-    python run_web.py     # Web dashboard only  →  http://localhost:8000
+    python startup/run_bots.py    # Telegram bots only
+    python startup/run_web.py     # Web dashboard only  →  http://localhost:8000
 
 Services started:
     Telegram patient bot  — patients book, cancel, and chat
@@ -29,6 +29,7 @@ Services started:
       /settings       Google Calendar + therapist registration
       /register       therapist self-registration (public, no login needed)
       /treatment/...  per-session treatment notes
+      /sessions       session history with sorting
 
 Prerequisites:
     Redis   — install once:  winget install Redis.Redis
@@ -48,7 +49,8 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-ROOT   = Path(__file__).parent
+# startup/launch.py lives one level inside the project root
+ROOT   = Path(__file__).resolve().parent.parent
 VENV   = ROOT / ".venv"
 PYTHON = VENV / "Scripts" / "python.exe" if sys.platform == "win32" else VENV / "bin" / "python"
 PIP    = VENV / "Scripts" / "pip.exe"    if sys.platform == "win32" else VENV / "bin" / "pip"
@@ -115,7 +117,7 @@ print("  OK  Dependencies up to date")
 # ── 4. .env file ──────────────────────────────────────────────────────────────
 step(4, ".env configuration")
 if not ENV.exists():
-    print("  !!  .env not found — create one based on the template in CLAUDE.md")
+    print("  !!  .env not found — create one (see startup/START.md for the template)")
     sys.exit(1)
 
 env_vars = {
@@ -257,44 +259,71 @@ except Exception as e:
 print(f"\n{DIVIDER}")
 print("   Launching services")
 print(f"{DIVIDER}")
-print("   Bot logs   →  botLogs.text")
+print("   Bot logs   →  logs/botLogs.text")
+print("   Web logs   →  logs/webLogs.text")
 print("   Dashboard  →  http://localhost:8000")
 print("   Register   →  http://localhost:8000/register")
 print("   Stop with Ctrl+C\n")
 
 os.chdir(ROOT)
-processes: list[tuple[str, subprocess.Popen]] = []
+
+BOT_MAX_RETRIES = 5   # restart the bot process up to 5 times on crash
+BOT_RETRY_DELAY = 5   # seconds to wait between restarts
+
+_RUN_BOTS = str(ROOT / "startup" / "run_bots.py")
+_RUN_WEB  = str(ROOT / "startup" / "run_web.py")
+
+web_proc: subprocess.Popen | None = None
+
+
+def _start_bots() -> subprocess.Popen:
+    p = subprocess.Popen([str(PYTHON), _RUN_BOTS], cwd=ROOT)
+    print(f"   OK  Telegram bots    (PID {p.pid})")
+    return p
+
+
+def _start_web() -> subprocess.Popen:
+    p = subprocess.Popen([str(PYTHON), _RUN_WEB], cwd=ROOT)
+    print(f"   OK  Web dashboard    (PID {p.pid})")
+    return p
+
 
 try:
-    bot_proc = subprocess.Popen([str(PYTHON), "run_bots.py"], cwd=ROOT)
-    processes.append(("Telegram bots", bot_proc))
-    print(f"   OK  Telegram bots    (PID {bot_proc.pid})")
-
+    bot_proc = _start_bots()
     time.sleep(2)
-
-    web_proc = subprocess.Popen([str(PYTHON), "run_web.py"], cwd=ROOT)
-    processes.append(("Web dashboard", web_proc))
-    print(f"   OK  Web dashboard    (PID {web_proc.pid})")
+    web_proc = _start_web()
 
     print(f"\n   All services running.  Press Ctrl+C to stop.\n")
 
+    bot_restarts = 0
     while True:
-        for name, proc in processes:
-            code = proc.poll()
-            if code is not None:
-                print(f"\n   !!  {name} exited unexpectedly (code {code})")
-                raise SystemExit(1)
         time.sleep(1)
+
+        # Web crashed — fatal, stop everything
+        if web_proc.poll() is not None:
+            print(f"\n   !!  Web dashboard exited unexpectedly (code {web_proc.returncode})")
+            raise SystemExit(1)
+
+        # Bots crashed — retry up to BOT_MAX_RETRIES times
+        if bot_proc.poll() is not None:
+            code = bot_proc.returncode
+            bot_restarts += 1
+            if bot_restarts > BOT_MAX_RETRIES:
+                print(f"\n   !!  Telegram bots failed {BOT_MAX_RETRIES} times in a row — giving up.")
+                raise SystemExit(1)
+            print(f"\n   !!  Telegram bots exited (code {code}) — retrying in {BOT_RETRY_DELAY}s "
+                  f"(attempt {bot_restarts}/{BOT_MAX_RETRIES})...")
+            time.sleep(BOT_RETRY_DELAY)
+            bot_proc = _start_bots()
 
 except KeyboardInterrupt:
     print("\n\n   Shutting down...")
 finally:
-    for name, proc in processes:
-        if proc.poll() is None:
+    for proc in [bot_proc, web_proc]:
+        if proc is not None and proc.poll() is None:
             proc.terminate()
             try:
                 proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 proc.kill()
-            print(f"   Stopped: {name}")
     print("\n   Done.\n")

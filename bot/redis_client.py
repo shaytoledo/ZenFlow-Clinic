@@ -24,4 +24,9 @@ def get_sync_redis() -> syncredis.Redis:
     global _sync_client
     if _sync_client is None:
         _sync_client = syncredis.from_url(REDIS_URL, decode_responses=True)
+        try:
+            _sync_client.config_set("maxmemory", "1gb")
+            _sync_client.config_set("maxmemory-policy", "allkeys-lru")
+        except Exception:
+            pass  # Redis may not allow CONFIG SET (e.g. managed Redis)
     return _sync_client

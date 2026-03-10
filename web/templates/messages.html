@@ -5,7 +5,7 @@
 {% block content %}
 <div style="padding: 28px;">
 
-  <div style="display:grid; grid-template-columns: 280px 1fr; gap: 0; height: calc(100vh - 120px); border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+  <div style="display:grid; grid-template-columns: 300px 1fr; gap: 0; height: calc(100vh - 120px); border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
 
     <!-- Patient list panel -->
     <div style="background: white; border-right: 1px solid #E5E7EB; display:flex;flex-direction:column;overflow:hidden;">
@@ -14,7 +14,12 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input type="text" class="zf-input" placeholder="Search conversations…" style="padding-left:30px;font-size:13px;" oninput="filterConvos(this.value)" />
+          <input type="text" class="zf-input" placeholder="Search patients…" style="padding-left:30px;font-size:13px;" oninput="filterConvos(this.value)" />
+        </div>
+        <!-- Live relay / intake tabs -->
+        <div style="display:flex;gap:4px;margin-top:10px;">
+          <button id="tab-relay" class="zf-tab-btn active" onclick="switchTab('relay')">Live Chat</button>
+          <button id="tab-intake" class="zf-tab-btn" onclick="switchTab('intake')">Intake History</button>
         </div>
       </div>
       <div id="convo-list" style="overflow-y:auto;flex:1;">
@@ -31,7 +36,8 @@
         <!-- messages rendered here -->
       </div>
       <div id="thread-input" style="background:white;border-top:1px solid #E5E7EB;padding:14px 16px;display:flex;gap:10px;" class="hidden">
-        <input type="text" id="reply-input" class="zf-input" placeholder="Type a reply… (Telegram integration)" style="flex:1;" />
+        <input type="text" id="reply-input" class="zf-input" placeholder="Type a message and press Enter…" style="flex:1;"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();sendReply();}" />
         <button class="zf-btn zf-btn-primary" style="padding:9px 16px;" onclick="sendReply()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -43,30 +49,210 @@
   <!-- Info note -->
   <div style="margin-top:16px;background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <span style="font-size:13px;color:#0D9488;">Conversations happen in real-time through the Telegram bot. This view shows appointment-linked intake history. Direct replies require the therapist Telegram bot.</span>
+    <span style="font-size:13px;color:#0D9488;">
+      <strong>Live Chat</strong> shows active Telegram relay sessions. Messages you send here go directly to the patient via the therapist bot.
+      <strong>Intake History</strong> shows appointment-linked AI intake conversations.
+    </span>
   </div>
 
 </div>
+
+<style>
+.zf-tab-btn {
+  flex:1; padding:6px 0; font-size:12px; font-weight:600; border:1px solid #E5E7EB;
+  border-radius:8px; cursor:pointer; background:white; color:#6B7280;
+  transition: all 0.15s;
+}
+.zf-tab-btn.active {
+  background:#0D9488; color:white; border-color:#0D9488;
+}
+</style>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
 let _patients = [];
+let _relayPatients = [];
 let _selectedId = null;
+let _currentTab = 'relay';
+let _pollTimer = null;
 
-async function loadMessages() {
+// ── Tab switching ──────────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  _currentTab = tab;
+  _selectedId = null;
+  document.getElementById('tab-relay').classList.toggle('active', tab === 'relay');
+  document.getElementById('tab-intake').classList.toggle('active', tab === 'intake');
+  document.getElementById('thread-header').innerHTML = '<div style="font-size:13px;color:#9CA3AF;">Select a patient to view conversation</div>';
+  document.getElementById('thread-body').innerHTML = '';
+  document.getElementById('thread-input').classList.add('hidden');
+
+  if (tab === 'relay') loadRelayList();
+  else loadIntakeList();
+}
+
+// ── Live relay tab ─────────────────────────────────────────────────────────────
+
+async function loadRelayList() {
+  try {
+    const data = await fetch('/api/messages/conversations').then(r => r.json());
+    _relayPatients = Array.isArray(data) ? data : [];
+    renderRelayList(_relayPatients);
+  } catch(e) {
+    document.getElementById('convo-list').innerHTML =
+      '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">No active relay sessions</div>';
+  }
+}
+
+function renderRelayList(sessions) {
+  const el = document.getElementById('convo-list');
+  if (sessions.length === 0) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">No active relay sessions.<br><span style="font-size:11px;">Patients start a chat via the Telegram bot.</span></div>';
+    return;
+  }
+  el.innerHTML = sessions.map(s => {
+    const pid = s.patient_id;
+    const name = s.patient_name || `Patient ${pid}`;
+    const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="zf-convo-item ${_selectedId === pid ? 'active' : ''}" onclick="openRelayConvo(${pid}, '${name}')">
+      <div class="zf-avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#111827;">${name}</div>
+        <div style="font-size:11px;color:#0D9488;font-weight:500;">🟢 Active relay session</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openRelayConvo(patientId, patientName) {
+  _selectedId = patientId;
+  if (_currentTab === 'relay') renderRelayList(_relayPatients);
+
+  const initials = patientName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('thread-header').innerHTML = `
+    <div class="zf-avatar" style="width:34px;height:34px;font-size:12px;">${initials}</div>
+    <div>
+      <div style="font-size:14px;font-weight:600;color:#111827;">${patientName}</div>
+      <div style="font-size:11px;color:#0D9488;">🟢 Live relay session — messages sent here go via Telegram</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button onclick="refreshMessages()" class="zf-btn zf-btn-outline" style="font-size:11px;padding:4px 10px;">↻ Refresh</button>
+      <a href="/patients" style="font-size:12px;color:#0D9488;text-decoration:none;font-weight:500;line-height:1;display:flex;align-items:center;">View Profile →</a>
+    </div>
+  `;
+  document.getElementById('thread-input').classList.remove('hidden');
+
+  await fetchRelayHistory(patientId);
+  startPolling(patientId);
+}
+
+async function fetchRelayHistory(patientId) {
+  const threadBody = document.getElementById('thread-body');
+  try {
+    const data = await fetch(`/api/messages/history/${patientId}`).then(r => r.json());
+    const messages = data.messages || [];
+    if (messages.length === 0) {
+      threadBody.innerHTML = '<div style="text-align:center;color:#9CA3AF;font-size:13px;margin-top:40px;">No messages yet — the patient hasn\'t sent anything via the relay.</div>';
+      return;
+    }
+    renderMessages(threadBody, messages, 'relay');
+  } catch(e) {
+    threadBody.innerHTML = '<div style="text-align:center;color:#EF4444;font-size:13px;">Error loading messages</div>';
+  }
+}
+
+function renderMessages(container, messages, mode) {
+  if (mode === 'relay') {
+    container.innerHTML = messages.map(msg => {
+      const isTherapist = msg.role === 'therapist';
+      const timeStr = msg.ts ? new Date(msg.ts * 1000).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : '';
+      return `<div style="display:flex;${isTherapist ? 'justify-content:flex-end;' : ''}">
+        <div class="zf-msg-bubble ${isTherapist ? 'user' : 'ai'}">
+          <div style="font-size:10px;font-weight:600;color:${isTherapist ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isTherapist ? '🩺 You' : '👤 Patient'} ${timeStr ? '· ' + timeStr : ''}</div>
+          <div style="font-size:13px;line-height:1.5;">${msg.text}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    container.innerHTML = messages.map(msg => {
+      const isUser = msg.role === 'user';
+      return `<div style="display:flex;${isUser ? 'justify-content:flex-end;' : ''}">
+        <div class="zf-msg-bubble ${isUser ? 'user' : 'ai'}">
+          <div style="font-size:10px;font-weight:600;color:${isUser ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isUser ? '👤 Patient' : '🤖 AI Assistant'}</div>
+          <div style="font-size:13px;line-height:1.5;">${msg.content}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  container.scrollTop = container.scrollHeight;
+}
+
+function startPolling(patientId) {
+  clearInterval(_pollTimer);
+  _pollTimer = setInterval(async () => {
+    if (_selectedId === patientId && _currentTab === 'relay') {
+      await fetchRelayHistory(patientId);
+    } else {
+      clearInterval(_pollTimer);
+    }
+  }, 8000);
+}
+
+function refreshMessages() {
+  if (_selectedId) fetchRelayHistory(_selectedId);
+}
+
+// ── Send reply ─────────────────────────────────────────────────────────────────
+
+async function sendReply() {
+  const inp = document.getElementById('reply-input');
+  const text = inp.value.trim();
+  if (!text || !_selectedId) return;
+
+  inp.disabled = true;
+
+  try {
+    const r = await fetch('/api/messages/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_id: _selectedId, text }),
+    });
+    const result = await r.json();
+    if (!r.ok) throw new Error(result.detail || 'Send failed');
+    inp.value = '';
+    // Immediately refresh history
+    await fetchRelayHistory(_selectedId);
+  } catch(e) {
+    alert('Could not send message: ' + e.message);
+  } finally {
+    inp.disabled = false;
+    inp.focus();
+  }
+}
+
+// ── Intake history tab ─────────────────────────────────────────────────────────
+
+async function loadIntakeList() {
   try {
     const data = await fetch('/api/patients').then(r => r.json());
     _patients = data.filter(p => p.sessions > 0);
     renderConvoList(_patients);
   } catch(e) {
-    document.getElementById('convo-list').innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">Error loading</div>';
+    document.getElementById('convo-list').innerHTML =
+      '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">Error loading</div>';
   }
 }
 
 function filterConvos(q) {
-  const filtered = _patients.filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
-  renderConvoList(filtered);
+  if (_currentTab === 'intake') {
+    renderConvoList(_patients.filter(p => p.name.toLowerCase().includes(q.toLowerCase())));
+  } else {
+    renderRelayList(_relayPatients.filter(s => {
+      const name = (s.patient_name || '').toLowerCase();
+      return name.includes(q.toLowerCase());
+    }));
+  }
 }
 
 function renderConvoList(patients) {
@@ -80,7 +266,7 @@ function renderConvoList(patients) {
     const lastDate = p.last_appointment
       ? new Date(p.last_appointment).toLocaleDateString('en-GB', {day:'numeric',month:'short'})
       : '';
-    return `<div class="zf-convo-item ${_selectedId === p.id ? 'active' : ''}" onclick="openConvo(${p.id})">
+    return `<div class="zf-convo-item ${_selectedId === p.id ? 'active' : ''}" onclick="openIntakeConvo(${p.id}, '${p.name.replace(/'/g,"\\'")}')">
       <div class="zf-avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;">${initials}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
@@ -91,39 +277,32 @@ function renderConvoList(patients) {
   }).join('');
 }
 
-async function openConvo(patientId) {
+async function openIntakeConvo(patientId, patientName) {
+  clearInterval(_pollTimer);
   _selectedId = patientId;
-  renderConvoList(_patients.filter(p => {
-    const q = document.querySelector('#convo-list').previousElementSibling.querySelector('input').value;
-    return p.name.toLowerCase().includes(q.toLowerCase());
-  }));
+  renderConvoList(_patients);
 
-  const patient = _patients.find(p => p.id === patientId);
-  const initials = patient ? patient.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() : '?';
-
+  const initials = patientName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('thread-header').innerHTML = `
     <div class="zf-avatar" style="width:34px;height:34px;font-size:12px;">${initials}</div>
     <div>
-      <div style="font-size:14px;font-weight:600;color:#111827;">${patient ? patient.name : 'Patient'}</div>
-      <div style="font-size:11px;color:#9CA3AF;">${patient ? patient.sessions + ' sessions recorded' : ''}</div>
+      <div style="font-size:14px;font-weight:600;color:#111827;">${patientName}</div>
+      <div style="font-size:11px;color:#9CA3AF;">Intake conversation history</div>
     </div>
     <a href="/patients" style="margin-left:auto;font-size:12px;color:#0D9488;text-decoration:none;font-weight:500;">View Profile →</a>
   `;
+  document.getElementById('thread-input').classList.add('hidden');
 
   const threadBody = document.getElementById('thread-body');
-  threadBody.innerHTML = '<div style="text-align:center;color:#9CA3AF;font-size:13px;">Loading conversation…</div>';
-  document.getElementById('thread-input').classList.remove('hidden');
+  threadBody.innerHTML = '<div style="text-align:center;color:#9CA3AF;font-size:13px;">Loading…</div>';
 
   try {
     const data = await fetch(`/api/patients/${patientId}`).then(r => r.json());
-    // Show intake conversations from appointments
     const allMsgs = [];
     data.appointments.forEach(apt => {
       if (apt.intake_history && apt.intake_history.length > 0) {
         allMsgs.push({ type: 'date', text: new Date(apt.date).toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' — Intake Session' });
-        apt.intake_history.forEach(msg => {
-          allMsgs.push({ role: msg.role, content: msg.content });
-        });
+        apt.intake_history.forEach(msg => allMsgs.push(msg));
       }
     });
 
@@ -147,23 +326,17 @@ async function openConvo(patientId) {
         </div>
       </div>`;
     }).join('');
-
     threadBody.scrollTop = threadBody.scrollHeight;
   } catch(e) {
     threadBody.innerHTML = '<div style="text-align:center;color:#EF4444;font-size:13px;">Error loading conversation</div>';
   }
 }
 
-function sendReply() {
-  const inp = document.getElementById('reply-input');
-  if (!inp.value.trim()) return;
-  alert('Sending replies via Telegram requires the therapist bot to be running.\nMessage: "' + inp.value + '"');
-  inp.value = '';
-}
+// ── Init ───────────────────────────────────────────────────────────────────────
 
-loadMessages();
+loadRelayList();
 
-// Update the active-relay badge (only relevant on this page)
+// Update message badge from relay count
 fetch('/api/messages/active').then(r => r.json()).then(d => {
   const badge = document.getElementById('msg-badge');
   if (badge && d.count > 0) {

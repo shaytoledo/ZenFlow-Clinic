@@ -21,6 +21,9 @@ async def show_appointments(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     logger.info(f"[{patient_id}] cancel: looking up appointments")
 
     appointments = get_patient_appointments(patient_id)
+    from datetime import date as _date
+    today_str = _date.today().isoformat()
+    appointments = [apt for apt in appointments if apt.get("date", "") >= today_str]
     if not appointments:
         await query.edit_message_text(
             "You have no upcoming appointments.",
@@ -51,7 +54,7 @@ async def confirm_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     idx = int(query.data.replace("cancel_apt_", ""))
     apt = context.user_data.get("apts_to_cancel", [])[idx]
-    cancel_appointment(apt["_filepath"])
+    cancel_appointment(apt["id"])
     clear_intake(apt["patient_id"])
     await restore_slot(
         date.fromisoformat(apt["date"]),

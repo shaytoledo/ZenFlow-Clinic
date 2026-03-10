@@ -40,7 +40,13 @@
       "Bash(\"/c/Program Files/Redis/redis-cli.exe\" get:*)",
       "Bash(.venv/Scripts/python:*)",
       "Bash(/c/Users/shayt/PycharmProjects/Clinic/data/therapists.json:*)",
-      "Bash(redis-cli ping:*)"
+      "Bash(redis-cli ping:*)",
+      "Bash(tasklist:*)",
+      "Bash(do taskkill //F //PID $pid)",
+      "Bash(.venv/Scripts/pip show:*)",
+      "Bash(start:*)",
+      "Bash(ollama list:*)",
+      "Bash(source:*)"
     ]
   }
 }

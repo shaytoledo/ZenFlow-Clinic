@@ -27,7 +27,7 @@ from bot.patient_bot.schedule import (
     skip_intake,
     start_intake,
 )
-from bot.patient_bot.start import back_to_main, start
+from bot.patient_bot.start import back_to_main, change_therapist, start
 from bot.patient_bot.therapist import (
     end_chat,
     relay_to_therapist,
@@ -62,7 +62,7 @@ class _SingleLineFormatter(logging.Formatter):
 
 
 def setup_logging() -> None:
-    log_path = Path(__file__).parent.parent / "botLogs.text"
+    log_path = Path(__file__).parent.parent / "logs" / "botLogs.text"
     fmt = _SingleLineFormatter("%(asctime)s [%(levelname)s] %(name)s — %(message)s")
 
     file_handler = logging.FileHandler(log_path, encoding="utf-8", mode="w")
@@ -115,6 +115,8 @@ def build_patient_app() -> Application:
     app = (
         Application.builder()
         .token(TELEGRAM_TOKEN)
+        .connect_timeout(30.0)
+        .read_timeout(30.0)
         .post_init(_ensure_ollama)
         .build()
     )
@@ -129,6 +131,7 @@ def build_patient_app() -> Application:
                 CallbackQueryHandler(show_therapist_choice,      pattern="^schedule$"),
                 CallbackQueryHandler(show_appointments,          pattern="^cancel$"),
                 CallbackQueryHandler(show_therapist_for_contact, pattern="^therapist$"),
+                CallbackQueryHandler(change_therapist,           pattern="^change_therapist$"),
             ],
             THERAPIST_SELECT: [
                 CallbackQueryHandler(select_therapist_and_continue, pattern="^sel_t_"),
@@ -183,10 +186,10 @@ async def _run(patient_app: Application, therapist_app: Application | None) -> N
         return
 
     async with patient_app, therapist_app:
-        await patient_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-        await therapist_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
         await patient_app.start()
         await therapist_app.start()
+        await patient_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        await therapist_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
         logger.info("Both bots running — press Ctrl+C to stop")
         await asyncio.Event().wait()
 

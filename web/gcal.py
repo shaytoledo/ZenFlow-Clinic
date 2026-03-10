@@ -2,7 +2,7 @@
 Google Calendar wrapper for the ZenFlow therapist frontend.
 
 - OAuth2 flow: get_auth_url() / exchange_code()
-- Token persisted to data/google_token.json (auto-refreshed)
+- Token persisted to data/google_tokens/{therapist_id}.json (auto-refreshed)
 - Availability events live in a dedicated "ZenFlow Availability" calendar
   (auto-created on first use)
 """
@@ -30,16 +30,14 @@ def _to_utc(dt_str: str) -> str:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-TOKEN_FILE = Path(__file__).parent.parent / "data" / "google_token.json"
+_TOKENS_DIR = Path(__file__).parent.parent / "data" / "google_tokens"
 AVAILABILITY_CAL_NAME = "ZenFlow Availability"
 AVAILABILITY_TITLE = "✅ Available"
 
 
-def token_file_for(therapist_id: str | None = None) -> Path:
-    """Return the token file path for a given therapist (or the default)."""
-    if therapist_id:
-        return Path(__file__).parent.parent / "data" / f"google_token_{therapist_id}.json"
-    return TOKEN_FILE
+def token_file_for(therapist_id: str) -> Path:
+    """Return the token file path for a given therapist."""
+    return _TOKENS_DIR / f"{therapist_id}.json"
 
 
 # ── OAuth ─────────────────────────────────────────────────────────────────────
@@ -56,11 +54,8 @@ def exchange_code(code: str, token_file: Path | None = None) -> None:
     _save_token(flow.credentials, token_file)
 
 
-def is_authenticated(therapist_id: str | None = None) -> bool:
-    # Each therapist only sees their own token — no cross-therapist fallback
-    if therapist_id:
-        return token_file_for(therapist_id).exists()
-    return TOKEN_FILE.exists()
+def is_authenticated(therapist_id: str) -> bool:
+    return token_file_for(therapist_id).exists()
 
 
 def _make_flow() -> Flow:
@@ -76,13 +71,9 @@ def _make_flow() -> Flow:
     return Flow.from_client_config(config, scopes=SCOPES, redirect_uri=GOOGLE_REDIRECT_URI)
 
 
-def _save_token(creds: Credentials, token_file: Path | None = None) -> None:
-    tf = token_file or TOKEN_FILE
-    tf.parent.mkdir(parents=True, exist_ok=True)
-    tf.write_text(creds.to_json(), encoding="utf-8")
-    # Keep the legacy default token in sync so the bot's availability service can still find it
-    if tf != TOKEN_FILE:
-        TOKEN_FILE.write_text(creds.to_json(), encoding="utf-8")
+def _save_token(creds: Credentials, token_file: Path) -> None:
+    token_file.parent.mkdir(parents=True, exist_ok=True)
+    token_file.write_text(creds.to_json(), encoding="utf-8")
 
 
 # ── Client ────────────────────────────────────────────────────────────────────
@@ -92,13 +83,11 @@ class GCalClient:
         self.service = service
 
     @classmethod
-    def load(cls, token_file: Path | None = None) -> "GCalClient":
-        tf = token_file or TOKEN_FILE
-        # No cross-therapist fallback — raise if the requested token doesn't exist
-        creds = Credentials.from_authorized_user_file(str(tf), SCOPES)
+    def load(cls, token_file: Path) -> "GCalClient":
+        creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            _save_token(creds, tf)
+            _save_token(creds, token_file)
         return cls(build("calendar", "v3", credentials=creds, cache_discovery=False))
 
     # ── availability calendar ──────────────────────────────────────────────

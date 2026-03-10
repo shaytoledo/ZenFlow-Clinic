@@ -2,7 +2,6 @@ import json
 import logging
 import re
 import threading
-from pathlib import Path
 
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
@@ -18,6 +17,24 @@ logger = logging.getLogger(__name__)
 
 # Patient bot instance used to deliver therapist replies
 _patient_bot = Bot(token=TELEGRAM_TOKEN)
+
+
+async def start_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Respond to /start from a therapist."""
+    user_id = update.effective_user.id
+    if user_id in THERAPIST_MAP:
+        name = THERAPIST_MAP[user_id].get("name", "Therapist")
+        await update.message.reply_text(
+            f"👋 Hello, {name}! You're registered as a therapist.\n\n"
+            "Patient messages will appear here when they connect with you.\n"
+            "Reply directly to each forwarded message to respond."
+        )
+    else:
+        await update.message.reply_text(
+            "👋 Welcome to ZenFlow Therapist Bot!\n\n"
+            "To get started, visit the clinic web portal to register "
+            "and get your 8-character activation code, then send it here."
+        )
 
 
 async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -109,7 +126,7 @@ async def _handle_registration(msg, user_id: int, code: str) -> None:
         return
 
     info = json.loads(raw)
-    entry = _register_therapist_to_file(
+    entry = _register_therapist_to_db(
         name=info["name"],
         telegram_id=user_id,
         email=info.get("email") or "",
@@ -126,10 +143,10 @@ async def _handle_registration(msg, user_id: int, code: str) -> None:
     logger.info(f"New therapist registered: {entry['name']} (id={entry['id']}, tg={user_id})")
 
 
-def _register_therapist_to_file(
+def _register_therapist_to_db(
     name: str, telegram_id: int, email: str = "", google_id: str = ""
 ) -> dict:
-    """Register or update a therapist in data/therapists.json and in-memory config maps.
+    """Register or update a therapist in SQLite and in-memory config maps.
 
     Thread-safe via _reg_lock.
     Upsert priority:
@@ -141,59 +158,78 @@ def _register_therapist_to_file(
     without requiring a bot restart.
     """
     from bot import config as _cfg
+    from bot.db import get_db
 
-    path = Path(_cfg.DATA_DIR).parent / "therapists.json"
+    conn = get_db()
 
     with _reg_lock:
-        therapists = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
-
         # Try email match first (web-registered therapist not yet linked to Telegram)
-        existing = None
+        existing_row = None
         if email:
-            existing = next(
-                (t for t in therapists if (t.get("email") or "").lower() == email.lower()),
-                None,
-            )
-        # Fallback: match by telegram_id
-        if existing is None:
-            existing = next((t for t in therapists if t.get("telegram_id") == telegram_id), None)
+            existing_row = conn.execute(
+                "SELECT * FROM therapists WHERE lower(email)=?",
+                (email.lower(),),
+            ).fetchone()
 
-        if existing:
-            existing["name"] = name
-            existing["telegram_id"] = telegram_id
-            existing["active"] = True
+        # Fallback: match by telegram_id
+        if existing_row is None:
+            existing_row = conn.execute(
+                "SELECT * FROM therapists WHERE telegram_id=?",
+                (telegram_id,),
+            ).fetchone()
+
+        if existing_row:
+            updates = ["name=?", "telegram_id=?", "active=1"]
+            params: list = [name, telegram_id]
             if email:
-                existing["email"] = email
+                updates.append("email=?")
+                params.append(email)
             if google_id:
-                existing["google_id"] = google_id
-            entry = existing
+                updates.append("google_id=?")
+                params.append(google_id)
+            params.append(existing_row["id"])
+            conn.execute(f"UPDATE therapists SET {', '.join(updates)} WHERE id=?", params)
+            conn.commit()
+            entry_row = conn.execute(
+                "SELECT * FROM therapists WHERE id=?", (existing_row["id"],)
+            ).fetchone()
         else:
-            existing_ids = {t["id"] for t in therapists}
+            existing_ids = {r[0] for r in conn.execute("SELECT id FROM therapists").fetchall()}
             n = 1
             while f"t{n}" in existing_ids:
                 n += 1
-            entry = {
-                "id": f"t{n}",
-                "name": name,
-                "telegram_id": telegram_id,
-                "calendar_name": "ZenFlow Availability",
-                "active": True,
-            }
-            if email:
-                entry["email"] = email
-            if google_id:
-                entry["google_id"] = google_id
-            therapists.append(entry)
+            new_id = f"t{n}"
+            conn.execute(
+                """INSERT INTO therapists
+                   (id, name, telegram_id, email, google_id, calendar_name, active)
+                   VALUES (?, ?, ?, ?, ?, 'ZenFlow Availability', 1)""",
+                (new_id, name, telegram_id, email or None, google_id or None),
+            )
+            conn.commit()
+            entry_row = conn.execute(
+                "SELECT * FROM therapists WHERE id=?", (new_id,)
+            ).fetchone()
 
-        path.write_text(json.dumps(therapists, indent=2, ensure_ascii=False), encoding="utf-8")
+        entry = dict(entry_row)
+        entry["active"] = bool(entry.get("active"))
 
-        # Mutate in-place so modules that did `from bot.config import THERAPISTS`
-        # (e.g. schedule.py) see the change immediately without a restart.
+        # Reload all therapists and mutate in-place so other modules see the change immediately.
+        all_rows = conn.execute("SELECT * FROM therapists").fetchall()
+        all_therapists = []
+        for row in all_rows:
+            t = dict(row)
+            t["active"] = bool(t.get("active"))
+            all_therapists.append(t)
+
         _cfg.THERAPISTS.clear()
-        _cfg.THERAPISTS.extend(therapists)
+        _cfg.THERAPISTS.extend(all_therapists)
         _cfg.THERAPIST_MAP.clear()
-        _cfg.THERAPIST_MAP.update({t["telegram_id"]: t for t in therapists if t.get("active")})
+        _cfg.THERAPIST_MAP.update({
+            t["telegram_id"]: t
+            for t in all_therapists
+            if t.get("active") and t.get("telegram_id")
+        })
         _cfg.THERAPIST_BY_ID.clear()
-        _cfg.THERAPIST_BY_ID.update({t["id"]: t for t in therapists if t.get("active")})
+        _cfg.THERAPIST_BY_ID.update({t["id"]: t for t in all_therapists if t.get("active")})
 
     return entry

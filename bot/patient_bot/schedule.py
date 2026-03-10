@@ -8,11 +8,12 @@ from bot.config import THERAPISTS
 from bot.patient_bot.services.ai_intake import (
     clear_intake,
     generate_summary,
+    generate_tcm_diagnosis,
     get_history_dicts,
     get_next_question,
     initialize_intake,
 )
-from bot.patient_bot.services.appointments import save_appointment
+from bot.patient_bot.services.appointments import save_appointment, save_treatment_notes
 from bot.patient_bot.services.availability import book_slot, get_available_days, get_available_hours
 from bot.states import (
     INTAKE, INTAKE_CONFIRM, SCHEDULE_DAY, SCHEDULE_HOUR, SCHEDULE_WEEK,
@@ -237,7 +238,7 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     selected_therapist = context.user_data.get("selected_therapist")
     gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name, apt_summary,
                                therapist_id=selected_therapist)
-    save_appointment(
+    appointment_id = save_appointment(
         patient_id=user.id,
         patient_name=user.full_name or user.first_name,
         day=day,
@@ -247,6 +248,7 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         gcal_apt_event_id=gcal_id,
         therapist_id=selected_therapist or "",
     )
+    save_treatment_notes(appointment_id, user.id, {})
     clear_intake(user.id)
     logger.info(f"[{user.id}] appointment saved (no intake)")
     context.user_data.clear()
@@ -254,10 +256,9 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         context.user_data["selected_therapist"] = selected_therapist
 
     await query.edit_message_text(
-        f"✅ *Appointment confirmed!*\n"
-        f"📅 {day.strftime('%A, %d %b')} at {time_slot}\n\n"
-        f"We look forward to seeing you at ZenFlow Clinic 🌿\n\n"
-        f"What else can I help you with?",
+        f"✅ *Appointment successfully booked!*\n"
+        f"📅 *{day.strftime('%A, %d %B %Y')}* at *{time_slot}*\n\n"
+        f"We look forward to seeing you at ZenFlow Clinic 🌿",
         parse_mode="Markdown",
         reply_markup=get_main_keyboard(),
     )
@@ -286,7 +287,7 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         selected_therapist = context.user_data.get("selected_therapist")
         gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name, summary,
                                    therapist_id=selected_therapist)
-        save_appointment(
+        appointment_id = save_appointment(
             patient_id=user_id,
             patient_name=user.full_name or user.first_name,
             day=day,
@@ -296,16 +297,31 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
             gcal_apt_event_id=gcal_id,
             therapist_id=selected_therapist or "",
         )
+        try:
+            tcm = await generate_tcm_diagnosis(user_id, summary)
+            save_treatment_notes(appointment_id, user_id, tcm)
+            logger.info(f"[{user_id}] TCM diagnosis generated and saved")
+        except Exception as e:
+            logger.warning(f"[{user_id}] TCM diagnosis error: {e}")
         clear_intake(user_id)
         context.user_data.clear()
         if selected_therapist:
             context.user_data["selected_therapist"] = selected_therapist
 
+        # Build a compact summary snippet (first 3 non-empty lines)
+        summary_lines = [line.strip() for line in summary.splitlines() if line.strip()]
+        summary_snippet = "\n".join(summary_lines[:3])
+        if len(summary_lines) > 3:
+            summary_snippet += "\n..."
+        # Strip any Markdown that could break the outer message formatting
+        summary_snippet = summary_snippet.replace("**", "").replace("__", "")
+
         await update.message.reply_text(
-            f"✅ *Appointment confirmed!*\n"
-            f"📅 {day.strftime('%A, %d %b')} at {time_slot}\n\n"
-            f"We look forward to seeing you at ZenFlow Clinic 🌿\n\n"
-            f"What else can I help you with?",
+            f"✅ *Appointment successfully booked!*\n"
+            f"📅 *{day.strftime('%A, %d %B %Y')}* at *{time_slot}*\n\n"
+            f"📋 *Intake summary:*\n{summary_snippet}\n\n"
+            f"Your acupuncturist has received your intake details and will be prepared for your visit.\n\n"
+            f"See you at ZenFlow Clinic 🌿",
             parse_mode="Markdown",
             reply_markup=get_main_keyboard(),
         )
