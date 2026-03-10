@@ -1,9 +1,9 @@
 import logging
 
-from telegram.ext import Application, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from bot.config import THERAPIST_BOT_TOKEN, THERAPISTS
-from bot.therapist_bot.handlers import handle_therapist_message
+from bot.therapist_bot.handlers import handle_therapist_message, start_therapist
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +14,15 @@ def build_therapist_app() -> Application | None:
         logger.warning("THERAPIST_BOT_TOKEN not set — therapist bot disabled")
         return None
 
-    app = Application.builder().token(THERAPIST_BOT_TOKEN).build()
+    app = (
+        Application.builder()
+        .token(THERAPIST_BOT_TOKEN)
+        .connect_timeout(30.0)
+        .read_timeout(30.0)
+        .build()
+    )
 
+    app.add_handler(CommandHandler("start", start_therapist))
     # Single dynamic handler — routing is done at call time so newly registered
     # therapists are activated immediately without a bot restart.
     app.add_handler(

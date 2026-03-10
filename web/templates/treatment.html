@@ -67,6 +67,7 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
           <span>Tongue &amp; Pulse Findings</span>
+          <span style="margin-left:auto;font-size:11px;color:#9CA3AF;">Press Enter to update diagnosis</span>
         </div>
         <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px;">
           <div>
@@ -77,6 +78,10 @@
             <label class="zf-field-label">Pulse Observation</label>
             <input type="text" class="zf-input" id="pulse-input" placeholder="e.g. Wiry, slightly rapid, thin on right guan…" />
           </div>
+          <button id="rediag-btn" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 14px;" onclick="triggerRediagnosis()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Update Diagnosis
+          </button>
         </div>
       </div>
 
@@ -144,7 +149,7 @@
       </div>
 
       <!-- Complete Session -->
-      <button class="zf-btn zf-btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:15px;border-radius:14px;gap:8px;">
+      <button id="complete-btn" class="zf-btn zf-btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:15px;border-radius:14px;gap:8px;" onclick="completeSession()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
         Complete Session
       </button>
@@ -191,17 +196,52 @@ const defaultAdvice = [
 
 let advice = JSON.parse(JSON.stringify(defaultAdvice));
 let usedPoints = [];
+let aiPointRationale = {};  // {code: rationale} — per-session AI explanations
 
 // Get appointment data from URL path: /treatment/{patient_id}/{date}/{time}
 const pathParts = window.location.pathname.split('/').filter(Boolean);
 const patientId = pathParts[1];
 const aptDate   = pathParts[2];
-const aptTime   = (pathParts[3] || '').replace('-', ':');
+const aptTimeSlug = pathParts[3] || '';
+const aptTime   = aptTimeSlug.replace('-', ':');
+
+// ── Auto-save (debounced) ──────────────────────────────────────────────────────
+
+let _autoSaveTimer;
+
+async function autoSave() {
+  if (!patientId || !aptDate || !aptTimeSlug) return;
+  try {
+    await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tongue_observation: document.getElementById('tongue-input').value,
+        pulse_observation:  document.getElementById('pulse-input').value,
+        session_notes:      document.getElementById('session-notes').value,
+        used_points:        usedPoints,
+      }),
+    });
+    document.getElementById('notes-status').textContent = 'Auto-saved ✓';
+  } catch (e) {
+    document.getElementById('notes-status').textContent = 'Save failed';
+    console.error('autoSave error:', e);
+  }
+}
+
+function scheduleAutoSave() {
+  document.getElementById('notes-status').textContent = 'Unsaved…';
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(autoSave, 1500);
+}
+
+// ── Load treatment data ────────────────────────────────────────────────────────
 
 async function loadTreatment() {
   if (!patientId || !aptDate) return;
   try {
-    const data = await fetch(`/api/appointment/${patientId}/${aptDate}/${(pathParts[3]||'')}`).then(r => r.json());
+    // Load appointment data
+    const data = await fetch(`/api/appointment/${patientId}/${aptDate}/${aptTimeSlug}`).then(r => r.json());
 
     // Header
     const initials = data.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
@@ -211,14 +251,6 @@ async function loadTreatment() {
     document.getElementById('pt-meta').textContent =
       d.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' at ' + data.time;
     document.getElementById('pt-session-num').textContent = `Session`;
-
-    // Summary
-    const summaryBody = document.getElementById('summary-body');
-    if (data.summary) {
-      summaryBody.innerHTML = `<p style="font-size:14px;color:#374151;line-height:1.7;white-space:pre-wrap;">${data.summary}</p>`;
-    } else {
-      summaryBody.innerHTML = `<p style="font-size:13px;color:#9CA3AF;">No clinical summary recorded.</p>`;
-    }
 
     // Intake history
     const intakeBody = document.getElementById('intake-body');
@@ -230,23 +262,54 @@ async function loadTreatment() {
           <div class="zf-intake-text">${msg.content}</div>
         </div>`;
       }).join('');
-      // Add timestamp
       intakeBody.innerHTML += `<div style="font-size:11px;color:#9CA3AF;margin-top:12px;padding-top:12px;border-top:1px solid #F3F4F6;">Collected via Telegram Bot on ${new Date(data.date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>`;
     } else {
       intakeBody.innerHTML = `<p style="font-size:13px;color:#9CA3AF;">Patient did not complete the intake questionnaire for this session.</p>`;
     }
 
-    // Suggested points (from summary — simple keyword detection)
-    const suggestedDiv = document.getElementById('suggested-points');
-    const knownPoints = Object.keys(POINT_INFO);
-    const detectedPoints = knownPoints.filter(p =>
-      data.summary && data.summary.toUpperCase().includes(p));
-    if (detectedPoints.length > 0) {
-      suggestedDiv.innerHTML = '<span style="font-size:11px;color:#9CA3AF;width:100%;display:block;margin-bottom:4px;">Suggested from intake:</span>' +
-        detectedPoints.map(p => `<button class="zf-point-chip" onclick="openPointPanel('${p}')">${p} <span style="color:#5EEAD4;font-size:14px;">›</span></button>`).join('');
-    } else {
-      suggestedDiv.innerHTML = `<span style="font-size:12px;color:#9CA3AF;">No specific points detected in summary — add manually below.</span>`;
+    // Load treatment notes (may include AI TCM diagnosis + therapist observations)
+    let notes = null;
+    try {
+      const nr = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}`);
+      if (nr.ok) notes = await nr.json();
+    } catch (_) {}
+
+    // Render clinical summary with structured cards
+    renderDiagnosisBlock(notes, data.summary);
+
+    // Build point rationale map from AI notes
+    if (notes && Array.isArray(notes.ai_suggested_points)) {
+      aiPointRationale = {};
+      notes.ai_suggested_points.forEach(p => {
+        if (typeof p === 'object' && p.code) aiPointRationale[p.code] = p.rationale || '';
+        else if (typeof p === 'string')       aiPointRationale[p] = '';
+      });
     }
+
+    // Suggested points — use AI suggested points from notes first, then keyword detection
+    renderSuggestedPoints(notes, data.summary);
+
+    // Pre-fill therapist observations from saved notes
+    if (notes) {
+      if (notes.tongue_observation) document.getElementById('tongue-input').value = notes.tongue_observation;
+      if (notes.pulse_observation)  document.getElementById('pulse-input').value  = notes.pulse_observation;
+      if (notes.session_notes)      document.getElementById('session-notes').value = notes.session_notes;
+      if (Array.isArray(notes.used_points) && notes.used_points.length > 0) {
+        usedPoints = notes.used_points;
+        renderPoints();
+      }
+    }
+
+    // Build advice list from AI recommendations if available
+    const aiRecs = notes && notes.ai_recommendations;
+    if (aiRecs && (aiRecs.diet || aiRecs.sleep || aiRecs.exercise || aiRecs.stress)) {
+      advice = [];
+      if (aiRecs.sleep)    advice.push({ id: 'sleep',    icon: '🌙', category: 'Sleep',    text: aiRecs.sleep,    enabled: true });
+      if (aiRecs.diet)     advice.push({ id: 'diet',     icon: '🥗', category: 'Diet',     text: aiRecs.diet,     enabled: true });
+      if (aiRecs.stress)   advice.push({ id: 'stress',   icon: '🧘', category: 'Stress',   text: aiRecs.stress,   enabled: true });
+      if (aiRecs.exercise) advice.push({ id: 'exercise', icon: '🏃', category: 'Exercise', text: aiRecs.exercise, enabled: false });
+    }
+    renderAdvice();
 
   } catch(e) {
     console.error('Treatment load error:', e);
@@ -254,18 +317,164 @@ async function loadTreatment() {
   }
 }
 
-// -- Advice toggles --
+// ── Clinical summary + diagnosis rendering ────────────────────────────────────
+
+function _certaintyColor(pct) {
+  if (pct >= 70) return '#0D9488';
+  if (pct >= 40) return '#D97706';
+  return '#DC2626';
+}
+
+function renderDiagnosisBlock(notes, rawSummary) {
+  const body = document.getElementById('summary-body');
+  const tcmPattern    = notes && notes.tcm_pattern;
+  const treatPrincip  = notes && notes.treatment_principles;
+  const certainty     = notes && notes.diagnosis_certainty != null ? notes.diagnosis_certainty : null;
+
+  let html = '';
+
+  // TCM Pattern card
+  if (tcmPattern) {
+    html += `<div style="background:#CCFBF1;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:0.7px;margin-bottom:4px;">TCM Pattern</div>
+      <div style="font-size:15px;font-weight:700;color:#111827;">${tcmPattern}</div>
+      ${treatPrincip ? `<div style="font-size:12px;color:#065F46;margin-top:5px;line-height:1.5;">${treatPrincip}</div>` : ''}
+    </div>`;
+  }
+
+  // Diagnosis certainty progress bar
+  if (certainty !== null && certainty > 0) {
+    const col = _certaintyColor(certainty);
+    html += `<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Diagnosis Certainty</span>
+        <span style="font-size:14px;font-weight:700;color:${col};">${certainty}%</span>
+      </div>
+      <div style="background:#F3F4F6;border-radius:999px;height:8px;overflow:hidden;">
+        <div style="height:100%;border-radius:999px;background:${col};width:${certainty}%;transition:width 0.7s ease;"></div>
+      </div>
+    </div>`;
+  }
+
+  // Raw clinical summary (from intake)
+  if (rawSummary) {
+    html += `<div style="border-top:1px solid #F3F4F6;padding-top:10px;margin-top:2px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.7px;margin-bottom:6px;">Intake Summary</div>
+      <p style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;">${rawSummary}</p>
+    </div>`;
+  }
+
+  if (!html) {
+    html = `<p style="font-size:13px;color:#9CA3AF;">No clinical summary recorded.</p>`;
+  }
+  body.innerHTML = html;
+}
+
+function renderSuggestedPoints(notes, rawSummary) {
+  const div = document.getElementById('suggested-points');
+  let points = [];
+  if (notes && Array.isArray(notes.ai_suggested_points) && notes.ai_suggested_points.length > 0) {
+    points = notes.ai_suggested_points.map(p => typeof p === 'object' ? p.code : p).filter(Boolean);
+  } else {
+    const known = Object.keys(POINT_INFO);
+    points = known.filter(p => rawSummary && rawSummary.toUpperCase().includes(p));
+  }
+  if (points.length > 0) {
+    div.innerHTML = '<span style="font-size:11px;color:#9CA3AF;width:100%;display:block;margin-bottom:4px;">AI-suggested from intake:</span>' +
+      points.map(p => {
+        const hasRat = aiPointRationale[p];
+        return `<button class="zf-point-chip" onclick="openPointPanel('${p}')" title="${hasRat ? 'Click for details + rationale' : 'Click for point details'}">${p}${hasRat ? ' ✦' : ''} <span style="color:#5EEAD4;font-size:14px;">›</span></button>`;
+      }).join('');
+  } else {
+    div.innerHTML = `<span style="font-size:12px;color:#9CA3AF;">No specific points detected — add manually below.</span>`;
+  }
+}
+
+// ── Dynamic re-diagnosis (Tongue & Pulse Enter) ───────────────────────────────
+
+async function triggerRediagnosis() {
+  const tongue = document.getElementById('tongue-input').value.trim();
+  const pulse  = document.getElementById('pulse-input').value.trim();
+  if (!tongue && !pulse) return;
+
+  const btn = document.getElementById('rediag-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Updating…';
+
+  try {
+    const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/rediagnose`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tongue_observation: tongue, pulse_observation: pulse }),
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || 'Re-diagnosis failed');
+    const updated = await r.json();
+
+    // Rebuild rationale map
+    aiPointRationale = {};
+    (updated.suggested_points || []).forEach(p => {
+      if (typeof p === 'object' && p.code) aiPointRationale[p.code] = p.rationale || '';
+    });
+
+    // Re-render clinical block and suggested points
+    renderDiagnosisBlock(updated, document.getElementById('summary-body')
+      .querySelector('[style*="pre-wrap"]')?.textContent || '');
+    renderSuggestedPoints(updated, null);
+
+    // Update advice if AI returned new recommendations
+    const rec = updated.recommendations;
+    if (rec && (rec.diet || rec.sleep || rec.exercise || rec.stress)) {
+      advice = [];
+      if (rec.sleep)    advice.push({ id: 'sleep',    icon: '🌙', category: 'Sleep',    text: rec.sleep,    enabled: true });
+      if (rec.diet)     advice.push({ id: 'diet',     icon: '🥗', category: 'Diet',     text: rec.diet,     enabled: true });
+      if (rec.stress)   advice.push({ id: 'stress',   icon: '🧘', category: 'Stress',   text: rec.stress,   enabled: true });
+      if (rec.exercise) advice.push({ id: 'exercise', icon: '🏃', category: 'Exercise', text: rec.exercise, enabled: false });
+      renderAdvice();
+    }
+
+    btn.innerHTML = '✓ Diagnosis Updated';
+    btn.style.borderColor = '#0D9488'; btn.style.color = '#0D9488';
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Update Diagnosis';
+      btn.style.borderColor = ''; btn.style.color = '';
+      btn.disabled = false;
+    }, 3000);
+  } catch (e) {
+    console.error('rediagnose error:', e);
+    btn.innerHTML = '⚠ ' + e.message;
+    setTimeout(() => {
+      btn.innerHTML = 'Update Diagnosis';
+      btn.disabled = false;
+    }, 3000);
+  }
+}
+
+// ── Advice toggles ─────────────────────────────────────────────────────────────
+
 function renderAdvice() {
-  document.getElementById('advice-list').innerHTML = advice.map(item => `
+  document.getElementById('advice-list').innerHTML = advice.map((item, i) => `
     <div class="zf-advice-item ${item.enabled ? 'on' : 'off'}">
       <span style="font-size:18px;">${item.icon}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:#111827;">${item.category}</div>
-        <p style="font-size:12px;color:#6B7280;line-height:1.5;margin-top:2px;">${item.text}</p>
+        <p class="advice-text-${item.id}" contenteditable="true"
+           style="font-size:12px;color:#6B7280;line-height:1.5;margin-top:2px;outline:none;border-radius:4px;padding:2px 4px;cursor:text;"
+           onblur="updateAdviceText('${item.id}', this.textContent)"
+           onfocus="this.style.background='#F9FAFB'"
+           >${item.text}</p>
       </div>
       <button class="zf-toggle ${item.enabled ? 'on' : ''}" onclick="toggleAdvice('${item.id}')"></button>
     </div>
   `).join('');
+}
+
+function updateAdviceText(id, newText) {
+  const item = advice.find(a => a.id === id);
+  if (item) {
+    item.text = newText.trim();
+    // Reset background on all advice text elements
+    document.querySelectorAll('[contenteditable]').forEach(el => el.style.background = '');
+  }
 }
 
 function toggleAdvice(id) {
@@ -273,35 +482,81 @@ function toggleAdvice(id) {
   if (item) { item.enabled = !item.enabled; renderAdvice(); }
 }
 
-function sendAdvice() {
+async function sendAdvice() {
   const enabled = advice.filter(a => a.enabled);
   if (enabled.length === 0) { alert('No advice selected.'); return; }
-  alert(`Will send ${enabled.length} lifestyle tip${enabled.length !== 1 ? 's' : ''} to patient via Telegram.\n(Telegram API integration coming soon)`);
+
+  const btn = document.getElementById('send-advice-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/send-recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: enabled, schedule_hours: 2 }),
+    });
+    const result = await r.json();
+    if (!r.ok) throw new Error(result.detail || 'Send failed');
+
+    btn.textContent = 'Sent! ✓';
+    btn.style.background = '#16A34A';
+    // Show success feedback for 3s then reset
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = 'Send Approved Advice via Telegram';
+      btn.style.background = '';
+    }, 3000);
+  } catch (e) {
+    console.error('sendAdvice error:', e);
+    alert('Could not send recommendations: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Send Approved Advice via Telegram';
+  }
 }
 
-// -- Points input --
+// ── Points input ───────────────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Point input Enter/Backspace
   const inp = document.getElementById('point-input');
-  if (!inp) return;
-  inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); addPoint(); }
-    if (e.key === 'Backspace' && inp.value === '' && usedPoints.length > 0) {
-      usedPoints.pop(); renderPoints();
+  if (inp) {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addPoint(); }
+      if (e.key === 'Backspace' && inp.value === '' && usedPoints.length > 0) {
+        usedPoints.pop(); renderPoints(); scheduleAutoSave();
+      }
+    });
+  }
+
+  // Tongue & Pulse Enter → trigger re-diagnosis
+  ['tongue-input', 'pulse-input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); triggerRediagnosis(); }
+      });
+      el.addEventListener('change', scheduleAutoSave);
     }
   });
+
+  // Spin animation for rediagnose button
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(style);
 });
 
 function addPoint() {
   const inp = document.getElementById('point-input');
   const val = inp.value.trim().toUpperCase();
   if (val && !usedPoints.includes(val)) {
-    usedPoints.push(val); inp.value = ''; renderPoints();
+    usedPoints.push(val); inp.value = ''; renderPoints(); scheduleAutoSave();
   }
 }
 
 function removePoint(p) {
   usedPoints = usedPoints.filter(x => x !== p);
-  renderPoints();
+  renderPoints(); scheduleAutoSave();
 }
 
 function renderPoints() {
@@ -314,17 +569,36 @@ function renderPoints() {
 function openPointPanel(code) {
   const panel = document.getElementById('point-panel');
   const info  = POINT_INFO[code];
+  const rationale = aiPointRationale[code];
   document.getElementById('panel-code').textContent = code;
+
+  let html = '';
+
+  // AI session-specific rationale — shown first if available
+  if (rationale) {
+    html += `<div style="background:#CCFBF1;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:0.6px;margin-bottom:5px;">AI Rationale for This Session</div>
+      <p style="font-size:13px;color:#065F46;line-height:1.6;margin:0;">${rationale}</p>
+    </div>`;
+  }
+
   if (info) {
-    document.getElementById('panel-body').innerHTML = `
+    html += `
       <div style="margin-bottom:10px;"><span class="zf-badge zf-badge-teal">${info.channel} Channel</span></div>
       <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:8px;">${info.name}</div>
-      <div style="margin-bottom:12px;"><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Location</span><p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.location}</p></div>
-      <div><span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Actions</span><p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.actions}</p></div>
-    `;
+      <div style="margin-bottom:12px;">
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Location</span>
+        <p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.location}</p>
+      </div>
+      <div>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Actions</span>
+        <p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.actions}</p>
+      </div>`;
   } else {
-    document.getElementById('panel-body').innerHTML = `<p style="font-size:13px;color:#9CA3AF;">No information available for <strong>${code}</strong>.</p>`;
+    html += `<p style="font-size:13px;color:#9CA3AF;">No reference data for <strong>${code}</strong>.</p>`;
   }
+
+  document.getElementById('panel-body').innerHTML = html;
   panel.classList.remove('hidden');
 }
 
@@ -340,13 +614,50 @@ function toggleIntake() {
   chevron.setAttribute('points', open ? '6 9 12 15 18 9' : '18 15 12 9 6 15');
 }
 
-let _notesTimer;
 function onNotesChange() {
-  document.getElementById('notes-status').textContent = 'Unsaved…';
-  clearTimeout(_notesTimer);
-  _notesTimer = setTimeout(() => {
-    document.getElementById('notes-status').textContent = 'Auto-saved ✓';
-  }, 1500);
+  scheduleAutoSave();
+}
+
+// ── Complete Session ───────────────────────────────────────────────────────────
+
+async function completeSession() {
+  const btn = document.getElementById('complete-btn');
+  if (!confirm('Mark this session as complete and return to the dashboard?')) return;
+
+  // Cancel any pending debounced auto-save — we are about to do a full save
+  clearTimeout(_autoSaveTimer);
+
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Saving…';
+
+  try {
+    // Send notes + complete in one atomic request
+    const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tongue_observation: document.getElementById('tongue-input').value,
+        pulse_observation:  document.getElementById('pulse-input').value,
+        session_notes:      document.getElementById('session-notes').value,
+        used_points:        usedPoints,
+      }),
+    });
+    const result = await r.json();
+    if (!r.ok) throw new Error(result.detail || 'Failed to complete session');
+    document.getElementById('notes-status').textContent = 'Saved ✓';
+    btn.innerHTML = '✓ Session Complete — Redirecting…';
+    btn.style.background = '#16A34A';
+    setTimeout(() => { window.location.href = result.redirect || '/'; }, 1200);
+  } catch (e) {
+    console.error('completeSession error:', e);
+    btn.innerHTML = '⚠ ' + e.message;
+    btn.style.background = '#DC2626';
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Complete Session';
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 3000);
+  }
 }
 
 // Init

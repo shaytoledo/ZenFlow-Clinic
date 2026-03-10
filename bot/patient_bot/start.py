@@ -6,6 +6,51 @@ from bot.states import SELECTING, THERAPIST_SELECT
 from bot.utils import get_main_keyboard
 
 
+async def change_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Clear current therapist selection and re-run therapist selection."""
+    query = update.callback_query
+    await query.answer()
+    context.user_data.pop("selected_therapist", None)
+
+    # Always load fresh from SQLite — avoids stale in-memory THERAPISTS list
+    import asyncio as _asyncio
+    def _load_active():
+        from bot.db import get_db
+        rows = get_db().execute(
+            "SELECT id, name FROM therapists WHERE active=1 ORDER BY name"
+        ).fetchall()
+        return [{"id": r["id"], "name": r["name"]} for r in rows]
+
+    active = await _asyncio.to_thread(_load_active)
+
+    if not active:
+        await query.edit_message_text(
+            "No therapists are currently available.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back_main")]]),
+        )
+        return SELECTING
+
+    if len(active) == 1:
+        context.user_data["selected_therapist"] = active[0]["id"]
+        await query.edit_message_text(
+            f"You are working with *{active[0]['name']}*. 🌿\n\nWhat would you like to do?",
+            parse_mode="Markdown",
+            reply_markup=get_main_keyboard(show_change_therapist=False),
+        )
+        return SELECTING
+
+    keyboard = [
+        [InlineKeyboardButton(t["name"], callback_data=f"sel_t_{t['id']}")]
+        for t in active
+    ]
+    keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_main")])
+    await query.edit_message_text(
+        "Choose your therapist:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return THERAPIST_SELECT
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point — welcome message, then ask which therapist (if >1 active)."""
     user = update.effective_user
