@@ -18,17 +18,24 @@ Both outputs are saved to SQLite. The clinical summary is also shown to the pati
 
 ## Components
 
-### LLM Singleton (`ai_intake.py`)
+### LLM Singletons (`ai_intake.py`)
 
 ```python
-_LLM = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST)
+# For intake questions — hard-capped at 100 tokens + 512 ctx for speed
+_LLM      = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=100, num_ctx=512)
+# For summary and TCM diagnosis — longer output allowed
+_LLM_LONG = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=600, num_ctx=1024)
 ```
 
-- Created once at module import
+Both are created once at module import.
+
 - `OLLAMA_MODEL` from `.env` (default: `gemma3:latest`)
 - `OLLAMA_HOST` from `.env` (default: `http://localhost:11434`)
-- `validate_model_on_init=False` (default) — no connection on creation, only on first `ainvoke()`
+- `num_predict` caps output tokens — intake questions need ~30 tokens; this is the biggest speed lever
+- `num_ctx` limits the context window — smaller window = faster prompt processing
 - All LLM calls use `asyncio.wait_for(..., timeout=100)` — 100-second timeout per call
+
+**Why two instances:** Intake questions are short (1–2 sentences). A hard cap of 100 output tokens cuts per-question latency roughly proportionally. Summaries and TCM diagnoses need more room and use `_LLM_LONG`.
 
 ### Ollama Health Check
 
@@ -67,12 +74,14 @@ To prevent the LLM context from growing unbounded across 5+ answers, a compressi
 
 ```
 _BUFFER_KEEP = 4    messages to keep in live history
-_BUFFER_MAX  = 6    trigger compression when history exceeds this
+_BUFFER_MAX  = 12   trigger compression when history exceeds this
 ```
+
+`_BUFFER_MAX` is set to 12 (above the maximum of 10 messages in a 5-question intake) so compression never fires during a normal intake session. Compression running mid-intake would add an extra Ollama round-trip at question 4, visibly slowing that response. The buffer kicks in only for unusually long conversations (e.g. if the patient keeps answering after the 5th question).
 
 **Compression flow (`_maybe_compress`):**
 ```
-if len(history.messages) > 6:
+if len(history.messages) > 12:
     to_compress = messages[:len-4]       # older messages
     recent      = messages[len-4:]       # keep most recent 4
 
@@ -174,12 +183,12 @@ Fallback: FALLBACK_QUESTIONS[min(answered_count, 4)]
 ### `generate_summary(user_id, final_answer) → str`
 
 ```
-Called by: handle_intake_answer() on 5th answer
+Called by: handle_intake_answer() on 5th answer (awaited — result used in booking)
 
 1. hist.add_user_message(final_answer)
 2. Build context including rolling summary if exists
 3. Append SUMMARY_INSTRUCTION as final HumanMessage
-4. await asyncio.wait_for(_LLM.ainvoke(messages), timeout=100)
+4. await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=100)
    → on success: return summary string
    → on any error: return "Intake completed — see conversation history for details."
 ```
@@ -189,10 +198,10 @@ Called by: handle_intake_answer() on 5th answer
 ### `generate_tcm_diagnosis(user_id, clinical_summary) → dict`
 
 ```
-Called by: handle_intake_answer() after generate_summary()
+Called by: _tcm_and_clear() background task (fires after confirmation sent to patient)
 
 1. Build context: system + rolling summary + full history + summary + TCM_DIAGNOSIS_PROMPT
-2. await asyncio.wait_for(_LLM.ainvoke(context_parts), timeout=100)
+2. await asyncio.wait_for(_LLM_LONG.ainvoke(context_parts), timeout=100)
 3. Strip markdown code fences (```json ... ```) if present
 4. Extract JSON object using regex: re.search(r"\{[\s\S]*\}", raw)
 5. json.loads(extracted)
@@ -292,15 +301,18 @@ Patient answers question 5
           INSERT intake_sessions (history_json = exported dicts)
           COMMIT
        └─ Redis DEL zenflow:apts:all
-    └─ generate_tcm_diagnosis()
-       └─ LLM call → structured TCM JSON
-    └─ save_treatment_notes()
-       └─ SQLite UPSERT treatment_notes
-    └─ clear_intake()
-       └─ Redis DEL intake key
-       └─ drop in-process cache entries
+    └─ asyncio.ensure_future(_tcm_and_clear(appointment_id, user_id, summary))
+       └─ [background task — patient does NOT wait for this]
+          └─ generate_tcm_diagnosis()
+             └─ LLM call → structured TCM JSON  (_LLM_LONG, 100s timeout)
+          └─ save_treatment_notes()
+             └─ SQLite UPSERT treatment_notes
+          └─ clear_intake()       [always runs via finally block]
+             └─ Redis DEL intake key
+             └─ drop in-process cache entries
     └─ context.user_data.clear()
     └─ send confirmation to patient (with summary snippet)
+       [sent immediately after booking — does not wait for TCM diagnosis]
 ```
 
 ---

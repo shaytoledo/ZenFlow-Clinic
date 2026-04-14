@@ -27,7 +27,7 @@ from web.deps import (
     _verify_password,
     templates,
 )
-from web.gcal import exchange_code, get_auth_url, is_authenticated, token_file_for
+from web.gcal import clear_token, exchange_code, get_auth_url, is_authenticated
 from web.services.cache_service import prefetch_calendar, purge_calendar
 
 router = APIRouter()
@@ -52,9 +52,8 @@ async def auth_disconnect(request: Request):
     if redirect:
         return RedirectResponse(redirect, status_code=303)
     tid = therapist["id"]
-    tf = token_file_for(tid)
-    if tf.exists():
-        tf.unlink()
+    if is_authenticated(tid):
+        clear_token(tid)
     await purge_calendar(tid)
     return RedirectResponse("/settings", status_code=303)
 
@@ -67,8 +66,9 @@ async def auth_callback(request: Request, code: str = "", error: str = ""):
         return RedirectResponse("/settings?error=Google+auth+cancelled")
     try:
         therapist = _get_session_therapist(request)
-        tf = token_file_for(therapist["id"]) if therapist else None
-        exchange_code(code, tf)
+        if not therapist:
+            raise ValueError("Not signed in")
+        exchange_code(code, therapist["id"])
         # Pre-warm calendar cache after connecting
         if therapist:
             asyncio.create_task(prefetch_calendar(therapist["id"]))

@@ -211,6 +211,44 @@ def handle_therapist_message(update, context):
 
 ---
 
+## Web Activation (Alternative to Bot Activation)
+
+The registration flow also supports entering the activation code directly in the web form:
+
+```
+GET /register/activate
+→ register_activate.html — shows an input field for the activation code
+
+POST /register/activate
+body: {code: "ABCD1234"}
+
+a. Redis GET zenflow:reg:{code}
+   → if not found: "Code invalid or expired"
+   → data = {name, email, google_id}
+b. Find therapist row by email (or telegram_id)
+c. UPDATE therapists SET active=1
+d. Redis DEL zenflow:reg:{code}
+e. Mutate in-memory maps (THERAPIST_MAP, THERAPIST_BY_ID) for immediate effect
+f. Return success — therapist can now log in
+```
+
+Both the bot activation and the web activation call the same underlying logic. The bot path sets `telegram_id`; the web path does not.
+
+---
+
+## Generate a New Activation Code
+
+```
+GET /api/my/activation-code
+→ Requires active session
+→ Generates a new 8-char code and stores it in Redis (TTL 600s)
+→ Returns: {"code": "ABCD1234"}
+```
+
+Exposed in `/settings` as a button ("Generate Code"). Useful when the original code expired before the therapist could activate.
+
+---
+
 ## Logout
 
 ```

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import date
 
@@ -265,6 +266,24 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return SELECTING
 
 
+# ── background helpers ────────────────────────────────────────────────────────
+
+async def _tcm_and_clear(appointment_id: int, user_id: int, summary: str) -> None:
+    """Generate TCM diagnosis and save it, then clear intake history.
+
+    Runs as a background asyncio task so the patient gets their booking
+    confirmation without waiting for the second Ollama call.
+    """
+    try:
+        tcm = await generate_tcm_diagnosis(user_id, summary)
+        save_treatment_notes(appointment_id, user_id, tcm)
+        logger.info(f"[{user_id}] TCM diagnosis saved (background)")
+    except Exception as e:
+        logger.warning(f"[{user_id}] TCM diagnosis background error: {e}")
+    finally:
+        clear_intake(user_id)
+
+
 # ── intake answers ────────────────────────────────────────────────────────────
 
 async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -297,13 +316,11 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
             gcal_apt_event_id=gcal_id,
             therapist_id=selected_therapist or "",
         )
-        try:
-            tcm = await generate_tcm_diagnosis(user_id, summary)
-            save_treatment_notes(appointment_id, user_id, tcm)
-            logger.info(f"[{user_id}] TCM diagnosis generated and saved")
-        except Exception as e:
-            logger.warning(f"[{user_id}] TCM diagnosis error: {e}")
-        clear_intake(user_id)
+
+        # Fire TCM diagnosis in the background — user gets confirmation immediately
+        # clear_intake is handled by the background task after diagnosis completes
+        asyncio.ensure_future(_tcm_and_clear(appointment_id, user_id, summary))
+
         context.user_data.clear()
         if selected_therapist:
             context.user_data["selected_therapist"] = selected_therapist

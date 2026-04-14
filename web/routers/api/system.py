@@ -3,6 +3,7 @@ web/routers/api/system.py
 ──────────────────────────
 System health, activation, and therapist status endpoints.
 """
+import asyncio
 import json
 import logging
 import re
@@ -28,6 +29,20 @@ router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
 
 
+async def _check_bot(token: str, label: str) -> dict:
+    """Return a status dict for a Telegram bot token."""
+    if not token:
+        return {"ok": False, "label": label, "detail": "Token not configured"}
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            data = (await client.get(f"https://api.telegram.org/bot{token}/getMe")).json()
+        if data.get("ok"):
+            return {"ok": True, "label": label, "detail": f"@{data['result']['username']}"}
+        return {"ok": False, "label": label, "detail": data.get("description", "Invalid token")}
+    except Exception:
+        return {"ok": False, "label": label, "detail": "Unreachable"}
+
+
 @router.get("/status")
 async def get_system_status(request: Request):
     """Health snapshot of all services."""
@@ -36,8 +51,7 @@ async def get_system_status(request: Request):
     # Redis
     try:
         from bot.redis_client import get_async_redis
-        r = get_async_redis()
-        await r.ping()
+        await get_async_redis().ping()
         out["redis"] = {"ok": True, "label": "Redis", "detail": "Connected"}
     except Exception as e:
         out["redis"] = {"ok": False, "label": "Redis", "detail": str(e)[:80]}
@@ -45,43 +59,20 @@ async def get_system_status(request: Request):
     # Ollama
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get(f"{OLLAMA_HOST}/api/tags")
-            models = [m["name"] for m in resp.json().get("models", [])]
-            model_ok = any(OLLAMA_MODEL in m for m in models)
-            out["ollama"] = {
-                "ok": model_ok,
-                "label": "Ollama",
-                "detail": f"Model '{OLLAMA_MODEL}' ready" if model_ok else f"Model '{OLLAMA_MODEL}' not found",
-            }
+            models = [m["name"] for m in (await client.get(f"{OLLAMA_HOST}/api/tags")).json().get("models", [])]
+        model_ok = any(OLLAMA_MODEL in m for m in models)
+        out["ollama"] = {
+            "ok": model_ok, "label": "Ollama",
+            "detail": f"Model '{OLLAMA_MODEL}' ready" if model_ok else f"Model '{OLLAMA_MODEL}' not found",
+        }
     except Exception:
         out["ollama"] = {"ok": False, "label": "Ollama", "detail": "Not running"}
 
-    # Patient bot
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getMe")
-            data = resp.json()
-            if data.get("ok"):
-                out["patient_bot"] = {"ok": True, "label": "Patient Bot", "detail": f"@{data['result']['username']}"}
-            else:
-                out["patient_bot"] = {"ok": False, "label": "Patient Bot", "detail": data.get("description", "Invalid token")}
-    except Exception:
-        out["patient_bot"] = {"ok": False, "label": "Patient Bot", "detail": "Unreachable"}
-
-    # Therapist bot
-    if THERAPIST_BOT_TOKEN:
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(f"https://api.telegram.org/bot{THERAPIST_BOT_TOKEN}/getMe")
-                data = resp.json()
-                if data.get("ok"):
-                    out["therapist_bot"] = {"ok": True, "label": "Therapist Bot", "detail": f"@{data['result']['username']}"}
-                else:
-                    out["therapist_bot"] = {"ok": False, "label": "Therapist Bot", "detail": data.get("description", "Invalid token")}
-        except Exception:
-            out["therapist_bot"] = {"ok": False, "label": "Therapist Bot", "detail": "Unreachable"}
-    else:
-        out["therapist_bot"] = {"ok": False, "label": "Therapist Bot", "detail": "Token not configured"}
+    # Bots
+    out["patient_bot"], out["therapist_bot"] = await asyncio.gather(
+        _check_bot(TELEGRAM_TOKEN, "Patient Bot"),
+        _check_bot(THERAPIST_BOT_TOKEN, "Therapist Bot"),
+    )
 
     # Google Calendar
     _tid = request.session.get("therapist_id") if hasattr(request, "session") else None

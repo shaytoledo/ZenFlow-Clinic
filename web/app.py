@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from bot.config import SESSION_SECRET
 from starlette.middleware.sessions import SessionMiddleware
 
-# ── Routers ────────────────────────────────────────────────────────────────────
+# ── Routers────────────────────────────────────────────────────────────────────
 from web.routers.pages import router as pages_router
 from web.routers.auth import router as auth_router
 from web.routers.api.appointments import router as apts_router

@@ -13,13 +13,15 @@ Speed optimisations applied:
 import asyncio
 import json
 import logging
+import os
 import re
 
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, REDIS_URL
+
+USE_AI = os.getenv("USE_AI", "ollama")
 
 logger = logging.getLogger(__name__)
 
@@ -91,24 +93,44 @@ FALLBACK_QUESTIONS = [
     "Have you had any treatment for this before?",
 ]
 
-# ── singleton LLM — created once, reused for all calls ───────────────────────
-_LLM = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST)
-
-# ── Ollama health check at startup ────────────────────────────────────────────
-def _check_ollama_health() -> None:
-    """Log a clear warning if Ollama is unreachable at startup."""
-    import urllib.request, urllib.error
+# ── LLM singleton — selected by USE_AI env var ────────────────────────────────
+if USE_AI == "anthropic":
     try:
-        urllib.request.urlopen(f"{OLLAMA_HOST}/api/tags", timeout=3)
-        logger.info(f"Ollama reachable at {OLLAMA_HOST}, model: {OLLAMA_MODEL}")
-    except Exception as e:
-        logger.warning(
-            f"Ollama is NOT reachable at {OLLAMA_HOST}: {e}\n"
-            f"  → Intake will use fallback questions.\n"
-            f"  → Start Ollama with: ollama serve"
-        )
+        from langchain_anthropic import ChatAnthropic
+        _ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+        # claude-haiku is fast and cheap for short intake questions
+        _LLM      = ChatAnthropic(model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=150)
+        _LLM_LONG = ChatAnthropic(model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=800)
+        logger.info("AI backend: Anthropic Claude (claude-haiku-4-5-20251001)")
+    except ImportError:
+        logger.warning("langchain-anthropic not installed — falling back to Ollama")
+        USE_AI = "ollama"
 
-_check_ollama_health()
+if USE_AI != "anthropic":
+    try:
+        from langchain_ollama import ChatOllama
+        _LLM      = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=100, num_ctx=512)
+        _LLM_LONG = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=600, num_ctx=1024)
+        logger.info(f"AI backend: Ollama ({OLLAMA_MODEL} @ {OLLAMA_HOST})")
+    except ImportError:
+        logger.warning("langchain-ollama not installed — intake will use fallback questions only")
+        _LLM = None
+        _LLM_LONG = None
+
+# ── Ollama health check at startup (only in ollama mode) ──────────────────────
+if USE_AI != "anthropic":
+    def _check_ollama_health() -> None:
+        import urllib.request
+        try:
+            urllib.request.urlopen(f"{OLLAMA_HOST}/api/tags", timeout=3)
+            logger.info(f"Ollama reachable at {OLLAMA_HOST}, model: {OLLAMA_MODEL}")
+        except Exception as e:
+            logger.warning(
+                f"Ollama is NOT reachable at {OLLAMA_HOST}: {e}\n"
+                f"  → Intake will use fallback questions.\n"
+                f"  → Set USE_AI=anthropic + ANTHROPIC_API_KEY for cloud AI."
+            )
+    _check_ollama_health()
 
 # ── in-process history cache — avoids Redis LRANGE on every call ─────────────
 _history_cache: dict[int, RedisChatMessageHistory] = {}
@@ -116,9 +138,11 @@ _history_cache: dict[int, RedisChatMessageHistory] = {}
 # ── rolling summaries for ConversationSummaryBuffer pattern ──────────────────
 _rolling_summaries: dict[int, str] = {}
 
-# Number of messages to keep in live history before compressing older ones
+# Number of messages to keep in live history before compressing older ones.
+# Max intake is 5 questions = 10 messages — set buffer above that so compression
+# never fires mid-intake (it would add an extra Ollama round-trip).
 _BUFFER_KEEP = 4
-_BUFFER_MAX  = 6
+_BUFFER_MAX  = 12
 
 
 def _get_history(user_id: int) -> RedisChatMessageHistory:
@@ -133,6 +157,8 @@ def _get_history(user_id: int) -> RedisChatMessageHistory:
 
 async def _maybe_compress(user_id: int) -> None:
     """If history is getting long, summarise the oldest messages and trim."""
+    if _LLM is None:
+        return
     hist = _get_history(user_id)
     msgs = hist.messages
     if len(msgs) <= _BUFFER_MAX:
@@ -210,16 +236,17 @@ async def get_next_question(user_id: int, user_answer: str) -> str:
     else:
         context_messages = [SystemMessage(content=SYSTEM_PROMPT)] + hist.messages[-3:]
 
-    try:
-        resp = await asyncio.wait_for(_LLM.ainvoke(context_messages), timeout=OLLAMA_TIMEOUT)
-        question = resp.content.strip()
-        hist.add_ai_message(question)
-        logger.info(f"[{user_id}] next question generated via LangChain")
-        return question
-    except asyncio.TimeoutError:
-        logger.warning(f"[{user_id}] Ollama timeout — using fallback question")
-    except Exception as e:
-        logger.warning(f"[{user_id}] LangChain error: {e} — using fallback question")
+    if _LLM is not None:
+        try:
+            resp = await asyncio.wait_for(_LLM.ainvoke(context_messages), timeout=OLLAMA_TIMEOUT)
+            question = resp.content.strip()
+            hist.add_ai_message(question)
+            logger.info(f"[{user_id}] next question generated via LangChain ({USE_AI})")
+            return question
+        except asyncio.TimeoutError:
+            logger.warning(f"[{user_id}] AI timeout — using fallback question")
+        except Exception as e:
+            logger.warning(f"[{user_id}] LangChain error: {e} — using fallback question")
 
     answered = sum(1 for m in hist.messages if isinstance(m, HumanMessage))
     fallback = FALLBACK_QUESTIONS[min(answered, len(FALLBACK_QUESTIONS) - 1)]
@@ -248,14 +275,15 @@ async def generate_summary(user_id: int, final_answer: str) -> str:
         *hist.messages,
         HumanMessage(content=SUMMARY_INSTRUCTION),
     ]
-    try:
-        resp = await asyncio.wait_for(_LLM.ainvoke(messages), timeout=OLLAMA_TIMEOUT)
-        logger.info(f"[{user_id}] clinical summary generated via LangChain")
-        return resp.content.strip()
-    except asyncio.TimeoutError:
-        logger.warning(f"[{user_id}] Ollama timeout on summary")
-    except Exception as e:
-        logger.warning(f"[{user_id}] LangChain error on summary: {e}")
+    if _LLM_LONG is not None:
+        try:
+            resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=OLLAMA_TIMEOUT)
+            logger.info(f"[{user_id}] clinical summary generated via LangChain ({USE_AI})")
+            return resp.content.strip()
+        except asyncio.TimeoutError:
+            logger.warning(f"[{user_id}] AI timeout on summary")
+        except Exception as e:
+            logger.warning(f"[{user_id}] LangChain error on summary: {e}")
     return "Intake completed — see conversation history for details."
 
 
@@ -279,8 +307,11 @@ async def generate_tcm_diagnosis(user_id: int, clinical_summary: str) -> dict:
         "recommendations": {"diet": "", "sleep": "", "exercise": "", "stress": ""},
     }
 
+    if _LLM_LONG is None:
+        return fallback
+
     try:
-        resp = await asyncio.wait_for(_LLM.ainvoke(context_parts), timeout=OLLAMA_TIMEOUT)
+        resp = await asyncio.wait_for(_LLM_LONG.ainvoke(context_parts), timeout=OLLAMA_TIMEOUT)
         raw = resp.content.strip()
 
         # Strip markdown code fences if present

@@ -36,46 +36,70 @@ Clinic/
 │   ├── db.py                      # SQLite singleton: get_db(), init_db(), 5-table schema
 │   ├── redis_client.py            # get_async_redis() / get_sync_redis() singletons
 │   ├── states.py                  # 10 integer conversation state constants
-│   ├── utils.py                   # get_main_keyboard() — 3-button main menu
+│   ├── utils.py                   # get_main_keyboard(show_change_therapist) — 4-button main menu
 │   │
 │   ├── patient_bot/               # Patient-facing bot handlers
-│   │   ├── start.py               # /start entry point; back_to_main callback
+│   │   ├── start.py               # start(), back_to_main(), change_therapist()
 │   │   ├── schedule.py            # Booking flow: therapist → week → days → hours → intake
 │   │   ├── cancel.py              # Cancel flow: list active → confirm → soft-delete
-│   │   ├── therapist.py           # Relay flow: prompt → forward → loop → end
+│   │   ├── therapist.py           # Relay flow: show_therapist_for_contact → relay loop → end
 │   │   └── services/
-│   │       ├── ai_intake.py       # LangChain + Ollama adaptive intake questionnaire
-│   │       ├── appointments.py    # SQLite: save/get/cancel appointments
-│   │       ├── availability.py    # Google Calendar + SQLite local fallback
-│   │       └── relay.py           # Redis relay write: maps msg IDs → patient/therapist
+│   │       ├── ai_intake.py       # LangChain + Ollama adaptive intake; Redis history (30 min TTL)
+│   │       ├── appointments.py    # SQLite: save/get/cancel appointments + treatment notes
+│   │       ├── availability.py    # Google Calendar + SQLite local fallback; book_slot/restore_slot
+│   │       └── relay.py           # Redis relay write: maps msg IDs → {patient_id, therapist_id}
 │   │
 │   └── therapist_bot/             # Therapist-facing bot (separate Telegram token)
 │       ├── main.py                # build_therapist_app() — single handler for all therapists
 │       ├── handlers.py            # handle_therapist_message: relay OR registration
 │       └── services/
-│           └── relay.py           # Redis relay read-only (writes done by patient relay.py)
+│           └── relay.py           # Redis relay read-only; get_patient_for_msg, get_current_patient
 │
 ├── web/                           # Therapist web dashboard (FastAPI — multi-page)
-│   ├── app.py                     # All routes + auth + data access via SQLite
-│   ├── deps.py                    # FastAPI dependency helpers
+│   ├── app.py                     # FastAPI app factory: middleware + static files + router wiring
+│   ├── deps.py                    # Session helpers, auth helpers, data loaders
 │   ├── gcal.py                    # Google Calendar OAuth + API wrapper
 │   ├── routers/
+│   │   ├── pages.py               # HTML page routes: /, /schedule, /patients, /messages,
+│   │   │                          #   /settings, /sessions, /treatment/{pid}/{date}/{time}
+│   │   ├── auth.py                # Auth routes: /register, /signin, /logout, Google OAuth,
+│   │   │                          #   /register/activate
 │   │   └── api/
-│   │       └── treatment.py       # /api/treatment-notes/* endpoints
+│   │       ├── appointments.py    # /api/appointments/today, /api/patients, /api/patients/{id},
+│   │       │                      #   /api/appointment/{pid}/{date}/{time}
+│   │       ├── treatment.py       # /api/treatment-notes/* (get, save, rediagnose, send, complete)
+│   │       ├── availability.py    # /api/calendars, /api/events, /api/availability (POST/DELETE)
+│   │       ├── messages.py        # /api/messages/active, /conversations, /history/{pid}, /send
+│   │       └── system.py          # /api/status, /api/my/status, /api/my/activation-code
+│   ├── services/                  # Domain service layer (CRUD, caching, Telegram helpers)
+│   │   ├── appointment_service.py # list_all(), list_today(), list_by_patient(), aggregate_patients()
+│   │   ├── availability_service.py# list_local(), add_local(), remove_local(), to_fc_events()
+│   │   ├── treatment_service.py   # get_notes(), save_notes(), complete_session(), list_all_sessions()
+│   │   ├── telegram_service.py    # send_to_patient(), get_active_relay_conversations(),
+│   │   │                          #   get_relay_messages(), append_relay_message()
+│   │   ├── therapist_service.py   # Therapist account helpers
+│   │   └── cache_service.py       # prefetch_calendar(), purge_calendar(), get_relay_count()
 │   ├── templates/
 │   │   ├── base.html              # Shared sidebar layout (zf- CSS namespace)
 │   │   ├── dashboard.html         # / — today's schedule + stats
 │   │   ├── schedule.html          # /schedule — FullCalendar availability manager
 │   │   ├── patients.html          # /patients — searchable patient list
-│   │   ├── treatment.html         # /treatment/{id}/{date}/{time}
-│   │   ├── messages.html          # /messages — intake conversation viewer
+│   │   ├── treatment.html         # /treatment/{id}/{date}/{time} — session notes + AI diagnosis
+│   │   ├── messages.html          # /messages — live relay chat + intake history (two tabs)
+│   │   ├── sessions.html          # /sessions — all session history, sortable
 │   │   ├── settings.html          # /settings — Google Calendar, bot activation
 │   │   ├── register.html          # /register — sign-up / sign-in (two-tab card)
 │   │   ├── register_done.html     # /register/done — activation code + bot links
-│   │   └── register_activate.html # /register/activate — waiting for bot activation
+│   │   └── register_activate.html # /register/activate — activation code entry
 │   └── static/
 │       ├── style.css              # zf- prefixed styles + calendar styles
-│       └── app.js                 # FullCalendar JS (schedule page only)
+│       └── js/                    # FullCalendar JS — schedule page only (loaded in order)
+│           ├── utils.js           # $ helper, showToast, fmt
+│           ├── calendar-list.js   # Sidebar calendar list, visibility toggles, rename
+│           ├── mini-calendar.js   # Mini date picker (sidebar)
+│           ├── slots.js           # saveSlot — drag to create availability
+│           ├── popover.js         # Event click popover: show, position, delete
+│           └── main-calendar.js   # FullCalendar init + DOMContentLoaded wiring
 │
 ├── data/                          # Runtime data — see table below
 │   ├── zenflow.db                 # SQLite database (WAL mode) — primary data store
@@ -97,11 +121,11 @@ Clinic/
 │   ├── AI_INTAKE.md               # Ollama/LangChain adaptive intake
 │   ├── AUTH.md                    # Web auth, registration, session management
 │   ├── AVAILABILITY.md            # Google Calendar vs local SQLite availability
+│   ├── DATA_LAYER.md              # Living doc: full data inventory, TTL, breaking points, runbook
 │   └── TECHNICAL_DECISIONS.md    # Architecture decision records (ADRs)
 │
 ├── CLAUDE.md                      # Claude Code instructions (stays at root)
-├── ARCHITECTURE.md                # → moved to docs/ARCHITECTURE.md
-└── TECHNICAL_DECISIONS.md         # → moved to docs/TECHNICAL_DECISIONS.md
+└── README.md                      # Project roadmap + pending tasks
 ```
 
 ---
@@ -253,20 +277,70 @@ uvicorn starts FastAPI app
 | `logs/botLogs.text` | `startup/run_bots.py` | Combined log — patient + therapist bots | No |
 | `logs/webLogs.text` | `startup/run_web.py` | Web dashboard uvicorn log | No |
 
+## Frontend JavaScript Modules (`web/static/js/`)
+
+The schedule page (`/schedule`) is the only page that loads JavaScript. The monolithic `app.js` was split into six focused modules loaded in order via `{% block extra_scripts %}` in `schedule.html`:
+
+| File | Responsibility | Key exports |
+|---|---|---|
+| `utils.js` | DOM helper + toast notifications | `$()`, `showToast()`, `fmt()` |
+| `calendar-list.js` | Sidebar calendar list, visibility toggles, context-menu rename | `_hiddenCals`, `loadCalendarList()` |
+| `mini-calendar.js` | Mini month picker in sidebar | `miniDate`, `renderMiniCal()` |
+| `slots.js` | Drag-to-create availability slot | `saveSlot()` |
+| `popover.js` | Event click popover (info + delete confirm) | `showEventPopover()`, `closeEventPopover()`, `deleteSlot()` |
+| `main-calendar.js` | FullCalendar init, event renderer, DOMContentLoaded wiring | `mainCal` |
+
+**Load order matters.** All files share the browser's global scope. `main-calendar.js` is last because it references symbols (`_hiddenCals`, `showToast`, `saveSlot`, `showEventPopover`, `renderMiniCal`) defined in earlier files. `mainCal` is declared in `main-calendar.js` and referenced by `calendar-list.js` and `mini-calendar.js` at runtime (after `DOMContentLoaded` fires), so forward-reference is safe.
+
+---
+
 ## Web Dashboard Routes
 
-| Route | Auth required | Description |
+### Pages
+
+| Route | Auth | Description |
 |---|---|---|
 | `GET /` | Yes | Dashboard — today's appointments + stats |
 | `GET /schedule` | Yes | FullCalendar availability manager |
 | `GET /patients` | Yes | Searchable patient list |
-| `GET /treatment/{id}/{date}/{time}` | Yes | Per-session treatment notes |
-| `GET /sessions` | Yes | All session history (sortable) |
-| `GET /messages` | Yes | Intake conversation viewer |
+| `GET /treatment/{id}/{date}/{time}` | Yes | Per-session treatment notes + AI diagnosis |
+| `GET /sessions` | Yes | All session history (sortable by name/date/last access) |
+| `GET /messages` | Yes | Live relay chat + intake history (two tabs) |
 | `GET /settings` | Yes | Google Calendar, bot activation code |
-| `GET /register` | No | Sign-up / sign-in |
-| `GET /register/done` | No | Activation code display |
-| `GET /register/activate` | No | Waiting for bot activation |
+| `GET /register` | No | Sign-up / sign-in (two-tab card) |
+| `GET /register/done` | No | Activation code display + bot links |
+| `GET /register/activate` | No | Activation code entry form |
 | `POST /register/signup` | No | Create account |
 | `POST /register/signin` | No | Sign in |
-| `GET /logout` | No | Clear session |
+| `POST /register/activate` | No | Submit activation code (sets active=True) |
+| `GET /register/google` | No | Start Google OAuth registration |
+| `GET /register/google/callback` | No | Complete Google OAuth registration |
+| `GET /auth/login` | No | Redirect to Google OAuth (calendar) |
+| `GET /auth/callback` | No | Complete Google Calendar OAuth |
+| `POST /auth/disconnect` | Yes | Remove Google Calendar token |
+| `GET /logout` | No | Clear session, redirect to /register |
+
+### API
+
+| Route | Description |
+|---|---|
+| `GET /api/appointments/today` | Today's active appointments (JSON) |
+| `GET /api/patients` | All patients aggregated from appointments (JSON) |
+| `GET /api/patients/{patient_id}` | Patient detail + appointment list (JSON) |
+| `GET /api/appointment/{pid}/{date}/{time}` | Single appointment detail (JSON) |
+| `GET /api/treatment-notes/{pid}/{date}/{time}` | Fetch treatment notes (JSON) |
+| `POST /api/treatment-notes/{pid}/{date}/{time}` | Save treatment notes |
+| `POST /api/treatment-notes/{pid}/{date}/{time}/rediagnose` | Re-generate TCM AI diagnosis |
+| `POST /api/treatment-notes/{pid}/{date}/{time}/send-recommendations` | Send recommendations to patient via Telegram |
+| `POST /api/treatment-notes/{pid}/{date}/{time}/complete` | Mark session completed |
+| `GET /api/calendars` | List Google Calendar calendars (JSON) |
+| `GET /api/events?start=X&end=Y` | FullCalendar events — Google or local (JSON) |
+| `POST /api/availability` | Create availability slot |
+| `DELETE /api/availability/{id}` | Delete availability slot |
+| `GET /api/messages/active` | Count of active relay sessions (JSON) |
+| `GET /api/messages/conversations` | List active relay conversations (JSON) |
+| `GET /api/messages/history/{patient_id}` | Relay chat history for patient (JSON) |
+| `POST /api/messages/send` | Send message to patient via therapist bot |
+| `GET /api/status` | System health snapshot (Redis, Ollama, bots, Google Calendar) |
+| `GET /api/my/status` | Current therapist status (active, name) |
+| `GET /api/my/activation-code` | Generate new 8-char bot activation code |

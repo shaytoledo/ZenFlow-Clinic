@@ -1,11 +1,18 @@
 python-telegram-bot==21.6
 python-dotenv>=1.0.0
 
-# AI / LLM
-ollama>=0.3.0
+# Database
+psycopg2-binary>=2.9.0
+
+# AI / LLM — choose one via USE_AI env var:
+#   USE_AI=anthropic  → uses langchain-anthropic (recommended for production)
+#   USE_AI=ollama     → uses Ollama local server (default, dev only)
 langchain>=1.2.0
-langchain-ollama>=1.0.0
 langchain-community>=0.4.0
+langchain-anthropic>=0.3.0
+# Ollama is optional — only needed locally. Remove if deploying without Ollama.
+langchain-ollama>=0.1.0
+ollama>=0.3.0
 
 # Google Calendar
 google-api-python-client>=2.100.0
@@ -24,5 +31,5 @@ httpx>=0.27.0
 redis>=5.0.0
 langchain-redis>=0.1.0
 
-# Future — Anthropic (uncomment when switching from Ollama)
-# anthropic>=0.40.0
+# Anthropic (production AI — set USE_AI=anthropic + ANTHROPIC_API_KEY)
+anthropic>=0.40.0

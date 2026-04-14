@@ -182,8 +182,8 @@ After:  [09:00 — 11:00]   (left fragment)
 When a patient cancels, a new 1-hour row is inserted (no merging with adjacent slots).
 
 **Write operations:**
-- `web/app.py POST /api/availability` → `INSERT` (therapist creates slot via FullCalendar drag)
-- `web/app.py DELETE /api/availability/{id}` → `DELETE` (therapist removes slot)
+- `web/routers/api/availability.py POST /api/availability` → `INSERT` (therapist creates slot via FullCalendar drag)
+- `web/routers/api/availability.py DELETE /api/availability/{id}` → `DELETE` (therapist removes slot)
 - `availability._remove_hour_from_local()` → `DELETE` + `INSERT` (booking)
 - `availability._add_hour_to_local()` → `INSERT` (cancellation restore)
 

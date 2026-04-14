@@ -46,18 +46,30 @@ class RediagnoseIn(BaseModel):
     pulse_observation: str = ""
 
 
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+async def _resolve_apt_id(patient_id: int, apt_date: str, apt_time: str) -> int:
+    apt_id = await asyncio.to_thread(treatment_service.get_appointment_id, patient_id, apt_date, apt_time)
+    if not apt_id:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return apt_id
+
+
+def _require_auth(request: Request):
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return therapist
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.get("/{patient_id}/{apt_date}/{apt_time}")
 async def get_treatment_notes(
     patient_id: int, apt_date: str, apt_time: str, request: Request
 ):
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    apt_id = await asyncio.to_thread(treatment_service.get_appointment_id, patient_id, apt_date, apt_time)
-    if not apt_id:
-        raise HTTPException(status_code=404, detail="Appointment not found")
+    _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
     notes = await asyncio.to_thread(treatment_service.get_notes, apt_id)
     if not notes:
         return JSONResponse({"appointment_id": apt_id})
@@ -69,12 +81,8 @@ async def save_treatment_notes(
     patient_id: int, apt_date: str, apt_time: str,
     body: TreatmentNotesIn, request: Request,
 ):
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    apt_id = await asyncio.to_thread(treatment_service.get_appointment_id, patient_id, apt_date, apt_time)
-    if not apt_id:
-        raise HTTPException(status_code=404, detail="Appointment not found")
+    _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
     await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, body.model_dump())
     return JSONResponse({"ok": True})
 
@@ -85,12 +93,8 @@ async def complete_session(
     body: CompleteSessionIn, request: Request,
 ):
     """Save session notes and mark complete in one atomic step, then redirect to dashboard."""
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    apt_id = await asyncio.to_thread(treatment_service.get_appointment_id, patient_id, apt_date, apt_time)
-    if not apt_id:
-        raise HTTPException(status_code=404, detail="Appointment not found")
+    _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
     # Save notes + completion timestamp together
     import datetime as _dt
     notes = body.model_dump()
@@ -104,10 +108,7 @@ async def send_recommendations(
     patient_id: int, apt_date: str, apt_time: str,
     body: RecommendationsIn, request: Request,
 ):
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
+    _require_auth(request)
     enabled = [item for item in body.items if item.get("enabled")]
     if not enabled:
         raise HTTPException(status_code=400, detail="No recommendations selected")
@@ -127,13 +128,15 @@ async def send_recommendations(
         logger.error(f"send_recommendations error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-    # Record sent timestamp
-    apt_id = await asyncio.to_thread(treatment_service.get_appointment_id, patient_id, apt_date, apt_time)
-    if apt_id:
-        import datetime as _dt
+    # Record sent timestamp (best-effort — don't fail if lookup misses)
+    import datetime as _dt
+    try:
+        apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
         await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, {
             "recommendations_sent_at": _dt.datetime.now().isoformat()
         })
+    except HTTPException:
+        pass
     return JSONResponse({"ok": True, "sent_to": patient_id})
 
 
@@ -143,9 +146,7 @@ async def rediagnose(
     body: RediagnoseIn, request: Request,
 ):
     """Re-run TCM diagnosis with updated tongue/pulse findings."""
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    _require_auth(request)
 
     time_str = apt_time.replace("-", ":")
     from bot.db import get_db
@@ -182,9 +183,7 @@ async def rediagnose(
             )),
         ]
         resp = await asyncio.wait_for(_LLM.ainvoke(messages), timeout=60)
-        raw = resp.content.strip()
-        raw = _re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = _re.sub(r"\s*```$", "", raw)
+        raw = _re.sub(r"^```(?:json)?\s*|\s*```$", "", resp.content.strip())
         m = _re.search(r"\{[\s\S]*\}", raw)
         if m:
             raw = m.group(0)
@@ -231,9 +230,7 @@ async def rediagnose(
 @router.get("/sessions/history")
 async def list_sessions(request: Request, sort: str = "date"):
     """List all treatment sessions, sorted by name / date / last_access."""
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    therapist = _require_auth(request)
     sessions = treatment_service.list_all_sessions(
         therapist_id=therapist["id"], sort_by=sort
     )

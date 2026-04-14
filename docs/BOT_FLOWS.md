@@ -210,19 +210,20 @@ Repeat for answers 1–4:
     → INTAKE
 
 On 5th answer:
-    generate_summary(user_id, final_answer)
-        → LLM call: summarise entire conversation
+    generate_summary(user_id, final_answer)       [awaited]
+        → LLM call (_LLM_LONG): summarise entire conversation
         → fallback: "Intake completed — see history for details."
 
     book_slot(...)   → invalidate Redis caches, update calendar
     save_appointment(...)   → SQLite + Redis invalidation
-    generate_tcm_diagnosis(user_id, summary)
-        → LLM call: structured TCM JSON
-        → fallback: empty dict with certainty=0
-    save_treatment_notes(appointment_id, user_id, tcm)   → SQLite UPSERT
-    clear_intake(user_id)   → clear Redis + in-process caches
 
-    Send confirmation:
+    asyncio.ensure_future(_tcm_and_clear(appointment_id, user_id, summary))
+        → [BACKGROUND — patient does NOT wait for this]
+        → generate_tcm_diagnosis()   LLM call (_LLM_LONG): structured TCM JSON
+        → save_treatment_notes()     SQLite UPSERT
+        → clear_intake()             clear Redis + in-process caches (in finally block)
+
+    Send confirmation immediately (does not wait for TCM diagnosis):
         "✅ Appointment successfully booked!"
         "📅 Friday, 20 March 2026 at 11:00"
         "📋 Intake summary: [first 3 lines of AI summary]"
@@ -369,6 +370,30 @@ handle_therapist_message() in therapist_bot/handlers.py:
    else:
        → get current active patient from zenflow:relay:active:*
        → route to that patient if active session exists
+```
+
+---
+
+## Main Menu Keyboard
+
+`get_main_keyboard(show_change_therapist=True)` in `bot/utils.py` renders the main menu as an inline keyboard:
+
+| Button | `callback_data` | Shown when |
+|---|---|---|
+| 📅 Schedule | `schedule` | Always |
+| ❌ Cancel | `cancel` | Always |
+| 💬 Connect to Therapist | `therapist` | Always |
+| 🔄 Change Therapist | `change_therapist` | Only if `show_change_therapist=True` and >1 active therapist |
+
+The "Change Therapist" button only appears when `show_change_therapist=True` is passed (called from `start.py` after a therapist is already selected). On initial load `show_change_therapist=False` until a therapist has been chosen.
+
+`change_therapist()` in `start.py`:
+```
+callback_data = "change_therapist"
+→ clears context.user_data["selected_therapist"]
+→ reloads therapist list fresh from SQLite
+→ if 1 active therapist: auto-selects, shows menu
+→ if >1 active therapists: shows THERAPIST_SELECT keyboard
 ```
 
 ---

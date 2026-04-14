@@ -25,11 +25,11 @@ def save_appointment(
         cur = conn.execute(
             """INSERT INTO appointments
                (patient_id, patient_name, therapist_id, date, time, status, gcal_apt_event_id, summary)
-               VALUES (?, ?, ?, ?, ?, 'active', ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, 'active', ?, ?) RETURNING id""",
             (patient_id, patient_name, therapist_id, day.isoformat(), time_slot,
              gcal_apt_event_id, summary),
         )
-        appointment_id = cur.lastrowid
+        appointment_id = cur.fetchone()["id"]
         conn.execute(
             """INSERT INTO intake_sessions
                (appointment_id, patient_id, therapist_id, history_json)
@@ -113,7 +113,7 @@ def get_booked_slots(day: date) -> set[str]:
         "SELECT time FROM appointments WHERE date=? AND status='active'",
         (day.isoformat(),),
     ).fetchall()
-    booked = {row[0] for row in rows}
+    booked = {row["time"] for row in rows}
     logger.debug(f"Booked slots on {day}: {booked}")
 
     if r and key is not None:

@@ -37,6 +37,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/AI_INTAKE.md` | Ollama/LangChain adaptive intake |
 | `docs/AUTH.md` | Web auth, registration, session management |
 | `docs/AVAILABILITY.md` | Google Calendar vs local SQLite availability |
+| `docs/DATA_LAYER.md` | **Living doc** — full data inventory, TTL logic, known breaking points, operational runbook |
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
 
 > Start guide: `startup/START.md`
@@ -50,12 +51,12 @@ bot/
 ├── redis_client.py    # get_async_redis() / get_sync_redis() singletons
 ├── states.py          # 10 integer state constants (SELECTING, THERAPIST_SELECT, …)
 ├── config.py          # Env vars; calls init_db(); loads THERAPISTS from SQLite
-├── utils.py           # Shared: get_main_keyboard()
+├── utils.py           # Shared: get_main_keyboard(show_change_therapist)
 ├── patient_bot/
-│   ├── start.py       # Entry point + back_to_main callback
+│   ├── start.py       # start(), back_to_main(), change_therapist()
 │   ├── schedule.py    # Booking flow: therapist → week → days → hours → intake
 │   ├── cancel.py      # show_appointments → confirm_cancel (soft-delete)
-│   ├── therapist.py   # ask_therapist_message → relay loop → end_chat
+│   ├── therapist.py   # show_therapist_for_contact → relay loop → end_chat
 │   └── services/
 │       ├── ai_intake.py      # LangChain + Ollama adaptive intake; Redis history (30 min TTL)
 │       ├── appointments.py   # SQLite: save/get/cancel appointments + get_booked_slots
@@ -68,10 +69,35 @@ bot/
         └── relay.py   # Redis relay (read-only)
 
 web/                         # Therapist web dashboard (FastAPI — multi-page)
-├── app.py                   # Routes + auth (SessionMiddleware) + all data access via SQLite
+├── app.py                   # FastAPI app factory: middleware + static files + router wiring
+├── deps.py                  # Session helpers, auth helpers, data loaders
 ├── gcal.py                  # Google Calendar OAuth + API wrapper
+├── routers/
+│   ├── pages.py             # HTML page routes (/, /schedule, /patients, /messages, /sessions, /settings, /treatment/...)
+│   ├── auth.py              # Auth routes (/register, /signin, /logout, Google OAuth, /register/activate)
+│   └── api/
+│       ├── appointments.py  # /api/appointments/today, /api/patients, /api/patients/{id}
+│       ├── treatment.py     # /api/treatment-notes/* (get, save, rediagnose, send, complete)
+│       ├── availability.py  # /api/calendars, /api/events, /api/availability
+│       ├── messages.py      # /api/messages/active, /conversations, /history/{pid}, /send
+│       └── system.py        # /api/status, /api/my/status, /api/my/activation-code
+├── services/                # Domain service layer
+│   ├── appointment_service.py
+│   ├── availability_service.py
+│   ├── treatment_service.py
+│   ├── telegram_service.py
+│   ├── therapist_service.py
+│   └── cache_service.py
 ├── templates/               # Jinja2 templates (all extend base.html)
-└── static/                  # style.css + app.js (FullCalendar)
+└── static/
+    ├── style.css            # zf- prefixed styles
+    └── js/                  # FullCalendar JS — schedule page only (loaded in order)
+        ├── utils.js         # $ helper, showToast, fmt
+        ├── calendar-list.js # Sidebar calendar list, visibility toggles, rename
+        ├── mini-calendar.js # Mini date picker
+        ├── slots.js         # saveSlot — drag-to-create availability
+        ├── popover.js       # Event click popover
+        └── main-calendar.js # FullCalendar init + wiring
 
 startup/
 ├── launch.py                # Unified launcher: setup + Redis + Ollama + supervises services
@@ -142,10 +168,15 @@ Any message / /start → SELECTING (main menu)
 - Appointment cancellation: soft delete, slot restored to availability
 - Two-way therapist relay with multi-therapist security isolation
 - Therapist web dashboard (FastAPI) with FullCalendar availability manager
-- Therapist registration: web form → 8-char code → bot activation; Google OAuth supported
+- Therapist registration: web form → 8-char code → bot or web activation; Google OAuth supported
 - Per-therapist Google Calendar integration; local SQLite fallback when not connected
 - Ollama adaptive intake with Redis history; fallback questions when unavailable
 - Treatment notes: AI TCM diagnosis saved on booking; therapist adds tongue/pulse/points/notes
+- Session history page (`/sessions`): all sessions sortable by name/date/last access
+- "Complete Session" button sets `completed_at` timestamp
+- Live relay chat visible and sendable from web messages page (`/messages`)
+- System health API (`/api/status`) covering Redis, Ollama, bots, Google Calendar
+- "Change Therapist" button in main menu (appears after therapist is selected)
 
 ## Planned
 - `PicklePersistence` to survive bot restarts without losing in-flight booking state
