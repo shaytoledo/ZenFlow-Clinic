@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(tail:*)",
       "Bash(cd:*)",
@@ -46,7 +47,13 @@
       "Bash(.venv/Scripts/pip show:*)",
       "Bash(start:*)",
       "Bash(ollama list:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(wc -l /c/Users/shayt/PycharmProjects/Clinic/bot/**/*.py /c/Users/shayt/PycharmProjects/Clinic/web/**/*.py 2>/dev/null | tail -1)",
+      "Bash(cmd.exe /c \"rmdir /s /q \\\\\"C:\\\\Users\\\\shayt\\\\PycharmProjects\\\\Clinic\\\\.claude\\\\worktrees\\\\\"\" && echo \"Deleted\")",
+      "Bash(cmd.exe /c \"del /f /q \\\\\"C:\\\\Users\\\\shayt\\\\PycharmProjects\\\\Clinic\\\\.claude\\\\worktrees\\\\friendly-bhabha\\\\ZenFlow_Project_Documentation_HE.docx\\\\\"\" && echo \"Deleted\")",
+      "Bash(cmd.exe /c \"handle64.exe \\\\\"ZenFlow_Project_Documentation_HE.docx\\\\\" 2>nul || powershell -Command \\\\\"$path='C:\\\\\\\\Users\\\\\\\\shayt\\\\\\\\PycharmProjects\\\\\\\\Clinic\\\\\\\\.claude\\\\\\\\worktrees\\\\\\\\friendly-bhabha\\\\\\\\ZenFlow_Project_Documentation_HE.docx'; Get-Process | Where-Object { $_.Modules | Where-Object { $_.FileName -eq $path } } | Select-Object Name,Id\\\\\"\")",
+      "Bash(cmd.exe /c \"powershell -Command \\\\\"Copy-Item 'C:\\\\\\\\Users\\\\\\\\shayt\\\\\\\\PycharmProjects\\\\\\\\Clinic\\\\\\\\.claude\\\\\\\\worktrees\\\\\\\\friendly-bhabha\\\\\\\\ZenFlow_Project_Documentation_HE.docx' -Destination 'C:\\\\\\\\Users\\\\\\\\shayt\\\\\\\\PycharmProjects\\\\\\\\Clinic\\\\\\\\docs\\\\\\\\ZenFlow_Project_Documentation_HE.docx' -Force; Remove-Item -Force -Path 'C:\\\\\\\\Users\\\\\\\\shayt\\\\\\\\PycharmProjects\\\\\\\\Clinic\\\\\\\\.claude\\\\\\\\worktrees\\\\\\\\friendly-bhabha\\\\\\\\ZenFlow_Project_Documentation_HE.docx' -ErrorAction SilentlyContinue; Write-Host Done\\\\\"\" 2>&1)",
+      "Bash(cmd.exe /c \"powershell -Command \\\\\"& { taskkill /F /IM SearchIndexer.exe 2>$null; Start-Sleep 1; Remove-Item -Force 'C:\\\\\\\\Users\\\\\\\\shayt\\\\\\\\PycharmProjects\\\\\\\\Clinic\\\\\\\\.claude\\\\\\\\worktrees\\\\\\\\friendly-bhabha\\\\\\\\ZenFlow_Project_Documentation_HE.docx' 2>$null; if \\(Test-Path 'C:\\\\\\\\Users\\\\\\\\shayt\\\\\\\\PycharmProjects\\\\\\\\Clinic\\\\\\\\.claude\\\\\\\\worktrees\\\\\\\\friendly-bhabha\\\\\\\\ZenFlow_Project_Documentation_HE.docx'\\) { Write-Host 'Still locked' } else { Remove-Item -Recurse -Force 'C:\\\\\\\\Users\\\\\\\\shayt\\\\\\\\PycharmProjects\\\\\\\\Clinic\\\\\\\\.claude\\\\\\\\worktrees' 2>$null; Write-Host 'Fully cleaned' } }\\\\\"\" 2>&1)"
     ]
   }
 }

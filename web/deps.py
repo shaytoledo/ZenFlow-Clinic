@@ -77,33 +77,24 @@ def _set_session(request: Request, therapist_id: str) -> None:
     request.session["therapist_id"] = therapist_id
 
 
-def _find_by_email(email: str) -> dict | None:
-    from bot.db import get_db
-    email_lower = (email or "").lower().strip()
-    if not email_lower:
+def _find_therapist_where(field: str, value: str) -> dict | None:
+    if not value:
         return None
-    row = get_db().execute(
-        "SELECT * FROM therapists WHERE lower(email)=?", (email_lower,)
-    ).fetchone()
+    from bot.db import get_db
+    row = get_db().execute(f"SELECT * FROM therapists WHERE {field}=?", (value,)).fetchone()
     if row:
         t = dict(row)
         t["active"] = bool(t.get("active"))
         return t
     return None
+
+
+def _find_by_email(email: str) -> dict | None:
+    return _find_therapist_where("lower(email)", (email or "").lower().strip())
 
 
 def _find_by_google_id(google_id: str) -> dict | None:
-    from bot.db import get_db
-    if not google_id:
-        return None
-    row = get_db().execute(
-        "SELECT * FROM therapists WHERE google_id=?", (google_id,)
-    ).fetchone()
-    if row:
-        t = dict(row)
-        t["active"] = bool(t.get("active"))
-        return t
-    return None
+    return _find_therapist_where("google_id", google_id)
 
 
 def _register_web_therapist(name: str, email: str, password: str = "", google_id: str = "") -> dict:
@@ -113,7 +104,7 @@ def _register_web_therapist(name: str, email: str, password: str = "", google_id
 
     conn = get_db()
     with _web_reg_lock:
-        existing_ids = {r[0] for r in conn.execute("SELECT id FROM therapists").fetchall()}
+        existing_ids = {r["id"] for r in conn.execute("SELECT id FROM therapists").fetchall()}
         n = 1
         while f"t{n}" in existing_ids:
             n += 1
@@ -127,18 +118,11 @@ def _register_web_therapist(name: str, email: str, password: str = "", google_id
         )
         conn.commit()
         entry: dict = {
-            "id": new_id,
-            "name": name,
-            "telegram_id": 0,
-            "calendar_name": "ZenFlow Availability",
+            "id": new_id, "name": name, "telegram_id": 0,
+            "email": email or None, "google_id": google_id or None,
+            "password_hash": password_hash, "calendar_name": "ZenFlow Availability",
             "active": False,
         }
-        if email:
-            entry["email"] = email
-        if google_id:
-            entry["google_id"] = google_id
-        if password_hash:
-            entry["password_hash"] = password_hash
         _cfg.THERAPISTS.append(entry)
     return entry
 
@@ -249,7 +233,7 @@ def _local_slots_to_fc(slots: list[dict]) -> list[dict]:
 
 async def _prefetch_calendar_events(tid: str) -> None:
     """Pre-fetch the next 2 weeks of Google Calendar events into Redis (10-min TTL)."""
-    from web.gcal import GCalClient, is_authenticated, token_file_for
+    from web.gcal import GCalClient, is_authenticated
     if not is_authenticated(tid):
         return
     try:
@@ -264,7 +248,7 @@ async def _prefetch_calendar_events(tid: str) -> None:
         if await r.exists(cache_key):
             return
 
-        client = await asyncio.to_thread(GCalClient.load, token_file_for(tid))
+        client = await asyncio.to_thread(GCalClient.load, tid)
         events = await asyncio.to_thread(client.get_events, start, end)
         await r.set(cache_key, json.dumps(events, default=str), ex=600)
         logger.info(f"[{tid}] Calendar events pre-fetched into Redis ({len(events)} events)")
@@ -289,37 +273,30 @@ def _generate_reg_code() -> str:
     return "".join(secrets.choice(alphabet) for _ in range(8))
 
 
-async def _get_therapist_bot_username() -> str:
-    global _therapist_bot_username
-    if _therapist_bot_username:
-        return _therapist_bot_username
+async def _fetch_bot_username(token: str) -> str:
     try:
         import httpx
-        from bot.config import THERAPIST_BOT_TOKEN
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"https://api.telegram.org/bot{THERAPIST_BOT_TOKEN}/getMe")
+            resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
             data = resp.json()
-            if data.get("ok"):
-                _therapist_bot_username = data["result"]["username"]
+            return data["result"]["username"] if data.get("ok") else ""
     except Exception:
-        pass
+        return ""
+
+
+async def _get_therapist_bot_username() -> str:
+    global _therapist_bot_username
+    if not _therapist_bot_username:
+        from bot.config import THERAPIST_BOT_TOKEN
+        _therapist_bot_username = await _fetch_bot_username(THERAPIST_BOT_TOKEN)
     return _therapist_bot_username
 
 
 async def _get_patient_bot_username() -> str:
     global _patient_bot_username
-    if _patient_bot_username:
-        return _patient_bot_username
-    try:
-        import httpx
+    if not _patient_bot_username:
         from bot.config import TELEGRAM_TOKEN
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getMe")
-            data = resp.json()
-            if data.get("ok"):
-                _patient_bot_username = data["result"]["username"]
-    except Exception:
-        pass
+        _patient_bot_username = await _fetch_bot_username(TELEGRAM_TOKEN)
     return _patient_bot_username
 
 

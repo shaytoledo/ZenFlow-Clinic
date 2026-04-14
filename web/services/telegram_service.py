@@ -20,13 +20,11 @@ logger = logging.getLogger(__name__)
 _TIMEOUT = httpx.Timeout(10.0)
 
 
-async def send_to_patient(patient_id: int, text: str, parse_mode: str = "Markdown") -> dict:
-    """Send a message to a patient via the patient bot token."""
-    from bot.config import TELEGRAM_TOKEN
+async def _send(token: str, chat_id: int, text: str, parse_mode: str) -> dict:
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         resp = await client.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": patient_id, "text": text, "parse_mode": parse_mode},
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": text, "parse_mode": parse_mode},
         )
         data = resp.json()
         if not data.get("ok"):
@@ -34,20 +32,18 @@ async def send_to_patient(patient_id: int, text: str, parse_mode: str = "Markdow
         return data
 
 
+async def send_to_patient(patient_id: int, text: str, parse_mode: str = "Markdown") -> dict:
+    """Send a message to a patient via the patient bot token."""
+    from bot.config import TELEGRAM_TOKEN
+    return await _send(TELEGRAM_TOKEN, patient_id, text, parse_mode)
+
+
 async def send_via_therapist_bot(patient_id: int, text: str, parse_mode: str = "Markdown") -> dict:
     """Send a message to a patient via the therapist bot (relay channel)."""
     from bot.config import THERAPIST_BOT_TOKEN
     if not THERAPIST_BOT_TOKEN:
         raise RuntimeError("THERAPIST_BOT_TOKEN not configured")
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.post(
-            f"https://api.telegram.org/bot{THERAPIST_BOT_TOKEN}/sendMessage",
-            json={"chat_id": patient_id, "text": text, "parse_mode": parse_mode},
-        )
-        data = resp.json()
-        if not data.get("ok"):
-            raise RuntimeError(data.get("description", "Telegram sendMessage via therapist bot failed"))
-        return data
+    return await _send(THERAPIST_BOT_TOKEN, patient_id, text, parse_mode)
 
 
 async def get_bot_info(token: str) -> dict | None:

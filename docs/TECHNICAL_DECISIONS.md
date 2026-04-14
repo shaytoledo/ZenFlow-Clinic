@@ -239,3 +239,36 @@ _cfg.THERAPIST_BY_ID[new_therapist["id"]] = new_therapist
 **Trade-offs accepted:**
 - Module-level state mutation is not "clean" Python design
 - Web process does not see the new therapist until next web request (reads fresh from SQLite each time — this is fine)
+
+---
+
+## ADR-12: Split `app.js` into Focused Modules
+
+**Decision:** The single `web/static/app.js` (427 lines) was split into six files under `web/static/js/`.
+
+**Files and responsibilities:**
+
+| File | Responsibility |
+|---|---|
+| `utils.js` | `$` DOM helper, `showToast`, `fmt` |
+| `calendar-list.js` | Sidebar calendar list, visibility toggles, context-menu rename |
+| `mini-calendar.js` | Mini month date picker |
+| `slots.js` | Drag-to-create availability slot (`saveSlot`) |
+| `popover.js` | Event click popover: render, position, delete confirm |
+| `main-calendar.js` | FullCalendar init + DOMContentLoaded event wiring |
+
+**Alternatives considered:**
+- ES modules with `import`/`export` — requires a bundler or HTTP/2 server; adds build tooling complexity with no other frontend build step in the project
+- Keep as one file — works but makes targeted changes and git diffs harder to review
+
+**Reasons:**
+- Each file now has a single clear purpose — easier to locate, change, and review in isolation
+- Smaller diffs per PR: a change to the popover does not touch the mini-calendar or slot code
+- No bundler needed — files share the global scope and are loaded in dependency order via `<script>` tags in `schedule.html`
+
+**Load order (must be preserved):** `utils.js` → `calendar-list.js` → `mini-calendar.js` → `slots.js` → `popover.js` → `main-calendar.js`
+
+**Trade-offs accepted:**
+- All files still share the browser global scope (no true encapsulation without a bundler)
+- `mainCal` is declared in `main-calendar.js` but referenced in earlier files — safe because those references only execute after `DOMContentLoaded`, when `mainCal` has already been assigned
+- The legacy `web/static/app.js` remains on disk but is no longer loaded anywhere

@@ -11,6 +11,8 @@ import asyncio
 import json
 import logging
 from datetime import date, timedelta
+from web.gcal import GCalClient, is_authenticated
+from bot.redis_client import get_async_redis
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +22,6 @@ async def prefetch_calendar(therapist_id: str) -> None:
 
     Called as a BackgroundTask after every login so the schedule page loads instantly.
     """
-    from web.gcal import GCalClient, is_authenticated, token_file_for
     if not is_authenticated(therapist_id):
         return
     try:
@@ -29,12 +30,11 @@ async def prefetch_calendar(therapist_id: str) -> None:
         end = (today + timedelta(weeks=2)).isoformat() + "T23:59:59Z"
         cache_key = f"zenflow:gcal:events:{therapist_id}:{start}:{end}"
 
-        from bot.redis_client import get_async_redis
         r = get_async_redis()
         if await r.exists(cache_key):
             return  # already warm
 
-        client = await asyncio.to_thread(GCalClient.load, token_file_for(therapist_id))
+        client = await asyncio.to_thread(GCalClient.load, therapist_id)
         events = await asyncio.to_thread(client.get_events, start, end)
         await r.set(cache_key, json.dumps(events, default=str), ex=600)
         logger.info(f"[{therapist_id}] Calendar pre-fetched ({len(events)} events)")

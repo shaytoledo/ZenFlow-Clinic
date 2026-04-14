@@ -36,23 +36,28 @@ ZenFlow uses four distinct memory layers, each with a different scope, lifetime,
 
 ## Layer 1 — Python In-Process Memory
 
-### 1.1 LLM Singleton (`bot/patient_bot/services/ai_intake.py`)
+### 1.1 LLM Singletons (`bot/patient_bot/services/ai_intake.py`)
 
 ```python
-_LLM = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST)
+# For intake questions: 100-token cap, 512 ctx — speed-optimised
+_LLM      = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=100, num_ctx=512)
+# For clinical summary and TCM diagnosis: 600-token cap, 1024 ctx
+_LLM_LONG = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=600, num_ctx=1024)
 ```
 
 | Property | Value |
 |---|---|
-| Type | `langchain_ollama.ChatOllama` object |
+| Type | `langchain_ollama.ChatOllama` objects |
 | Created | At module import time (once per process) |
 | Destroyed | When the bot process exits |
-| Shared | Single instance used for ALL patients |
+| Shared | Both instances used for ALL patients concurrently |
 | Thread-safety | `ainvoke()` is async — concurrent calls are safe |
 
-**Why a singleton:** Creating a new `ChatOllama` per call adds HTTP connection overhead. One instance reuses the underlying HTTP client pool.
+**Why singletons:** Creating a new `ChatOllama` per call adds HTTP connection overhead. Singletons reuse the underlying HTTP client pool.
 
-**Health check:** `_check_ollama_health()` runs immediately after the singleton is created. It attempts `GET /api/tags` with a 3-second timeout and logs a clear warning if Ollama is unreachable. The singleton is still created even if Ollama is down — all `ainvoke()` calls will fall back to static questions.
+**Why two instances:** Intake questions need only 1–2 sentences (~30 tokens). Hard-capping at `num_predict=100` cuts per-question latency proportionally. Summaries and TCM diagnoses need more room and use `_LLM_LONG` with `num_predict=600`.
+
+**Health check:** `_check_ollama_health()` runs immediately after the singletons are created. It attempts `GET /api/tags` with a 3-second timeout and logs a clear warning if Ollama is unreachable. Singletons are still created even if Ollama is down — all `ainvoke()` calls will fall back to static questions.
 
 ---
 
@@ -92,16 +97,18 @@ _rolling_summaries: dict[int, str] = {}
 |---|---|
 | Key | `patient_id` (int) |
 | Value | Plain string — compressed summary of older conversation turns |
-| Created | `_maybe_compress()` when history length exceeds `_BUFFER_MAX = 6` messages |
+| Created | `_maybe_compress()` when history length exceeds `_BUFFER_MAX = 12` messages |
 | Destroyed | `clear_intake(user_id)` and `initialize_intake(user_id)` |
 
-**Purpose:** Implements a sliding-window context for the LLM. When a patient sends more than 6 messages, the oldest turns are compressed into a 2–3 sentence summary. This prevents the LLM context from growing unbounded.
+**Purpose:** Implements a sliding-window context for the LLM. When a patient sends more than 12 messages, the oldest turns are compressed into a 2–3 sentence summary. This prevents the LLM context from growing unbounded.
+
+`_BUFFER_MAX = 12` is set above the maximum for a normal intake (5 questions = 10 messages), so compression never fires mid-intake — which would add a hidden extra Ollama round-trip at question 4 and visibly slow that response.
 
 **Compression trigger:** `_maybe_compress()` is called inside `get_next_question()` before every LLM call.
 
 ```
-messages ≤ 6  → no compression, full history sent to LLM
-messages > 6  → oldest (N - BUFFER_KEEP=4) messages sent to LLM for summarisation
+messages ≤ 12 → no compression, full history sent to LLM
+messages > 12 → oldest (N - BUFFER_KEEP=4) messages sent to LLM for summarisation
               → summary stored in _rolling_summaries[user_id]
               → Redis history trimmed to most recent 4 messages
               → next LLM call receives: system prompt + summary + last 4 messages
@@ -263,7 +270,7 @@ See `docs/DATABASE.md` for the complete schema.
 | `therapists` | `_register_web_therapist()` | Web registration form |
 | `appointments` | `save_appointment()` | After intake or skip-intake |
 | `intake_sessions` | `save_appointment()` | Same transaction as appointment |
-| `availability` | Web `POST /api/availability` | Therapist drags on FullCalendar |
+| `availability` | `web/routers/api/availability.py POST /api/availability` | Therapist drags on FullCalendar |
 | `availability` | `_remove_hour_from_local()` | Patient books (local mode) |
 | `availability` | `_add_hour_to_local()` | Patient cancels (local mode) |
 | `treatment_notes` | `save_treatment_notes()` | AI diagnosis after intake, OR therapist saves treatment page |
@@ -279,7 +286,7 @@ See `docs/DATABASE.md` for the complete schema.
 | `appointments` | `web/app.py` | Dashboard, patients list, sessions page |
 | `intake_sessions` | `web/app.py` | Messages page |
 | `availability` | `_read_local_avail()` | Bot availability query (local mode) |
-| `availability` | `web/app.py` | FullCalendar events API |
+| `availability` | `web/routers/api/availability.py` | FullCalendar events API |
 | `treatment_notes` | `get_treatment_notes()` | Treatment page load |
 
 ### Data is Never Hard-Deleted From These Tables
@@ -395,18 +402,21 @@ if not therapist_id:
     └─ Redis DEL zenflow:apts:all   [invalidate appointment list cache]
     └─ Returns appointment_id (int)
 
-13. generate_tcm_diagnosis()
-    └─ _LLM.ainvoke() [100s timeout] → TCM JSON
+13. asyncio.ensure_future(_tcm_and_clear(appointment_id, user_id, summary))
+    └─ [BACKGROUND — steps 13-15 run after confirmation is sent to patient]
 
-14. save_treatment_notes(appointment_id, ...)
-    └─ SQLite UPSERT treatment_notes ON CONFLICT DO UPDATE
+    → generate_tcm_diagnosis()
+       └─ _LLM_LONG.ainvoke() [100s timeout] → TCM JSON
 
-15. clear_intake(user_id)
-    └─ RedisChatMessageHistory.clear()   [DEL zenflow:intake:{uid}:{tid}]
-    └─ _history_cache.pop(user_id)
-    └─ _rolling_summaries.pop(user_id)
+    → save_treatment_notes(appointment_id, ...)
+       └─ SQLite UPSERT treatment_notes ON CONFLICT DO UPDATE
 
-16. context.user_data.clear()
+    → clear_intake(user_id)   [always, via finally block]
+       └─ RedisChatMessageHistory.clear()   [DEL zenflow:intake:{uid}:{tid}]
+       └─ _history_cache.pop(user_id)
+       └─ _rolling_summaries.pop(user_id)
+
+14. context.user_data.clear()   [immediately — does not wait for background task]
     └─ selected_day, selected_time, intake_count, selected_week cleared
     └─ selected_therapist re-set for next booking
 ```

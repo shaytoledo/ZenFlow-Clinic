@@ -197,9 +197,9 @@ restore_slot(day, time_slot, gcal_apt_event_id, therapist_id):
 ### Managing Local Slots via Web Dashboard
 
 The therapist uses the FullCalendar interface at `/schedule`:
-- **Drag to create** a slot → `POST /api/availability` → `INSERT INTO availability`
+- **Drag to create** a slot → `POST /api/availability` (`web/routers/api/availability.py`) → `INSERT INTO availability`
 - **Click to delete** a slot → `DELETE /api/availability/{id}` → `DELETE FROM availability WHERE id=?`
-- Web reads: `GET /api/events` → reads availability table when no Google token
+- Web reads: `GET /api/events` → `web/services/availability_service.py` reads availability table when no Google token
 
 ---
 
@@ -263,7 +263,19 @@ GET /auth/disconnect
 
 ## asyncio.to_thread() Wrapping
 
-All Google Calendar API calls use the synchronous `google-api-python-client`. To avoid blocking the asyncio event loop:
+All Google Calendar API calls — including service construction — use the synchronous `google-api-python-client`. To avoid blocking the asyncio event loop, **all** synchronous operations are wrapped:
+
+### Service construction
+
+```python
+# _gcal_service() reads a token file and may call creds.refresh(Request())
+# which is a synchronous HTTP call — must not run on the event loop
+service = await asyncio.to_thread(_gcal_service, therapist_id)
+```
+
+This matters because token refresh is a real network call (exchanging the OAuth refresh token for a new access token). Before this wrapping, it would stall the event loop during every cache miss on day/hour queries.
+
+### API calls
 
 ```python
 events = await asyncio.to_thread(
@@ -272,7 +284,7 @@ events = await asyncio.to_thread(
         timeMin=time_min,
         timeMax=time_max,
         singleEvents=True,
-    ).execute
+    ).execute   # ← .execute, not .execute() — passed as callable, not result
 )
 ```
 
