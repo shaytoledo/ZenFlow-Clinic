@@ -24,27 +24,21 @@ _AVAILABILITY_CAL_NAME = "ZenFlow Availability"
 _CLINIC_TZ_NAME = "Asia/Jerusalem"  # passed as string to Google Calendar API
 
 
-def _resolve_token_json(therapist_id: str | None = None) -> str | None:
-    """Return the Google token JSON from DB, or None if not connected."""
-    if not therapist_id:
-        return None
-    try:
-        from bot.db import get_db
-        row = get_db().execute(
-            "SELECT google_token_json FROM therapists WHERE id=%s",
-            (therapist_id,),
-        ).fetchone()
-        return row["google_token_json"] if row and row.get("google_token_json") else None
-    except Exception:
-        return None
+def _resolve_token_file(therapist_id: str | None = None):
+    """Return the token file for the given therapist, or None if not connected."""
+    from pathlib import Path
+    tokens_dir = Path(__file__).parent.parent.parent.parent / "data" / "google_tokens"
+    if therapist_id:
+        tf = tokens_dir / f"{therapist_id}.json"
+        return tf if tf.exists() else None
+    return None
 
 
 # ── Google Calendar service ───────────────────────────────────────────────────
 
 def _gcal_service(therapist_id: str | None = None):
-    import json as _json
-    token_json = _resolve_token_json(therapist_id)
-    if token_json is None:
+    tf = _resolve_token_file(therapist_id)
+    if tf is None:
         return None
     try:
         from google.auth.transport.requests import Request
@@ -52,15 +46,10 @@ def _gcal_service(therapist_id: str | None = None):
         from googleapiclient.discovery import build
 
         SCOPES = ["https://www.googleapis.com/auth/calendar"]
-        creds = Credentials.from_authorized_user_info(_json.loads(token_json), SCOPES)
+        creds = Credentials.from_authorized_user_file(str(tf), SCOPES)
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            # Save refreshed token back to DB
-            from bot.db import get_db
-            get_db().execute(
-                "UPDATE therapists SET google_token_json=%s WHERE id=%s",
-                (creds.to_json(), therapist_id),
-            )
+            tf.write_text(creds.to_json(), encoding="utf-8")
         return build("calendar", "v3", credentials=creds, cache_discovery=False)
     except Exception as e:
         logger.warning(f"Google Calendar unavailable: {e}")
@@ -128,7 +117,7 @@ async def get_available_days(week_offset: int = 0, therapist_id: str | None = No
         r = None
         cache_key = None
 
-    service = await asyncio.to_thread(_gcal_service, therapist_id)
+    service = _gcal_service(therapist_id)
     if service is None:
         local = await asyncio.to_thread(_read_local_avail, therapist_id)
         if local:
@@ -194,7 +183,7 @@ async def get_available_hours(day: date, therapist_id: str | None = None) -> lis
         r = None
         cache_key = None
 
-    service = await asyncio.to_thread(_gcal_service, therapist_id)
+    service = _gcal_service(therapist_id)
     if service is None:
         local = await asyncio.to_thread(_read_local_avail, therapist_id)
         if local:
@@ -274,7 +263,7 @@ async def book_slot(day: date, time_slot: str, patient_name: str, summary: str,
     except Exception:
         pass
 
-    service = await asyncio.to_thread(_gcal_service, therapist_id)
+    service = _gcal_service(therapist_id)
     if service is None:
         # No Google Calendar — update local availability in SQLite
         await asyncio.to_thread(_remove_hour_from_local, therapist_id, day, time_slot)
@@ -330,7 +319,7 @@ async def restore_slot(day: date, time_slot: str, gcal_apt_event_id: str | None,
         await asyncio.to_thread(_add_hour_to_local, therapist_id, day, time_slot)
         return
 
-    service = await asyncio.to_thread(_gcal_service, therapist_id)
+    service = _gcal_service(therapist_id)
     if service is None:
         return
 
@@ -464,7 +453,7 @@ def get_booked_slots(day: date) -> set[str]:
         "SELECT time FROM appointments WHERE date=? AND status='active'",
         (day.isoformat(),),
     ).fetchall()
-    booked = {row["time"] for row in rows}
+    booked = {row[0] for row in rows}
     logger.debug(f"Booked slots on {day}: {booked}")
 
     if r and key is not None:
@@ -476,7 +465,7 @@ def get_booked_slots(day: date) -> set[str]:
     return booked
 
 
-# ── Local availability (PostgreSQL-backed, no Google Calendar) ───────────────
+# ── Local availability (SQLite-backed, no Google Calendar) ───────────────────
 
 def _read_local_avail(therapist_id: str | None) -> list[dict]:
     """Read local availability slots for a therapist from SQLite."""

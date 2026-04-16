@@ -194,7 +194,7 @@ def _register_therapist_to_db(
                 "SELECT * FROM therapists WHERE id=?", (existing_row["id"],)
             ).fetchone()
         else:
-            existing_ids = {r["id"] for r in conn.execute("SELECT id FROM therapists").fetchall()}
+            existing_ids = {r[0] for r in conn.execute("SELECT id FROM therapists").fetchall()}
             n = 1
             while f"t{n}" in existing_ids:
                 n += 1
@@ -214,15 +214,22 @@ def _register_therapist_to_db(
         entry["active"] = bool(entry.get("active"))
 
         # Reload all therapists and mutate in-place so other modules see the change immediately.
-        all_therapists = [
-            {**dict(row), "active": bool(row["active"])}
-            for row in conn.execute("SELECT * FROM therapists").fetchall()
-        ]
-        active = [t for t in all_therapists if t.get("active")]
-        _cfg.THERAPISTS[:] = all_therapists
+        all_rows = conn.execute("SELECT * FROM therapists").fetchall()
+        all_therapists = []
+        for row in all_rows:
+            t = dict(row)
+            t["active"] = bool(t.get("active"))
+            all_therapists.append(t)
+
+        _cfg.THERAPISTS.clear()
+        _cfg.THERAPISTS.extend(all_therapists)
         _cfg.THERAPIST_MAP.clear()
-        _cfg.THERAPIST_MAP.update({t["telegram_id"]: t for t in active if t.get("telegram_id")})
+        _cfg.THERAPIST_MAP.update({
+            t["telegram_id"]: t
+            for t in all_therapists
+            if t.get("active") and t.get("telegram_id")
+        })
         _cfg.THERAPIST_BY_ID.clear()
-        _cfg.THERAPIST_BY_ID.update({t["id"]: t for t in active})
+        _cfg.THERAPIST_BY_ID.update({t["id"]: t for t in all_therapists if t.get("active")})
 
     return entry

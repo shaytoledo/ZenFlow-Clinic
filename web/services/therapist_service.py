@@ -84,7 +84,7 @@ def register(name: str, email: str, password: str = "", google_id: str = "") -> 
 
     conn = get_db()
     with _web_reg_lock:
-        existing_ids = {r["id"] for r in conn.execute("SELECT id FROM therapists").fetchall()}
+        existing_ids = {r[0] for r in conn.execute("SELECT id FROM therapists").fetchall()}
         n = 1
         while f"t{n}" in existing_ids:
             n += 1
