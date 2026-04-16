@@ -1,16 +1,9 @@
 python-telegram-bot==21.6
 python-dotenv>=1.0.0
 
-# Database
-psycopg2-binary>=2.9.0
-
-# AI / LLM — choose one via USE_AI env var:
-#   USE_AI=anthropic  → uses langchain-anthropic (recommended for production)
-#   USE_AI=ollama     → uses Ollama local server (default, dev only)
+# AI / LLM
 langchain>=1.2.0
 langchain-community>=0.4.0
-langchain-anthropic>=0.3.0
-# Ollama is optional — only needed locally. Remove if deploying without Ollama.
 langchain-ollama>=0.1.0
 ollama>=0.3.0
 

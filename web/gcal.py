@@ -2,13 +2,13 @@
 Google Calendar wrapper for the ZenFlow therapist frontend.
 
 - OAuth2 flow: get_auth_url() / exchange_code()
-- Tokens are persisted in the therapists.google_token_json column (auto-refreshed)
+- Token persisted to data/google_tokens/{therapist_id}.json (auto-refreshed)
 - Availability events live in a dedicated "ZenFlow Availability" calendar
   (auto-created on first use)
 """
-import json
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -20,57 +20,24 @@ from bot.config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_U
 logger = logging.getLogger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-AVAILABILITY_CAL_NAME = "ZenFlow Availability"
-AVAILABILITY_TITLE = "✅ Available"
 
 
 def _to_utc(dt_str: str) -> str:
     """Normalize any ISO datetime string to UTC RFC3339 (Z suffix) for Google API."""
     from datetime import timezone
-    dt_str = dt_str.replace(" ", "+")
+    dt_str = dt_str.replace(" ", "+")  # URL decodes + as space; restore it
     dt = datetime.fromisoformat(dt_str)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+_TOKENS_DIR = Path(__file__).parent.parent / "data" / "google_tokens"
+AVAILABILITY_CAL_NAME = "ZenFlow Availability"
+AVAILABILITY_TITLE = "✅ Available"
 
 
-# ── Token DB helpers ──────────────────────────────────────────────────────────
-
-def _load_token_json(therapist_id: str) -> str | None:
-    """Return the stored Google token JSON for a therapist, or None."""
-    from bot.db import get_db
-    row = get_db().execute(
-        "SELECT google_token_json FROM therapists WHERE id=%s",
-        (therapist_id,),
-    ).fetchone()
-    return row["google_token_json"] if row and row.get("google_token_json") else None
-
-
-def _save_token(creds: Credentials, therapist_id: str) -> None:
-    """Persist refreshed/new credentials to the therapists table."""
-    from bot.db import get_db
-    get_db().execute(
-        "UPDATE therapists SET google_token_json=%s WHERE id=%s",
-        (creds.to_json(), therapist_id),
-    )
-    logger.info(f"[{therapist_id}] Google token saved to DB")
-
-
-def is_authenticated(therapist_id: str | None) -> bool:
-    """Return True if the therapist has a Google Calendar token stored in DB."""
-    if not therapist_id:
-        return False
-    return bool(_load_token_json(therapist_id))
-
-
-def clear_token(therapist_id: str) -> None:
-    """Remove the stored Google token (on disconnect)."""
-    from bot.db import get_db
-    get_db().execute(
-        "UPDATE therapists SET google_token_json=NULL WHERE id=%s",
-        (therapist_id,),
-    )
-    logger.info(f"[{therapist_id}] Google token cleared")
+def token_file_for(therapist_id: str) -> Path:
+    """Return the token file path for a given therapist."""
+    return _TOKENS_DIR / f"{therapist_id}.json"
 
 
 # ── OAuth ─────────────────────────────────────────────────────────────────────
@@ -81,11 +48,14 @@ def get_auth_url() -> str:
     return url
 
 
-def exchange_code(code: str, therapist_id: str) -> None:
-    """Exchange OAuth code and save the resulting credentials for therapist_id."""
+def exchange_code(code: str, token_file: Path | None = None) -> None:
     flow = _make_flow()
     flow.fetch_token(code=code)
-    _save_token(flow.credentials, therapist_id)
+    _save_token(flow.credentials, token_file)
+
+
+def is_authenticated(therapist_id: str) -> bool:
+    return token_file_for(therapist_id).exists()
 
 
 def _make_flow() -> Flow:
@@ -101,27 +71,24 @@ def _make_flow() -> Flow:
     return Flow.from_client_config(config, scopes=SCOPES, redirect_uri=GOOGLE_REDIRECT_URI)
 
 
+def _save_token(creds: Credentials, token_file: Path) -> None:
+    token_file.parent.mkdir(parents=True, exist_ok=True)
+    token_file.write_text(creds.to_json(), encoding="utf-8")
+
+
 # ── Client ────────────────────────────────────────────────────────────────────
 
 class GCalClient:
-    def __init__(self, service, therapist_id: str | None = None):
+    def __init__(self, service):
         self.service = service
-        self._therapist_id = therapist_id
 
     @classmethod
-    def load(cls, therapist_id: str) -> "GCalClient":
-        """Load credentials from DB and build the Calendar service."""
-        token_json = _load_token_json(therapist_id)
-        if not token_json:
-            raise ValueError(f"No Google credentials stored for therapist {therapist_id}")
-        creds = Credentials.from_authorized_user_info(json.loads(token_json), SCOPES)
+    def load(cls, token_file: Path) -> "GCalClient":
+        creds = Credentials.from_authorized_user_file(str(token_file), SCOPES)
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            _save_token(creds, therapist_id)
-        return cls(
-            build("calendar", "v3", credentials=creds, cache_discovery=False),
-            therapist_id=therapist_id,
-        )
+            _save_token(creds, token_file)
+        return cls(build("calendar", "v3", credentials=creds, cache_discovery=False))
 
     # ── availability calendar ──────────────────────────────────────────────
 
@@ -160,12 +127,14 @@ class GCalClient:
         time_min = _to_utc(time_min)
         time_max = _to_utc(time_max)
 
+        # Fetch all calendars the user has access to
         all_cals = self.service.calendarList().list().execute().get("items", [])
         avail_cal_id = next(
             (c["id"] for c in all_cals if c.get("summary") == AVAILABILITY_CAL_NAME),
             None,
         )
 
+        # All calendars except the ZenFlow Availability one — shown as busy
         for cal in all_cals:
             if cal["id"] == avail_cal_id:
                 continue
@@ -196,6 +165,7 @@ class GCalClient:
                     "extendedProps": {"type": "busy", "calendarId": cal["id"], "calendarName": cal.get("summary", "")},
                 })
 
+        # Availability calendar — shown as green (editable/deletable)
         cal_id = self.get_or_create_availability_cal()
         avail = self.service.events().list(
             calendarId=cal_id,

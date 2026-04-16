@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")  # Set by Railway PostgreSQL addon automatically
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:latest")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
