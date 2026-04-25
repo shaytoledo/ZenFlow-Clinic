@@ -8,3 +8,8 @@ __pycache__/
 *.log
 .DS_Store
 dump.rdb
+.claude/scheduled_tasks.lock
+.pytest_cache/
+# Runtime logs may contain Telegram bot tokens — never commit
+logs/*.text
+logs/*.out

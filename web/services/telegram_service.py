@@ -46,6 +46,46 @@ async def send_via_therapist_bot(patient_id: int, text: str, parse_mode: str = "
     return await _send(THERAPIST_BOT_TOKEN, patient_id, text, parse_mode)
 
 
+async def echo_to_therapist_chat(
+    therapist_telegram_id: int,
+    text: str,
+    reply_to_msg_id: int | None = None,
+    parse_mode: str = "Markdown",
+) -> dict | None:
+    """Echo a web-sent reply into the therapist's own bot chat.
+
+    When a therapist sends a message from the web, this surfaces it in their
+    Telegram chat as a Telegram reply to the patient's last forwarded message,
+    so the conversation context is visible in both places. Returns None on failure
+    (errors are logged but never raised — echoing is best-effort).
+    """
+    from bot.config import THERAPIST_BOT_TOKEN
+    if not THERAPIST_BOT_TOKEN or not therapist_telegram_id:
+        return None
+    payload: dict[str, Any] = {
+        "chat_id": therapist_telegram_id,
+        "text": text,
+        "parse_mode": parse_mode,
+    }
+    if reply_to_msg_id:
+        payload["reply_to_message_id"] = reply_to_msg_id
+        payload["allow_sending_without_reply"] = True
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(
+                f"https://api.telegram.org/bot{THERAPIST_BOT_TOKEN}/sendMessage",
+                json=payload,
+            )
+            data = resp.json()
+            if not data.get("ok"):
+                logger.warning(f"echo_to_therapist_chat not ok: {data.get('description')}")
+                return None
+            return data
+    except Exception as e:
+        logger.warning(f"echo_to_therapist_chat failed: {e}")
+        return None
+
+
 async def get_bot_info(token: str) -> dict | None:
     """Call getMe for the given token; return result dict or None on failure."""
     try:
@@ -99,7 +139,7 @@ async def get_relay_messages(patient_id: int) -> list[dict]:
 
 
 async def append_relay_message(patient_id: int, role: str, text: str) -> None:
-    """Append a message to the relay history and keep last 100 entries (30-min TTL)."""
+    """Append a message to the relay history and keep last 100 entries (24h TTL)."""
     import time
     try:
         from bot.redis_client import get_async_redis
@@ -108,7 +148,51 @@ async def append_relay_message(patient_id: int, role: str, text: str) -> None:
         raw = await r.get(key)
         messages: list[dict[str, Any]] = json.loads(raw) if raw else []
         messages.append({"role": role, "text": text, "ts": time.time()})
-        messages = messages[-100:]  # keep last 100
-        await r.set(key, json.dumps(messages), ex=1800)
+        messages = messages[-100:]
+        await r.set(key, json.dumps(messages), ex=86400)
     except Exception as e:
         logger.debug(f"append_relay_message error: {e}")
+
+
+async def get_total_unread_count() -> int:
+    """Sum unread patient messages across all active relay sessions.
+
+    A message is unread when its timestamp is greater than the therapist's
+    last-seen timestamp for that patient (zenflow:relay:lastseen:{patient_id}).
+    Returns 0 on any error.
+    """
+    try:
+        from bot.redis_client import get_async_redis
+        r = get_async_redis()
+        history_keys = await r.keys("zenflow:relay:history:*")
+        total = 0
+        for key in history_keys:
+            patient_id = key.rsplit(":", 1)[-1]
+            raw = await r.get(key)
+            if not raw:
+                continue
+            try:
+                messages = json.loads(raw)
+            except Exception:
+                continue
+            lastseen_raw = await r.get(f"zenflow:relay:lastseen:{patient_id}")
+            lastseen = float(lastseen_raw) if lastseen_raw else 0.0
+            total += sum(
+                1 for m in messages
+                if m.get("role") == "patient" and float(m.get("ts", 0)) > lastseen
+            )
+        return total
+    except Exception as e:
+        logger.debug(f"get_total_unread_count error: {e}")
+        return 0
+
+
+async def mark_conversation_read(patient_id: int) -> None:
+    """Reset the unread counter for one patient by stamping last-seen=now."""
+    import time
+    try:
+        from bot.redis_client import get_async_redis
+        r = get_async_redis()
+        await r.set(f"zenflow:relay:lastseen:{patient_id}", str(time.time()), ex=86400)
+    except Exception as e:
+        logger.debug(f"mark_conversation_read error: {e}")

@@ -182,7 +182,11 @@ def build_patient_app() -> Application:
 
 async def _run(patient_app: Application, therapist_app: Application | None) -> None:
     if therapist_app is None:
-        patient_app.run_polling(allowed_updates=Update.ALL_TYPES)
+        async with patient_app:
+            await patient_app.start()
+            await patient_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+            logger.info("Patient bot running — press Ctrl+C to stop")
+            await asyncio.Event().wait()
         return
 
     async with patient_app, therapist_app:

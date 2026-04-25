@@ -30,22 +30,14 @@ async def change_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         )
         return SELECTING
 
-    if len(active) == 1:
-        context.user_data["selected_therapist"] = active[0]["id"]
-        await query.edit_message_text(
-            f"You are working with *{active[0]['name']}*. 🌿\n\nWhat would you like to do?",
-            parse_mode="Markdown",
-            reply_markup=get_main_keyboard(show_change_therapist=False),
-        )
-        return SELECTING
-
     keyboard = [
         [InlineKeyboardButton(t["name"], callback_data=f"sel_t_{t['id']}")]
         for t in active
     ]
     keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_main")])
+    header = "Choose your therapist:" if len(active) > 1 else "Available therapists:"
     await query.edit_message_text(
-        "Choose your therapist:",
+        header,
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
     return THERAPIST_SELECT
