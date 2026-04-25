@@ -4,7 +4,7 @@ from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bot.config import THERAPIST_BOT_TOKEN, THERAPIST_BY_ID, THERAPISTS
-from bot.patient_bot.services.relay import end_relay, save_relay_mapping
+from bot.patient_bot.services.relay import append_history, end_relay, save_relay_mapping
 from bot.states import SELECTING, THERAPIST_INPUT, THERAPIST_RELAY, THERAPIST_SELECT
 from bot.utils import get_main_keyboard
 
@@ -85,16 +85,18 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         )
         return SELECTING
 
+    patient_name = user.full_name or user.first_name or ""
     try:
         sent = await _therapist_bot.send_message(
             chat_id=therapist["telegram_id"],
             text=(
-                f"💬 *New message from {user.full_name or user.first_name}* (ID: `{user.id}`)\n\n"
+                f"💬 *New message from {patient_name}* (ID: `{user.id}`)\n\n"
                 f"{update.message.text}"
             ),
             parse_mode="Markdown",
         )
-        save_relay_mapping(sent.message_id, user.id, therapist["id"])
+        save_relay_mapping(sent.message_id, user.id, therapist["id"], patient_name)
+        append_history(user.id, "patient", update.message.text)
         logger.info(f"[{user.id}] relay opened via therapist bot, msg_id={sent.message_id}, therapist={therapist['id']}")
     except Exception as e:
         logger.error(f"[{user.id}] failed to forward to therapist bot: {e}")
@@ -123,13 +125,15 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("⚠️ Therapist not available.", reply_markup=_END_KB)
         return THERAPIST_RELAY
 
+    patient_name = user.full_name or user.first_name or ""
     try:
         sent = await _therapist_bot.send_message(
             chat_id=therapist["telegram_id"],
-            text=f"💬 *{user.full_name or user.first_name}:*\n{update.message.text}",
+            text=f"💬 *{patient_name}:*\n{update.message.text}",
             parse_mode="Markdown",
         )
-        save_relay_mapping(sent.message_id, user.id, therapist["id"])
+        save_relay_mapping(sent.message_id, user.id, therapist["id"], patient_name)
+        append_history(user.id, "patient", update.message.text)
         logger.info(f"[{user.id}] relayed via therapist bot, msg_id={sent.message_id}")
         await update.message.reply_text("✅ Sent.", reply_markup=_END_KB)
     except Exception as e:

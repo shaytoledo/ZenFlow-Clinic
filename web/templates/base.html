@@ -115,7 +115,23 @@
   updateClock();
   setInterval(updateClock, 10000);
 
-  // Active message badge — only loaded on the /messages page (see messages.html)
+  // Unread-messages badge — polls every 8s on every page so the count stays fresh.
+  async function refreshMsgBadge() {
+    const badge = document.getElementById('msg-badge');
+    if (!badge) return;
+    try {
+      const d = await fetch('/api/messages/active').then(r => r.json());
+      if (d && d.count > 0) {
+        badge.textContent = d.count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.textContent = '';
+        badge.classList.add('hidden');
+      }
+    } catch (_) { /* ignore transient errors */ }
+  }
+  refreshMsgBadge();
+  setInterval(refreshMsgBadge, 8000);
 </script>
 {% block extra_scripts %}{% endblock %}
 </body>

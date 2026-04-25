@@ -7,6 +7,7 @@ from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bot.config import TELEGRAM_TOKEN, THERAPIST_MAP
+from bot.patient_bot.services.relay import append_history
 from bot.therapist_bot.services.relay import get_current_patient, get_patient_for_msg
 
 _END_KB = InlineKeyboardMarkup([[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]])
@@ -107,6 +108,7 @@ async def _handle_relay(msg, therapist_id: str) -> None:
             parse_mode="Markdown",
             reply_markup=_END_KB,
         )
+        append_history(patient_id, "therapist", msg.text)
         await msg.reply_text("✅ Delivered to patient.")
         logger.info(f"Therapist reply delivered to patient {patient_id}")
     except Exception as e:
