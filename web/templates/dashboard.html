@@ -3,8 +3,12 @@
 {% block page_heading %}Dashboard{% endblock %}
 
 {% block topbar_actions %}
-<a href="/schedule" class="zf-btn zf-btn-primary" style="font-size:13px;padding:7px 14px;">
+<button class="zf-btn zf-btn-primary" style="font-size:13px;padding:7px 14px;" onclick="openNewApptModal()">
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  New Appointment
+</button>
+<a href="/schedule" class="zf-btn zf-btn-outline" style="font-size:13px;padding:7px 14px;margin-left:8px;">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
   Manage Availability
 </a>
 {% endblock %}
@@ -129,10 +133,165 @@
   </div>
 
 </div>
+
+<!-- New Appointment Modal -->
+<div id="new-appt-overlay" style="display:none;position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:9000;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeNewApptModal()">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <h3 style="font-size:17px;font-weight:700;color:#111827;">New Appointment</h3>
+      <button onclick="closeNewApptModal()" style="background:none;border:none;cursor:pointer;color:#9CA3AF;padding:4px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p style="font-size:12px;color:#6B7280;margin-bottom:18px;line-height:1.55;">Manually book a patient who isn't using the Telegram bot. The session will appear on the dashboard and in the schedule.</p>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label class="zf-field-label">Patient name *</label>
+        <input id="na-name" type="text" class="zf-input" placeholder="e.g. Maya Cohen" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="zf-field-label">Date *</label>
+          <select id="na-date" class="zf-input" onchange="onNewApptDateChange()">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div>
+          <label class="zf-field-label">Time *</label>
+          <select id="na-time" class="zf-input" disabled>
+            <option value="">Pick a date first</option>
+          </select>
+        </div>
+      </div>
+      <p id="na-noslots-hint" style="font-size:11px;color:#9CA3AF;margin:-4px 0 0;display:none;">No free slots in the next 4 weeks — open <a href="/schedule" style="color:#0D9488;">Schedule</a> first to mark availability.</p>
+      <div>
+        <label class="zf-field-label">Phone (optional)</label>
+        <input id="na-phone" type="tel" class="zf-input" placeholder="050-1234567" />
+      </div>
+      <div>
+        <label class="zf-field-label">Notes (optional)</label>
+        <textarea id="na-notes" class="zf-textarea" rows="3" placeholder="Reason for visit, referral source, anything you want recorded with this booking…"></textarea>
+      </div>
+      <div id="na-error" style="display:none;color:#DC2626;font-size:12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:8px 10px;"></div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
+      <button class="zf-btn zf-btn-outline" onclick="closeNewApptModal()" style="padding:9px 16px;">Cancel</button>
+      <button id="na-submit-btn" class="zf-btn zf-btn-primary" onclick="submitNewAppt()" style="padding:9px 18px;">Create Appointment</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+let _freeSlots = {};  // { "YYYY-MM-DD": ["09:00","10:00",...] }
+
+async function openNewApptModal() {
+  document.getElementById('new-appt-overlay').style.display = 'flex';
+  document.getElementById('na-name').focus();
+  await loadFreeSlots();
+}
+
+async function loadFreeSlots() {
+  const dateSel = document.getElementById('na-date');
+  const timeSel = document.getElementById('na-time');
+  const hint    = document.getElementById('na-noslots-hint');
+  dateSel.innerHTML = '<option value="">Loading…</option>';
+  timeSel.innerHTML = '<option value="">Pick a date first</option>';
+  timeSel.disabled = true;
+  hint.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/availability/free-slots');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    _freeSlots = await r.json();
+  } catch (e) {
+    _freeSlots = {};
+  }
+
+  const dates = Object.keys(_freeSlots).sort();
+  if (dates.length === 0) {
+    dateSel.innerHTML = '<option value="">No available dates</option>';
+    hint.style.display = 'block';
+    return;
+  }
+  // Friendly labels: "Sun, 27 Apr 2026"
+  const fmt = new Intl.DateTimeFormat('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+  dateSel.innerHTML = '<option value="">— Select a date —</option>' +
+    dates.map(d => `<option value="${d}">${fmt.format(new Date(d + 'T00:00:00'))}</option>`).join('');
+}
+
+function onNewApptDateChange() {
+  const date = document.getElementById('na-date').value;
+  const timeSel = document.getElementById('na-time');
+  const hours = (date && _freeSlots[date]) || [];
+  if (hours.length === 0) {
+    timeSel.innerHTML = '<option value="">No times available</option>';
+    timeSel.disabled = true;
+    return;
+  }
+  timeSel.innerHTML = '<option value="">— Select a time —</option>' +
+    hours.map(h => `<option value="${h}">${h}</option>`).join('');
+  timeSel.disabled = false;
+}
+
+function closeNewApptModal() {
+  document.getElementById('new-appt-overlay').style.display = 'none';
+  ['na-name','na-phone','na-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('na-date').value = '';
+  document.getElementById('na-time').value = '';
+  document.getElementById('na-time').disabled = true;
+  document.getElementById('na-error').style.display = 'none';
+}
+async function submitNewAppt() {
+  const errBox = document.getElementById('na-error');
+  errBox.style.display = 'none';
+
+  const body = {
+    patient_name:  document.getElementById('na-name').value.trim(),
+    date:          document.getElementById('na-date').value,
+    time:          document.getElementById('na-time').value,
+    patient_phone: document.getElementById('na-phone').value.trim(),
+    notes:         document.getElementById('na-notes').value.trim(),
+  };
+  if (!body.patient_name || !body.date || !body.time) {
+    errBox.textContent = 'Patient name, date, and time are all required.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('na-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+  try {
+    const r = await fetch('/api/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const detail = await r.json().catch(() => ({}));
+      throw new Error(detail.detail || ('HTTP ' + r.status));
+    }
+    const data = await r.json();
+    closeNewApptModal();
+    // Jump straight into the treatment screen for the new appointment
+    if (data.treatment_url) window.location.href = data.treatment_url;
+    else loadDashboard();
+  } catch (e) {
+    errBox.textContent = e.message || String(e);
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Create Appointment';
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('new-appt-overlay').style.display === 'flex') closeNewApptModal();
+});
+
 async function loadDashboard() {
   try {
     // Load all patients/appointments data

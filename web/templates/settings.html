@@ -129,7 +129,7 @@
       </div>
       <span>Account</span>
     </div>
-    <div style="display:flex;align-items:center;gap:14px;background:#F9FAFB;border-radius:10px;padding:14px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:14px;background:#F9FAFB;border-radius:10px;padding:14px;">
       <div style="width:40px;height:40px;background:#CCFBF1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#0D9488;">
         {{ (therapist.name[:2] if therapist else 'DR') | upper }}
       </div>
@@ -137,27 +137,6 @@
         <div style="font-weight:600;font-size:14px;color:#111827;">{{ therapist.name if therapist else 'Guest' }}</div>
         <div style="font-size:12px;color:#6B7280;">{{ therapist.email if therapist and therapist.email else 'No email set' }}</div>
       </div>
-    </div>
-    <a href="/logout" class="zf-btn" style="background:#FEE2E2;color:#DC2626;border:none;display:inline-flex;align-items:center;gap:8px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Sign Out
-    </a>
-  </div>
-
-  <!-- Therapist Team -->
-  <div class="zf-card" style="margin-bottom: 20px;">
-    <div class="zf-card-title" style="margin-bottom:16px;">
-      <div class="zf-card-icon" style="background:#CCFBF1;color:#0D9488;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      </div>
-      <span>Therapist Team</span>
-    </div>
-    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:16px;">New therapists can self-register via the portal. They receive a one-time code to activate their account on the therapist bot — no restart required.</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <a href="/register" class="zf-btn zf-btn-primary" target="_blank">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Register new therapist →
-      </a>
     </div>
   </div>
 
@@ -173,6 +152,14 @@
     <div id="data-stats" style="background:#F9FAFB;border-radius:10px;padding:14px;font-size:13px;color:#374151;line-height:1.8;">
       Loading data stats…
     </div>
+  </div>
+
+  <!-- Sign out — page-level action, intentionally not nested in any card -->
+  <div style="margin-top:32px;padding-top:24px;border-top:1px solid #E5E7EB;">
+    <a href="/logout" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 18px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='#FEE2E2';this.style.borderColor='#FCA5A5'" onmouseout="this.style.background='#FEF2F2';this.style.borderColor='#FECACA'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign out of ZenFlow
+    </a>
   </div>
 
 </div>

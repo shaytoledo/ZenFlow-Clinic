@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCalendarList();
   renderMiniCal(new Date());
 
-  mainCal = new FullCalendar.Calendar($('calendar'), {
+  mainCal = window.mainCal = new FullCalendar.Calendar($('calendar'), {
     initialView: 'timeGridWeek',
     headerToolbar: {
       left:   'prev,next today',
@@ -61,7 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollTime: '08:00:00',
 
     events(info, ok, fail) {
-      fetch(`/api/events?start=${encodeURIComponent(info.startStr)}&end=${encodeURIComponent(info.endStr)}`)
+      // cache: 'no-store' + a per-call _ts param defeats both the browser's HTTP
+      // cache and any in-flight dedupe so Refresh always hits the server.
+      const url = `/api/events?start=${encodeURIComponent(info.startStr)}&end=${encodeURIComponent(info.endStr)}&_ts=${Date.now()}`;
+      fetch(url, { cache: 'no-store' })
         .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
         .then(events => ok(
           _hiddenCals.size === 0

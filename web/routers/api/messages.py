@@ -52,6 +52,16 @@ async def get_message_history(patient_id: int, request: Request):
     return JSONResponse({"patient_id": patient_id, "messages": messages})
 
 
+@router.delete("/history/{patient_id}")
+async def delete_message_history(patient_id: int, request: Request):
+    """Delete a relay conversation from Redis (history + presence + unread)."""
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    removed = await telegram_service.delete_conversation(patient_id)
+    return JSONResponse({"ok": True, "patient_id": patient_id, "removed_keys": removed})
+
+
 @router.post("/send")
 async def send_message(body: SendMessageIn, request: Request):
     """Deliver to patient via patient bot, then echo into the therapist's bot chat."""

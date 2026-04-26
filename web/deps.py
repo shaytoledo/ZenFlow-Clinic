@@ -245,33 +245,6 @@ def _local_slots_to_fc(slots: list[dict]) -> list[dict]:
     ]
 
 
-# ── Calendar pre-fetch ─────────────────────────────────────────────────────────
-
-async def _prefetch_calendar_events(tid: str) -> None:
-    """Pre-fetch the next 2 weeks of Google Calendar events into Redis (10-min TTL)."""
-    from web.gcal import GCalClient, is_authenticated, token_file_for
-    if not is_authenticated(tid):
-        return
-    try:
-        from datetime import date as _date, timedelta as _td
-        today = _date.today()
-        start = today.isoformat() + "T00:00:00Z"
-        end   = (today + _td(weeks=2)).isoformat() + "T23:59:59Z"
-        cache_key = f"zenflow:gcal:events:{tid}:{start}:{end}"
-
-        from bot.redis_client import get_async_redis
-        r = get_async_redis()
-        if await r.exists(cache_key):
-            return
-
-        client = await asyncio.to_thread(GCalClient.load, token_file_for(tid))
-        events = await asyncio.to_thread(client.get_events, start, end)
-        await r.set(cache_key, json.dumps(events, default=str), ex=600)
-        logger.info(f"[{tid}] Calendar events pre-fetched into Redis ({len(events)} events)")
-    except Exception as e:
-        logger.debug(f"Calendar pre-fetch skipped: {e}")
-
-
 # ── Registration helpers ───────────────────────────────────────────────────────
 
 _REG_CODE_RE = re.compile(r"^[A-Z0-9]{8}$")
@@ -360,6 +333,8 @@ async def _handle_reg_google(request: Request, code: str, error: str = ""):
         existing = _find_by_google_id(google_id) or (email and _find_by_email(email))
         if existing:
             _set_session(request, existing["id"])
+            from web.services.cache_service import prefetch_calendar
+            asyncio.create_task(prefetch_calendar(existing["id"]))
             return RedirectResponse("/", status_code=303)
 
         entry = _register_web_therapist(name=name, email=email, google_id=google_id)

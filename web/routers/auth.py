@@ -156,6 +156,9 @@ async def register_signin(request: Request):
         return _err("Invalid email or password.")
 
     _set_session(request, therapist["id"])
+    # Pre-warm the next 2 weeks of Google Calendar events so the schedule page
+    # loads instantly. Fire-and-forget — never blocks the redirect.
+    asyncio.create_task(prefetch_calendar(therapist["id"]))
     dest = "/" if therapist.get("active") else "/register/activate"
     return RedirectResponse(dest, status_code=303)
 

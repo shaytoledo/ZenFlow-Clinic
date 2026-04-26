@@ -85,6 +85,32 @@
         </div>
       </div>
 
+      <!-- Therapist Diagnosis (manual, alongside the AI's) -->
+      <div class="zf-card">
+        <div class="zf-card-title">
+          <div class="zf-card-icon" style="background:#FEF3C7;color:#B45309;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L4 5v7c0 5 3.5 9 8 10 4.5-1 8-5 8-10V5l-8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <span>Therapist Diagnosis</span>
+          <span style="margin-left:auto;font-size:11px;color:#9CA3AF;" id="td-status">—</span>
+        </div>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label class="zf-field-label">Your Diagnosis</label>
+            <textarea id="therapist-diagnosis" class="zf-textarea" rows="3"
+              placeholder="Your own clinical assessment — pattern, dominant element, channel imbalance, working hypothesis, considerations…"
+              oninput="onTherapistChange()"></textarea>
+          </div>
+          <div>
+            <label class="zf-field-label">Clinical Notes</label>
+            <textarea id="therapist-notes" class="zf-textarea" rows="3"
+              placeholder="Free-text notes — differential diagnosis, things you ruled out, plan for next sessions, anything to remember…"
+              oninput="onTherapistChange()"></textarea>
+          </div>
+          <p style="font-size:11px;color:#9CA3AF;margin:0;">Auto-saves as you type. This is your record — separate from the AI's diagnosis above.</p>
+        </div>
+      </div>
+
     </div>
 
     <!-- RIGHT COLUMN -->
@@ -185,6 +211,20 @@ const POINT_INFO = {
   'GV20': { name: 'Baihui', channel: 'Governing Vessel', location: 'On the midline of the head, at the intersection with the line connecting the ear apices', actions: 'Clears the mind, lifts the spirit, raises Yang Qi, benefits the brain' },
   'HT7':  { name: 'Shenmen', channel: 'Heart', location: 'At the wrist, on the radial side of the flexor carpi ulnaris tendon, in the depression at the proximal border of the pisiform bone', actions: 'Calms Shen, tonifies Heart Qi and Blood, treats insomnia and anxiety' },
   'KD3':  { name: 'Taixi', channel: 'Kidney', location: 'In the depression between the medial malleolus and the Achilles tendon', actions: 'Tonifies Kidney Yin and Yang, strengthens the lower back, benefits the brain' },
+  'GB20': { name: 'Fengchi', channel: 'Gallbladder', location: 'In the depression between the upper portion of sternocleidomastoid and the trapezius, level with GV16', actions: 'Expels Wind, clears the head and eyes, relieves headache, dispels exterior pathogens' },
+  'GB21': { name: 'Jianjing', channel: 'Gallbladder', location: 'On the highest point of the shoulder, midway between GV14 and the acromion', actions: 'Relaxes the sinews, descends rebellious Qi, relieves shoulder/neck tension (contraindicated in pregnancy)' },
+  'TE5':  { name: 'Waiguan', channel: 'Triple Energizer', location: '2 cun above the wrist crease on the dorsum of the forearm, between the radius and ulna', actions: 'Releases Exterior Wind-Heat, opens Yang Linking Vessel, relieves earache and migraines' },
+  'BL23': { name: 'Shenshu', channel: 'Bladder', location: '1.5 cun lateral to GV4, at the level of the lower border of the L2 spinous process', actions: 'Tonifies Kidney Qi/Yang, strengthens lumbar region, benefits the ears and bones' },
+  'BL40': { name: 'Weizhong', channel: 'Bladder', location: 'At the midpoint of the popliteal crease, between the tendons of biceps femoris and semitendinosus', actions: 'Activates the channel, relieves lower back pain and sciatica, clears summer heat' },
+  'CV6':  { name: 'Qihai', channel: 'Conception Vessel', location: '1.5 cun below the umbilicus, on the anterior midline', actions: 'Tonifies Original Qi, warms and strengthens Yang, regulates menstruation' },
+  'CV12': { name: 'Zhongwan', channel: 'Conception Vessel', location: '4 cun above the umbilicus, on the anterior midline (midway between CV8 and the xiphoid)', actions: 'Tonifies Spleen and Stomach, resolves Damp, descends rebellious Stomach Qi' },
+  'CV17': { name: 'Shanzhong', channel: 'Conception Vessel', location: 'On the anterior midline at the level of the 4th intercostal space, between the nipples', actions: 'Opens the chest, regulates Qi, descends rebellious Lung Qi, calms the Shen' },
+  'GV14': { name: 'Dazhui', channel: 'Governing Vessel', location: 'On the midline below the spinous process of C7', actions: 'Releases Exterior, clears Heat, regulates Yang of the whole body, supports immunity' },
+  'LU7':  { name: 'Lieque', channel: 'Lung', location: '1.5 cun above the wrist crease on the radial side, in the cleft above the styloid process', actions: 'Releases Exterior Wind, descends and disseminates Lung Qi, opens Conception Vessel' },
+  'LI11': { name: 'Quchi', channel: 'Large Intestine', location: 'At the lateral end of the cubital crease, midway between LU5 and the lateral epicondyle of the humerus', actions: 'Clears Heat, cools Blood, resolves Damp, regulates Qi and Blood, benefits the sinews' },
+  'SP9':  { name: 'Yinlingquan', channel: 'Spleen', location: 'In the depression on the lower border of the medial condyle of the tibia', actions: 'Resolves Dampness, regulates the Lower Burner, opens water passages, benefits the knees' },
+  'ST40': { name: 'Fenglong', channel: 'Stomach', location: '8 cun below ST35, two finger-widths lateral to the anterior crest of the tibia', actions: 'Resolves Phlegm and Damp, calms the Shen, opens the chest, clears Heat' },
+  'YIN':  { name: 'Yintang', channel: 'Extra Point', location: 'On the midline of the forehead, midway between the medial ends of the eyebrows', actions: 'Calms the Shen, brightens the eyes, relieves frontal headache, supports sleep' },
 };
 
 const defaultAdvice = [
@@ -216,13 +256,17 @@ async function autoSave() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tongue_observation: document.getElementById('tongue-input').value,
-        pulse_observation:  document.getElementById('pulse-input').value,
-        session_notes:      document.getElementById('session-notes').value,
-        used_points:        usedPoints,
+        tongue_observation:   document.getElementById('tongue-input').value,
+        pulse_observation:    document.getElementById('pulse-input').value,
+        session_notes:        document.getElementById('session-notes').value,
+        used_points:          usedPoints,
+        therapist_diagnosis:  document.getElementById('therapist-diagnosis')?.value || '',
+        therapist_notes:      document.getElementById('therapist-notes')?.value || '',
       }),
     });
     document.getElementById('notes-status').textContent = 'Auto-saved ✓';
+    const tdStatus = document.getElementById('td-status');
+    if (tdStatus) tdStatus.textContent = 'Saved ✓';
   } catch (e) {
     document.getElementById('notes-status').textContent = 'Save failed';
     console.error('autoSave error:', e);
@@ -294,6 +338,10 @@ async function loadTreatment() {
       if (notes.tongue_observation) document.getElementById('tongue-input').value = notes.tongue_observation;
       if (notes.pulse_observation)  document.getElementById('pulse-input').value  = notes.pulse_observation;
       if (notes.session_notes)      document.getElementById('session-notes').value = notes.session_notes;
+      const tdEl = document.getElementById('therapist-diagnosis');
+      const tnEl = document.getElementById('therapist-notes');
+      if (tdEl && notes.therapist_diagnosis) tdEl.value = notes.therapist_diagnosis;
+      if (tnEl && notes.therapist_notes)     tnEl.value = notes.therapist_notes;
       if (Array.isArray(notes.used_points) && notes.used_points.length > 0) {
         usedPoints = notes.used_points;
         renderPoints();
@@ -311,6 +359,15 @@ async function loadTreatment() {
     }
     renderAdvice();
 
+    // Auto-fill AI-suggested points if intake is done but the AI hasn't been
+    // queried yet (legacy sessions, or the model couldn't answer at booking time).
+    const hasIntake = data.summary || (data.intake_history && data.intake_history.length > 0);
+    const noPoints  = !notes || !Array.isArray(notes.ai_suggested_points) || notes.ai_suggested_points.length === 0;
+    if (hasIntake && noPoints) {
+      // Fire-and-forget — UI stays responsive; rediagnose handler updates the cards itself
+      triggerRediagnosis();
+    }
+
   } catch(e) {
     console.error('Treatment load error:', e);
     document.getElementById('pt-name').textContent = 'Error loading session';
@@ -325,6 +382,13 @@ function _certaintyColor(pct) {
   return '#DC2626';
 }
 
+function _certaintyLabel(pct) {
+  if (pct >= 80) return 'High confidence';
+  if (pct >= 60) return 'Likely';
+  if (pct >= 40) return 'Tentative';
+  return 'Low confidence — gather more data';
+}
+
 function renderDiagnosisBlock(notes, rawSummary) {
   const body = document.getElementById('summary-body');
   const tcmPattern    = notes && notes.tcm_pattern;
@@ -333,34 +397,46 @@ function renderDiagnosisBlock(notes, rawSummary) {
 
   let html = '';
 
-  // TCM Pattern card
+  // TCM Pattern card — primary diagnosis presentation with gradient header
   if (tcmPattern) {
-    html += `<div style="background:#CCFBF1;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:0.7px;margin-bottom:4px;">TCM Pattern</div>
-      <div style="font-size:15px;font-weight:700;color:#111827;">${tcmPattern}</div>
-      ${treatPrincip ? `<div style="font-size:12px;color:#065F46;margin-top:5px;line-height:1.5;">${treatPrincip}</div>` : ''}
+    html += `<div style="background:linear-gradient(135deg,#CCFBF1 0%,#ECFDF5 100%);border-radius:12px;padding:14px 16px;margin-bottom:12px;border:1px solid #A7F3D0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:0.8px;">Primary TCM Pattern</div>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:#111827;line-height:1.35;">${tcmPattern}</div>
+      ${treatPrincip ? `<div style="font-size:12px;color:#065F46;margin-top:8px;line-height:1.55;border-top:1px dashed #A7F3D0;padding-top:8px;">
+        <span style="font-weight:600;">Treatment principles:</span> ${treatPrincip}
+      </div>` : ''}
     </div>`;
   }
 
-  // Diagnosis certainty progress bar
+  // Diagnosis certainty — gradient bar with descriptive label
   if (certainty !== null && certainty > 0) {
     const col = _certaintyColor(certainty);
-    html += `<div style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Diagnosis Certainty</span>
-        <span style="font-size:14px;font-weight:700;color:${col};">${certainty}%</span>
+    const label = _certaintyLabel(certainty);
+    html += `<div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px;">
+        <div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:#6B7280;letter-spacing:0.5px;">AI Diagnostic Confidence</div>
+          <div style="font-size:11px;color:${col};font-weight:600;margin-top:2px;">${label}</div>
+        </div>
+        <span style="font-size:18px;font-weight:700;color:${col};">${certainty}%</span>
       </div>
-      <div style="background:#F3F4F6;border-radius:999px;height:8px;overflow:hidden;">
-        <div style="height:100%;border-radius:999px;background:${col};width:${certainty}%;transition:width 0.7s ease;"></div>
+      <div style="background:#F3F4F6;border-radius:999px;height:9px;overflow:hidden;position:relative;">
+        <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,${col} 0%,${col}DD 100%);width:${certainty}%;transition:width 0.7s ease;box-shadow:0 0 6px ${col}66;"></div>
       </div>
     </div>`;
   }
 
-  // Raw clinical summary (from intake)
+  // Raw clinical summary (from intake) — cleaner type and divider
   if (rawSummary) {
-    html += `<div style="border-top:1px solid #F3F4F6;padding-top:10px;margin-top:2px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.7px;margin-bottom:6px;">Intake Summary</div>
-      <p style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;">${rawSummary}</p>
+    html += `<div style="border-top:1px solid #E5E7EB;padding-top:12px;margin-top:4px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#6B7280;letter-spacing:0.7px;">Intake Summary</div>
+      </div>
+      <p style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;margin:0;">${rawSummary}</p>
     </div>`;
   }
 
@@ -393,9 +469,10 @@ function renderSuggestedPoints(notes, rawSummary) {
 // ── Dynamic re-diagnosis (Tongue & Pulse Enter) ───────────────────────────────
 
 async function triggerRediagnosis() {
+  // Always run, even with empty tongue/pulse — the AI re-evaluates the full
+  // intake transcript every time and populates the suggested points.
   const tongue = document.getElementById('tongue-input').value.trim();
   const pulse  = document.getElementById('pulse-input').value.trim();
-  if (!tongue && !pulse) return;
 
   const btn = document.getElementById('rediag-btn');
   btn.disabled = true;
@@ -482,36 +559,117 @@ function toggleAdvice(id) {
   if (item) { item.enabled = !item.enabled; renderAdvice(); }
 }
 
-async function sendAdvice() {
+async function sendAdvice(emailOverride) {
   const enabled = advice.filter(a => a.enabled);
   if (enabled.length === 0) { alert('No advice selected.'); return; }
 
   const btn = document.getElementById('send-advice-btn');
+  const originalText = 'Send Approved Advice via Telegram';
   btn.disabled = true;
-  btn.textContent = 'Sending…';
+  btn.textContent = emailOverride ? 'Sending email…' : 'Sending…';
 
   try {
     const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/send-recommendations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: enabled, schedule_hours: 2 }),
+      body: JSON.stringify({ items: enabled, schedule_hours: 2, email: emailOverride || null }),
     });
     const result = await r.json();
+
+    // 422 = manual patient with phone but no Telegram — server asks the UI
+    // to collect an email and try again.
+    if (r.status === 422 && result.status === 'needs_email') {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      openEmailFallback(result.phone || '', result.detail || '', result.patient_name || '');
+      return;
+    }
+
     if (!r.ok) throw new Error(result.detail || 'Send failed');
 
-    btn.textContent = 'Sent! ✓';
+    const channel = result.sent_via === 'email' ? 'email' : 'Telegram';
+    btn.textContent = `Sent via ${channel} ✓`;
     btn.style.background = '#16A34A';
-    // Show success feedback for 3s then reset
     setTimeout(() => {
       btn.disabled = false;
-      btn.textContent = 'Send Approved Advice via Telegram';
+      btn.textContent = originalText;
       btn.style.background = '';
     }, 3000);
   } catch (e) {
     console.error('sendAdvice error:', e);
     alert('Could not send recommendations: ' + e.message);
     btn.disabled = false;
-    btn.textContent = 'Send Approved Advice via Telegram';
+    btn.textContent = originalText;
+  }
+}
+
+// ── Email fallback popup ─────────────────────────────────────────────────────
+
+function openEmailFallback(phone, message, patientName) {
+  closeEmailFallback();
+  const overlay = document.createElement('div');
+  overlay.id = 'zf-email-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.onclick = (e) => { if (e.target === overlay) closeEmailFallback(); };
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:460px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:34px;height:34px;background:#FEE2E2;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#DC2626;flex-shrink:0;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h3 style="font-size:16px;font-weight:700;color:#111827;">No Telegram account found</h3>
+      </div>
+      <p style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:16px;">${message || `No Telegram account is linked to ${phone}.`}</p>
+      <label class="zf-field-label">Patient email</label>
+      <input id="zf-email-input" type="email" class="zf-input" placeholder="patient@example.com" />
+      <div id="zf-email-error" style="display:none;color:#DC2626;font-size:12px;margin-top:8px;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+        <button class="zf-btn zf-btn-outline" onclick="closeEmailFallback()" style="padding:9px 16px;">Cancel</button>
+        <button id="zf-email-send" class="zf-btn zf-btn-primary" onclick="submitEmailFallback()" style="padding:9px 18px;">Send by Email</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('zf-email-input')?.focus(), 50);
+}
+
+function closeEmailFallback() {
+  document.getElementById('zf-email-overlay')?.remove();
+}
+
+async function submitEmailFallback() {
+  const input = document.getElementById('zf-email-input');
+  const errBox = document.getElementById('zf-email-error');
+  const email = (input?.value || '').trim();
+  errBox.style.display = 'none';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errBox.textContent = 'Please enter a valid email address.';
+    errBox.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('zf-email-send');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/send-recommendations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: advice.filter(a => a.enabled), schedule_hours: 2, email }),
+    });
+    const result = await r.json();
+    if (!r.ok) throw new Error(result.detail || 'Email send failed');
+    closeEmailFallback();
+    const sendBtn = document.getElementById('send-advice-btn');
+    sendBtn.textContent = 'Sent via email ✓';
+    sendBtn.style.background = '#16A34A';
+    setTimeout(() => {
+      sendBtn.textContent = 'Send Approved Advice via Telegram';
+      sendBtn.style.background = '';
+    }, 3000);
+  } catch (e) {
+    errBox.textContent = e.message || String(e);
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Send by Email';
   }
 }
 
@@ -618,6 +776,12 @@ function onNotesChange() {
   scheduleAutoSave();
 }
 
+function onTherapistChange() {
+  const tdStatus = document.getElementById('td-status');
+  if (tdStatus) tdStatus.textContent = 'Unsaved…';
+  scheduleAutoSave();
+}
+
 // ── Complete Session ───────────────────────────────────────────────────────────
 
 async function completeSession() {
@@ -636,10 +800,12 @@ async function completeSession() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tongue_observation: document.getElementById('tongue-input').value,
-        pulse_observation:  document.getElementById('pulse-input').value,
-        session_notes:      document.getElementById('session-notes').value,
-        used_points:        usedPoints,
+        tongue_observation:  document.getElementById('tongue-input').value,
+        pulse_observation:   document.getElementById('pulse-input').value,
+        session_notes:       document.getElementById('session-notes').value,
+        used_points:         usedPoints,
+        therapist_diagnosis: document.getElementById('therapist-diagnosis')?.value || '',
+        therapist_notes:     document.getElementById('therapist-notes')?.value || '',
       }),
     });
     const result = await r.json();

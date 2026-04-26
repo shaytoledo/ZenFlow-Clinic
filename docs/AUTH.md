@@ -280,6 +280,14 @@ def _generate_code() -> str:
 
 ## Google OAuth Configuration
 
+### Why Google credentials are in `.env`
+
+The clinic application **acts as an OAuth client** to Google. To call Google APIs (Calendar, Userinfo) on behalf of a therapist, the app must identify itself with a `client_id` + `client_secret` pair issued by Google Cloud Console. These are the *application's* credentials — not any one therapist's — and they let the app trade an authorisation `code` (returned to the redirect URI) for an access + refresh token belonging to the user who just signed in.
+
+Per-therapist tokens (the actual permission to read that therapist's calendar) are NOT in `.env`. They are stored in `data/google_tokens/{id}.json`, created on first OAuth callback, and deleted on `/auth/disconnect`.
+
+If `.env` is shared with anyone outside the clinic, rotate the secret in Google Cloud Console → Credentials → click the OAuth client → "Reset secret".
+
 Required `.env` variables:
 ```
 GOOGLE_CLIENT_ID=<from Google Cloud Console>
