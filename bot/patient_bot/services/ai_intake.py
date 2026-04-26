@@ -55,31 +55,38 @@ Be concise and factual. Do not add new information.\
 """
 
 TCM_DIAGNOSIS_PROMPT = """\
-Based on the intake conversation and clinical summary above, provide a structured TCM clinical assessment.
-Return ONLY valid JSON with these exact keys:
-- tcm_pattern (string: primary TCM pattern/syndrome)
-- treatment_principles (string)
-- diagnosis_certainty (integer 0-100: your confidence in this diagnosis given the available information)
-- suggested_points (list of 4-8 objects, each with "code" and "rationale" keys explaining why this point for this patient)
-- recommendations (object with string values for keys: diet, sleep, exercise, stress)
+You are a senior TCM acupuncturist preparing the treatment plan for a single specific patient.
+Use the ENTIRE intake transcript, clinical summary, and (if provided) the therapist's tongue & pulse
+findings to produce a focused, individualised assessment. Do not repeat textbook generalities — every
+field must reference SPECIFIC details the patient mentioned (sleep pattern, stress source, pain
+location, menstrual cycle, digestion, etc.).
 
-Example format:
+Return ONLY valid JSON (no prose, no code fences) with these exact keys:
+- tcm_pattern               primary syndrome in standard TCM terminology (e.g. "Liver Qi Stagnation transforming to Heat with underlying Spleen Qi Deficiency")
+- treatment_principles      clinical strategy in 1-2 sentences (e.g. "Soothe the Liver, drain Heat, tonify the Spleen, calm the Shen")
+- diagnosis_certainty       integer 0-100. Lower this when the intake is short, contradictory, or missing key TCM data (sleep, digestion, pulse, tongue). Raise it when tongue & pulse confirm the pattern.
+- suggested_points          list of 5-8 objects with keys "code" (standard channel notation, e.g. "LR3", "SP6", "GV20", "Yintang") and "rationale" (one sentence tying THIS point to THIS patient's presentation, not a generic textbook line). Prefer balanced point combinations: distal + local, Yuan-source + Luo-connecting, Back-Shu + Front-Mu when relevant. Note pregnancy or other contraindications inside the rationale if they apply.
+- recommendations           object with string values for the keys: "diet", "sleep", "exercise", "stress".
+                            Each field is 1-2 actionable sentences PERSONALISED to the diagnosis and to what the patient said in the intake (e.g. if they mentioned skipping breakfast, address it; if they sit at a desk, suggest movement breaks). Avoid generic "drink more water" advice.
+
+Example shape (do NOT copy values — generate fresh ones for THIS patient):
 {
   "tcm_pattern": "Liver Qi Stagnation with Blood Deficiency",
   "treatment_principles": "Move Liver Qi, nourish Blood, calm Shen",
   "diagnosis_certainty": 72,
   "suggested_points": [
-    {"code": "LR3", "rationale": "Primary point to move Liver Qi and descend Liver Yang"},
-    {"code": "SP6", "rationale": "Nourishes Blood and Yin, calms the Shen, regulates menstruation"},
-    {"code": "HT7", "rationale": "Directly calms the Shen and tonifies Heart Blood"},
-    {"code": "PC6", "rationale": "Opens the chest and relieves emotional tension"},
-    {"code": "ST36", "rationale": "Strengthens Qi and supports Blood production"}
+    {"code": "LR3", "rationale": "Primary point to move Liver Qi — addresses the patient's report of pre-menstrual irritability and right-side hypochondrial tension"},
+    {"code": "SP6", "rationale": "Nourishes Blood and Yin given the heavy menstruation and pale tongue body"},
+    {"code": "HT7", "rationale": "Calms Shen — patient reports racing thoughts at night"},
+    {"code": "PC6", "rationale": "Opens the chest, supports the chest tightness she described under stress"},
+    {"code": "ST36", "rationale": "Tonifies Spleen Qi to support Blood production"},
+    {"code": "Yintang", "rationale": "Calms the Shen and relieves the frontal heaviness she mentioned on waking"}
   ],
   "recommendations": {
-    "diet": "Favour warm, cooked foods with dark leafy greens and beets to nourish Blood.",
-    "sleep": "Establish a consistent sleep schedule; avoid screens 1 hour before bed.",
-    "exercise": "Gentle movement such as Tai Chi or walking — avoid intense exercise.",
-    "stress": "Daily 10-minute breathing or meditation practice to regulate Liver Qi."
+    "diet":  "Replace skipped breakfasts with a warm congee or oatmeal with goji berries; reduce raw salads and iced drinks which strain the already weak Spleen.",
+    "sleep": "Wind down 30 min before bed with no screens; aim for asleep by 23:00 to support Liver detoxification during the Liver/GB time (1-3 a.m.).",
+    "exercise": "Switch the daily 10 km run to 4 km of brisk walking + 20 min Qi Gong — intense cardio is depleting Blood right now.",
+    "stress": "Daily 10-min box breathing (4-4-4-4) before opening work email; journal the recurring stressor she named (project deadline) for 5 min before bed."
   }
 }
 Return ONLY the JSON with no additional text or markdown.\

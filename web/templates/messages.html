@@ -114,8 +114,9 @@ function renderRelayList(sessions) {
   el.innerHTML = sessions.map(s => {
     const pid = s.patient_id;
     const name = s.patient_name || `Patient ${pid}`;
+    const safeName = name.replace(/'/g, "\\'");
     const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-    return `<div class="zf-convo-item ${_selectedId === pid ? 'active' : ''}" onclick="openRelayConvo(${pid}, '${name}')">
+    return `<div class="zf-convo-item ${_selectedId === pid ? 'active' : ''}" onclick="openRelayConvo(${pid}, '${safeName}')" oncontextmenu="showChatContextMenu(event, ${pid}, '${safeName}'); return false;">
       <div class="zf-avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;">${initials}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:#111827;">${name}</div>
@@ -123,6 +124,60 @@ function renderRelayList(sessions) {
       </div>
     </div>`;
   }).join('');
+}
+
+// ── Right-click context menu ─────────────────────────────────────────────────
+
+function showChatContextMenu(ev, patientId, patientName) {
+  closeChatContextMenu();
+  const menu = document.createElement('div');
+  menu.id = 'zf-chat-ctx';
+  menu.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;min-width:180px;font-size:13px;';
+  menu.innerHTML = `
+    <button id="zf-ctx-delete" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;color:#DC2626;font-weight:500;padding:8px 12px;border-radius:6px;cursor:pointer;text-align:left;font-family:inherit;font-size:13px;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='none'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      Delete chat
+    </button>
+  `;
+  document.body.appendChild(menu);
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  const x = Math.min(ev.clientX, window.innerWidth - w - 8);
+  const y = Math.min(ev.clientY, window.innerHeight - h - 8);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+
+  document.getElementById('zf-ctx-delete').onclick = () => {
+    closeChatContextMenu();
+    deleteChat(patientId, patientName);
+  };
+
+  // Dismiss on next click anywhere or scroll
+  setTimeout(() => {
+    document.addEventListener('click', closeChatContextMenu, { once: true });
+    document.addEventListener('scroll', closeChatContextMenu, { once: true, capture: true });
+  }, 0);
+}
+
+function closeChatContextMenu() {
+  const m = document.getElementById('zf-chat-ctx');
+  if (m) m.remove();
+}
+
+async function deleteChat(patientId, patientName) {
+  if (!confirm(`Delete the chat with ${patientName}? This removes the conversation history and ends the active relay session. This cannot be undone.`)) return;
+  try {
+    const r = await fetch(`/api/messages/history/${patientId}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error('delete failed');
+    if (_selectedId === patientId) {
+      _selectedId = null;
+      document.getElementById('thread-body').innerHTML = '';
+      document.getElementById('thread-header').innerHTML = '<div style="font-size:13px;color:#9CA3AF;">Select a patient to view conversation</div>';
+      document.getElementById('thread-input').classList.add('hidden');
+    }
+    refreshMessages();
+  } catch (e) {
+    alert('Could not delete chat: ' + e.message);
+  }
 }
 
 async function openRelayConvo(patientId, patientName) {

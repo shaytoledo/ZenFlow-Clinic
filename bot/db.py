@@ -102,6 +102,14 @@ def init_db() -> None:
     _migrations = [
         "ALTER TABLE treatment_notes ADD COLUMN diagnosis_certainty INTEGER DEFAULT 0",
         "ALTER TABLE treatment_notes ADD COLUMN completed_at TEXT",
+        "ALTER TABLE treatment_notes ADD COLUMN followup_rating INTEGER",
+        "ALTER TABLE treatment_notes ADD COLUMN followup_sent_at TEXT",
+        # Therapist's own diagnosis area, distinct from the AI's tcm_pattern
+        "ALTER TABLE treatment_notes ADD COLUMN therapist_diagnosis TEXT",
+        "ALTER TABLE treatment_notes ADD COLUMN therapist_notes TEXT",
+        # Marks appointments created from the dashboard (no Telegram intake)
+        "ALTER TABLE appointments ADD COLUMN source TEXT DEFAULT 'telegram'",
+        "ALTER TABLE appointments ADD COLUMN patient_phone TEXT",
     ]
     for migration in _migrations:
         try:

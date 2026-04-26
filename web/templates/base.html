@@ -16,10 +16,10 @@
 
   <!-- Sidebar -->
   <aside class="zf-sidebar">
-    <div class="zf-sidebar-brand">
+    <a href="/" class="zf-sidebar-brand" style="text-decoration:none;color:inherit;">
       <span>🌿</span>
       <span class="zf-brand-text">ZenFlow AI</span>
-    </div>
+    </a>
 
     <nav class="zf-nav">
       <a href="/" class="zf-nav-item {% if active == 'dashboard' %}active{% endif %}">
@@ -73,9 +73,6 @@
           <span class="zf-user-name">{{ therapist.name if therapist else 'Guest' }}</span>
           <span class="zf-user-role">Acupuncturist · ZenFlow</span>
         </div>
-        <a href="/logout" title="Sign out" style="color:#9CA3AF;text-decoration:none;flex-shrink:0;display:flex;align-items:center;padding:4px;" onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='#9CA3AF'">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </a>
       </div>
     </div>
   </aside>

@@ -101,6 +101,11 @@ async def get_active_relay_conversations() -> list[dict]:
     """Return a list of active relay sessions from Redis.
 
     Each item: {"patient_id": int, "therapist_id": str, "messages": list}
+
+    Defensive: the active key MUST be a dict with `patient_id`. Anything else
+    (a stray scalar from a manual SET, a half-written entry, malformed JSON)
+    is treated as an orphan and deleted on sight so it stops surfacing as
+    "Patient undefined" in the UI.
     """
     try:
         from bot.redis_client import get_async_redis
@@ -109,10 +114,19 @@ async def get_active_relay_conversations() -> list[dict]:
         sessions = []
         for key in keys:
             raw = await r.get(key)
+            valid = False
             if raw:
                 try:
                     data = json.loads(raw)
-                    sessions.append(data)
+                    if isinstance(data, dict) and data.get("patient_id"):
+                        sessions.append(data)
+                        valid = True
+                except Exception:
+                    pass
+            if not valid:
+                try:
+                    await r.delete(key)
+                    logger.info(f"Cleaned orphan relay-active key: {key}")
                 except Exception:
                     pass
         return sessions
@@ -196,3 +210,28 @@ async def mark_conversation_read(patient_id: int) -> None:
         await r.set(f"zenflow:relay:lastseen:{patient_id}", str(time.time()), ex=86400)
     except Exception as e:
         logger.debug(f"mark_conversation_read error: {e}")
+
+
+async def delete_conversation(patient_id: int) -> int:
+    """Delete the relay chat for `patient_id` from Redis. Returns # of keys removed.
+
+    Removes:
+      - zenflow:relay:history:{pid}    — the chat log shown in the web UI
+      - zenflow:relay:lastseen:{pid}   — the unread-tracking marker
+      - zenflow:relay:active:{pid}     — the live session presence
+    The `zenflow:relay:msg:{msg_id}` routing keys are left to expire on their
+    own 24 h TTL — they are keyed by msg_id, not patient_id, so cannot be
+    enumerated cheaply.
+    """
+    keys = [
+        f"zenflow:relay:history:{patient_id}",
+        f"zenflow:relay:lastseen:{patient_id}",
+        f"zenflow:relay:active:{patient_id}",
+    ]
+    try:
+        from bot.redis_client import get_async_redis
+        r = get_async_redis()
+        return int(await r.delete(*keys))
+    except Exception as e:
+        logger.warning(f"delete_conversation({patient_id}) failed: {e}")
+        return 0

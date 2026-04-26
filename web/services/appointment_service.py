@@ -1,34 +1,23 @@
 """
 web/services/appointment_service.py
 ─────────────────────────────────────
-CRUD abstraction for appointments and intake_sessions tables.
+Domain logic for appointments. SQL access goes through repositories.
 """
 import asyncio
 import json
 import logging
 from datetime import date
 
+from web.repositories import appointment_repo
+
 logger = logging.getLogger(__name__)
-
-
-def _parse_row(row) -> dict:
-    d = dict(row)
-    hj = d.pop("history_json", None)
-    d["intake_history"] = json.loads(hj) if hj else []
-    return d
 
 
 # ── Read operations ────────────────────────────────────────────────────────────
 
 def list_all() -> list[dict]:
     """Load all appointments with intake history from SQLite."""
-    from bot.db import get_db
-    rows = get_db().execute(
-        """SELECT a.*, i.history_json
-           FROM appointments a
-           LEFT JOIN intake_sessions i ON i.appointment_id = a.id"""
-    ).fetchall()
-    return [_parse_row(r) for r in rows]
+    return appointment_repo.list_all()
 
 
 async def list_all_cached() -> list[dict]:
@@ -56,30 +45,11 @@ def list_today() -> list[dict]:
 
 def get_by_patient_date_time(patient_id: int, apt_date: str, apt_time: str) -> dict | None:
     """Fetch a specific appointment record (time accepts HH:MM or HH-MM)."""
-    time_str = apt_time.replace("-", ":")
-    from bot.db import get_db
-    row = get_db().execute(
-        """SELECT a.*, i.history_json
-           FROM appointments a
-           LEFT JOIN intake_sessions i ON i.appointment_id = a.id
-           WHERE a.patient_id=? AND a.date=? AND a.time=?
-           ORDER BY a.created_at DESC LIMIT 1""",
-        (patient_id, apt_date, time_str),
-    ).fetchone()
-    return _parse_row(row) if row else None
+    return appointment_repo.get_by_patient_date_time(patient_id, apt_date, apt_time)
 
 
 def list_by_patient(patient_id: int) -> list[dict]:
-    from bot.db import get_db
-    rows = get_db().execute(
-        """SELECT a.*, i.history_json
-           FROM appointments a
-           LEFT JOIN intake_sessions i ON i.appointment_id = a.id
-           WHERE a.patient_id=?
-           ORDER BY a.date, a.time""",
-        (patient_id,),
-    ).fetchall()
-    return [_parse_row(r) for r in rows]
+    return appointment_repo.list_by_patient(patient_id)
 
 
 def aggregate_patients(appointments: list[dict]) -> list[dict]:

@@ -54,12 +54,16 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | `zenflow:intake:{patient_id}:{therapist_id}` | AI intake conversation history (LangChain list) | 1800 s | `ai_intake.py` | Explicit `clear_intake()` after booking, or TTL on abandon |
 | `zenflow:relay:msg:{msg_id}` | `{patient_id, therapist_id}` routing for a forwarded message | 86400 s | `patient_bot/services/relay.py` | TTL only |
 | `zenflow:relay:active:{patient_id}` | Active relay session presence | **None** | `patient_bot/services/relay.py` | Explicit `end_relay()` only — **no TTL** |
-| `zenflow:relay:history:{patient_id}` | Full relay chat log for web messages page | 1800 s | Relay service | TTL only |
+| `zenflow:relay:history:{patient_id}` | Full relay chat log for web messages page | 86400 s | `web/services/telegram_service.py` (`append_relay_message`) | TTL only |
+| `zenflow:relay:lastseen:{patient_id}` | Therapist's last-seen timestamp for a conversation (drives unread badge) | 86400 s | `web/services/telegram_service.py` (`mark_conversation_read`) | TTL only — refreshed every read |
+| `zenflow:followup:sent:{appointment_id}` | Idempotency lock — 24h follow-up was sent for this appointment | 7 d | `bot/services/followup_scheduler.py` | TTL only |
+| `zenflow:followup:awaiting:{patient_id}` | Patient `pid` has an outstanding follow-up; next 1–5 reply is captured as the rating. Value = appointment_id | 24 h | `bot/services/followup_scheduler.py` (set on send, deleted on reply) | TTL only or explicit delete |
 | `zenflow:slots:{date}` | Booked time slots for a date (`["09:00", "11:00"]`) | 300 s | `availability.py` | `book_slot()` / `restore_slot()` / TTL |
 | `zenflow:avail:days:{tid}:{week}` | Available days list for a therapist + week | 600 s | `availability.py` | `book_slot()` pattern scan / TTL |
 | `zenflow:avail:hours:{tid}:{date}` | Available hours for a therapist + date | 600 s | `availability.py` | `book_slot()` / TTL |
 | `zenflow:apts:all` | Full appointments table dump (web dashboard) | 30 s | `web/services/appointment_service.py` | `save_appointment()` / `cancel_appointment()` / TTL |
-| `zenflow:gcal:events:{tid}:{start}:{end}` | FullCalendar event list from Google Calendar | 600 s | `web/routers/api/availability.py GET /api/events` | Calendar disconnect / logout / TTL |
+| `zenflow:gcal:rolling14d:{tid}` | Rolling 14-day Google Calendar events blob — serves any sub-window FullCalendar requests inside [today, today+14d] without a fresh API call | 600 s | `web/services/cache_service.py prefetch_calendar`, `set_events_cached` | Login (warm) / slot create+delete (purge+rewarm) / logout / disconnect / TTL |
+| `zenflow:gcal:events:{tid}:{start}:{end}` | Legacy per-range cache used only when the requested range is outside the rolling 14-day window | 600 s | `set_events_cached` fallback path | Slot create+delete / logout / TTL |
 | `zenflow:reg:{CODE}` | Therapist registration activation code | 600 s | `web/routers/auth.py POST /register/signup` | Successful bot or web activation / TTL |
 
 ### What lives in the filesystem (semi-permanent)
@@ -81,11 +85,15 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | `zenflow:slots:{date}` | **5 min** | Booked slots change infrequently. Explicit invalidation on booking means no stale double-booking risk. TTL is a safety net only |
 | `zenflow:avail:days:{tid}:{week}` | **10 min** | Availability changes are therapist-driven (rare). 10 min stale window is acceptable; explicit invalidation on booking keeps it accurate |
 | `zenflow:avail:hours:{tid}:{date}` | **10 min** | Same reasoning as days cache |
-| `zenflow:gcal:events:{tid}:{...}` | **10 min** | Google Calendar API calls are slow (300–800 ms). 10 min cache eliminates most round-trips. Therapist can force refresh by reconnecting |
+| `zenflow:gcal:rolling14d:{tid}` | **10 min** | Single blob covering the whole [today, today+14d] window. One Google Calendar fetch (300–800 ms) serves every FullCalendar sub-range request for the next 10 minutes. Pre-warmed at login → schedule page is instant on first open |
+| `zenflow:gcal:events:{tid}:{...}` | **10 min** | Legacy per-range fallback for windows outside the rolling 14-day cache (e.g. browsing 3 weeks ahead) |
 | `zenflow:intake:{pid}:{tid}` | **30 min** | Intake sessions last ~5 min. 30 min covers slow patients and network delays. Abandoned sessions auto-clean |
 | `zenflow:relay:msg:{msg_id}` | **24 h** | Therapist may reply hours after receiving the forwarded message. 24 h covers any realistic reply window |
 | `zenflow:relay:active:{pid}` | **None** | Must survive indefinitely until the session is explicitly ended. No TTL by design |
-| `zenflow:relay:history:{pid}` | **30 min** | Chat history for the web messages page. Mirrors intake TTL. Relay sessions rarely exceed 30 min |
+| `zenflow:relay:history:{pid}` | **24 h** | Chat history shown on the web messages page. 24 h covers a full clinic working day |
+| `zenflow:relay:lastseen:{pid}` | **24 h** | Therapist last-seen timestamp; refreshed every time the conversation is opened or a reply is sent |
+| `zenflow:followup:sent:{apt_id}` | **7 d** | Idempotency lock so the 24h follow-up scheduler never sends twice for one appointment |
+| `zenflow:followup:awaiting:{pid}` | **24 h** | Patient has 24 h to reply with a 1–5 rating; after that the prompt expires silently and the start handler stops intercepting numbers |
 | `zenflow:reg:{CODE}` | **10 min** | Activation codes must be short-lived for security. Therapist must complete bot activation promptly |
 
 ### Memory eviction (LRU)

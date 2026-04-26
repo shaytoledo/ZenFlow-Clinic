@@ -109,6 +109,22 @@ async def _ensure_ollama(app: Application) -> None:
             logger.error(f"Could not start Ollama: {e2}")
 
 
+async def _post_init(app: Application) -> None:
+    """Run on startup before the updater begins polling.
+
+    Order matters: Ollama first (existing behaviour) so handlers don't race on a
+    cold model, then the 24h follow-up scheduler as a long-lived background task.
+    """
+    await _ensure_ollama(app)
+    try:
+        from bot.services.followup_scheduler import start_followup_scheduler
+        # Stash the task on the app so it shares the application's lifecycle —
+        # the asyncio event loop tears it down when the app stops.
+        app.bot_data["_followup_task"] = start_followup_scheduler()
+    except Exception as e:
+        logger.error(f"Could not start follow-up scheduler: {e}")
+
+
 # ── app builder ───────────────────────────────────────────────────────────────
 
 def build_patient_app() -> Application:
@@ -117,7 +133,7 @@ def build_patient_app() -> Application:
         .token(TELEGRAM_TOKEN)
         .connect_timeout(30.0)
         .read_timeout(30.0)
-        .post_init(_ensure_ollama)
+        .post_init(_post_init)
         .build()
     )
 

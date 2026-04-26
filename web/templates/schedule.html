@@ -24,6 +24,27 @@
   <span class="dot-available"></span>
   <span>Drag to add a slot · Click event to view details</span>
 </div>
+<button id="cal-refresh-btn" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 12px;margin-left:10px;" title="Re-pull the next 14 days from Google Calendar" onclick="refreshCalendar(this)">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+  Update Calendar
+</button>
+<script>
+async function refreshCalendar(btn) {
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Updating…';
+  try {
+    const r = await fetch('/api/calendars/refresh', { method: 'POST' });
+    if (!r.ok) throw new Error('update failed');
+    if (window.mainCal) window.mainCal.refetchEvents();
+    btn.innerHTML = '✓ Updated';
+    setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 1500);
+  } catch (e) {
+    btn.innerHTML = '⚠ Failed';
+    setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2000);
+  }
+}
+</script>
 {% endblock %}
 
 {% block content %}

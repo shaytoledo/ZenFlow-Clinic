@@ -46,6 +46,18 @@ async def change_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point — welcome message, then ask which therapist (if >1 active)."""
     user = update.effective_user
+
+    # If the patient has an outstanding 24h follow-up, intercept a numeric reply
+    # as a rating (1–5) before falling through to the normal menu.
+    if update.message and update.message.text:
+        from bot.services.followup_scheduler import consume_followup_rating
+        if await consume_followup_rating(user.id, update.message.text):
+            await update.message.reply_text(
+                "Thank you for the feedback! 🙏 Your therapist will see your update.",
+                reply_markup=get_main_keyboard(),
+            )
+            return SELECTING
+
     active = [t for t in THERAPISTS if t.get("active")]
 
     # Therapist already chosen this session → go straight to menu
