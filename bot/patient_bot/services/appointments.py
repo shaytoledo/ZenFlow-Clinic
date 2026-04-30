@@ -53,6 +53,20 @@ def save_appointment(
     return appointment_id
 
 
+def update_appointment_summary(appointment_id: int, summary: str, history: list[dict]) -> None:
+    """Update the summary and intake history after background AI processing completes."""
+    from bot.db import get_db
+    conn = get_db()
+    conn.execute(
+        "UPDATE appointments SET summary=? WHERE id=?",
+        (summary, appointment_id),
+    )
+    conn.execute(
+        "UPDATE intake_sessions SET history_json=? WHERE appointment_id=?",
+        (json.dumps(history, ensure_ascii=False), appointment_id),
+    )
+
+
 def get_patient_appointments(patient_id: int) -> list[dict]:
     """Return all active appointments for a patient, sorted by date/time."""
     from bot.db import get_db

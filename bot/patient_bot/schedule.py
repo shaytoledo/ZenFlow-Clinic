@@ -8,13 +8,18 @@ from telegram.ext import ContextTypes
 from bot.config import THERAPISTS
 from bot.patient_bot.services.ai_intake import (
     clear_intake,
+    generate_diagnosis_only,
     generate_summary,
-    generate_tcm_diagnosis,
     get_history_dicts,
     get_next_question,
     initialize_intake,
+    select_points_for_diagnosis,
+    SYSTEM_PROMPT,
+    TCM_DIAGNOSIS_PROMPT,
 )
-from bot.patient_bot.services.appointments import save_appointment, save_treatment_notes
+from bot.patient_bot.services.appointments import (
+    save_appointment, save_treatment_notes, update_appointment_summary,
+)
 from bot.patient_bot.services.availability import book_slot, get_available_days, get_available_hours
 from bot.states import (
     INTAKE, INTAKE_CONFIRM, SCHEDULE_DAY, SCHEDULE_HOUR, SCHEDULE_WEEK,
@@ -268,18 +273,123 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 # ── background helpers ────────────────────────────────────────────────────────
 
-async def _tcm_and_clear(appointment_id: int, user_id: int, summary: str) -> None:
-    """Generate TCM diagnosis and save it, then clear intake history.
+async def _summary_and_tcm(
+    appointment_id: int,
+    user_id: int,
+    final_answer: str,
+) -> None:
+    """Three-stage background pipeline — each stage writes to the DB immediately
+    so the treatment dashboard can reflect progress as it arrives.
 
-    Runs as a background asyncio task so the patient gets their booking
-    confirmation without waiting for the second Ollama call.
+    Stage 0 — Clinical summary: update appointment text + intake session record.
+    Stage 1 — TCM diagnosis:    save pattern/principles/certainty/recommendations.
+    Stage 2 — Point selection:  save ai_suggested_points (6–15 points).
+
+    The patient confirmation message is already sent before this task starts.
     """
+    from langchain_core.messages import HumanMessage, SystemMessage
+
     try:
-        tcm = await generate_tcm_diagnosis(user_id, summary)
-        save_treatment_notes(appointment_id, user_id, tcm)
-        logger.info(f"[{user_id}] TCM diagnosis saved (background)")
+        # ── Stage 0: clinical summary ──────────────────────────────────────────
+        summary = await generate_summary(user_id, final_answer)
+        history = get_history_dicts(user_id)
+        update_appointment_summary(appointment_id, summary, history)
+        logger.info(f"[{user_id}] Stage 0 done — summary saved")
+
+        # Build LangChain context for the diagnosis call
+        from bot.patient_bot.services.ai_intake import _get_history, _rolling_summaries
+        hist = _get_history(user_id)
+        rolling = _rolling_summaries.get(user_id)
+
+        context_parts = [SystemMessage(content=SYSTEM_PROMPT)]
+        if rolling:
+            context_parts.append(SystemMessage(content=f"[Earlier conversation summary: {rolling}]"))
+        context_parts.extend(hist.messages)
+        context_parts.append(HumanMessage(content=f"Clinical summary:\n{summary}\n\n{TCM_DIAGNOSIS_PROMPT}"))
+
+        # Build plain-text intake context string for the point selection call
+        intake_lines = []
+        if rolling:
+            intake_lines.append(f"[Conversation summary: {rolling}]")
+        for m in hist.messages:
+            from langchain_core.messages import HumanMessage as HM, AIMessage as AM
+            if isinstance(m, HM):
+                intake_lines.append(f"Patient: {m.content}")
+            elif isinstance(m, AM):
+                intake_lines.append(f"Assistant: {m.content}")
+        intake_context = "\n".join(intake_lines) or summary
+
+        # ── Stage 1: TCM diagnosis (no points) ────────────────────────────────
+        from web.repositories.treatment_repo import set_points_status as _set_status_early
+        import asyncio as _asyncio_early
+        await _asyncio_early.to_thread(_set_status_early, appointment_id, "GENERATING_STAGE_1")
+        diagnosis = await generate_diagnosis_only(context_parts, intake_context, log_tag=str(user_id))
+        save_treatment_notes(appointment_id, user_id, diagnosis)
+        logger.info(f"[{user_id}] Stage 1 done — diagnosis saved: {diagnosis['tcm_pattern']}")
+
+        # ── Stage 2A: first batch of 5-7 acupuncture points ──────────────────
+        if diagnosis["tcm_pattern"]:
+            from web.repositories.treatment_repo import (
+                append_points as _append_points,
+                set_points_status as _set_status,
+            )
+            import asyncio as _asyncio
+
+            await _asyncio.to_thread(_set_status, appointment_id, "GENERATING_STAGE_2A")
+            logger.info(f"[{user_id}] Stage 2A start — selecting first batch for: {diagnosis['tcm_pattern']}")
+
+            batch_a = await select_points_for_diagnosis(
+                tcm_pattern=diagnosis["tcm_pattern"],
+                treatment_principles=diagnosis["treatment_principles"],
+                intake_context=intake_context,
+                log_tag=str(user_id),
+                batch_number=1,
+            )
+
+            if batch_a:
+                await _asyncio.to_thread(_append_points, appointment_id, batch_a)
+                logger.info(f"[{user_id}] Stage 2A done — {len(batch_a)} points saved")
+            else:
+                logger.error(f"[{user_id}] Stage 2A FAILED — no points returned. Pattern: {diagnosis['tcm_pattern']!r}")
+
+            # ── Stage 2B: second batch of 5-7 complementary points ────────────
+            await _asyncio.to_thread(_set_status, appointment_id, "GENERATING_STAGE_2B")
+            existing_codes = [p["code"] for p in batch_a if isinstance(p, dict) and p.get("code")]
+            logger.info(f"[{user_id}] Stage 2B start — selecting complementary batch (avoiding {existing_codes})")
+
+            batch_b = await select_points_for_diagnosis(
+                tcm_pattern=diagnosis["tcm_pattern"],
+                treatment_principles=diagnosis["treatment_principles"],
+                intake_context=intake_context,
+                log_tag=str(user_id),
+                batch_number=2,
+                existing_codes=existing_codes,
+            )
+
+            if batch_b:
+                await _asyncio.to_thread(_append_points, appointment_id, batch_b)
+                logger.info(f"[{user_id}] Stage 2B done — {len(batch_b)} additional points saved")
+            else:
+                logger.warning(f"[{user_id}] Stage 2B returned no points — formula remains at batch A only")
+
+            total = len(batch_a) + len(batch_b)
+            final_status = "COMPLETED" if total > 0 else "FAILED"
+            await _asyncio.to_thread(_set_status, appointment_id, final_status)
+            logger.info(f"[{user_id}] Stage 2 {final_status} — {total} points total committed to DB")
+        else:
+            logger.warning(f"[{user_id}] Stage 2 skipped — no tcm_pattern from Stage 1")
+            from web.repositories.treatment_repo import set_points_status as _set_fail
+            import asyncio as _asyncio_fail
+            await _asyncio_fail.to_thread(_set_fail, appointment_id, "FAILED")
+
     except Exception as e:
-        logger.warning(f"[{user_id}] TCM diagnosis background error: {e}")
+        logger.warning(f"[{user_id}] Background pipeline error: {e}")
+        try:
+            from web.repositories.treatment_repo import set_points_status as _set_fail
+            import asyncio as _asyncio_fail
+            await _asyncio_fail.to_thread(_set_fail, appointment_id, "FAILED")
+        except Exception:
+            pass
     finally:
         clear_intake(user_id)
 
@@ -294,52 +404,44 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
     logger.info(f"[{user_id}] intake answer {intake_count}/5")
 
     if intake_count >= 5:
-        await update.message.reply_text("Thank you! Saving your details... ⏳")
-
-        summary = await generate_summary(user_id, user_answer)
-        history = get_history_dicts(user_id)
-
         user = update.effective_user
         day = date.fromisoformat(context.user_data["selected_day"])
         time_slot = context.user_data["selected_time"]
-
         selected_therapist = context.user_data.get("selected_therapist")
-        gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name, summary,
-                                   therapist_id=selected_therapist)
+        patient_name = user.full_name or user.first_name
+
+        # Book the slot and save appointment immediately with a placeholder summary.
+        # AI summary + TCM diagnosis run in the background so the patient never waits.
+        gcal_id = await book_slot(
+            day, time_slot, patient_name,
+            "Intake in progress — AI summary pending.",
+            therapist_id=selected_therapist,
+        )
         appointment_id = save_appointment(
             patient_id=user_id,
-            patient_name=user.full_name or user.first_name,
+            patient_name=patient_name,
             day=day,
             time_slot=time_slot,
-            intake_history=history,
-            summary=summary,
+            intake_history=[],           # updated by background task once summary is ready
+            summary="",
             gcal_apt_event_id=gcal_id,
             therapist_id=selected_therapist or "",
         )
+        save_treatment_notes(appointment_id, user_id, {})
 
-        # Fire TCM diagnosis in the background — user gets confirmation immediately
-        # clear_intake is handled by the background task after diagnosis completes
-        asyncio.ensure_future(_tcm_and_clear(appointment_id, user_id, summary))
+        # Background: generate summary → update appointment → TCM diagnosis + points
+        asyncio.ensure_future(_summary_and_tcm(appointment_id, user_id, user_answer))
 
         context.user_data.clear()
         if selected_therapist:
             context.user_data["selected_therapist"] = selected_therapist
 
-        # Build a compact summary snippet (first 3 non-empty lines)
-        summary_lines = [line.strip() for line in summary.splitlines() if line.strip()]
-        summary_snippet = "\n".join(summary_lines[:3])
-        if len(summary_lines) > 3:
-            summary_snippet += "\n..."
-        # Strip any Markdown that could break the outer message formatting
-        summary_snippet = summary_snippet.replace("**", "").replace("__", "")
-
         await update.message.reply_text(
-            f"✅ *Appointment successfully booked!*\n"
-            f"📅 *{day.strftime('%A, %d %B %Y')}* at *{time_slot}*\n\n"
-            f"📋 *Intake summary:*\n{summary_snippet}\n\n"
-            f"Your acupuncturist has received your intake details and will be prepared for your visit.\n\n"
-            f"See you at ZenFlow Clinic 🌿",
-            parse_mode="Markdown",
+            f"✅ *Appointment confirmed\\!*\n"
+            f"📅 *{day.strftime('%A, %d %b')}* at *{time_slot}*\n\n"
+            f"We look forward to seeing you at ZenFlow Clinic 🌿\n\n"
+            f"What else can I help you with?",
+            parse_mode="MarkdownV2",
             reply_markup=get_main_keyboard(),
         )
         return SELECTING

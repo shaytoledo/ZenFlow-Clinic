@@ -120,7 +120,10 @@ function renderTable() {
     const lastDate = p.last_appointment
       ? new Date(p.last_appointment).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
       : 'Never';
-    return `<tr>
+    return `<tr class="patient-row" onclick="window.location='/patients/${p.id}'"
+              style="cursor:pointer;transition:background 0.15s;"
+              onmouseenter="this.style.background='#F0FDFA'"
+              onmouseleave="this.style.background=''">
       <td>
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="zf-avatar">${initials}</div>
@@ -134,14 +137,46 @@ function renderTable() {
       <td><span class="zf-badge zf-badge-gray">${p.sessions} session${p.sessions !== 1 ? 's' : ''}</span></td>
       <td><span class="zf-badge ${p.intake_count > 0 ? 'zf-badge-teal' : 'zf-badge-gray'}">${p.intake_count} form${p.intake_count !== 1 ? 's' : ''}</span></td>
       <td><span class="zf-badge ${statusClass}">${statusLabel}</span></td>
-      <td>
+      <td onclick="event.stopPropagation()">
         <div style="display:flex;align-items:center;gap:8px;">
-          <button class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;" onclick="openDrawer(${p.id})">View History</button>
+          <a href="/patients/${p.id}" class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;">View Profile</a>
           ${p.last_appointment ? `<a href="/treatment/${p.id}/${p.last_appointment}/${(p.last_time||'').replace(':','-')}" class="zf-btn zf-btn-primary" style="font-size:12px;padding:5px 12px;">Last Session</a>` : ''}
         </div>
       </td>
     </tr>`;
   }).join('');
+}
+
+const IMPROVEMENT_LABELS = {1:'Much worse',2:'Slightly worse',3:'About the same',4:'Noticeably better',5:'Much better'};
+const IMPROVEMENT_COLORS = {1:'#DC2626',2:'#EA580C',3:'#D97706',4:'#16A34A',5:'#0D9488'};
+
+function _trendBar(sessions) {
+  // Build a mini sparkline for followup improvement ratings
+  const rated = sessions.filter(s => s.followup_rating || s.manual_feedback_rating);
+  if (rated.length < 2) return '';
+  const vals = rated.map(s => s.followup_rating || s.manual_feedback_rating);
+  const max = 5, w = 180, h = 36, pad = 6;
+  const step = (w - pad*2) / (vals.length - 1);
+  const points = vals.map((v, i) => {
+    const x = pad + i * step;
+    const y = h - pad - ((v - 1) / (max - 1)) * (h - pad*2);
+    return `${x},${y}`;
+  }).join(' ');
+  const lastColor = IMPROVEMENT_COLORS[vals[vals.length - 1]] || '#0D9488';
+  return `<div style="margin:10px 0 4px;">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.6px;margin-bottom:6px;">Improvement Trend</div>
+    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible;">
+      <polyline points="${points}" fill="none" stroke="${lastColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${vals.map((v, i) => {
+        const x = pad + i * step;
+        const y = h - pad - ((v - 1) / (max - 1)) * (h - pad*2);
+        return `<circle cx="${x}" cy="${y}" r="3.5" fill="${IMPROVEMENT_COLORS[v]||'#0D9488'}" stroke="#fff" stroke-width="1.5"/>`;
+      }).join('')}
+    </svg>
+    <div style="font-size:11px;color:#6B7280;margin-top:2px;">
+      ${vals.length} ratings · latest: <span style="font-weight:700;color:${lastColor};">${IMPROVEMENT_LABELS[vals[vals.length-1]]||''}</span>
+    </div>
+  </div>`;
 }
 
 async function openDrawer(patientId) {
@@ -152,32 +187,82 @@ async function openDrawer(patientId) {
 
   try {
     const data = await fetch(`/api/patients/${patientId}`).then(r => r.json());
-    const p = _allPatients.find(x => x.id === patientId) || {};
-    const initials = data.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
 
     document.getElementById('drawer-name').textContent = data.name;
-    document.getElementById('drawer-sub').textContent = `${data.appointments.length} appointment${data.appointments.length !== 1 ? 's' : ''} · Telegram ID: ${data.id}`;
+    document.getElementById('drawer-sub').textContent =
+      `${data.appointments.length} session${data.appointments.length !== 1 ? 's' : ''} · ID: ${data.id}`;
 
     if (data.appointments.length === 0) {
       document.getElementById('drawer-body').innerHTML = '<p style="color:#9CA3AF;text-align:center;padding:32px 0;">No appointment history</p>';
       return;
     }
 
-    document.getElementById('drawer-body').innerHTML = data.appointments.reverse().map(apt => {
+    const sorted = [...data.appointments].sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+    const trendHtml = _trendBar(sorted);
+
+    // Summary stats row
+    const completed = sorted.filter(s => s.completed_at).length;
+    const withPattern = sorted.filter(s => s.tcm_pattern).length;
+    const lastPattern = sorted.find(s => s.tcm_pattern)?.tcm_pattern || null;
+
+    let statsHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+      <div style="text-align:center;background:#F0FDFA;border-radius:10px;padding:10px 8px;">
+        <div style="font-size:20px;font-weight:800;color:#0D9488;">${sorted.length}</div>
+        <div style="font-size:11px;color:#6B7280;">Sessions</div>
+      </div>
+      <div style="text-align:center;background:#F0FDF4;border-radius:10px;padding:10px 8px;">
+        <div style="font-size:20px;font-weight:800;color:#16A34A;">${completed}</div>
+        <div style="font-size:11px;color:#6B7280;">Completed</div>
+      </div>
+      <div style="text-align:center;background:#FEF3C7;border-radius:10px;padding:10px 8px;">
+        <div style="font-size:20px;font-weight:800;color:#D97706;">${withPattern}</div>
+        <div style="font-size:11px;color:#6B7280;">With Diagnosis</div>
+      </div>
+    </div>`;
+
+    if (lastPattern) {
+      statsHtml += `<div style="background:#CCFBF1;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#065F46;">
+        <span style="font-weight:700;">Latest TCM Pattern:</span> ${lastPattern}
+      </div>`;
+    }
+
+    if (trendHtml) {
+      statsHtml += `<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:10px 14px;margin-bottom:12px;">${trendHtml}</div>`;
+    }
+
+    // Session history cards
+    const historyHtml = sorted.map((apt, idx) => {
       const hasIntake = apt.intake_history && apt.intake_history.length > 0;
       const d = new Date(apt.date);
       const dateStr = d.toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short',year:'numeric'});
-      return `<div class="zf-history-item">
+      const rating = apt.followup_rating || apt.manual_feedback_rating;
+      const ratingBadge = rating
+        ? `<span style="font-size:11px;font-weight:700;color:${IMPROVEMENT_COLORS[rating]||'#6B7280'};background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:2px 7px;">${rating}/5 ${IMPROVEMENT_LABELS[rating]||''}</span>`
+        : '';
+
+      return `<div class="zf-history-item" style="border-left:3px solid ${idx === 0 ? '#0D9488' : '#E5E7EB'};">
         <div class="zf-history-header">
-          <div>
+          <div style="flex:1;min-width:0;">
             <div class="zf-history-date">${dateStr} at ${apt.time}</div>
-            ${hasIntake ? '<span class="zf-badge zf-badge-teal" style="font-size:11px;margin-top:4px;">Intake ✓</span>' : ''}
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;align-items:center;">
+              ${hasIntake ? '<span class="zf-badge zf-badge-teal" style="font-size:10px;">Intake ✓</span>' : ''}
+              ${apt.completed_at ? '<span class="zf-badge zf-badge-green" style="font-size:10px;">Completed</span>' : '<span class="zf-badge zf-badge-gray" style="font-size:10px;">In progress</span>'}
+              ${ratingBadge}
+            </div>
           </div>
-          <a href="/treatment/${data.id}/${apt.date}/${apt.time.replace(':','-')}" class="zf-btn zf-btn-outline" style="font-size:11px;padding:5px 10px;">Open Session</a>
+          <a href="/treatment/${data.id}/${apt.date}/${apt.time.replace(':','-')}" class="zf-btn zf-btn-outline" style="font-size:11px;padding:5px 10px;flex-shrink:0;">Open</a>
         </div>
-        ${apt.summary ? `<div class="zf-history-summary">${apt.summary}</div>` : ''}
+        ${apt.tcm_pattern ? `<div style="font-size:12px;color:#0D9488;font-weight:600;margin-top:6px;">🔬 ${apt.tcm_pattern}</div>` : ''}
+        ${apt.used_points && apt.used_points.length > 0 ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;">
+          ${apt.used_points.map(p => `<span style="font-size:10px;background:#E0F2F1;color:#0D9488;border-radius:4px;padding:1px 6px;font-weight:600;">${p}</span>`).join('')}
+        </div>` : ''}
+        ${apt.summary ? `<div class="zf-history-summary" style="margin-top:6px;">${apt.summary}</div>` : ''}
+        ${apt.followup_conversation?.notes ? `<div style="font-size:12px;color:#374151;background:#F0FDF4;border-radius:6px;padding:5px 8px;margin-top:6px;">💬 "${apt.followup_conversation.notes}"</div>` : ''}
+        ${apt.manual_feedback_notes ? `<div style="font-size:12px;color:#374151;background:#FEF3C7;border-radius:6px;padding:5px 8px;margin-top:6px;">📝 ${apt.manual_feedback_notes}</div>` : ''}
       </div>`;
     }).join('');
+
+    document.getElementById('drawer-body').innerHTML = statsHtml + historyHtml;
   } catch(e) {
     document.getElementById('drawer-body').innerHTML = '<p style="color:#EF4444;padding:20px;">Error loading patient history</p>';
   }

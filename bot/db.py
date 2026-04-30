@@ -104,12 +104,22 @@ def init_db() -> None:
         "ALTER TABLE treatment_notes ADD COLUMN completed_at TEXT",
         "ALTER TABLE treatment_notes ADD COLUMN followup_rating INTEGER",
         "ALTER TABLE treatment_notes ADD COLUMN followup_sent_at TEXT",
-        # Therapist's own diagnosis area, distinct from the AI's tcm_pattern
         "ALTER TABLE treatment_notes ADD COLUMN therapist_diagnosis TEXT",
         "ALTER TABLE treatment_notes ADD COLUMN therapist_notes TEXT",
-        # Marks appointments created from the dashboard (no Telegram intake)
         "ALTER TABLE appointments ADD COLUMN source TEXT DEFAULT 'telegram'",
         "ALTER TABLE appointments ADD COLUMN patient_phone TEXT",
+        # Manual therapist-entered patient feedback (fallback when no Telegram)
+        "ALTER TABLE treatment_notes ADD COLUMN manual_feedback_rating INTEGER",
+        "ALTER TABLE treatment_notes ADD COLUMN manual_feedback_notes TEXT",
+        # Full multi-turn follow-up conversation stored as JSON
+        "ALTER TABLE treatment_notes ADD COLUMN followup_conversation TEXT",
+        # Per-therapist UI language preference
+        "ALTER TABLE therapists ADD COLUMN language TEXT DEFAULT 'en'",
+        # Pending lifestyle recommendations to auto-send 24h after session completion
+        "ALTER TABLE treatment_notes ADD COLUMN pending_recommendations TEXT",
+        "ALTER TABLE treatment_notes ADD COLUMN pending_rec_send_at TEXT",
+        # Stage-2 pipeline state: NULL | GENERATING | COMPLETED | FAILED
+        "ALTER TABLE treatment_notes ADD COLUMN points_status TEXT",
     ]
     for migration in _migrations:
         try:

@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/treatment-notes")
 logger = logging.getLogger(__name__)
 
 
+
 # ── Models ─────────────────────────────────────────────────────────────────────
 
 class TreatmentNotesIn(BaseModel):
@@ -54,6 +55,11 @@ class RediagnoseIn(BaseModel):
     pulse_observation: str = ""
 
 
+class ManualFeedbackIn(BaseModel):
+    rating: int | None = None   # 1–5
+    notes: str = ""
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 async def _resolve_apt_id(patient_id: int, apt_date: str, apt_time: str) -> int:
@@ -80,7 +86,29 @@ async def get_treatment_notes(
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
     notes = await asyncio.to_thread(treatment_service.get_notes, apt_id)
     if not notes:
-        return JSONResponse({"appointment_id": apt_id})
+        # Also return source so the UI can show the no-Telegram alert
+        time_str = apt_time.replace("-", ":")
+        from bot.db import get_db
+        row = await asyncio.to_thread(
+            lambda: get_db().execute(
+                "SELECT source FROM appointments WHERE patient_id=? AND date=? AND time=? ORDER BY created_at DESC LIMIT 1",
+                (patient_id, apt_date, time_str),
+            ).fetchone()
+        )
+        src = (dict(row).get("source") if row else None) or "telegram"
+        return JSONResponse({"appointment_id": apt_id, "source": src, "is_manual": src == "manual" or patient_id < 0})
+    # Augment with source flag
+    time_str = apt_time.replace("-", ":")
+    from bot.db import get_db
+    row = await asyncio.to_thread(
+        lambda: get_db().execute(
+            "SELECT source FROM appointments WHERE patient_id=? AND date=? AND time=? ORDER BY created_at DESC LIMIT 1",
+            (patient_id, apt_date, time_str),
+        ).fetchone()
+    )
+    src = (dict(row).get("source") if row else None) or "telegram"
+    notes["source"] = src
+    notes["is_manual"] = (src == "manual") or (patient_id < 0)
     return JSONResponse(notes)
 
 
@@ -149,8 +177,9 @@ async def send_recommendations(
     """Deliver recommendations to the patient.
 
     Routing:
-      - explicit `email` in the body → send via SMTP, regardless of source
-      - Telegram-source patient (positive id) → send via patient bot
+      - schedule_hours >= 24 (and no explicit email) → queue in DB for auto-send
+      - explicit `email` in the body → send via SMTP immediately
+      - Telegram-source patient (positive id) → send via patient bot immediately
       - Manual patient (negative id):
           * has phone but no email → 422 "needs_email" so the frontend can ask
           * has neither phone nor email → 400 "no_contact"
@@ -159,6 +188,20 @@ async def send_recommendations(
     enabled = [item for item in body.items if item.get("enabled")]
     if not enabled:
         raise HTTPException(status_code=400, detail="No recommendations selected")
+
+    # ── Delayed queue: schedule_hours >= 24 without an email override → store for later
+    if body.schedule_hours >= 24 and not body.email:
+        apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+        import datetime as _dt
+        send_at = (_dt.datetime.now() + _dt.timedelta(hours=body.schedule_hours)).isoformat()
+        from web.repositories.treatment_repo import save_pending_recommendations as _save_pending
+        await asyncio.to_thread(_save_pending, apt_id, enabled, send_at)
+        return JSONResponse({
+            "ok": True,
+            "queued": True,
+            "send_at": send_at,
+            "hours": body.schedule_hours,
+        })
 
     # Look up the appointment so we know patient_phone + name + source
     time_str = apt_time.replace("-", ":")
@@ -188,34 +231,37 @@ async def send_recommendations(
         subject, text = _format_recommendations_for_email(enabled, patient_name)
         try:
             await asyncio.to_thread(send_email, body.email.strip(), subject, text)
-        except EmailNotConfigured as e:
-            raise HTTPException(status_code=503, detail=str(e))
+        except EmailNotConfigured:
+            # SMTP not configured — return the text so the UI can show a copy-paste fallback
+            return JSONResponse(content={
+                "ok": False,
+                "status": "no_smtp",
+                "text": f"{subject}\n\n{text}",
+                "detail": "Email service not configured. Copy the text below to send manually.",
+            })
         except Exception as e:
             logger.error(f"send_recommendations(email) error: {e}")
             raise HTTPException(status_code=502, detail=f"Email send failed: {e}")
         sent_via = "email"
         sent_to  = body.email.strip()
 
-    # ── 2) manual patient — bot can't reach them by phone
+    # ── 2) manual patient — bot can't reach them; always redirect to email popup
     elif is_manual:
-        if not patient_phone:
-            raise HTTPException(
-                status_code=400,
-                detail="No phone number on file for this patient. Add a phone number "
-                       "when scheduling, or send by email instead.",
+        detail = (
+            "This patient was booked manually and has no Telegram account linked. "
+            "Enter their email address to send the recommendations."
+        )
+        if patient_phone:
+            detail = (
+                f"No Telegram account is linked to {patient_phone}. The Telegram Bot "
+                f"API can only message users who have started a chat with the bot. "
+                f"Send the recommendations by email instead?"
             )
-        # Has phone but no Telegram chat — ask the UI to collect an email.
-        # 422 = Unprocessable Entity. The body carries enough context for the
-        # frontend to render the right popup.
         return JSONResponse(
             status_code=422,
             content={
                 "status": "needs_email",
-                "detail": (
-                    f"No Telegram account is linked to {patient_phone}. The Telegram Bot "
-                    f"API can only message users who have started a chat with the bot. "
-                    f"Send the recommendations by email instead?"
-                ),
+                "detail": detail,
                 "phone": patient_phone,
                 "patient_name": patient_name,
             },
@@ -240,6 +286,21 @@ async def send_recommendations(
     except Exception:
         pass
     return JSONResponse({"ok": True, "sent_via": sent_via, "sent_to": sent_to})
+
+
+@router.post("/{patient_id}/{apt_date}/{apt_time}/manual-feedback")
+async def save_manual_feedback(
+    patient_id: int, apt_date: str, apt_time: str,
+    body: ManualFeedbackIn, request: Request,
+):
+    """Save therapist-entered patient feedback (fallback when no Telegram)."""
+    _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+    if body.rating is not None and not (1 <= body.rating <= 5):
+        raise HTTPException(status_code=400, detail="Rating must be 1–5")
+    from web.repositories.treatment_repo import save_manual_feedback as _save
+    await asyncio.to_thread(_save, apt_id, body.rating, body.notes)
+    return JSONResponse({"ok": True})
 
 
 def _parse_diagnosis_json(raw: str) -> dict:
@@ -371,18 +432,24 @@ async def rediagnose(
     findings_context = ". ".join(findings_parts) or "No tongue/pulse observation recorded yet."
 
     try:
-        from bot.patient_bot.services.ai_intake import _LLM, SYSTEM_PROMPT, TCM_DIAGNOSIS_PROMPT
+        from bot.patient_bot.services.ai_intake import (
+            _LLM_LONG, SYSTEM_PROMPT, TCM_DIAGNOSIS_PROMPT, select_points_for_diagnosis,
+        )
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        # Build a context block. Prefer full transcript; fall back to summary.
+        if _LLM_LONG is None:
+            raise HTTPException(status_code=503, detail="AI model not available")
+
+        # Build context block for the diagnosis step
         context_block = ""
         if transcript:
-            context_block += f"Full intake conversation between patient and assistant:\n{transcript}\n\n"
+            context_block += f"Full intake conversation:\n{transcript}\n\n"
         if summary:
-            context_block += f"Clinical summary from intake:\n{summary}\n\n"
+            context_block += f"Clinical summary:\n{summary}\n\n"
         if not context_block:
-            context_block = "No prior intake on file. Diagnose from the clinical examination findings alone.\n\n"
+            context_block = "No prior intake on file. Diagnose from examination findings only.\n\n"
 
+        # ── Step 1: diagnosis (pattern, principles, certainty, recommendations) ──
         messages = [
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=(
@@ -391,41 +458,208 @@ async def rediagnose(
                 f"{TCM_DIAGNOSIS_PROMPT}"
             )),
         ]
-        resp = await asyncio.wait_for(_LLM.ainvoke(messages), timeout=90)
+        resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=180)
         parsed = _parse_diagnosis_json(resp.content)
-
-        suggested_points = _normalize_points(parsed.get("suggested_points"))
 
         raw_certainty = parsed.get("diagnosis_certainty", 0)
         try:
-            certainty = int(raw_certainty)
+            certainty = max(0, min(100, int(raw_certainty)))
         except (TypeError, ValueError):
             certainty = 0
-        certainty = max(0, min(100, certainty))
 
         result = {
-            "tcm_pattern": str(parsed.get("tcm_pattern") or ""),
+            "tcm_pattern":          str(parsed.get("tcm_pattern") or ""),
             "treatment_principles": str(parsed.get("treatment_principles") or ""),
-            "diagnosis_certainty": certainty,
-            "suggested_points": suggested_points,
-            "recommendations": parsed.get("recommendations") or {},
+            "diagnosis_certainty":  certainty,
+            "ai_suggested_points":  [],       # Stage 2 is called separately by the frontend
+            "recommendations":      parsed.get("recommendations") or {},
         }
 
+        # Persist Stage 1 fields immediately so generate-points can read them from the DB
         await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, {
-            "tcm_pattern": result["tcm_pattern"],
+            "tcm_pattern":          result["tcm_pattern"],
             "treatment_principles": result["treatment_principles"],
-            "diagnosis_certainty": result["diagnosis_certainty"],
-            "ai_suggested_points": result["suggested_points"],
-            "ai_recommendations": result["recommendations"],
-            "tongue_observation": body.tongue_observation,
-            "pulse_observation": body.pulse_observation,
+            "diagnosis_certainty":  result["diagnosis_certainty"],
+            "ai_recommendations":   result["recommendations"],
+            "tongue_observation":   body.tongue_observation,
+            "pulse_observation":    body.pulse_observation,
         })
+        logger.info(f"rediagnose apt{apt_id} — Stage 1 saved, pattern='{result['tcm_pattern']}'")
+
         return JSONResponse(result)
 
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="AI model timed out — try again")
     except Exception as e:
         logger.error(f"rediagnose error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI service error: {e}")
+
+
+@router.post("/{patient_id}/{apt_date}/{apt_time}/generate-points")
+async def generate_points(
+    patient_id: int, apt_date: str, apt_time: str, request: Request,
+):
+    """Stage 2: select acupuncture points for an already-diagnosed appointment.
+
+    Called directly by the frontend immediately after /rediagnose returns Stage 1.
+    Reads the diagnosis from the DB — the caller does not need to repeat it.
+    Runs synchronously so the frontend receives the points the moment they are ready
+    (no polling needed; the HTTP response IS the result).
+    """
+    _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+
+    from web.repositories.treatment_repo import (
+        get_by_appointment as _get,
+        save_points as _save_pts,
+        set_points_status as _set_st,
+    )
+    row = await asyncio.to_thread(_get, apt_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="No treatment notes for this appointment")
+
+    tcm_pattern         = row.get("tcm_pattern") or ""
+    treatment_principles = row.get("treatment_principles") or ""
+    if not tcm_pattern:
+        raise HTTPException(status_code=422, detail="No TCM diagnosis yet — run diagnosis first")
+
+    intake_context = await asyncio.to_thread(_load_intake_context, apt_id)
+
+    try:
+        from bot.patient_bot.services.ai_intake import select_points_for_diagnosis, _LLM_POINTS
+        if _LLM_POINTS is None:
+            raise HTTPException(status_code=503, detail="AI model not available")
+
+        await asyncio.to_thread(_set_st, apt_id, "GENERATING")
+        logger.info(f"generate-points apt{apt_id} — started, pattern='{tcm_pattern}'")
+
+        points = await select_points_for_diagnosis(
+            tcm_pattern=tcm_pattern,
+            treatment_principles=treatment_principles,
+            intake_context=intake_context or "No prior intake on file.",
+            log_tag=f"apt{apt_id}",
+        )
+
+        logger.info(f"generate-points apt{apt_id} — AI returned {len(points)} point(s)")
+
+        if points:
+            await asyncio.to_thread(_save_pts, apt_id, points)   # stamps COMPLETED in the same UPDATE
+            logger.info(f"generate-points apt{apt_id} — COMPLETED: {len(points)} points saved")
+        else:
+            await asyncio.to_thread(_set_st, apt_id, "FAILED")
+            logger.error(f"generate-points apt{apt_id} — FAILED: AI returned 0 points")
+
+        return JSONResponse({
+            "ai_suggested_points": points,
+            "points_status":       "COMPLETED" if points else "FAILED",
+            "point_count":         len(points),
+        })
+
+    except asyncio.TimeoutError:
+        await asyncio.to_thread(_set_st, apt_id, "FAILED")
+        raise HTTPException(status_code=504, detail="AI model timed out on point selection")
+    except Exception as e:
+        logger.error(f"generate-points error: {e}", exc_info=True)
+        try:
+            await asyncio.to_thread(_set_st, apt_id, "FAILED")
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail=f"AI service error: {e}")
+
+
+@router.post("/{patient_id}/{apt_date}/{apt_time}/regenerate-points")
+async def regenerate_points(
+    patient_id: int, apt_date: str, apt_time: str, request: Request,
+):
+    """Re-run Stage 2A + 2B point selection from scratch using the saved diagnosis.
+
+    Clears existing ai_suggested_points, then runs both batches with the same
+    status-flip pattern as the bot's background pipeline so the frontend poller
+    can render each batch incrementally.
+    """
+    _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+
+    from web.repositories.treatment_repo import (
+        get_by_appointment as _get,
+        append_points as _append,
+        set_points_status as _set_st,
+    )
+    row = await asyncio.to_thread(_get, apt_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="No treatment notes for this appointment")
+
+    tcm_pattern          = row.get("tcm_pattern") or ""
+    treatment_principles = row.get("treatment_principles") or ""
+    if not tcm_pattern:
+        raise HTTPException(status_code=422, detail="No TCM diagnosis yet — run diagnosis first")
+
+    intake_context = await asyncio.to_thread(_load_intake_context, apt_id)
+
+    # Clear existing points so the UI starts fresh
+    from bot.db import get_db
+    await asyncio.to_thread(
+        lambda: get_db().execute(
+            "UPDATE treatment_notes SET ai_suggested_points=NULL, points_status=?, updated_at=datetime('now') WHERE appointment_id=?",
+            ("GENERATING_STAGE_2A", apt_id),
+        )
+    )
+
+    try:
+        from bot.patient_bot.services.ai_intake import select_points_for_diagnosis, _LLM_POINTS
+        if _LLM_POINTS is None:
+            await asyncio.to_thread(_set_st, apt_id, "FAILED")
+            raise HTTPException(status_code=503, detail="AI model not available")
+
+        logger.info(f"regenerate-points apt{apt_id} — Stage 2A start, pattern='{tcm_pattern}'")
+        batch_a = await select_points_for_diagnosis(
+            tcm_pattern=tcm_pattern,
+            treatment_principles=treatment_principles,
+            intake_context=intake_context or "No prior intake on file.",
+            log_tag=f"apt{apt_id}",
+            batch_number=1,
+        )
+        if batch_a:
+            await asyncio.to_thread(_append, apt_id, batch_a)
+            logger.info(f"regenerate-points apt{apt_id} — Stage 2A done ({len(batch_a)} points)")
+
+        await asyncio.to_thread(_set_st, apt_id, "GENERATING_STAGE_2B")
+        existing_codes = [p["code"] for p in batch_a if isinstance(p, dict) and p.get("code")]
+        logger.info(f"regenerate-points apt{apt_id} — Stage 2B start, avoiding {existing_codes}")
+        batch_b = await select_points_for_diagnosis(
+            tcm_pattern=tcm_pattern,
+            treatment_principles=treatment_principles,
+            intake_context=intake_context or "No prior intake on file.",
+            log_tag=f"apt{apt_id}",
+            batch_number=2,
+            existing_codes=existing_codes,
+        )
+        if batch_b:
+            await asyncio.to_thread(_append, apt_id, batch_b)
+            logger.info(f"regenerate-points apt{apt_id} — Stage 2B done ({len(batch_b)} points)")
+
+        total = len(batch_a) + len(batch_b)
+        final_status = "COMPLETED" if total > 0 else "FAILED"
+        await asyncio.to_thread(_set_st, apt_id, final_status)
+        logger.info(f"regenerate-points apt{apt_id} — {final_status}: {total} points total")
+
+        # Return the merged list so the caller can render it directly if desired
+        final_row = await asyncio.to_thread(_get, apt_id)
+        return JSONResponse({
+            "ai_suggested_points": final_row.get("ai_suggested_points") or [],
+            "points_status":       final_status,
+            "point_count":         total,
+        })
+
+    except asyncio.TimeoutError:
+        await asyncio.to_thread(_set_st, apt_id, "FAILED")
+        raise HTTPException(status_code=504, detail="AI model timed out on point selection")
+    except Exception as e:
+        logger.error(f"regenerate-points error: {e}", exc_info=True)
+        try:
+            await asyncio.to_thread(_set_st, apt_id, "FAILED")
+        except Exception:
+            pass
         raise HTTPException(status_code=500, detail=f"AI service error: {e}")
 
 
@@ -437,3 +671,42 @@ async def list_sessions(request: Request, sort: str = "date"):
         therapist_id=therapist["id"], sort_by=sort
     )
     return JSONResponse(sessions)
+
+
+@router.get("/{appointment_id}/debug")
+async def debug_points(appointment_id: int, request: Request):
+    """Return the raw DB record for a treatment_notes row — useful for diagnosing Stage-2 failures.
+
+    Returns: appointment_id, points_status, ai_suggested_points (raw JSON string + parsed list),
+             tcm_pattern, and updated_at so you can tell exactly what the DB contains.
+    """
+    _require_auth(request)
+    from web.repositories.treatment_repo import get_by_appointment as _get
+    row = await asyncio.to_thread(_get, appointment_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"No treatment_notes row for appointment {appointment_id}")
+
+    # Also fetch the raw JSON string so we can show exactly what is stored
+    from bot.db import get_db
+    raw_row = await asyncio.to_thread(
+        lambda: get_db().execute(
+            "SELECT ai_suggested_points, points_status, updated_at FROM treatment_notes WHERE appointment_id=?",
+            (appointment_id,),
+        ).fetchone()
+    )
+    raw_json = dict(raw_row)["ai_suggested_points"] if raw_row else None
+
+    points_list = row.get("ai_suggested_points") or []
+    logger.info(
+        f"[DEBUG] apt{appointment_id} — points_status={row.get('points_status')!r} "
+        f"point_count={len(points_list)} raw_bytes={len(raw_json or '')}"
+    )
+    return JSONResponse({
+        "appointment_id":    appointment_id,
+        "points_status":     row.get("points_status"),
+        "tcm_pattern":       row.get("tcm_pattern"),
+        "point_count":       len(points_list),
+        "ai_suggested_points_parsed": points_list,
+        "ai_suggested_points_raw":    raw_json,
+        "updated_at":        row.get("updated_at"),
+    })

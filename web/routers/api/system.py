@@ -115,6 +115,99 @@ async def get_my_status(request: Request):
     return JSONResponse({"active": bool(therapist.get("active")), "name": therapist.get("name", "")})
 
 
+@router.get("/smtp-status")
+async def get_smtp_status():
+    """Return whether SMTP is configured (no credentials exposed)."""
+    from web.services.email_service import is_configured, _config
+    cfg = _config()
+    configured = is_configured()
+    return JSONResponse({
+        "configured": configured,
+        "host": cfg["host"] if configured else "",
+        "port": cfg["port"] if configured else 587,
+        "user": cfg["user"] if configured else "",
+        "from": cfg["from"] if configured else "",
+    })
+
+
+@router.get("/my/alerts")
+async def get_my_alerts(request: Request):
+    """Return pending therapist alerts (e.g. manual patients needing follow-up)."""
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    therapist_id = therapist["id"]
+    try:
+        from bot.redis_client import get_async_redis
+        r = get_async_redis()
+        alert_key = f"zenflow:alerts:{therapist_id}"
+        raw_list = await r.lrange(alert_key, 0, 49)
+        alerts = []
+        for raw in raw_list:
+            try:
+                alerts.append(json.loads(raw))
+            except Exception:
+                pass
+        return JSONResponse({"alerts": alerts, "count": len(alerts)})
+    except Exception as e:
+        logger.error(f"get_my_alerts error: {e}")
+        return JSONResponse({"alerts": [], "count": 0})
+
+
+@router.delete("/my/alerts")
+async def clear_my_alerts(request: Request):
+    """Dismiss all alerts for the current therapist."""
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        from bot.redis_client import get_async_redis
+        r = get_async_redis()
+        await r.delete(f"zenflow:alerts:{therapist['id']}")
+    except Exception:
+        pass
+    return JSONResponse({"ok": True})
+
+
+@router.get("/my/language")
+async def get_my_language(request: Request):
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from bot.db import get_db
+    row = await asyncio.to_thread(
+        lambda: get_db().execute(
+            "SELECT language FROM therapists WHERE id=?", (therapist["id"],)
+        ).fetchone()
+    )
+    lang = (dict(row).get("language") if row else None) or "en"
+    return JSONResponse({"language": lang})
+
+
+@router.post("/my/language")
+async def set_my_language(request: Request):
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    body = await request.json()
+    lang = (body.get("language") or "en").strip()
+    if lang not in ("en", "he"):
+        raise HTTPException(status_code=400, detail="Supported languages: en, he")
+    from bot.db import get_db
+    await asyncio.to_thread(
+        lambda: get_db().execute(
+            "UPDATE therapists SET language=? WHERE id=?", (lang, therapist["id"])
+        )
+    )
+    # Refresh in-memory therapist list
+    try:
+        from bot.config import reload_therapists
+        reload_therapists()
+    except Exception:
+        pass
+    return JSONResponse({"ok": True, "language": lang})
+
+
 @router.get("/my/activation-code")
 async def get_my_activation_code(request: Request):
     therapist = _get_session_therapist(request)
