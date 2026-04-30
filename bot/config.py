@@ -48,3 +48,15 @@ THERAPIST_MAP: dict[int, dict] = {
 # Lookup by therapist id string ("t1", …) → therapist dict
 THERAPIST_BY_ID: dict[str, dict] = {t["id"]: t for t in THERAPISTS if t.get("active")}
 
+
+def reload_therapists() -> None:
+    """Refresh the in-memory therapist registry from SQLite."""
+    global THERAPISTS, THERAPIST_MAP, THERAPIST_BY_ID
+    THERAPISTS = _load_therapists_from_db()
+    THERAPIST_MAP = {
+        t["telegram_id"]: t
+        for t in THERAPISTS
+        if t.get("active") and t.get("telegram_id")
+    }
+    THERAPIST_BY_ID = {t["id"]: t for t in THERAPISTS if t.get("active")}
+

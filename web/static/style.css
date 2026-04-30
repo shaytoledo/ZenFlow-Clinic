@@ -1197,6 +1197,81 @@ body {
 }
 .zf-points-add:hover { background: #99F6E4; }
 
+/* ── RTL / Hebrew layout (applied when <html dir="rtl"> is set) ─────────────── */
+[dir="rtl"] body { font-family: 'Inter', 'Arial Hebrew', 'David', sans-serif; }
+
+/* Flip the sidebar to the right */
+[dir="rtl"] .zf-app { flex-direction: row-reverse; }
+[dir="rtl"] .zf-sidebar { border-right: none; border-left: 1px solid var(--border); }
+[dir="rtl"] .zf-sidebar-brand { flex-direction: row-reverse; }
+[dir="rtl"] .zf-nav-item { flex-direction: row-reverse; text-align: right; }
+[dir="rtl"] .zf-nav-icon { margin-right: 0; margin-left: 10px; }
+[dir="rtl"] .zf-nav-badge { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .zf-user-card { flex-direction: row-reverse; text-align: right; }
+
+/* Topbar */
+[dir="rtl"] .zf-topbar { flex-direction: row-reverse; }
+[dir="rtl"] .zf-topbar-right { flex-direction: row-reverse; }
+
+/* Cards and general layout */
+[dir="rtl"] .zf-card-title { flex-direction: row-reverse; }
+[dir="rtl"] .zf-card-icon { margin-right: 0; margin-left: 10px; }
+[dir="rtl"] .zf-btn svg { margin-right: 0; margin-left: 6px; }
+[dir="rtl"] .zf-stat-card { direction: rtl; text-align: right; }
+[dir="rtl"] .zf-stat-header { flex-direction: row-reverse; }
+[dir="rtl"] .zf-section-hdr { flex-direction: row-reverse; }
+
+/* Tables */
+[dir="rtl"] .zf-table th,
+[dir="rtl"] .zf-table td { text-align: right; }
+
+/* Inputs */
+[dir="rtl"] .zf-input,
+[dir="rtl"] .zf-textarea { text-align: right; direction: rtl; }
+[dir="rtl"] .zf-search-wrap svg { left: auto; right: 12px; }
+[dir="rtl"] .zf-search-wrap input { padding-left: 12px; padding-right: 36px; }
+
+/* Badges and chips */
+[dir="rtl"] .zf-badge { direction: rtl; }
+
+/* Treatment page specifics */
+[dir="rtl"] .zf-treatment-hdr { flex-direction: row-reverse; }
+[dir="rtl"] .zf-field-label { text-align: right; display: block; }
+[dir="rtl"] #no-telegram-banner { flex-direction: row-reverse; }
+
+/* Drawer */
+[dir="rtl"] .zf-drawer-panel { right: auto; left: 0; transform: translateX(-100%); }
+[dir="rtl"] .zf-drawer.open .zf-drawer-panel { transform: translateX(0); }
+[dir="rtl"] .zf-drawer-header { flex-direction: row-reverse; }
+
+/* Language toggle chip in settings */
+.zf-lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #F3F4F6;
+  border-radius: 10px;
+  padding: 3px;
+  border: 1px solid #E5E7EB;
+}
+.zf-lang-option {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #6B7280;
+  font-family: inherit;
+  transition: all .15s;
+}
+.zf-lang-option.active {
+  background: #fff;
+  color: #0D9488;
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+}
+
 /* Suggested point chips */
 .zf-point-chip {
   display: inline-flex;

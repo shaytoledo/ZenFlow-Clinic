@@ -129,7 +129,7 @@ async def register_signup(request: Request):
 
     entry = _register_web_therapist(name=name, email=email, password=password)
     _set_session(request, entry["id"])
-    return RedirectResponse("/register/activate", status_code=303)
+    return RedirectResponse("/onboarding", status_code=303)
 
 
 @router.post("/register/signin", response_class=HTMLResponse)
@@ -159,7 +159,7 @@ async def register_signin(request: Request):
     # Pre-warm the next 2 weeks of Google Calendar events so the schedule page
     # loads instantly. Fire-and-forget — never blocks the redirect.
     asyncio.create_task(prefetch_calendar(therapist["id"]))
-    dest = "/" if therapist.get("active") else "/register/activate"
+    dest = "/" if therapist.get("active") else "/onboarding"
     return RedirectResponse(dest, status_code=303)
 
 

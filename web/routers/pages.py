@@ -60,3 +60,19 @@ async def sessions_history_page(request: Request):
 @router.get("/treatment/{patient_id}/{apt_date}/{apt_time}", response_class=HTMLResponse)
 async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_time: str):
     return _page(request, "treatment.html", "patients")
+
+
+@router.get("/onboarding", response_class=HTMLResponse)
+async def onboarding_page(request: Request):
+    """Welcome page shown to newly-registered therapists before bot activation."""
+    from web.deps import _get_session_therapist
+    therapist = _get_session_therapist(request)
+    if not therapist:
+        return RedirectResponse("/register")
+    # If already active, skip onboarding
+    if therapist.get("active"):
+        return RedirectResponse("/")
+    return templates.TemplateResponse(
+        "onboarding.html",
+        {"request": request, "therapist_name": therapist.get("name", "")},
+    )

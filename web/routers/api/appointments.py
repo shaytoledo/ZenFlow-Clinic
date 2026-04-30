@@ -114,6 +114,28 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/patients/search")
+async def search_patients(q: str = ""):
+    """Return matching patient names for autocomplete (max 10)."""
+    from bot.db import get_db
+    q = (q or "").strip()
+    if not q:
+        rows = await asyncio.to_thread(
+            lambda: get_db().execute(
+                "SELECT DISTINCT patient_name FROM appointments WHERE status='active' ORDER BY patient_name LIMIT 20"
+            ).fetchall()
+        )
+    else:
+        rows = await asyncio.to_thread(
+            lambda: get_db().execute(
+                "SELECT DISTINCT patient_name FROM appointments WHERE patient_name LIKE ? AND status='active' ORDER BY patient_name LIMIT 10",
+                (f"%{q}%",),
+            ).fetchall()
+        )
+    names = [r["patient_name"] for r in rows if r["patient_name"]]
+    return JSONResponse({"results": names})
+
+
 @router.get("/patients")
 async def get_patients():
     appointments = await appointment_service.list_all_cached()
@@ -127,17 +149,65 @@ async def get_patient_detail(patient_id: int):
     if not records:
         raise HTTPException(status_code=404, detail="Patient not found")
     name = f"Patient {patient_id}"
+
+    # Fetch treatment notes for each appointment to enrich EHR view
+    from bot.db import get_db
     appointments = []
     for d in records:
         if d.get("patient_name") and name == f"Patient {patient_id}":
             name = d["patient_name"]
+
+        # Look up treatment notes for this appointment
+        apt_id = d.get("id") or await asyncio.to_thread(
+            lambda: (get_db().execute(
+                "SELECT id FROM appointments WHERE patient_id=? AND date=? AND time=? ORDER BY created_at DESC LIMIT 1",
+                (patient_id, d.get("date"), d.get("time")),
+            ).fetchone() or {}).get("id") if True else None
+        )
+
+        notes = {}
+        if apt_id:
+            row = await asyncio.to_thread(
+                lambda aid=apt_id: get_db().execute(
+                    """SELECT tcm_pattern, treatment_principles, diagnosis_certainty,
+                              used_points, completed_at,
+                              followup_rating, followup_conversation,
+                              manual_feedback_rating, manual_feedback_notes
+                       FROM treatment_notes WHERE appointment_id=?""",
+                    (aid,),
+                ).fetchone()
+            )
+            if row:
+                import json as _json
+                r = dict(row)
+                try:
+                    r["used_points"] = _json.loads(r["used_points"]) if r.get("used_points") else []
+                except Exception:
+                    r["used_points"] = []
+                try:
+                    r["followup_conversation"] = _json.loads(r["followup_conversation"]) if r.get("followup_conversation") else None
+                except Exception:
+                    r["followup_conversation"] = None
+                notes = r
+
         appointments.append({
             "date": d.get("date"),
             "time": d.get("time"),
             "summary": d.get("summary", ""),
             "intake_history": d["intake_history"],
             "status": d.get("status"),
+            "appointment_id": apt_id,
+            "tcm_pattern": notes.get("tcm_pattern"),
+            "treatment_principles": notes.get("treatment_principles"),
+            "diagnosis_certainty": notes.get("diagnosis_certainty"),
+            "used_points": notes.get("used_points", []),
+            "completed_at": notes.get("completed_at"),
+            "followup_rating": notes.get("followup_rating"),
+            "followup_conversation": notes.get("followup_conversation"),
+            "manual_feedback_rating": notes.get("manual_feedback_rating"),
+            "manual_feedback_notes": notes.get("manual_feedback_notes"),
         })
+
     return JSONResponse({"id": patient_id, "name": name, "appointments": appointments})
 
 

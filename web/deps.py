@@ -62,7 +62,7 @@ def _active_therapist_or_redirect(request: Request):
     if not therapist:
         return None, "/register"
     if not therapist.get("active"):
-        return None, "/register/activate"
+        return None, "/onboarding"
     return therapist, None
 
 
@@ -339,7 +339,7 @@ async def _handle_reg_google(request: Request, code: str, error: str = ""):
 
         entry = _register_web_therapist(name=name, email=email, google_id=google_id)
         _set_session(request, entry["id"])
-        return RedirectResponse("/register/activate", status_code=303)
+        return RedirectResponse("/onboarding", status_code=303)
     except Exception as e:
         logger.error(f"Google registration callback error: {e}")
         return RedirectResponse("/register?error=Google+sign-in+failed")

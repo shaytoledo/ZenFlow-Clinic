@@ -16,6 +16,16 @@
 {% block content %}
 <div style="padding: 28px;">
 
+  <!-- Therapist Alerts Banner (manual patients needing follow-up) -->
+  <div id="alerts-banner" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:16px;gap:10px;align-items:flex-start;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:4px;">Manual Follow-Up Required</div>
+      <div id="alerts-list" style="font-size:12px;color:#B45309;line-height:1.7;"></div>
+    </div>
+    <button onclick="dismissAlerts()" style="background:none;border:none;cursor:pointer;color:#B45309;font-size:18px;line-height:1;padding:0 0 0 8px;" title="Dismiss">×</button>
+  </div>
+
   <!-- Stat Cards -->
   <div class="zf-stats-grid" id="stats-row">
     <div class="zf-stat-card">
@@ -146,9 +156,12 @@
     <p style="font-size:12px;color:#6B7280;margin-bottom:18px;line-height:1.55;">Manually book a patient who isn't using the Telegram bot. The session will appear on the dashboard and in the schedule.</p>
 
     <div style="display:flex;flex-direction:column;gap:14px;">
-      <div>
+      <div style="position:relative;">
         <label class="zf-field-label">Patient name *</label>
-        <input id="na-name" type="text" class="zf-input" placeholder="e.g. Maya Cohen" />
+        <input id="na-name" type="text" class="zf-input" placeholder="e.g. Maya Cohen — type to search existing patients"
+          autocomplete="off" oninput="onNameInput()" onblur="setTimeout(hideNameSuggestions, 200)" />
+        <div id="na-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:200;background:#fff;border:1px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:180px;overflow-y:auto;margin-top:2px;"></div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Existing patients appear as you type. Type a new name to create a new patient.</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
@@ -188,6 +201,39 @@
 {% block extra_scripts %}
 <script>
 let _freeSlots = {};  // { "YYYY-MM-DD": ["09:00","10:00",...] }
+let _nameSearchTimer = null;
+
+async function onNameInput() {
+  clearTimeout(_nameSearchTimer);
+  const q = document.getElementById('na-name').value.trim();
+  if (q.length < 1) { hideNameSuggestions(); return; }
+  _nameSearchTimer = setTimeout(async () => {
+    try {
+      const data = await fetch(`/api/patients/search?q=${encodeURIComponent(q)}`).then(r => r.json());
+      showNameSuggestions(data.results || []);
+    } catch (_) {}
+  }, 180);
+}
+
+function showNameSuggestions(names) {
+  const box = document.getElementById('na-suggestions');
+  if (names.length === 0) { hideNameSuggestions(); return; }
+  box.innerHTML = names.map(n =>
+    `<div style="padding:9px 14px;cursor:pointer;font-size:13px;color:#111827;border-bottom:1px solid #F3F4F6;"
+         onmousedown="pickName('${n.replace(/'/g, "&#39;")}')"
+         onmouseover="this.style.background='#F0FDFA'" onmouseout="this.style.background=''">${n}</div>`
+  ).join('');
+  box.style.display = 'block';
+}
+
+function hideNameSuggestions() {
+  document.getElementById('na-suggestions').style.display = 'none';
+}
+
+function pickName(name) {
+  document.getElementById('na-name').value = name;
+  hideNameSuggestions();
+}
 
 async function openNewApptModal() {
   document.getElementById('new-appt-overlay').style.display = 'flex';
@@ -390,5 +436,29 @@ async function loadDashboard() {
   }
 }
 loadDashboard();
+
+async function loadAlerts() {
+  try {
+    const data = await fetch('/api/my/alerts').then(r => r.json());
+    const banner = document.getElementById('alerts-banner');
+    const list   = document.getElementById('alerts-list');
+    if (data.count > 0) {
+      list.innerHTML = data.alerts.map(a => {
+        const name = a.patient_name || 'Patient';
+        return `• <strong>${name}</strong> — session completed, no Telegram linked. Please follow up manually.`;
+      }).join('<br>');
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+async function dismissAlerts() {
+  await fetch('/api/my/alerts', { method: 'DELETE' });
+  document.getElementById('alerts-banner').style.display = 'none';
+}
+
+loadAlerts();
 </script>
 {% endblock %}

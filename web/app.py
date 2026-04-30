@@ -21,6 +21,7 @@ from starlette.middleware.sessions import SessionMiddleware
 # ── Routers────────────────────────────────────────────────────────────────────
 from web.routers.pages import router as pages_router
 from web.routers.auth import router as auth_router
+from web.routers.patients import router as patients_router
 from web.routers.api.appointments import router as apts_router
 from web.routers.api.treatment import router as treatment_router
 from web.routers.api.availability import router as avail_router
@@ -54,6 +55,7 @@ async def no_cache_static(request: Request, call_next):
 # ── Register routers ───────────────────────────────────────────────────────────
 app.include_router(pages_router)
 app.include_router(auth_router)
+app.include_router(patients_router)
 app.include_router(apts_router)
 app.include_router(treatment_router)
 app.include_router(avail_router)
