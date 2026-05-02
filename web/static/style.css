@@ -1197,52 +1197,152 @@ body {
 }
 .zf-points-add:hover { background: #99F6E4; }
 
-/* ── RTL / Hebrew layout (applied when <html dir="rtl"> is set) ─────────────── */
-[dir="rtl"] body { font-family: 'Inter', 'Arial Hebrew', 'David', sans-serif; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   RTL / HEBREW LAYOUT  (applied automatically when <html dir="rtl">)
+   Uses CSS Logical Properties wherever possible so a single rule works in
+   both directions.  Physical overrides are needed only where the layout
+   cannot be expressed logically (e.g. position:absolute panel placement).
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Flip the sidebar to the right */
-[dir="rtl"] .zf-app { flex-direction: row-reverse; }
-[dir="rtl"] .zf-sidebar { border-right: none; border-left: 1px solid var(--border); }
+/* ── Typography ──────────────────────────────────────────────────────────── */
+[dir="rtl"] body,
+[dir="rtl"] .zf-app {
+  font-family: 'Heebo', 'Inter', 'Arial Hebrew', sans-serif;
+  direction: rtl;
+}
+
+/* ── Sidebar — moves to the RIGHT in RTL via flex row-reverse ─────────────── */
+[dir="rtl"] .zf-app           { flex-direction: row-reverse; }
+[dir="rtl"] .zf-sidebar       { border-inline-end: 1px solid #E5E7EB; border-inline-start: none; }
 [dir="rtl"] .zf-sidebar-brand { flex-direction: row-reverse; }
-[dir="rtl"] .zf-nav-item { flex-direction: row-reverse; text-align: right; }
-[dir="rtl"] .zf-nav-icon { margin-right: 0; margin-left: 10px; }
-[dir="rtl"] .zf-nav-badge { margin-left: 0; margin-right: auto; }
-[dir="rtl"] .zf-user-card { flex-direction: row-reverse; text-align: right; }
+[dir="rtl"] .zf-nav           { text-align: right; }
+[dir="rtl"] .zf-nav-item      { flex-direction: row-reverse; text-align: right; }
+[dir="rtl"] .zf-nav-icon      { margin-inline-end: 0; margin-inline-start: 0; }
+[dir="rtl"] .zf-nav-badge     { margin-inline-start: auto; margin-inline-end: 0; }
+[dir="rtl"] .zf-sidebar-footer{ direction: rtl; }
+[dir="rtl"] .zf-user-card     { flex-direction: row-reverse; text-align: right; }
+[dir="rtl"] .zf-user-name,
+[dir="rtl"] .zf-user-role     { text-align: right; }
 
-/* Topbar */
-[dir="rtl"] .zf-topbar { flex-direction: row-reverse; }
+/* ── Topbar — Logo on right, controls on left ─────────────────────────────── */
+[dir="rtl"] .zf-topbar       { flex-direction: row-reverse; }
+[dir="rtl"] .zf-topbar-left  { flex-direction: row-reverse; }
 [dir="rtl"] .zf-topbar-right { flex-direction: row-reverse; }
 
-/* Cards and general layout */
-[dir="rtl"] .zf-card-title { flex-direction: row-reverse; }
-[dir="rtl"] .zf-card-icon { margin-right: 0; margin-left: 10px; }
-[dir="rtl"] .zf-btn svg { margin-right: 0; margin-left: 6px; }
-[dir="rtl"] .zf-stat-card { direction: rtl; text-align: right; }
-[dir="rtl"] .zf-stat-header { flex-direction: row-reverse; }
-[dir="rtl"] .zf-section-hdr { flex-direction: row-reverse; }
+/* Notification panel: bell is on the LEFT in RTL, so panel anchors left */
+[dir="rtl"] #notif-panel     { right: auto !important; left: 0 !important; }
+[dir="rtl"] #notif-badge     { right: auto !important; left: -4px !important; top: -4px !important; }
 
-/* Tables */
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+[dir="rtl"] .zf-card-title   { flex-direction: row-reverse; }
+[dir="rtl"] .zf-card-icon    { margin-inline-end: 0; margin-inline-start: 8px; }
+[dir="rtl"] .zf-section-hdr  { flex-direction: row-reverse; }
+[dir="rtl"] .zf-section-title { flex-direction: row-reverse; }
+[dir="rtl"] .zf-section-title svg { margin-inline-end: 0; margin-inline-start: 6px; }
+
+/* ── Stat cards ──────────────────────────────────────────────────────────── */
+[dir="rtl"] .zf-stat-card    { direction: rtl; text-align: right; }
+[dir="rtl"] .zf-stat-header  { flex-direction: row-reverse; }
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+[dir="rtl"] .zf-table        { direction: rtl; }
 [dir="rtl"] .zf-table th,
-[dir="rtl"] .zf-table td { text-align: right; }
+[dir="rtl"] .zf-table td     { text-align: right; }
 
-/* Inputs */
+/* ── Inputs & forms ──────────────────────────────────────────────────────── */
 [dir="rtl"] .zf-input,
-[dir="rtl"] .zf-textarea { text-align: right; direction: rtl; }
-[dir="rtl"] .zf-search-wrap svg { left: auto; right: 12px; }
-[dir="rtl"] .zf-search-wrap input { padding-left: 12px; padding-right: 36px; }
+[dir="rtl"] .zf-textarea     { text-align: right; direction: rtl; }
+[dir="rtl"] .zf-field-label  { text-align: right; display: block; }
+[dir="rtl"] .zf-search-wrap  { direction: rtl; }
+[dir="rtl"] .zf-search-wrap svg         { inset-inline-start: auto; inset-inline-end: 12px; left: auto; right: 12px; }
+[dir="rtl"] .zf-search-wrap input       { padding-inline-start: 12px; padding-inline-end: 36px; padding-left: 12px; padding-right: 36px; }
+[dir="rtl"] .zf-points-input-wrap       { direction: rtl; }
+[dir="rtl"] #point-input                { text-align: right; direction: rtl; }
 
-/* Badges and chips */
-[dir="rtl"] .zf-badge { direction: rtl; }
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+[dir="rtl"] .zf-btn          { flex-direction: row-reverse; }
+[dir="rtl"] .zf-btn svg      { margin-inline-end: 0; margin-inline-start: 6px; }
 
-/* Treatment page specifics */
-[dir="rtl"] .zf-treatment-hdr { flex-direction: row-reverse; }
-[dir="rtl"] .zf-field-label { text-align: right; display: block; }
-[dir="rtl"] #no-telegram-banner { flex-direction: row-reverse; }
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+[dir="rtl"] .zf-badge        { direction: rtl; }
 
-/* Drawer */
-[dir="rtl"] .zf-drawer-panel { right: auto; left: 0; transform: translateX(-100%); }
+/* ── Patients toolbar ────────────────────────────────────────────────────── */
+[dir="rtl"] .zf-patients-toolbar { flex-direction: row-reverse; }
+[dir="rtl"] .zf-filter-chips     { flex-direction: row-reverse; }
+
+/* ── Treatment header ─────────────────────────────────────────────────────── */
+[dir="rtl"] .zf-treatment-hdr    { flex-direction: row-reverse; }
+[dir="rtl"] #no-telegram-banner  { flex-direction: row-reverse; }
+[dir="rtl"] #no-telegram-banner > div > span { margin-inline-start: 6px; margin-inline-end: 0; margin-left: 0; margin-right: 6px; }
+
+/* ── Points input wrapper ─────────────────────────────────────────────────── */
+[dir="rtl"] .zf-points-tags     { direction: rtl; }
+[dir="rtl"] #points-wrap        { flex-direction: row-reverse; }
+
+/* ── Drawer — opens from LEFT in RTL ─────────────────────────────────────── */
+[dir="rtl"] .zf-drawer-panel    { right: auto; left: 0; transform: translateX(-100%); }
 [dir="rtl"] .zf-drawer.open .zf-drawer-panel { transform: translateX(0); }
-[dir="rtl"] .zf-drawer-header { flex-direction: row-reverse; }
+[dir="rtl"] .zf-drawer-header  { flex-direction: row-reverse; }
+[dir="rtl"] .zf-drawer-body    { direction: rtl; text-align: right; }
+
+/* ── Patient profile timeline ─────────────────────────────────────────────── */
+[dir="rtl"] .ehr-session-row   { direction: rtl; }
+[dir="rtl"] #timeline-list .ehr-session-row > div:first-child { order: 2; }
+[dir="rtl"] #timeline-list .ehr-session-row > div:last-child  { order: 1; }
+[dir="rtl"] .ehr-section-header { flex-direction: row-reverse; }
+[dir="rtl"] .ehr-section-title  { text-align: right; }
+/* Border accent stays on the visual start (right side in RTL) */
+[dir="rtl"] .zf-history-item   { border-inline-end: 3px solid var(--primary); border-inline-start: none; padding-inline-start: 0; padding-inline-end: 14px; }
+[dir="rtl"] .zf-history-header { flex-direction: row-reverse; }
+
+/* ── Charts section ───────────────────────────────────────────────────────── */
+[dir="rtl"] #charts-section     { direction: rtl; }
+[dir="rtl"] #charts-section > div:first-child { flex-direction: row-reverse; }
+[dir="rtl"] #donut-legend       { direction: rtl; }
+[dir="rtl"] #donut-legend > div { flex-direction: row-reverse; }
+
+/* ── Point info panel — flips to LEFT in RTL ─────────────────────────────── */
+[dir="rtl"] .zf-point-panel {
+  right: auto;
+  left: 0;
+  border-left: none;
+  border-right: 1px solid #E5E7EB;
+  box-shadow: 4px 0 16px rgba(0,0,0,0.08);
+}
+[dir="rtl"] .zf-point-panel-content { direction: rtl; text-align: right; }
+
+/* ── Messages chat bubbles ────────────────────────────────────────────────── */
+[dir="rtl"] .zf-msg-bubble.user {
+  border-bottom-right-radius: 12px;
+  border-bottom-left-radius: 4px;
+}
+[dir="rtl"] .zf-msg-bubble.ai {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 4px;
+}
+[dir="rtl"] .zf-convo-item { flex-direction: row-reverse; }
+
+/* ── General margin/padding mirroring ────────────────────────────────────── */
+[dir="rtl"] [style*="margin-left:auto"]  { margin-left: 0 !important; margin-right: auto !important; }
+[dir="rtl"] [style*="margin-left: auto"] { margin-left: 0 !important; margin-right: auto !important; }
+/* flex row-reverse handles most spacing; keep specific overrides below */
+[dir="rtl"] .zf-diag-conf-badge { margin-inline-start: auto; margin-inline-end: 0; }
+
+/* ── Session archive ──────────────────────────────────────────────────────── */
+/* In RTL the user row has row-reverse inline; double-reverse = row = correct */
+[dir="rtl"] .ehr-intake-user  { flex-direction: row !important; }
+/* AI row in RTL: push icon to the left (inline-end side) */
+[dir="rtl"] .ehr-intake-ai    { flex-direction: row-reverse; }
+/* Section header: push badge to inline-start (right in RTL) */
+[dir="rtl"] .ehr-section-header { direction: rtl; }
+[dir="rtl"] .ehr-section-header .zf-badge { margin-left: 0 !important; margin-right: auto !important; }
+/* TCM pattern accent bar: flip border from left to right */
+[dir="rtl"] .zf-card [style*="border-left:3px solid #0D9488"] {
+  border-left: none !important;
+  border-right: 3px solid #0D9488 !important;
+  border-radius: 8px 0 0 8px !important;
+}
+[dir="rtl"] .zf-card          { direction: rtl; text-align: right; }
 
 /* Language toggle chip in settings */
 .zf-lang-toggle {
@@ -1329,6 +1429,9 @@ body {
 .zf-toggle.on { background: #0D9488; }
 .zf-toggle.on::after { left: 18px; }
 
+[dir="rtl"] .zf-toggle::after     { left: auto; right: 2px; }
+[dir="rtl"] .zf-toggle.on::after  { left: auto; right: 18px; }
+
 /* Point info panel */
 .zf-point-panel {
   position: fixed;
@@ -1407,3 +1510,149 @@ body {
 #sched-sidebar {
   padding: 14px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPREHENSIVE RTL FIXES — PHASE 2
+   Covers physical properties that cannot be expressed as attribute selectors
+   and page-specific layout elements.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Search icon + input (sessions, messages, any page with .zf-search-wrap) ─ */
+[dir="rtl"] .zf-search-wrap svg {
+  left: auto !important; right: 12px !important;
+}
+[dir="rtl"] .zf-search-wrap input,
+[dir="rtl"] .zf-search-wrap .zf-input {
+  padding-left: 12px !important; padding-right: 36px !important;
+  text-align: right;
+}
+
+/* Sessions page search (uses #sessions-search-wrap) */
+[dir="rtl"] #sessions-search-wrap svg {
+  left: auto !important; right: 12px !important;
+}
+[dir="rtl"] #sessions-search-wrap input {
+  padding-left: 12px !important; padding-right: 36px !important;
+  text-align: right;
+}
+
+/* Messages page search (uses #messages-search-wrap) */
+[dir="rtl"] #messages-search-wrap svg {
+  left: auto !important; right: 10px !important;
+}
+[dir="rtl"] #messages-search-wrap input {
+  padding-left: 12px !important; padding-right: 30px !important;
+  text-align: right;
+}
+
+/* ── All inline tables without .zf-table class (sessions page renders raw <table>) ── */
+[dir="rtl"] table:not(.fc-scrollgrid):not(.fc-col-header) th,
+[dir="rtl"] table:not(.fc-scrollgrid):not(.fc-col-header) td {
+  text-align: right !important;
+}
+
+/* ── Messages page: patient list sidebar border flips from right to left ── */
+[dir="rtl"] #msg-patient-panel {
+  border-right: none !important;
+  border-left: 1px solid #E5E7EB !important;
+}
+
+/* ── Dashboard topbar action: margin-left:8px on Manage Availability link ── */
+[dir="rtl"] .zf-topbar-right .zf-btn-outline[href="/schedule"] {
+  margin-left: 0 !important;
+  margin-right: 8px !important;
+}
+
+/* ── Treatment page: physical margin-left on patient header meta area ── */
+[dir="rtl"] #treatment-root [style*="margin-left:auto"] {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+/* ── Inline progress bars (width:X% is direction-neutral, fine as-is) ── */
+
+/* ── border-left accent bars in clinical content ── */
+[dir="rtl"] [style*="border-left:3px solid"] {
+  border-left: none !important;
+  border-right: 3px solid !important;
+  border-right-color: inherit;
+}
+[dir="rtl"] [style*="border-left: 3px solid"] {
+  border-left: none !important;
+  border-right: 3px solid !important;
+  border-right-color: inherit;
+}
+/* Specific teal accent (TCM pattern blocks) */
+[dir="rtl"] [style*="border-left:3px solid #0D9488"],
+[dir="rtl"] [style*="border-left: 3px solid #0D9488"] {
+  border-right: 3px solid #0D9488 !important;
+  border-radius: 8px 0 0 8px !important;
+}
+/* followup and intake accent bars */
+[dir="rtl"] [style*="border-left:3px solid #2563EB"],
+[dir="rtl"] [style*="border-left: 3px solid #2563EB"] {
+  border-right: 3px solid #2563EB !important;
+}
+[dir="rtl"] [style*="border-left:2.5px solid #0D9488"],
+[dir="rtl"] [style*="border-left: 2.5px solid #0D9488"] {
+  border-right: 2.5px solid #0D9488 !important;
+}
+
+/* ── float:right (dashboard modal Clear button) ── */
+[dir="rtl"] [style*="float:right"]  { float: left !important; }
+[dir="rtl"] [style*="float: right"] { float: left !important; }
+
+/* ── Padding-left: values on specific elements that don't use .zf-search-wrap ── */
+/* sessions/patients search inputs have padding-left:36px inline */
+[dir="rtl"] input[style*="padding-left:36px"] {
+  padding-left: 12px !important;
+  padding-right: 36px !important;
+  text-align: right;
+}
+[dir="rtl"] input[style*="padding-left:30px"] {
+  padding-left: 12px !important;
+  padding-right: 30px !important;
+  text-align: right;
+}
+
+/* Fix SVG search icons positioned with left: */
+[dir="rtl"] svg[style*="left:12px"] {
+  left: auto !important; right: 12px !important;
+}
+[dir="rtl"] svg[style*="left:10px"] {
+  left: auto !important; right: 10px !important;
+}
+
+/* ── Session archive: ehr-section badge margin-left:auto ── */
+[dir="rtl"] .ehr-section-header [style*="margin-left:auto"],
+[dir="rtl"] .ehr-section-header [style*="margin-left: auto"] {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+/* ── Notification panel: ensure it renders LTR (English/Hebrew mixed content) ── */
+[dir="rtl"] #notif-panel { direction: rtl; text-align: right; }
+[dir="rtl"] #notif-panel > div { direction: rtl; }
+
+/* ── Settings page: success banner fixed to top-right → top-left in RTL ── */
+[dir="rtl"] #oauth-success-banner {
+  right: auto !important; left: 20px !important;
+}
+
+/* ── Topbar action area: items that use margin-left:8px for spacing ── */
+[dir="rtl"] .zf-topbar-left a[style*="margin-left"],
+[dir="rtl"] .zf-topbar-right a[style*="margin-left"] {
+  margin-left: 0 !important;
+  margin-right: 8px !important;
+}
+
+/* ── Messages thread: keep send button arrow pointing right in both directions ── */
+[dir="rtl"] #thread-input { direction: rtl; }
+[dir="rtl"] #reply-input  { text-align: right; direction: rtl; }
+
+/* ── zf-advice-item (lifestyle recommendations) ── */
+[dir="rtl"] .zf-advice-item { flex-direction: row-reverse; text-align: right; }
+
+/* ── Points section right column flip ── */
+[dir="rtl"] #points-progress { direction: rtl; }
+[dir="rtl"] #points-progress > div { flex-direction: row-reverse; }

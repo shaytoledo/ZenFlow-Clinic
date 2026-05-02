@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from web.deps import _get_session_therapist_id
-from web.gcal import GCalClient, is_authenticated, token_file_for
+from web.gcal import GCalClient, is_authenticated
 from web.repositories import appointment_repo
 from web.services import availability_service
 from web.services.cache_service import (
@@ -86,7 +86,7 @@ async def get_calendars(request: Request):
     if not is_authenticated(tid):
         raise HTTPException(status_code=401, detail="Not authenticated with Google Calendar")
     try:
-        client = await asyncio.to_thread(GCalClient.load, token_file_for(tid))
+        client = await asyncio.to_thread(GCalClient.load, tid)
         return JSONResponse(await asyncio.to_thread(client.get_calendar_list))
     except Exception as e:
         logger.error(f"get_calendars error: {e}")
@@ -159,7 +159,7 @@ async def get_events(request: Request, start: str, end: str):
         return JSONResponse(cached + appts)
 
     try:
-        client = await asyncio.to_thread(GCalClient.load, token_file_for(tid))
+        client = await asyncio.to_thread(GCalClient.load, tid)
         events = await asyncio.to_thread(client.get_events, start, end)
         await set_events_cached(tid, start, end, events)
         return JSONResponse(events + appts)
@@ -175,7 +175,7 @@ async def create_slot(request: Request, slot: SlotIn):
         fc_event = await asyncio.to_thread(availability_service.add_local, tid, slot.start, slot.end)
         return JSONResponse(fc_event)
     try:
-        client = await asyncio.to_thread(GCalClient.load, token_file_for(tid))
+        client = await asyncio.to_thread(GCalClient.load, tid)
         cal_id = await asyncio.to_thread(client.get_or_create_availability_cal)
         event = await asyncio.to_thread(client.create_availability, cal_id, slot.start, slot.end)
         # Invalidate all cache keys for this therapist (rolling + legacy per-range)
@@ -202,7 +202,7 @@ async def delete_slot(request: Request, event_id: str, calendarId: str = "local"
         await asyncio.to_thread(availability_service.remove_local, event_id)
         return JSONResponse({"ok": True})
     try:
-        client = await asyncio.to_thread(GCalClient.load, token_file_for(tid))
+        client = await asyncio.to_thread(GCalClient.load, tid)
         await asyncio.to_thread(client.delete_availability, calendarId, event_id)
         # Invalidate cache so next /api/events fetch is fresh
         try:

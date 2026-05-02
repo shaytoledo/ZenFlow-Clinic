@@ -1,26 +1,26 @@
 {% extends "base.html" %}
-{% block page_title_tag %}Dashboard{% endblock %}
-{% block page_heading %}Dashboard{% endblock %}
+{% block page_title_tag %}{{ t['dashboard_title'] if t else 'Dashboard' }}{% endblock %}
+{% block page_heading %}{{ t['dashboard_title'] if t else 'Dashboard' }}{% endblock %}
 
 {% block topbar_actions %}
 <button class="zf-btn zf-btn-primary" style="font-size:13px;padding:7px 14px;" onclick="openNewApptModal()">
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  New Appointment
+  {{ t['dashboard_new_appointment'] if t else 'New Appointment' }}
 </button>
-<a href="/schedule" class="zf-btn zf-btn-outline" style="font-size:13px;padding:7px 14px;margin-left:8px;">
+<a href="/schedule" class="zf-btn zf-btn-outline" style="font-size:13px;padding:7px 14px;margin-inline-start:8px;">
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-  Manage Availability
+  {{ t['dashboard_manage_availability'] if t else 'Manage Availability' }}
 </a>
 {% endblock %}
 
 {% block content %}
 <div style="padding: 28px;">
 
-  <!-- Therapist Alerts Banner (manual patients needing follow-up) -->
+  <!-- Therapist Alerts Banner -->
   <div id="alerts-banner" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:16px;gap:10px;align-items:flex-start;">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     <div style="flex:1;">
-      <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:4px;">Manual Follow-Up Required</div>
+      <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:4px;">{{ t['dashboard_manual_followup_title'] if t else 'Manual Follow-Up Required' }}</div>
       <div id="alerts-list" style="font-size:12px;color:#B45309;line-height:1.7;"></div>
     </div>
     <button onclick="dismissAlerts()" style="background:none;border:none;cursor:pointer;color:#B45309;font-size:18px;line-height:1;padding:0 0 0 8px;" title="Dismiss">×</button>
@@ -31,53 +31,53 @@
     <div class="zf-stat-card">
       <div class="zf-stat-header">
         <div>
-          <div class="zf-stat-label">Today's Appointments</div>
+          <div class="zf-stat-label">{{ t['dashboard_stat_today'] if t else "Today's Appointments" }}</div>
         </div>
         <div class="zf-stat-icon" style="background:#CCFBF1;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </div>
       </div>
       <div class="zf-stat-value" id="stat-today">—</div>
-      <div class="zf-stat-subtitle" id="stat-today-sub">loading…</div>
+      <div class="zf-stat-subtitle" id="stat-today-sub">{{ t['dashboard_loading'] if t else 'loading…' }}</div>
     </div>
 
     <div class="zf-stat-card">
       <div class="zf-stat-header">
         <div>
-          <div class="zf-stat-label">Intake Summaries</div>
+          <div class="zf-stat-label">{{ t['dashboard_stat_intake'] if t else 'Intake Summaries' }}</div>
         </div>
         <div class="zf-stat-icon" style="background:#FEF3C7;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.84A2.5 2.5 0 0 1 9.5 2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.84A2.5 2.5 0 0 0 14.5 2"/></svg>
         </div>
       </div>
       <div class="zf-stat-value" id="stat-intake">—</div>
-      <div class="zf-stat-subtitle">with AI intake notes</div>
+      <div class="zf-stat-subtitle">{{ t['dashboard_with_ai_notes'] if t else 'with AI intake notes' }}</div>
     </div>
 
     <div class="zf-stat-card">
       <div class="zf-stat-header">
         <div>
-          <div class="zf-stat-label">Total Patients</div>
+          <div class="zf-stat-label">{{ t['dashboard_stat_patients'] if t else 'Total Patients' }}</div>
         </div>
         <div class="zf-stat-icon" style="background:#DCFCE7;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
       </div>
       <div class="zf-stat-value" id="stat-patients">—</div>
-      <div class="zf-stat-subtitle" id="stat-patients-sub">in the system</div>
+      <div class="zf-stat-subtitle" id="stat-patients-sub">{{ t['dashboard_in_system'] if t else 'in the system' }}</div>
     </div>
 
     <div class="zf-stat-card">
       <div class="zf-stat-header">
         <div>
-          <div class="zf-stat-label">Total Sessions</div>
+          <div class="zf-stat-label">{{ t['dashboard_stat_sessions'] if t else 'Total Sessions' }}</div>
         </div>
         <div class="zf-stat-icon" style="background:#CCFBF1;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
       </div>
       <div class="zf-stat-value" id="stat-sessions">—</div>
-      <div class="zf-stat-subtitle">all time</div>
+      <div class="zf-stat-subtitle">{{ t['dashboard_all_time'] if t else 'all time' }}</div>
     </div>
   </div>
 
@@ -89,14 +89,14 @@
       <div class="zf-section-hdr">
         <div class="zf-section-title">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Today's Schedule
+          {{ t['dashboard_todays_schedule'] if t else "Today's Schedule" }}
         </div>
-        <a href="/schedule" class="zf-link">View Full Calendar →</a>
+        <a href="/schedule" class="zf-link">{{ t['dashboard_view_full_calendar'] if t else 'View Full Calendar →' }}</a>
       </div>
       <div id="today-list">
         <div class="zf-empty-state">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <p>Loading appointments…</p>
+          <p>{{ t['dashboard_loading_appointments'] if t else 'Loading appointments…' }}</p>
         </div>
       </div>
     </div>
@@ -106,11 +106,11 @@
       <div class="zf-section-hdr" style="margin-bottom:16px;">
         <div class="zf-section-title">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          Intake Alerts
+          {{ t['dashboard_intake_alerts'] if t else 'Intake Alerts' }}
         </div>
       </div>
       <div id="intake-list">
-        <p style="font-size:13px;color:#9CA3AF;text-align:center;padding:20px 0;">Loading…</p>
+        <p style="font-size:13px;color:#9CA3AF;text-align:center;padding:20px 0;">{{ t['dashboard_loading'] if t else 'Loading…' }}</p>
       </div>
     </div>
   </div>
@@ -120,23 +120,23 @@
     <div class="zf-section-hdr">
       <div class="zf-section-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Recent Appointments
+        {{ t['dashboard_recent_appointments'] if t else 'Recent Appointments' }}
       </div>
-      <a href="/patients" class="zf-link">All Patients →</a>
+      <a href="/patients" class="zf-link">{{ t['dashboard_all_patients'] if t else 'All Patients →' }}</a>
     </div>
     <div class="zf-table-wrap" style="border:none;box-shadow:none;border-radius:10px;overflow:hidden;margin-top:4px;">
       <table class="zf-table">
         <thead>
           <tr>
-            <th>Patient</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Intake</th>
-            <th>Action</th>
+            <th>{{ t['table_patient'] if t else 'Patient' }}</th>
+            <th>{{ t['table_date'] if t else 'Date' }}</th>
+            <th>{{ t['table_time'] if t else 'Time' }}</th>
+            <th>{{ t['table_intake'] if t else 'Intake' }}</th>
+            <th>{{ t['table_action'] if t else 'Action' }}</th>
           </tr>
         </thead>
         <tbody id="recent-table">
-          <tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:24px;">Loading…</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:24px;">{{ t['dashboard_loading'] if t else 'Loading…' }}</td></tr>
         </tbody>
       </table>
     </div>
@@ -148,50 +148,63 @@
 <div id="new-appt-overlay" style="display:none;position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:9000;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeNewApptModal()">
   <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-      <h3 style="font-size:17px;font-weight:700;color:#111827;">New Appointment</h3>
+      <h3 style="font-size:17px;font-weight:700;color:#111827;">{{ t['modal_new_appointment'] if t else 'New Appointment' }}</h3>
       <button onclick="closeNewApptModal()" style="background:none;border:none;cursor:pointer;color:#9CA3AF;padding:4px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <p style="font-size:12px;color:#6B7280;margin-bottom:18px;line-height:1.55;">Manually book a patient who isn't using the Telegram bot. The session will appear on the dashboard and in the schedule.</p>
+    <p style="font-size:12px;color:#6B7280;margin-bottom:18px;line-height:1.55;">{{ t['modal_new_appt_desc'] if t else 'Manually book a patient who is not using the Telegram bot.' }}</p>
 
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div style="position:relative;">
-        <label class="zf-field-label">Patient name *</label>
-        <input id="na-name" type="text" class="zf-input" placeholder="e.g. Maya Cohen — type to search existing patients"
+        <label class="zf-field-label">{{ t['modal_patient_name'] if t else 'Patient name *' }}</label>
+        <input id="na-name" type="text" class="zf-input" placeholder="{{ t['modal_patient_name'] if t else 'e.g. Maya Cohen' }}"
           autocomplete="off" oninput="onNameInput()" onblur="setTimeout(hideNameSuggestions, 200)" />
         <div id="na-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:200;background:#fff;border:1px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:180px;overflow-y:auto;margin-top:2px;"></div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Existing patients appear as you type. Type a new name to create a new patient.</div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">{{ t['modal_patient_name_hint'] if t else 'Existing patients appear as you type.' }}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
-          <label class="zf-field-label">Date *</label>
+          <label class="zf-field-label">{{ t['modal_date'] if t else 'Date *' }}</label>
           <select id="na-date" class="zf-input" onchange="onNewApptDateChange()">
-            <option value="">Loading…</option>
+            <option value="">{{ t['dashboard_loading'] if t else 'Loading…' }}</option>
           </select>
         </div>
         <div>
-          <label class="zf-field-label">Time *</label>
+          <label class="zf-field-label">{{ t['modal_time_label'] if t else 'Time *' }}</label>
           <select id="na-time" class="zf-input" disabled>
-            <option value="">Pick a date first</option>
+            <option value="">{{ t['modal_pick_date_first'] if t else 'Pick a date first' }}</option>
           </select>
         </div>
       </div>
-      <p id="na-noslots-hint" style="font-size:11px;color:#9CA3AF;margin:-4px 0 0;display:none;">No free slots in the next 4 weeks — open <a href="/schedule" style="color:#0D9488;">Schedule</a> first to mark availability.</p>
-      <div>
-        <label class="zf-field-label">Phone (optional)</label>
-        <input id="na-phone" type="tel" class="zf-input" placeholder="050-1234567" />
+      <p id="na-noslots-hint" style="font-size:11px;color:#9CA3AF;margin:-4px 0 0;display:none;">{{ t['modal_no_slots_hint'] if t else 'No free slots in the next 4 weeks.' }}</p>
+
+      <div id="na-existing-banner" style="display:none;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:10px;padding:10px 12px;font-size:12px;color:#065F46;">
+        <strong>{{ t['modal_existing_patient'] if t else 'Existing patient' }}</strong> — {{ t['modal_booking_added_to'] if t else 'booking will be added to' }} <span id="na-existing-summary"></span>.
+        <button onclick="clearExistingPatient()" style="background:none;border:none;color:#0D9488;cursor:pointer;font-size:11px;text-decoration:underline;float:inline-end;padding:0;">{{ t['modal_clear'] if t else 'Clear' }}</button>
       </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="zf-field-label">{{ t['modal_phone'] if t else 'Phone (optional)' }}</label>
+          <input id="na-phone" type="tel" class="zf-input" placeholder="050-1234567" />
+        </div>
+        <div>
+          <label class="zf-field-label">{{ t['modal_email'] if t else 'Email (optional)' }}</label>
+          <input id="na-email" type="email" class="zf-input" placeholder="patient@example.com" />
+        </div>
+      </div>
+      <p style="font-size:11px;color:#9CA3AF;margin:-8px 0 0;">{{ t['modal_contact_hint'] if t else 'Phone or email is required for follow-up.' }}</p>
       <div>
-        <label class="zf-field-label">Notes (optional)</label>
-        <textarea id="na-notes" class="zf-textarea" rows="3" placeholder="Reason for visit, referral source, anything you want recorded with this booking…"></textarea>
+        <label class="zf-field-label">{{ t['modal_notes'] if t else 'Notes (optional)' }}</label>
+        <textarea id="na-notes" class="zf-textarea" rows="3" placeholder="{{ t['modal_notes_placeholder'] if t else 'Reason for visit, referral source…' }}"></textarea>
       </div>
       <div id="na-error" style="display:none;color:#DC2626;font-size:12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:8px 10px;"></div>
     </div>
 
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
-      <button class="zf-btn zf-btn-outline" onclick="closeNewApptModal()" style="padding:9px 16px;">Cancel</button>
-      <button id="na-submit-btn" class="zf-btn zf-btn-primary" onclick="submitNewAppt()" style="padding:9px 18px;">Create Appointment</button>
+      <button class="zf-btn zf-btn-outline" onclick="closeNewApptModal()" style="padding:9px 16px;">{{ t['modal_cancel'] if t else 'Cancel' }}</button>
+      <button id="na-submit-btn" class="zf-btn zf-btn-primary" onclick="submitNewAppt()" style="padding:9px 18px;">{{ t['modal_create_appointment'] if t else 'Create Appointment' }}</button>
     </div>
   </div>
 </div>
@@ -200,11 +213,15 @@
 
 {% block extra_scripts %}
 <script>
-let _freeSlots = {};  // { "YYYY-MM-DD": ["09:00","10:00",...] }
+let _freeSlots = {};
 let _nameSearchTimer = null;
+let _selectedExistingPatient = null;
 
 async function onNameInput() {
   clearTimeout(_nameSearchTimer);
+  if (_selectedExistingPatient && document.getElementById('na-name').value !== _selectedExistingPatient.patient_name) {
+    clearExistingPatient();
+  }
   const q = document.getElementById('na-name').value.trim();
   if (q.length < 1) { hideNameSuggestions(); return; }
   _nameSearchTimer = setTimeout(async () => {
@@ -215,250 +232,248 @@ async function onNameInput() {
   }, 180);
 }
 
-function showNameSuggestions(names) {
+function showNameSuggestions(results) {
   const box = document.getElementById('na-suggestions');
-  if (names.length === 0) { hideNameSuggestions(); return; }
-  box.innerHTML = names.map(n =>
-    `<div style="padding:9px 14px;cursor:pointer;font-size:13px;color:#111827;border-bottom:1px solid #F3F4F6;"
-         onmousedown="pickName('${n.replace(/'/g, "&#39;")}')"
-         onmouseover="this.style.background='#F0FDFA'" onmouseout="this.style.background=''">${n}</div>`
-  ).join('');
+  if (!Array.isArray(results) || results.length === 0) { hideNameSuggestions(); return; }
   box.style.display = 'block';
+  box.innerHTML = results.map(p =>
+    `<div onclick="selectExistingPatient(${JSON.stringify(p).replace(/"/g,'&quot;')})"
+          style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #F3F4F6;"
+          onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background=''">${p.patient_name}</div>`
+  ).join('');
 }
 
 function hideNameSuggestions() {
-  document.getElementById('na-suggestions').style.display = 'none';
+  const b = document.getElementById('na-suggestions');
+  if (b) b.style.display = 'none';
 }
 
-function pickName(name) {
-  document.getElementById('na-name').value = name;
+function selectExistingPatient(p) {
+  _selectedExistingPatient = p;
+  document.getElementById('na-name').value = p.patient_name;
+  if (p.patient_phone) document.getElementById('na-phone').value = p.patient_phone;
+  if (p.patient_email) document.getElementById('na-email').value = p.patient_email;
+  const banner = document.getElementById('na-existing-banner');
+  const summary = document.getElementById('na-existing-summary');
+  if (banner && summary) {
+    summary.textContent = p.patient_name;
+    banner.style.display = 'block';
+  }
   hideNameSuggestions();
+}
+
+function clearExistingPatient() {
+  _selectedExistingPatient = null;
+  const banner = document.getElementById('na-existing-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 async function openNewApptModal() {
   document.getElementById('new-appt-overlay').style.display = 'flex';
-  document.getElementById('na-name').focus();
+  document.getElementById('na-name').value = '';
+  document.getElementById('na-phone').value = '';
+  document.getElementById('na-email').value = '';
+  document.getElementById('na-notes').value = '';
+  document.getElementById('na-error').style.display = 'none';
+  clearExistingPatient();
+  hideNameSuggestions();
   await loadFreeSlots();
-}
-
-async function loadFreeSlots() {
-  const dateSel = document.getElementById('na-date');
-  const timeSel = document.getElementById('na-time');
-  const hint    = document.getElementById('na-noslots-hint');
-  dateSel.innerHTML = '<option value="">Loading…</option>';
-  timeSel.innerHTML = '<option value="">Pick a date first</option>';
-  timeSel.disabled = true;
-  hint.style.display = 'none';
-
-  try {
-    const r = await fetch('/api/availability/free-slots');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    _freeSlots = await r.json();
-  } catch (e) {
-    _freeSlots = {};
-  }
-
-  const dates = Object.keys(_freeSlots).sort();
-  if (dates.length === 0) {
-    dateSel.innerHTML = '<option value="">No available dates</option>';
-    hint.style.display = 'block';
-    return;
-  }
-  // Friendly labels: "Sun, 27 Apr 2026"
-  const fmt = new Intl.DateTimeFormat('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
-  dateSel.innerHTML = '<option value="">— Select a date —</option>' +
-    dates.map(d => `<option value="${d}">${fmt.format(new Date(d + 'T00:00:00'))}</option>`).join('');
-}
-
-function onNewApptDateChange() {
-  const date = document.getElementById('na-date').value;
-  const timeSel = document.getElementById('na-time');
-  const hours = (date && _freeSlots[date]) || [];
-  if (hours.length === 0) {
-    timeSel.innerHTML = '<option value="">No times available</option>';
-    timeSel.disabled = true;
-    return;
-  }
-  timeSel.innerHTML = '<option value="">— Select a time —</option>' +
-    hours.map(h => `<option value="${h}">${h}</option>`).join('');
-  timeSel.disabled = false;
 }
 
 function closeNewApptModal() {
   document.getElementById('new-appt-overlay').style.display = 'none';
-  ['na-name','na-phone','na-notes'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('na-date').value = '';
-  document.getElementById('na-time').value = '';
-  document.getElementById('na-time').disabled = true;
-  document.getElementById('na-error').style.display = 'none';
 }
-async function submitNewAppt() {
-  const errBox = document.getElementById('na-error');
-  errBox.style.display = 'none';
 
-  const body = {
-    patient_name:  document.getElementById('na-name').value.trim(),
-    date:          document.getElementById('na-date').value,
-    time:          document.getElementById('na-time').value,
-    patient_phone: document.getElementById('na-phone').value.trim(),
-    notes:         document.getElementById('na-notes').value.trim(),
-  };
-  if (!body.patient_name || !body.date || !body.time) {
-    errBox.textContent = 'Patient name, date, and time are all required.';
-    errBox.style.display = 'block';
+async function loadFreeSlots() {
+  const dateEl = document.getElementById('na-date');
+  const timeEl = document.getElementById('na-time');
+  dateEl.innerHTML = '<option>{{ t["dashboard_loading"] if t else "Loading…" }}</option>';
+  timeEl.disabled = true;
+  try {
+    _freeSlots = await fetch('/api/availability/free-slots?weeks=4').then(r => r.json());
+    const dates = Object.keys(_freeSlots).sort();
+    if (dates.length === 0) {
+      dateEl.innerHTML = '<option value="">—</option>';
+      document.getElementById('na-noslots-hint').style.display = 'block';
+    } else {
+      document.getElementById('na-noslots-hint').style.display = 'none';
+      dateEl.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
+      onNewApptDateChange();
+    }
+  } catch (e) {
+    dateEl.innerHTML = '<option value="">Error loading slots</option>';
+  }
+}
+
+function onNewApptDateChange() {
+  const date = document.getElementById('na-date').value;
+  const timeEl = document.getElementById('na-time');
+  const hours = _freeSlots[date] || [];
+  if (hours.length === 0) {
+    timeEl.innerHTML = '<option value="">No slots</option>';
+    timeEl.disabled = true;
+  } else {
+    timeEl.disabled = false;
+    timeEl.innerHTML = hours.map(h => `<option value="${h}">${h}</option>`).join('');
+  }
+}
+
+async function submitNewAppt() {
+  const name  = document.getElementById('na-name').value.trim();
+  const date  = document.getElementById('na-date').value;
+  const time  = document.getElementById('na-time').value;
+  const phone = document.getElementById('na-phone').value.trim();
+  const email = document.getElementById('na-email').value.trim();
+  const notes = document.getElementById('na-notes').value.trim();
+  const errEl = document.getElementById('na-error');
+  errEl.style.display = 'none';
+
+  if (!name || !date || !time) {
+    errEl.textContent = 'Please fill in patient name, date, and time.';
+    errEl.style.display = 'block';
     return;
   }
 
   const btn = document.getElementById('na-submit-btn');
   btn.disabled = true;
-  btn.textContent = 'Creating…';
+  btn.textContent = '…';
+
   try {
+    const body = { patient_name: name, date, time, source: 'manual', notes };
+    if (_selectedExistingPatient) {
+      body.patient_id      = _selectedExistingPatient.patient_id;
+      body.patient_phone   = phone || _selectedExistingPatient.patient_phone || '';
+      body.patient_email   = email || _selectedExistingPatient.patient_email || '';
+    } else {
+      body.patient_phone = phone;
+      body.patient_email = email;
+    }
     const r = await fetch('/api/appointments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!r.ok) {
-      const detail = await r.json().catch(() => ({}));
-      throw new Error(detail.detail || ('HTTP ' + r.status));
-    }
     const data = await r.json();
-    closeNewApptModal();
-    // Jump straight into the treatment screen for the new appointment
-    if (data.treatment_url) window.location.href = data.treatment_url;
-    else loadDashboard();
+    if (!r.ok) {
+      errEl.textContent = data.detail || 'Could not create appointment.';
+      errEl.style.display = 'block';
+    } else {
+      closeNewApptModal();
+      await loadDashboard();
+    }
   } catch (e) {
-    errBox.textContent = e.message || String(e);
-    errBox.style.display = 'block';
+    errEl.textContent = 'Network error — please try again.';
+    errEl.style.display = 'block';
+  } finally {
     btn.disabled = false;
-    btn.textContent = 'Create Appointment';
+    btn.textContent = "{{ t['modal_create_appointment'] if t else 'Create Appointment' }}";
   }
 }
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && document.getElementById('new-appt-overlay').style.display === 'flex') closeNewApptModal();
-});
 
+// ── Dashboard data loader ────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
-    // Load all patients/appointments data
-    const [patientsResp, todayResp] = await Promise.all([
-      fetch('/api/patients').then(r => r.json()),
-      fetch('/api/appointments/today').then(r => r.json()),
-    ]);
+    const data = await fetch('/api/appointments/today').then(r => r.json());
 
-    // Stats
-    const totalSessions = patientsResp.reduce((s, p) => s + p.sessions, 0);
-    document.getElementById('stat-today').textContent = todayResp.length;
-    document.getElementById('stat-today-sub').textContent = todayResp.length === 1 ? '1 appointment today' : `${todayResp.length} appointments today`;
-    document.getElementById('stat-intake').textContent = todayResp.filter(a => a.intake_history && a.intake_history.length > 0).length;
-    document.getElementById('stat-patients').textContent = patientsResp.length;
-    document.getElementById('stat-patients-sub').textContent = patientsResp.length === 1 ? '1 patient' : `${patientsResp.length} total patients`;
-    document.getElementById('stat-sessions').textContent = totalSessions;
+    document.getElementById('stat-today').textContent = data.today_count ?? '—';
+    document.getElementById('stat-today-sub').textContent = data.today_label || '';
+    document.getElementById('stat-intake').textContent = data.intake_count ?? '—';
+    document.getElementById('stat-patients').textContent = data.patient_count ?? '—';
+    document.getElementById('stat-sessions').textContent = data.session_count ?? '—';
 
-    // Today's schedule
-    const todayList = document.getElementById('today-list');
-    if (todayResp.length === 0) {
-      todayList.innerHTML = `<div class="zf-empty-state">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>
-        <p>No appointments today</p>
-      </div>`;
-    } else {
-      todayList.innerHTML = todayResp.map(apt => {
-        const initials = apt.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-        const hasIntake = apt.intake_history && apt.intake_history.length > 0;
-        return `<div class="zf-apt-row">
-          <div class="zf-apt-time">${apt.time}</div>
-          <div class="zf-avatar">${initials}</div>
-          <div class="zf-apt-info">
-            <div class="zf-apt-name">${apt.patient_name}</div>
-            ${hasIntake ? '<div class="zf-apt-sub">Intake form submitted</div>' : '<div class="zf-apt-sub">No intake form</div>'}
-          </div>
-          ${hasIntake ? '<span class="zf-badge zf-badge-teal">Intake ✓</span>' : '<span class="zf-badge zf-badge-gray">No intake</span>'}
-          <a href="/treatment/${apt.patient_id}/${apt.date}/${apt.time.replace(':','-')}" class="zf-btn zf-btn-primary" style="padding:6px 14px;font-size:12px;">
-            Open Session
-          </a>
-        </div>`;
-      }).join('');
-    }
-
-    // Intake alerts (today's appointments with intake)
-    const intakeList = document.getElementById('intake-list');
-    const withIntake = todayResp.filter(a => a.intake_history && a.intake_history.length > 0);
-    if (withIntake.length === 0) {
-      intakeList.innerHTML = `<p style="font-size:13px;color:#9CA3AF;text-align:center;padding:20px 0;">No intake forms for today</p>`;
-    } else {
-      intakeList.innerHTML = withIntake.map(apt => {
-        const initials = apt.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-        return `<div class="zf-alert-row">
-          <div class="zf-avatar" style="width:30px;height:30px;font-size:11px;">${initials}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:600;color:#111827;">${apt.patient_name}</div>
-            <div style="font-size:12px;color:#9CA3AF;">at ${apt.time}</div>
-          </div>
-          <a href="/treatment/${apt.patient_id}/${apt.date}/${apt.time.replace(':','-')}" style="font-size:12px;color:#0D9488;font-weight:500;text-decoration:none;">Review →</a>
-        </div>`;
-      }).join('');
-    }
-
-    // Recent appointments table (all patients, last 10)
-    const allApts = patientsResp.flatMap(p => (p.recent || []).map(a => ({...a, patient_name: p.name, patient_id: p.id})));
-    // Sort by date desc
-    allApts.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
-    const recentApts = allApts.slice(0, 10);
-    const recentTable = document.getElementById('recent-table');
-    if (recentApts.length === 0) {
-      recentTable.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:24px;">No appointments yet</td></tr>`;
-    } else {
-      recentTable.innerHTML = recentApts.map(apt => {
-        const initials = apt.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-        const hasIntake = apt.intake_history && apt.intake_history.length > 0;
-        const d = new Date(apt.date);
-        const dateStr = d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
-        return `<tr>
-          <td>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div class="zf-avatar">${initials}</div>
-              <span style="font-weight:500;">${apt.patient_name}</span>
-            </div>
-          </td>
-          <td>${dateStr}</td>
-          <td>${apt.time}</td>
-          <td>${hasIntake ? '<span class="zf-badge zf-badge-teal">Yes</span>' : '<span class="zf-badge zf-badge-gray">No</span>'}</td>
-          <td>
-            <a href="/treatment/${apt.patient_id}/${apt.date}/${apt.time.replace(':','-')}" style="font-size:13px;color:#0D9488;font-weight:500;text-decoration:none;">View Session</a>
-          </td>
-        </tr>`;
-      }).join('');
-    }
-
+    renderTodayList(data.today || []);
+    renderIntakeList(data.intake_alerts || []);
+    renderRecentTable(data.recent || []);
   } catch (e) {
-    console.error('Dashboard load error:', e);
+    console.error('loadDashboard error', e);
   }
 }
-loadDashboard();
 
+function renderTodayList(items) {
+  const el = document.getElementById('today-list');
+  if (!items.length) {
+    el.innerHTML = `<div class="zf-empty-state">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <p>No appointments today</p></div>`;
+    return;
+  }
+  el.innerHTML = items.map(a => {
+    const dateSlug = a.date;
+    const timeSlug = (a.time || '').replace(':', '-');
+    const href = `/treatment/${a.patient_id}/${dateSlug}/${timeSlug}`;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #F3F4F6;">
+      <div style="background:#CCFBF1;color:#0D9488;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap;">${a.time}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:13px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.patient_name}</div>
+        ${a.summary ? `<div style="font-size:11px;color:#6B7280;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.summary}</div>` : ''}
+      </div>
+      <a href="${href}" style="font-size:12px;color:#0D9488;text-decoration:none;white-space:nowrap;">Open →</a>
+    </div>`;
+  }).join('');
+}
+
+function renderIntakeList(alerts) {
+  const el = document.getElementById('intake-list');
+  if (!alerts.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#9CA3AF;text-align:center;padding:20px 0;">All caught up ✓</p>';
+    return;
+  }
+  el.innerHTML = alerts.map(a => {
+    const dateSlug = a.date;
+    const timeSlug = (a.time || '').replace(':', '-');
+    const href = `/treatment/${a.patient_id}/${dateSlug}/${timeSlug}`;
+    return `<a href="${href}" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;text-decoration:none;color:inherit;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#D97706;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#111827;">${a.patient_name}</div>
+        <div style="font-size:11px;color:#6B7280;">${a.date} · ${a.time}</div>
+      </div>
+    </a>`;
+  }).join('');
+}
+
+function renderRecentTable(rows) {
+  const tbody = document.getElementById('recent-table');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:24px;">No recent appointments</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(a => {
+    const dateSlug = a.date;
+    const timeSlug = (a.time || '').replace(':', '-');
+    const href = `/treatment/${a.patient_id}/${dateSlug}/${timeSlug}`;
+    const intakeBadge = a.has_intake
+      ? `<span style="background:#FEF3C7;color:#D97706;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">AI</span>`
+      : `<span style="background:#F3F4F6;color:#9CA3AF;padding:2px 8px;border-radius:12px;font-size:11px;">—</span>`;
+    return `<tr>
+      <td style="font-weight:600;">${a.patient_name}</td>
+      <td>${a.date}</td>
+      <td>${a.time}</td>
+      <td>${intakeBadge}</td>
+      <td><a href="${href}" class="zf-link">Open →</a></td>
+    </tr>`;
+  }).join('');
+}
+
+// Alerts banner
 async function loadAlerts() {
   try {
-    const data = await fetch('/api/my/alerts').then(r => r.json());
-    const banner = document.getElementById('alerts-banner');
-    const list   = document.getElementById('alerts-list');
-    if (data.count > 0) {
-      list.innerHTML = data.alerts.map(a => {
-        const name = a.patient_name || 'Patient';
-        return `• <strong>${name}</strong> — session completed, no Telegram linked. Please follow up manually.`;
-      }).join('<br>');
-      banner.style.display = 'flex';
-    } else {
-      banner.style.display = 'none';
+    const d = await fetch('/api/my/alerts').then(r => r.json());
+    if (d.count > 0) {
+      document.getElementById('alerts-banner').style.display = 'flex';
+      document.getElementById('alerts-list').innerHTML = d.alerts.map(a =>
+        `<div>${a.patient_name} — ${a.message || 'requires follow-up'}</div>`
+      ).join('');
     }
   } catch (_) {}
 }
 
 async function dismissAlerts() {
-  await fetch('/api/my/alerts', { method: 'DELETE' });
   document.getElementById('alerts-banner').style.display = 'none';
+  try { await fetch('/api/my/alerts', { method: 'DELETE' }); } catch (_) {}
 }
 
+loadDashboard();
 loadAlerts();
 </script>
 {% endblock %}

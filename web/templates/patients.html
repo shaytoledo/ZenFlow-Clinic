@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block page_title_tag %}Patients{% endblock %}
-{% block page_heading %}Patients{% endblock %}
+{% block page_title_tag %}{{ t['patients_title'] if t else 'Patients' }}{% endblock %}
+{% block page_heading %}{{ t['patients_title'] if t else 'Patients' }}{% endblock %}
 
 {% block content %}
 <div style="padding: 28px;">
@@ -8,17 +8,17 @@
   <!-- Top bar: search + filter + add -->
   <div class="zf-patients-toolbar">
     <div class="zf-search-wrap">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" style="position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input id="patient-search" type="text" class="zf-input" placeholder="Search by name or Telegram ID…"
-        style="padding-left:36px;" oninput="filterPatients()" />
+      <input id="patient-search" type="text" class="zf-input" placeholder="{{ t['patients_search_placeholder'] if t else 'Search by name or Telegram ID…' }}"
+        style="padding-inline-start:36px;" oninput="filterPatients()" />
     </div>
 
     <div class="zf-filter-chips" id="filter-chips">
-      <button class="zf-chip active" onclick="setFilter('All', this)">All</button>
-      <button class="zf-chip" onclick="setFilter('Active', this)">Active</button>
-      <button class="zf-chip" onclick="setFilter('New', this)">New</button>
+      <button class="zf-chip active" onclick="setFilter('All', this)">{{ t['patients_filter_all'] if t else 'All' }}</button>
+      <button class="zf-chip" onclick="setFilter('Active', this)">{{ t['patients_filter_active'] if t else 'Active' }}</button>
+      <button class="zf-chip" onclick="setFilter('New', this)">{{ t['patients_filter_new'] if t else 'New' }}</button>
     </div>
   </div>
 
@@ -27,16 +27,16 @@
     <table class="zf-table">
       <thead>
         <tr>
-          <th>Patient</th>
-          <th>Last Appointment</th>
-          <th>Sessions</th>
-          <th>Intake Forms</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <th>{{ t['table_patient'] if t else 'Patient' }}</th>
+          <th>{{ t['table_last_appointment'] if t else 'Last Appointment' }}</th>
+          <th>{{ t['table_sessions'] if t else 'Sessions' }}</th>
+          <th>{{ t['table_intake_forms'] if t else 'Intake Forms' }}</th>
+          <th>{{ t['table_status'] if t else 'Status' }}</th>
+          <th>{{ t['table_actions'] if t else 'Actions' }}</th>
         </tr>
       </thead>
       <tbody id="patients-tbody">
-        <tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">Loading patients…</td></tr>
+        <tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">{{ t['patients_loading'] if t else 'Loading patients…' }}</td></tr>
       </tbody>
     </table>
   </div>
@@ -69,6 +69,33 @@
 
 {% block extra_scripts %}
 <script>
+const _ZF_PT = {
+  status_active:    "{{ t['status_active'] if t else 'Active' }}",
+  status_new:       "{{ t['status_new'] if t else 'New' }}",
+  status_inactive:  "{{ t['status_inactive'] if t else 'Inactive' }}",
+  btn_view:         "{{ t['btn_view'] if t else 'View' }}",
+  no_match:         "{{ t['patients_no_match'] if t else 'No patients match your search.' }}",
+  loading:          "{{ t['patients_loading'] if t else 'Loading patients…' }}",
+  error_loading:    "{{ t['sessions_error'] if t else 'Error loading patients' }}",
+  loading_history:  "{{ t['dashboard_loading'] if t else 'Loading…' }}",
+  no_history:       "{{ t['profile_no_sessions'] if t else 'No sessions found for this patient.' }}",
+  sessions_label:   "{{ t['profile_sessions'] if t else 'Sessions' }}",
+  completed_label:  "{{ t['profile_completed'] if t else 'Completed' }}",
+  diagnosis_label:  "{{ t['profile_with_diagnosis'] if t else 'With Diagnosis' }}",
+  latest_tcm:       "{{ t['profile_latest_tcm'] if t else 'Latest TCM Pattern:' }}",
+  trend_label:      "{{ t['chart_improvement_title'] if t else 'Improvement Over Time' }}",
+  ratings_label:    "{{ t['chart_feedback_based'] if t else 'Based on patient follow-up feedback' }}",
+  completed_badge:  "{{ t['archive_completed'] if t else 'Completed' }}",
+  in_progress:      "{{ t['archive_in_progress'] if t else 'In progress' }}",
+  intake_badge:     "{{ t['archive_intake_badge'] if t else 'Intake ✓' }}",
+  btn_open:         "{{ t['archive_open_editor'] if t else 'Open' }}",
+  much_worse:       "{{ t['chart_much_worse'] if t else 'Much worse' }}",
+  slightly_worse:   "{{ t['chart_slightly_worse'] if t else 'Slightly worse' }}",
+  same:             "{{ t['chart_same'] if t else 'About the same' }}",
+  noticeably_better:"{{ t['chart_noticeably_better'] if t else 'Noticeably better' }}",
+  much_better:      "{{ t['chart_much_better'] if t else 'Much better' }}",
+};
+
 let _allPatients = [];
 let _filter = 'All';
 
@@ -79,7 +106,7 @@ async function loadPatients() {
     renderTable();
   } catch(e) {
     document.getElementById('patients-tbody').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">Error loading patients</td></tr>';
+      `<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">${_ZF_PT.error_loading}</td></tr>`;
   }
 }
 
@@ -98,28 +125,33 @@ function renderTable() {
   const q = document.getElementById('patient-search').value.toLowerCase();
   let rows = _allPatients.filter(p => {
     const matchQ = p.name.toLowerCase().includes(q) || String(p.id).includes(q);
+    const active = p.active_count || 0;
     const matchF = _filter === 'All' ||
-      (_filter === 'New' && p.sessions <= 2) ||
-      (_filter === 'Active' && p.sessions > 2);
+      (_filter === 'New'    && active >= 1 && p.sessions === 1) ||
+      (_filter === 'Active' && active >= 1 && p.sessions > 1);
     return matchQ && matchF;
   });
 
   document.getElementById('patients-count').textContent =
-    `${rows.length} of ${_allPatients.length} patients`;
+    `${rows.length} / ${_allPatients.length}`;
 
   if (rows.length === 0) {
     document.getElementById('patients-tbody').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">No patients found</td></tr>';
+      `<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">${_ZF_PT.no_match}</td></tr>`;
     return;
   }
 
+  const locale = _ZF_LANG === 'he' ? 'he-IL' : 'en-GB';
   document.getElementById('patients-tbody').innerHTML = rows.map(p => {
     const initials = p.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-    const statusClass = p.sessions <= 2 ? 'zf-badge-blue' : 'zf-badge-green';
-    const statusLabel = p.sessions <= 2 ? 'New' : 'Active';
+    const active = p.active_count || 0;
+    const isNew    = active >= 1 && p.sessions === 1;
+    const isActive = active >= 1 && p.sessions > 1;
+    const statusClass = isNew ? 'zf-badge-blue' : (isActive ? 'zf-badge-green' : 'zf-badge-gray');
+    const statusLabel = isNew ? _ZF_PT.status_new : (isActive ? _ZF_PT.status_active : _ZF_PT.status_inactive);
     const lastDate = p.last_appointment
-      ? new Date(p.last_appointment).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
-      : 'Never';
+      ? new Date(p.last_appointment).toLocaleDateString(locale, {day:'numeric',month:'short',year:'numeric'})
+      : '—';
     return `<tr class="patient-row" onclick="window.location='/patients/${p.id}'"
               style="cursor:pointer;transition:background 0.15s;"
               onmouseenter="this.style.background='#F0FDFA'"
@@ -134,20 +166,20 @@ function renderTable() {
         </div>
       </td>
       <td>${lastDate}</td>
-      <td><span class="zf-badge zf-badge-gray">${p.sessions} session${p.sessions !== 1 ? 's' : ''}</span></td>
-      <td><span class="zf-badge ${p.intake_count > 0 ? 'zf-badge-teal' : 'zf-badge-gray'}">${p.intake_count} form${p.intake_count !== 1 ? 's' : ''}</span></td>
+      <td><span class="zf-badge zf-badge-gray">${p.sessions}</span></td>
+      <td><span class="zf-badge ${p.intake_count > 0 ? 'zf-badge-teal' : 'zf-badge-gray'}">${p.intake_count}</span></td>
       <td><span class="zf-badge ${statusClass}">${statusLabel}</span></td>
       <td onclick="event.stopPropagation()">
         <div style="display:flex;align-items:center;gap:8px;">
-          <a href="/patients/${p.id}" class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;">View Profile</a>
-          ${p.last_appointment ? `<a href="/treatment/${p.id}/${p.last_appointment}/${(p.last_time||'').replace(':','-')}" class="zf-btn zf-btn-primary" style="font-size:12px;padding:5px 12px;">Last Session</a>` : ''}
+          <a href="/patients/${p.id}" class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;">${_ZF_PT.btn_view}</a>
+          ${p.last_appointment ? `<a href="/treatment/${p.id}/${p.last_appointment}/${(p.last_time||'').replace(':','-')}" class="zf-btn zf-btn-primary" style="font-size:12px;padding:5px 12px;">→</a>` : ''}
         </div>
       </td>
     </tr>`;
   }).join('');
 }
 
-const IMPROVEMENT_LABELS = {1:'Much worse',2:'Slightly worse',3:'About the same',4:'Noticeably better',5:'Much better'};
+const IMPROVEMENT_LABELS = {1:_ZF_PT.much_worse,2:_ZF_PT.slightly_worse,3:_ZF_PT.same,4:_ZF_PT.noticeably_better,5:_ZF_PT.much_better};
 const IMPROVEMENT_COLORS = {1:'#DC2626',2:'#EA580C',3:'#D97706',4:'#16A34A',5:'#0D9488'};
 
 function _trendBar(sessions) {
@@ -164,7 +196,7 @@ function _trendBar(sessions) {
   }).join(' ');
   const lastColor = IMPROVEMENT_COLORS[vals[vals.length - 1]] || '#0D9488';
   return `<div style="margin:10px 0 4px;">
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.6px;margin-bottom:6px;">Improvement Trend</div>
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.6px;margin-bottom:6px;">${_ZF_PT.trend_label}</div>
     <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible;">
       <polyline points="${points}" fill="none" stroke="${lastColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       ${vals.map((v, i) => {
@@ -183,7 +215,7 @@ async function openDrawer(patientId) {
   const drawer = document.getElementById('patient-drawer');
   drawer.classList.remove('hidden');
   drawer.classList.add('open');
-  document.getElementById('drawer-body').innerHTML = '<p style="color:#9CA3AF;padding:20px;">Loading history…</p>';
+  document.getElementById('drawer-body').innerHTML = `<p style="color:#9CA3AF;padding:20px;">${_ZF_PT.loading_history}</p>`;
 
   try {
     const data = await fetch(`/api/patients/${patientId}`).then(r => r.json());
@@ -193,7 +225,7 @@ async function openDrawer(patientId) {
       `${data.appointments.length} session${data.appointments.length !== 1 ? 's' : ''} · ID: ${data.id}`;
 
     if (data.appointments.length === 0) {
-      document.getElementById('drawer-body').innerHTML = '<p style="color:#9CA3AF;text-align:center;padding:32px 0;">No appointment history</p>';
+      document.getElementById('drawer-body').innerHTML = `<p style="color:#9CA3AF;text-align:center;padding:32px 0;">${_ZF_PT.no_history}</p>`;
       return;
     }
 
@@ -208,21 +240,21 @@ async function openDrawer(patientId) {
     let statsHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
       <div style="text-align:center;background:#F0FDFA;border-radius:10px;padding:10px 8px;">
         <div style="font-size:20px;font-weight:800;color:#0D9488;">${sorted.length}</div>
-        <div style="font-size:11px;color:#6B7280;">Sessions</div>
+        <div style="font-size:11px;color:#6B7280;">${_ZF_PT.sessions_label}</div>
       </div>
       <div style="text-align:center;background:#F0FDF4;border-radius:10px;padding:10px 8px;">
         <div style="font-size:20px;font-weight:800;color:#16A34A;">${completed}</div>
-        <div style="font-size:11px;color:#6B7280;">Completed</div>
+        <div style="font-size:11px;color:#6B7280;">${_ZF_PT.completed_label}</div>
       </div>
       <div style="text-align:center;background:#FEF3C7;border-radius:10px;padding:10px 8px;">
         <div style="font-size:20px;font-weight:800;color:#D97706;">${withPattern}</div>
-        <div style="font-size:11px;color:#6B7280;">With Diagnosis</div>
+        <div style="font-size:11px;color:#6B7280;">${_ZF_PT.diagnosis_label}</div>
       </div>
     </div>`;
 
     if (lastPattern) {
       statsHtml += `<div style="background:#CCFBF1;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#065F46;">
-        <span style="font-weight:700;">Latest TCM Pattern:</span> ${lastPattern}
+        <span style="font-weight:700;">${_ZF_PT.latest_tcm}</span> ${lastPattern}
       </div>`;
     }
 
@@ -240,17 +272,17 @@ async function openDrawer(patientId) {
         ? `<span style="font-size:11px;font-weight:700;color:${IMPROVEMENT_COLORS[rating]||'#6B7280'};background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:2px 7px;">${rating}/5 ${IMPROVEMENT_LABELS[rating]||''}</span>`
         : '';
 
-      return `<div class="zf-history-item" style="border-left:3px solid ${idx === 0 ? '#0D9488' : '#E5E7EB'};">
+      return `<div class="zf-history-item" style="border-inline-start:3px solid ${idx === 0 ? '#0D9488' : '#E5E7EB'};">
         <div class="zf-history-header">
           <div style="flex:1;min-width:0;">
             <div class="zf-history-date">${dateStr} at ${apt.time}</div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;align-items:center;">
-              ${hasIntake ? '<span class="zf-badge zf-badge-teal" style="font-size:10px;">Intake ✓</span>' : ''}
-              ${apt.completed_at ? '<span class="zf-badge zf-badge-green" style="font-size:10px;">Completed</span>' : '<span class="zf-badge zf-badge-gray" style="font-size:10px;">In progress</span>'}
+              ${hasIntake ? `<span class="zf-badge zf-badge-teal" style="font-size:10px;">${_ZF_PT.intake_badge}</span>` : ''}
+              ${apt.completed_at ? `<span class="zf-badge zf-badge-green" style="font-size:10px;">${_ZF_PT.completed_badge}</span>` : `<span class="zf-badge zf-badge-gray" style="font-size:10px;">${_ZF_PT.in_progress}</span>`}
               ${ratingBadge}
             </div>
           </div>
-          <a href="/treatment/${data.id}/${apt.date}/${apt.time.replace(':','-')}" class="zf-btn zf-btn-outline" style="font-size:11px;padding:5px 10px;flex-shrink:0;">Open</a>
+          <a href="/treatment/${data.id}/${apt.date}/${apt.time.replace(':','-')}" class="zf-btn zf-btn-outline" style="font-size:11px;padding:5px 10px;flex-shrink:0;">${_ZF_PT.btn_open}</a>
         </div>
         ${apt.tcm_pattern ? `<div style="font-size:12px;color:#0D9488;font-weight:600;margin-top:6px;">🔬 ${apt.tcm_pattern}</div>` : ''}
         ${apt.used_points && apt.used_points.length > 0 ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;">
@@ -264,7 +296,7 @@ async function openDrawer(patientId) {
 
     document.getElementById('drawer-body').innerHTML = statsHtml + historyHtml;
   } catch(e) {
-    document.getElementById('drawer-body').innerHTML = '<p style="color:#EF4444;padding:20px;">Error loading patient history</p>';
+    document.getElementById('drawer-body').innerHTML = `<p style="color:#EF4444;padding:20px;">${_ZF_PT.error_loading}</p>`;
   }
 }
 

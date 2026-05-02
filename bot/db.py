@@ -120,7 +120,35 @@ def init_db() -> None:
         "ALTER TABLE treatment_notes ADD COLUMN pending_rec_send_at TEXT",
         # Stage-2 pipeline state: NULL | GENERATING | COMPLETED | FAILED
         "ALTER TABLE treatment_notes ADD COLUMN points_status TEXT",
+        # Email contact for manual patients (used by SMTP fallback)
+        "ALTER TABLE appointments ADD COLUMN patient_email TEXT",
     ]
+    # Per-therapist Google OAuth2 tokens (Calendar + Gmail) — Fernet-encrypted at rest
+    conn.execute("""CREATE TABLE IF NOT EXISTS google_tokens (
+        therapist_id TEXT PRIMARY KEY,
+        encrypted_token TEXT NOT NULL,
+        scopes TEXT,
+        updated_at TEXT DEFAULT (datetime('now'))
+    )""")
+    conn.commit()
+    # Notifications table — therapist-scoped alerts shown in the bell dropdown
+    conn.execute("""CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        therapist_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        severity TEXT DEFAULT 'info',
+        title TEXT NOT NULL,
+        body TEXT,
+        appointment_id INTEGER,
+        patient_id INTEGER,
+        patient_name TEXT,
+        persistent INTEGER DEFAULT 0,
+        read_at TEXT,
+        resolved_at TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_notif_therapist_unread ON notifications(therapist_id, read_at)")
+    conn.commit()
     for migration in _migrations:
         try:
             conn.execute(migration)

@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+{% block page_title_tag %}{{ patient.name }}{% endblock %}
+{% block page_heading %}{{ t['profile_title'] if t else 'Patient Profile' }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/patients" class="zf-btn zf-btn-outline" style="font-size:13px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  {{ t['btn_all_patients'] if t else 'All Patients' }}
+</a>
+{% endblock %}
+
+{% block content %}
+<div style="padding:28px;">
+
+  <!-- ── Patient Identity Block ─────────────────────────────────────────────── -->
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div class="zf-avatar" style="width:64px;height:64px;font-size:22px;font-weight:800;flex-shrink:0;">
+        {{ patient.name[:2] | upper }}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <h2 style="font-size:22px;font-weight:800;color:#111827;margin-bottom:4px;">{{ patient.name }}</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+          <span style="font-size:13px;color:#6B7280;">{{ t['profile_patient_id'] if t else 'Patient ID:' }} <strong style="color:#374151;">{{ patient.patient_id }}</strong></span>
+          {% if patient.patient_phone %}
+          <span style="font-size:13px;color:#6B7280;">📞 {{ patient.patient_phone }}</span>
+          {% endif %}
+          {% if patient.source == 'manual' %}
+          <span class="zf-badge zf-badge-gray" style="font-size:11px;">{{ t['profile_manual'] if t else 'Manual' }}</span>
+          {% else %}
+          <span class="zf-badge zf-badge-teal" style="font-size:11px;">{{ t['profile_telegram'] if t else 'Telegram' }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% set last_apt = patient.appointments[0] if patient.appointments else none %}
+      {% if last_apt and last_apt.date %}
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#9CA3AF;font-weight:700;">{{ t['profile_last_visit'] if t else 'Last Visit' }}</div>
+        <div style="font-size:14px;font-weight:700;color:#374151;margin-top:2px;">{{ last_apt.date }}</div>
+        <div style="font-size:12px;color:#6B7280;">{{ last_apt.time }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Stats row -->
+    {% set total = patient.appointments | length %}
+    {% set completed = patient.appointments | selectattr('completed_at') | list | length %}
+    {% set with_diagnosis = patient.appointments | selectattr('tcm_pattern') | list | length %}
+    {% set rated = patient.appointments | selectattr('followup_rating') | list %}
+    {% set avg_rating = (rated | map(attribute='followup_rating') | sum / rated | length) | round(1) if rated else none %}
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:20px;border-top:1px solid #F3F4F6;padding-top:16px;">
+      <div style="text-align:center;background:#F0FDFA;border-radius:10px;padding:12px 8px;">
+        <div style="font-size:24px;font-weight:800;color:#0D9488;">{{ total }}</div>
+        <div style="font-size:11px;color:#6B7280;font-weight:600;">{{ t['profile_sessions'] if t else 'Sessions' }}</div>
+      </div>
+      <div style="text-align:center;background:#F0FDF4;border-radius:10px;padding:12px 8px;">
+        <div style="font-size:24px;font-weight:800;color:#16A34A;">{{ completed }}</div>
+        <div style="font-size:11px;color:#6B7280;font-weight:600;">{{ t['profile_completed'] if t else 'Completed' }}</div>
+      </div>
+      <div style="text-align:center;background:#FEF3C7;border-radius:10px;padding:12px 8px;">
+        <div style="font-size:24px;font-weight:800;color:#D97706;">{{ with_diagnosis }}</div>
+        <div style="font-size:11px;color:#6B7280;font-weight:600;">{{ t['profile_with_diagnosis'] if t else 'With Diagnosis' }}</div>
+      </div>
+      {% if avg_rating %}
+      <div style="text-align:center;background:#EDE9FE;border-radius:10px;padding:12px 8px;">
+        <div style="font-size:24px;font-weight:800;color:#7C3AED;">{{ avg_rating }}</div>
+        <div style="font-size:11px;color:#6B7280;font-weight:600;">{{ t['profile_avg_improvement'] if t else 'Avg Improvement' }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Latest TCM Pattern ─────────────────────────────────────────────────── -->
+  {% set latest_pattern = namespace(value=none) %}
+  {% for apt in patient.appointments %}
+    {% if apt.tcm_pattern and not latest_pattern.value %}
+      {% set latest_pattern.value = apt.tcm_pattern %}
+    {% endif %}
+  {% endfor %}
+  {% if latest_pattern.value %}
+  <div style="background:#CCFBF1;border:1px solid #99F6E4;border-radius:10px;padding:10px 16px;margin-bottom:20px;font-size:13px;color:#065F46;">
+    <span style="font-weight:700;">{{ t['profile_latest_tcm'] if t else 'Latest TCM Pattern:' }}</span> {{ latest_pattern.value }}
+  </div>
+  {% endif %}
+
+  <!-- ── Clinical Timeline ──────────────────────────────────────────────────── -->
+  <div class="zf-card" style="padding:0;overflow:hidden;margin-bottom:20px;">
+    <div style="padding:16px 20px;border-bottom:1px solid #F3F4F6;">
+      <h3 style="font-size:15px;font-weight:700;color:#111827;margin:0;">{{ t['profile_clinical_timeline'] if t else 'Clinical Timeline' }}</h3>
+      <p style="font-size:12px;color:#9CA3AF;margin:4px 0 0;">{{ t['profile_timeline_hint'] if t else 'Click any session to view the full clinical record' }}</p>
+    </div>
+    <div id="timeline-list">
+      {% for apt in patient.appointments %}
+      {% set rating = apt.followup_rating or apt.manual_feedback_rating %}
+      {% set rating_colors = {1: '#DC2626', 2: '#EA580C', 3: '#D97706', 4: '#16A34A', 5: '#0D9488'} %}
+      {% set rating_labels = {1: t['chart_much_worse'] if t else 'Much worse', 2: t['chart_slightly_worse'] if t else 'Slightly worse', 3: t['chart_same'] if t else 'About the same', 4: t['chart_noticeably_better'] if t else 'Noticeably better', 5: t['chart_much_better'] if t else 'Much better'} %}
+      <a href="/patients/{{ patient.patient_id }}/session/{{ apt.appointment_id }}"
+         class="ehr-session-row"
+         style="display:flex;align-items:flex-start;gap:16px;padding:16px 20px;border-bottom:1px solid #F9FAFB;text-decoration:none;color:inherit;cursor:pointer;transition:background 0.15s;">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:3px;">
+          <div style="width:12px;height:12px;border-radius:50%;background:{{ '#0D9488' if loop.first else '#D1D5DB' }};border:2px solid white;box-shadow:0 0 0 2px {{ '#0D9488' if loop.first else '#D1D5DB' }};flex-shrink:0;"></div>
+          {% if not loop.last %}
+          <div style="width:2px;flex:1;min-height:32px;background:#F3F4F6;margin-top:4px;"></div>
+          {% endif %}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#111827;">{{ apt.date }} at {{ apt.time }}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center;">
+                {% if apt.intake_history %}<span class="zf-badge zf-badge-teal" style="font-size:10px;">{{ t['treatment_intake_badge'] if t else 'Intake ✓' }}</span>{% endif %}
+                {% if apt.completed_at %}<span class="zf-badge zf-badge-green" style="font-size:10px;">{{ t['treatment_completed'] if t else 'Completed' }}</span>
+                {% else %}<span class="zf-badge zf-badge-gray" style="font-size:10px;">{{ t['treatment_in_progress'] if t else 'In progress' }}</span>{% endif %}
+                {% if rating %}
+                <span style="font-size:11px;font-weight:700;color:{{ rating_colors[rating] }};background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:2px 7px;">
+                  {{ rating }}/5 {{ rating_labels[rating] }}
+                </span>
+                {% endif %}
+              </div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          {% if apt.tcm_pattern %}
+          <div style="font-size:12px;color:#0D9488;font-weight:600;margin-top:6px;">🔬 {{ apt.tcm_pattern }}</div>
+          {% endif %}
+          {% if apt.used_points %}
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
+            {% for pt in apt.used_points[:6] %}
+            <span style="font-size:10px;background:#E0F2F1;color:#0D9488;border-radius:4px;padding:1px 6px;font-weight:600;">
+              {% if pt is mapping %}{{ pt.code or pt.name or '' }}{% else %}{{ pt }}{% endif %}
+            </span>
+            {% endfor %}
+            {% if apt.used_points | length > 6 %}
+            <span style="font-size:10px;color:#9CA3AF;padding:1px 4px;">+{{ apt.used_points | length - 6 }} more</span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </a>
+      {% else %}
+      <div style="padding:40px;text-align:center;color:#9CA3AF;">{{ t['profile_no_sessions'] if t else 'No sessions found for this patient.' }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div><!-- end padding wrapper -->
+
+<!-- ── Treatment Impact Charts — full content width ───────────────────────── -->
+<div id="charts-section" style="padding:0 28px 28px;display:none;">
+
+  <!-- Section heading -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+    <div style="width:4px;height:22px;background:linear-gradient(180deg,#0D9488,#6366F1);border-radius:2px;"></div>
+    <h3 style="font-size:15px;font-weight:700;color:#111827;margin:0;">{{ t['chart_treatment_impact'] if t else 'Treatment Impact' }}</h3>
+    <span style="font-size:12px;color:#9CA3AF;">{{ t['chart_feedback_based'] if t else 'Based on patient follow-up feedback' }}</span>
+  </div>
+
+  <!-- Three equal-width chart cards in one row — column count set by JS -->
+  <div id="charts-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:stretch;">
+
+    <!-- Chart 1: Improvement Trend -->
+    <div class="zf-card" style="padding:18px 20px 14px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#111827;">{{ t['chart_improvement_title'] if t else 'Improvement Over Time' }}</div>
+          <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ t['chart_improvement_scale'] if t else '1 = much worse · 5 = much better' }}</div>
+        </div>
+        <div id="improvement-legend" style="font-size:11px;color:#6B7280;text-align:right;line-height:1.4;"></div>
+      </div>
+      <canvas id="improvement-chart" style="display:block;"></canvas>
+      <div id="improvement-x-labels" style="display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:#9CA3AF;"></div>
+    </div>
+
+    <!-- Chart 2: Pain Level -->
+    <div class="zf-card" id="pain-wrap" style="padding:18px 20px 14px;display:none;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;color:#111827;">{{ t['chart_pain_title'] if t else 'Pain Level Progress' }}</div>
+        <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ t['chart_pain_scale'] if t else '1 = no pain · 10 = severe' }}</div>
+      </div>
+      <canvas id="pain-chart" style="display:block;"></canvas>
+    </div>
+
+    <!-- Chart 3: Session Outcomes -->
+    <div class="zf-card" style="padding:18px 20px 14px;display:flex;flex-direction:column;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;color:#111827;">{{ t['chart_outcomes_title'] if t else 'Session Outcomes' }}</div>
+        <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">{{ t['chart_sessions'] if t else 'sessions' | title }}: {{ patient.appointments | length }}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex:1;">
+        <canvas id="donut-chart" width="110" height="110" style="flex-shrink:0;"></canvas>
+        <div id="donut-legend" style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:0;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const RAW  = {{ patient.appointments | tojson }};
+  const apts = [...RAW].reverse(); // chronological
+
+  const IMP_COLORS = { 1:'#DC2626', 2:'#EA580C', 3:'#D97706', 4:'#16A34A', 5:'#0D9488' };
+  const IMP_LABELS = {
+    1: '{{ t["chart_much_worse"] if t else "Much worse" }}',
+    2: '{{ t["chart_slightly_worse"] if t else "Slightly worse" }}',
+    3: '{{ t["chart_same"] if t else "About the same" }}',
+    4: '{{ t["chart_noticeably_better"] if t else "Noticeably better" }}',
+    5: '{{ t["chart_much_better"] if t else "Much better" }}'
+  };
+  const PAIN_COLOR = v => {
+    const t = (v - 1) / 9;
+    return `rgb(${Math.round(220 - t*198)},${Math.round(38 + t*125)},74)`;
+  };
+
+  // ── Pre-compute datasets ─────────────────────────────────────────────────
+  const improveData = apts.map(a => {
+    const fc  = a.followup_conversation;
+    const val = (fc && fc.improvement_rating) || a.followup_rating || a.manual_feedback_rating;
+    return val ? { date: a.date, val } : null;
+  }).filter(Boolean);
+
+  const painData = apts.map(a => {
+    const fc  = a.followup_conversation;
+    const val = fc && fc.pain_rating ? fc.pain_rating : null;
+    return val ? { date: a.date, val } : null;
+  }).filter(Boolean);
+
+  if (!improveData.length) return; // no feedback at all — keep section hidden
+
+  // ── Reveal all chart containers BEFORE measuring ────────────────────────
+  document.getElementById('charts-section').style.display = '';
+  if (painData.length) document.getElementById('pain-wrap').style.display = '';
+
+  // Set grid columns to exactly the number of visible charts (no empty slots)
+  const numCols = 2 + (painData.length > 0 ? 1 : 0);
+  document.getElementById('charts-grid').style.gridTemplateColumns = `repeat(${numCols}, 1fr)`;
+
+  // ── Wait two frames so the browser finishes layout, THEN draw ───────────
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    function canvasW(canvas) {
+      // True inner width of the card after its 20px L+R padding
+      return canvas.closest('.zf-card').getBoundingClientRect().width - 40;
+    }
+    function sizeCanvas(canvas, w, h) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width  = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width  = w + 'px';
+      canvas.style.height = h + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      return ctx;
+    }
+    function smoothPath(ctx, xs, ys) {
+      ctx.moveTo(xs[0], ys[0]);
+      for (let i = 0; i < xs.length - 1; i++) {
+        const cp1x = xs[i]   + (xs[i+1] - (xs[i-1] ?? xs[i])) / 6;
+        const cp1y = ys[i]   + (ys[i+1] - (ys[i-1] ?? ys[i])) / 6;
+        const cp2x = xs[i+1] - ((xs[i+2] ?? xs[i+1]) - xs[i]) / 6;
+        const cp2y = ys[i+1] - ((ys[i+2] ?? ys[i+1]) - ys[i]) / 6;
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, xs[i+1], ys[i+1]);
+      }
+    }
+    function drawGrid(ctx, pad, W, H, steps, max) {
+      ctx.save();
+      ctx.strokeStyle = '#F3F4F6'; ctx.lineWidth = 1;
+      for (let s = 0; s <= steps; s++) {
+        const y = pad.t + (s / steps) * (H - pad.t - pad.b);
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+        const val = max - (s / steps) * max;
+        ctx.fillStyle = '#D1D5DB';
+        ctx.font = '10px Inter,sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(Number.isInteger(val) ? val : val.toFixed(1), pad.l - 4, y + 3.5);
+      }
+      ctx.restore();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // CHART 1 — Improvement Trend Line
+    // ══════════════════════════════════════════════════════════════════════
+    {
+      const canvas = document.getElementById('improvement-chart');
+      const W   = canvasW(canvas);
+      const H   = 180;
+      const pad = { l:28, r:8, t:24, b:8 };
+      const ctx = sizeCanvas(canvas, W, H);
+      const iW  = W - pad.l - pad.r;
+      const iH  = H - pad.t - pad.b;
+
+      drawGrid(ctx, pad, W, H, 4, 5);
+
+      const n  = improveData.length;
+      const xs = improveData.map((_, i) => pad.l + (n < 2 ? iW/2 : (i/(n-1)) * iW));
+      const ys = improveData.map(d => pad.t + iH - ((d.val - 1) / 4) * iH);
+
+      // Gradient area fill
+      const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + iH);
+      grad.addColorStop(0, 'rgba(13,148,136,0.22)');
+      grad.addColorStop(1, 'rgba(13,148,136,0)');
+      ctx.beginPath(); smoothPath(ctx, xs, ys);
+      ctx.lineTo(xs[xs.length-1], pad.t + iH);
+      ctx.lineTo(xs[0], pad.t + iH);
+      ctx.closePath();
+      ctx.fillStyle = grad; ctx.fill();
+
+      // Smooth line
+      ctx.beginPath(); smoothPath(ctx, xs, ys);
+      ctx.strokeStyle = '#0D9488'; ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+
+      // Dots + value badges
+      improveData.forEach((d, i) => {
+        const bx = xs[i], by = ys[i] - 14;
+        ctx.fillStyle = IMP_COLORS[d.val] || '#0D9488';
+        ctx.beginPath(); ctx.roundRect(bx-8, by-7, 16, 14, 4); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Inter,sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText(d.val+'/5', bx, by+3);
+        ctx.beginPath(); ctx.arc(xs[i], ys[i], 5, 0, Math.PI*2);
+        ctx.fillStyle = IMP_COLORS[d.val] || '#0D9488'; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      });
+
+      // X-axis dates
+      document.getElementById('improvement-x-labels').innerHTML =
+        improveData.map(d => `<span>${(d.date||'').slice(5)}</span>`).join('');
+
+      // Legend chip
+      const last  = improveData[improveData.length - 1];
+      const trend = n > 1
+        ? (improveData[n-1].val > improveData[0].val ? '↑ Improving'
+          : improveData[n-1].val < improveData[0].val ? '↓ Declining' : '→ Stable')
+        : '';
+      document.getElementById('improvement-legend').innerHTML =
+        `<div style="font-weight:700;color:${IMP_COLORS[last.val]};">${IMP_LABELS[last.val]}</div>` +
+        (trend ? `<div style="font-size:11px;color:#9CA3AF;">${trend}</div>` : '');
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // CHART 2 — Pain Level Bars
+    // ══════════════════════════════════════════════════════════════════════
+    if (painData.length) {
+      const canvas = document.getElementById('pain-chart');
+      const W   = canvasW(canvas);
+      const H   = 180;
+      const pad = { l:28, r:8, t:24, b:16 };
+      const ctx = sizeCanvas(canvas, W, H);
+      const iW  = W - pad.l - pad.r;
+      const iH  = H - pad.t - pad.b;
+
+      drawGrid(ctx, pad, W, H, 5, 10);
+
+      const n    = painData.length;
+      const barW = Math.min(36, (iW / n) * 0.65);
+      const gap  = iW / n;
+
+      painData.forEach((d, i) => {
+        const x   = pad.l + gap * i + (gap - barW) / 2;
+        const bH  = (d.val / 10) * iH;
+        const y   = pad.t + iH - bH;
+        const col = PAIN_COLOR(d.val);
+        ctx.shadowColor = col + '44'; ctx.shadowBlur = 6;
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.roundRect(x, y, barW, bH, [4,4,0,0]); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#374151'; ctx.font = 'bold 10px Inter,sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText(d.val, x + barW/2, y - 4);
+        ctx.fillStyle = '#9CA3AF'; ctx.font = '9px Inter,sans-serif';
+        ctx.fillText((d.date||'').slice(5), x + barW/2, pad.t + iH + 12);
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // CHART 3 — Session Outcomes (concentric rings)
+    // ══════════════════════════════════════════════════════════════════════
+    {
+      const total      = RAW.length;
+      const completed  = RAW.filter(a => a.completed_at).length;
+      const withIntake = RAW.filter(a => a.intake_history?.length > 0).length;
+      const withRating = RAW.filter(a => a.followup_rating || a.manual_feedback_rating ||
+                                         a.followup_conversation?.improvement_rating).length;
+      const slices = [
+        { label:'Completed',      val:completed,  color:'#16A34A' },
+        { label:'With AI Intake', val:withIntake,  color:'#0D9488' },
+        { label:'With Follow-up', val:withRating,  color:'#7C3AED' },
+      ];
+
+      const canvas = document.getElementById('donut-chart');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = 120*dpr; canvas.height = 120*dpr;
+      const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+      const cx = 60, cy = 60, TWO_PI = Math.PI*2, start = -Math.PI/2;
+
+      if (total > 0) {
+        slices.forEach((s, i) => {
+          const r = 50 - i*14;
+          ctx.beginPath(); ctx.arc(cx, cy, r, start, start + TWO_PI);
+          ctx.strokeStyle = '#F3F4F6'; ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.stroke();
+          ctx.beginPath(); ctx.arc(cx, cy, r, start, start + (s.val/total)*TWO_PI);
+          ctx.strokeStyle = s.color; ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.stroke();
+        });
+        ctx.fillStyle = '#111827'; ctx.font = 'bold 18px Inter,sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(total, cx, cy - 6);
+        ctx.fillStyle = '#9CA3AF'; ctx.font = '9px Inter,sans-serif';
+        ctx.fillText('sessions', cx, cy + 9);
+      }
+
+      document.getElementById('donut-legend').innerHTML = slices.map(s =>
+        `<div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#374151;">${s.val} / ${total}</div>
+            <div style="font-size:11px;color:#9CA3AF;">${s.label}</div>
+          </div>
+        </div>`
+      ).join('');
+    }
+
+  })); // end double rAF
+
+  // ── Hover on timeline rows ───────────────────────────────────────────────
+  document.querySelectorAll('.ehr-session-row').forEach(row => {
+    row.addEventListener('mouseenter', () => row.style.background = '#F0FDFA');
+    row.addEventListener('mouseleave', () => row.style.background = '');
+  });
+})();
+</script>
+{% endblock %}

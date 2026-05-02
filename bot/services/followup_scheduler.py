@@ -246,7 +246,15 @@ async def _send_followup(appt: dict) -> None:
 # ── Pending recommendations dispatcher ───────────────────────────────────────
 
 async def _dispatch_pending_recommendations() -> None:
-    """Send any queued lifestyle recommendations whose send_at time has passed."""
+    """Send any queued lifestyle recommendations whose send_at time has passed.
+
+    Routing:
+      - Telegram-source patient → patient bot.
+      - Manual patient with email → SMTP fallback.
+      - Manual patient without email → persistent "missing contact" notification.
+
+    Each outcome creates a notification for the therapist.
+    """
     from datetime import datetime, timezone
     now_iso = datetime.now(timezone.utc).isoformat()
     try:
@@ -259,31 +267,80 @@ async def _dispatch_pending_recommendations() -> None:
         logger.error(f"list_due_pending_recommendations failed: {e}")
         return
 
+    if not due:
+        return
+
+    from web.services import notification_service
+
     for row in due:
-        apt_id   = row["appointment_id"]
-        pat_id   = row["patient_id"]
-        items    = row["pending_recommendations"]
-        source   = row.get("source", "telegram")
-        is_manual = (source == "manual") or (pat_id < 0)
+        apt_id      = row["appointment_id"]
+        pat_id      = row["patient_id"]
+        items       = row["pending_recommendations"]
+        source      = row.get("source", "telegram")
+        therapist_id = row.get("therapist_id", "") or ""
+        patient_name = row.get("patient_name", "Patient") or "Patient"
+        is_manual   = (source == "manual") or (pat_id < 0)
+
+        # Look up email for manual patients
+        patient_email = ""
+        if is_manual:
+            try:
+                row2 = await asyncio.to_thread(
+                    lambda: get_db().execute(
+                        "SELECT patient_email FROM appointments WHERE id=?", (apt_id,)
+                    ).fetchone()
+                )
+                patient_email = (dict(row2).get("patient_email") if row2 else "") or ""
+            except Exception:
+                patient_email = ""
 
         try:
-            if is_manual:
-                logger.info(
-                    f"pending recs for manual patient (appt={apt_id}) — skipping Telegram, "
-                    "therapist should send via email"
+            if is_manual and patient_email:
+                # SMTP fallback
+                from web.services.email_service import send_email, EmailNotConfigured
+                lines = [
+                    f"Hi {patient_name.split()[0] if patient_name else 'there'},",
+                    "",
+                    "Here are your post-treatment lifestyle recommendations:",
+                    "",
+                ]
+                for item in items:
+                    cat  = item.get("category", "")
+                    text = item.get("text", "")
+                    lines.append(f"• {cat}: {text}")
+                lines += ["", "Take care, and see you at your next session.", "", "— ZenFlow Clinic"]
+                body_text = "\n".join(lines)
+                try:
+                    await asyncio.to_thread(
+                        send_email,
+                        patient_email,
+                        "Your post-treatment recommendations — ZenFlow Clinic",
+                        body_text,
+                    )
+                    await asyncio.to_thread(
+                        notification_service.alert_recommendations_sent,
+                        therapist_id, apt_id, pat_id, patient_name, "email", patient_email,
+                    )
+                    logger.info(f"pending recommendations EMAILED: appt={apt_id} → {patient_email}")
+                except EmailNotConfigured:
+                    await asyncio.to_thread(
+                        notification_service.alert_send_failed,
+                        therapist_id, apt_id, pat_id, patient_name,
+                        "SMTP not configured — set SMTP_* env vars to enable email fallback.",
+                    )
+                    # Don't clear queue — let the therapist fix SMTP and retry on next pass
+                    continue
+
+            elif is_manual and not patient_email:
+                # Persistent alert — no contact info
+                await asyncio.to_thread(
+                    notification_service.alert_missing_contact,
+                    therapist_id, apt_id, pat_id, patient_name,
                 )
-                # Store a Redis alert so the dashboard shows a badge
-                r = get_async_redis()
-                therapist_id = row.get("therapist_id", "")
-                alert_key = f"zenflow:alerts:{therapist_id}"
-                alert_payload = json.dumps({
-                    "type": "manual_followup",
-                    "appointment_id": apt_id,
-                    "patient_name": row.get("patient_name", "Patient"),
-                })
-                await r.lpush(alert_key, alert_payload)
-                await r.expire(alert_key, 7 * 86400)
+                logger.info(f"pending recs for manual patient (appt={apt_id}) — no email/Telegram, alert raised")
+
             else:
+                # Telegram patient
                 from bot.interfaces import get_default_channel
                 channel = get_default_channel()
                 icon_map = {"Diet": "🥗", "Sleep": "🌙", "Exercise": "🏃", "Movement": "🚶", "Stress": "🧘"}
@@ -296,13 +353,24 @@ async def _dispatch_pending_recommendations() -> None:
                 lines.append("\n_Take care and see you at your next session! 🌿_")
                 message = "\n".join(lines)
                 await channel.send_text(recipient_id=pat_id, text=message)
+                await asyncio.to_thread(
+                    notification_service.alert_recommendations_sent,
+                    therapist_id, apt_id, pat_id, patient_name, "telegram", str(pat_id),
+                )
                 logger.info(f"pending recommendations sent: appt={apt_id} patient={pat_id}")
 
-            # Clear the queue entry regardless of outcome
+            # Clear the queue entry on success / handled-alert
             await asyncio.to_thread(clear_pending_recommendations, apt_id)
 
         except Exception as e:
             logger.error(f"dispatch_pending_recommendations failed for appt={apt_id}: {e}")
+            try:
+                await asyncio.to_thread(
+                    notification_service.alert_send_failed,
+                    therapist_id, apt_id, pat_id, patient_name, str(e),
+                )
+            except Exception:
+                pass
 
 
 # ── Loop ──────────────────────────────────────────────────────────────────────

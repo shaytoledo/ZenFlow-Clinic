@@ -7,6 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from web.deps import _active_therapist_or_redirect, templates
+from web.i18n import get_t
 from web.services.cache_service import prefetch_calendar
 
 router = APIRouter()
@@ -16,7 +17,8 @@ def _page(request: Request, template: str, active: str, **extra) -> HTMLResponse
     therapist, redirect = _active_therapist_or_redirect(request)
     if redirect:
         return RedirectResponse(redirect)
-    return templates.TemplateResponse(template, {"request": request, "active": active, "therapist": therapist, **extra})
+    t = get_t(therapist.get("language") if therapist else None)
+    return templates.TemplateResponse(template, {"request": request, "active": active, "therapist": therapist, "t": t, **extra})
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -25,7 +27,8 @@ async def index(request: Request, background_tasks: BackgroundTasks):
     if redirect:
         return RedirectResponse(redirect)
     background_tasks.add_task(prefetch_calendar, therapist["id"])
-    return templates.TemplateResponse("dashboard.html", {"request": request, "active": "dashboard", "therapist": therapist})
+    t = get_t(therapist.get("language"))
+    return templates.TemplateResponse("dashboard.html", {"request": request, "active": "dashboard", "therapist": therapist, "t": t})
 
 
 @router.get("/schedule", response_class=HTMLResponse)
@@ -34,7 +37,8 @@ async def schedule(request: Request, background_tasks: BackgroundTasks):
     if redirect:
         return RedirectResponse(redirect)
     background_tasks.add_task(prefetch_calendar, therapist["id"])
-    return templates.TemplateResponse("schedule.html", {"request": request, "active": "schedule", "therapist": therapist})
+    t = get_t(therapist.get("language"))
+    return templates.TemplateResponse("schedule.html", {"request": request, "active": "schedule", "therapist": therapist, "t": t})
 
 
 @router.get("/patients", response_class=HTMLResponse)

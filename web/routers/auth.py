@@ -27,7 +27,12 @@ from web.deps import (
     _verify_password,
     templates,
 )
-from web.gcal import exchange_code, get_auth_url, is_authenticated, token_file_for
+from web.gcal import (
+    delete_token_db,
+    exchange_code,
+    get_auth_url,
+    is_authenticated,
+)
 from web.services.cache_service import prefetch_calendar, purge_calendar
 
 router = APIRouter()
@@ -52,9 +57,7 @@ async def auth_disconnect(request: Request):
     if redirect:
         return RedirectResponse(redirect, status_code=303)
     tid = therapist["id"]
-    tf = token_file_for(tid)
-    if tf.exists():
-        tf.unlink()
+    await asyncio.to_thread(delete_token_db, tid)
     await purge_calendar(tid)
     return RedirectResponse("/settings", status_code=303)
 
@@ -67,15 +70,14 @@ async def auth_callback(request: Request, code: str = "", error: str = ""):
         return RedirectResponse("/settings?error=Google+auth+cancelled")
     try:
         therapist = _get_session_therapist(request)
-        tf = token_file_for(therapist["id"]) if therapist else None
-        exchange_code(code, tf)
-        # Pre-warm calendar cache after connecting
-        if therapist:
-            asyncio.create_task(prefetch_calendar(therapist["id"]))
+        if not therapist:
+            return RedirectResponse("/register")
+        await asyncio.to_thread(exchange_code, code, therapist["id"])
+        asyncio.create_task(prefetch_calendar(therapist["id"]))
     except Exception as e:
         logger.error(f"OAuth callback error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
-    return RedirectResponse("/")
+    return RedirectResponse("/settings?connected=1")
 
 
 # ── Registration ───────────────────────────────────────────────────────────────

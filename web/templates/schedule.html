@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block page_title_tag %}Schedule{% endblock %}
-{% block page_heading %}Availability Schedule{% endblock %}
+{% block page_title_tag %}{{ t['schedule_title'] if t else 'Schedule' }}{% endblock %}
+{% block page_heading %}{{ t['schedule_title'] if t else 'Schedule' }}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" />

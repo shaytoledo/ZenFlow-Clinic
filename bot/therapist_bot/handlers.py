@@ -9,6 +9,7 @@ from telegram.ext import ContextTypes
 from bot.config import TELEGRAM_TOKEN, THERAPIST_MAP
 from bot.patient_bot.services.relay import append_history
 from bot.therapist_bot.services.relay import get_current_patient, get_patient_for_msg
+from web.i18n import translate as _t
 
 _END_KB = InlineKeyboardMarkup([[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]])
 _REG_CODE_RE = re.compile(r"^[A-Z0-9]{8}$")
@@ -20,15 +21,25 @@ logger = logging.getLogger(__name__)
 _patient_bot = Bot(token=TELEGRAM_TOKEN)
 
 
+def _therapist_lang(user_id: int) -> str:
+    """Return the language preference for a known therapist, defaulting to 'en'."""
+    t = THERAPIST_MAP.get(user_id)
+    return (t.get("language") if t else None) or "en"
+
+
 async def start_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Respond to /start from a therapist."""
     user_id = update.effective_user.id
     if user_id in THERAPIST_MAP:
+        lang = _therapist_lang(user_id)
         name = THERAPIST_MAP[user_id].get("name", "Therapist")
         await update.message.reply_text(
-            f"👋 Hello, {name}! You're registered as a therapist.\n\n"
-            "Patient messages will appear here when they connect with you.\n"
-            "Reply directly to each forwarded message to respond."
+            _t("bot_greeting", lang, name=name) + "\n\n"
+            + ("Patient messages will appear here when they connect with you.\n"
+               "Reply directly to each forwarded message to respond."
+               if lang == "en" else
+               "הודעות מטופלים יופיעו כאן כשיתחברו אליך.\n"
+               "השב/י ישירות לכל הודעה מועברת כדי להגיב למטופל.")
         )
     else:
         await update.message.reply_text(
@@ -51,7 +62,7 @@ async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT
     text = (msg.text or "").strip()
 
     if user_id in THERAPIST_MAP:
-        await _handle_relay(msg, THERAPIST_MAP[user_id]["id"])
+        await _handle_relay(msg, THERAPIST_MAP[user_id]["id"], _therapist_lang(user_id))
     elif _REG_CODE_RE.match(text):
         await _handle_registration(msg, user_id, text)
     else:
@@ -61,7 +72,7 @@ async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT
         )
 
 
-async def _handle_relay(msg, therapist_id: str) -> None:
+async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
     """Route a therapist message back to the correct patient.
 
     If the therapist replies to a specific forwarded message, use that message's
@@ -73,32 +84,32 @@ async def _handle_relay(msg, therapist_id: str) -> None:
     if msg.reply_to_message:
         info = get_patient_for_msg(msg.reply_to_message.message_id)
         if info is None:
-            # The replied-to message has no relay key — fall back to current patient
             patient_id = get_current_patient(therapist_id)
             if patient_id is None:
-                await msg.reply_text(
-                    "⚠️ Could not find the patient for this message. "
-                    "They may have ended the chat or restarted the bot."
+                no_chat_msg = (
+                    "⚠️ Could not find the patient for this message. They may have ended the chat."
+                    if lang == "en" else
+                    "⚠️ לא נמצא המטופל להודעה זו. ייתכן שסיים/ה את השיחה."
                 )
+                await msg.reply_text(no_chat_msg)
                 return
         else:
-            # Security check: ensure the replying therapist owns this relay session
             if info.get("therapist_id") and info["therapist_id"] != therapist_id:
-                await msg.reply_text("⚠️ This message belongs to another therapist's session.")
+                await msg.reply_text(_t("bot_unauthorized", lang))
                 logger.warning(
                     f"Therapist {therapist_id} tried to reply to a message owned by {info['therapist_id']}"
                 )
                 return
             patient_id = info["patient_id"]
     else:
-        # No reply-to — use current active patient for this therapist
         patient_id = get_current_patient(therapist_id)
         if patient_id is None:
-            await msg.reply_text(
-                "⚠️ No active patient chat. Wait for a patient to message you first, "
-                "or reply directly to one of their forwarded messages.",
-                parse_mode="Markdown",
+            no_active_msg = (
+                "⚠️ No active patient chat. Wait for a patient to message you first."
+                if lang == "en" else
+                "⚠️ אין שיחת מטופל פעילה. המתן/י עד שמטופל ישלח הודעה."
             )
+            await msg.reply_text(no_active_msg, parse_mode="Markdown")
             return
 
     try:
@@ -109,7 +120,8 @@ async def _handle_relay(msg, therapist_id: str) -> None:
             reply_markup=_END_KB,
         )
         append_history(patient_id, "therapist", msg.text)
-        await msg.reply_text("✅ Delivered to patient.")
+        delivered_msg = "✅ Delivered." if lang == "en" else "✅ נמסר למטופל."
+        await msg.reply_text(delivered_msg)
         logger.info(f"Therapist reply delivered to patient {patient_id}")
     except Exception as e:
         logger.error(f"Could not deliver therapist reply to patient {patient_id}: {e}")
@@ -122,9 +134,7 @@ async def _handle_registration(msg, user_id: int, code: str) -> None:
     r = get_sync_redis()
     raw = r.get(f"zenflow:reg:{code}")
     if not raw:
-        await msg.reply_text(
-            "❌ Code not found or expired. Please request a new code from the clinic portal."
-        )
+        await msg.reply_text(_t("bot_registration_code_invalid", "en"))
         return
 
     info = json.loads(raw)
@@ -135,13 +145,23 @@ async def _handle_registration(msg, user_id: int, code: str) -> None:
         google_id=info.get("google_id") or "",
     )
     r.delete(f"zenflow:reg:{code}")
+    lang = entry.get("language") or "en"
 
-    await msg.reply_text(
-        f"✅ Welcome, {entry['name']}!\n\n"
-        "You're now registered as a therapist. When patients connect with you, "
-        "their messages will appear here.\n\n"
-        "Reply directly to each forwarded message to respond to the patient."
-    )
+    if lang == "he":
+        welcome = (
+            f"✅ ברוך הבא, {entry['name']}!\n\n"
+            "הרשמתך כמטפל/ת הושלמה. כאשר מטופלים יתחברו אליך, "
+            "הודעותיהם יופיעו כאן.\n\n"
+            "השב/י ישירות לכל הודעה מועברת כדי להגיב."
+        )
+    else:
+        welcome = (
+            f"✅ Welcome, {entry['name']}!\n\n"
+            "You're now registered as a therapist. When patients connect with you, "
+            "their messages will appear here.\n\n"
+            "Reply directly to each forwarded message to respond to the patient."
+        )
+    await msg.reply_text(welcome)
     logger.info(f"New therapist registered: {entry['name']} (id={entry['id']}, tg={user_id})")
 
 

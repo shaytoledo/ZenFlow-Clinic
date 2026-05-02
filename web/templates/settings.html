@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block page_title_tag %}Settings{% endblock %}
-{% block page_heading %}Settings{% endblock %}
+{% block page_title_tag %}{{ t['settings_title'] if t else 'Settings' }}{% endblock %}
+{% block page_heading %}{{ t['settings_title'] if t else 'Settings' }}{% endblock %}
 
 {% block content %}
 <div style="padding: 28px; max-width: 780px;">
@@ -11,81 +11,56 @@
       <div class="zf-card-icon" style="background:#CCFBF1;color:#0D9488;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       </div>
-      <span>System Status</span>
-      <span id="status-updated" style="margin-left:auto;font-size:11px;color:#9CA3AF;"></span>
-      <button onclick="loadStatus()" style="background:none;border:none;cursor:pointer;color:#9CA3AF;padding:2px 6px;font-size:12px;margin-left:8px;" title="Refresh">↻</button>
+      <span>{{ t['settings_system_status'] if t else 'System Status' }}</span>
+      <span id="status-updated" style="margin-inline-start:auto;font-size:11px;color:#9CA3AF;"></span>
+      <button onclick="loadStatus()" style="background:none;border:none;cursor:pointer;color:#9CA3AF;padding:2px 6px;font-size:12px;margin-inline-start:8px;" title="Refresh">↻</button>
     </div>
     <div id="status-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;">
       <div class="zf-status-item zf-status-loading">Loading…</div>
     </div>
   </div>
 
-  <!-- Language & Localization -->
+  <!-- Google Integration (Calendar + Gmail — single OAuth flow) -->
   <div class="zf-card" style="margin-bottom: 20px;">
     <div class="zf-card-title" style="margin-bottom:16px;">
-      <div class="zf-card-icon" style="background:#F3E8FF;color:#9333EA;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      </div>
-      <span>Language &amp; Localization</span>
-      <span id="lang-saved" style="margin-left:auto;font-size:11px;color:#16A34A;display:none;">Saved ✓</span>
-    </div>
-    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:16px;">
-      Switch the dashboard language. Hebrew activates full RTL layout.
-      The bot will also send messages in the selected language.
-    </p>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-      <div class="zf-lang-toggle" id="lang-toggle">
-        <button class="zf-lang-option" id="lang-en" onclick="setLanguage('en')">🇬🇧 English</button>
-        <button class="zf-lang-option" id="lang-he" onclick="setLanguage('he')">🇮🇱 עברית</button>
-      </div>
-      <span style="font-size:12px;color:#9CA3AF;">Changing language reloads the page.</span>
-    </div>
-  </div>
-
-  <!-- Google Calendar -->
-  <div class="zf-card" style="margin-bottom: 20px;">
-    <div class="zf-card-title" style="margin-bottom:16px;">
-      <div class="zf-card-icon" style="background:#DBEAFE;color:#2563EB;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      </div>
-      <span>Google Calendar Integration</span>
-      <span id="gcal-status" class="zf-badge" style="margin-left:auto;"></span>
-    </div>
-    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:16px;">Connect your Google Calendar to sync availability. Once connected, the Schedule page lets you mark available time slots that patients can book through the Telegram bot.</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <a href="/auth/login" class="zf-btn zf-btn-primary">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-        Connect / Reconnect Google
-      </a>
-      <form id="gcal-disconnect-form" method="post" action="/auth/disconnect" style="display:none;">
-        <button type="submit" class="zf-btn" style="background:#FEE2E2;color:#DC2626;border:none;" onclick="return confirm('Disconnect Google Calendar? Your local availability will be used instead.')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Disconnect Google
-        </button>
-      </form>
-      <a href="/schedule" class="zf-btn zf-btn-outline">
-        Open Availability Schedule →
-      </a>
-    </div>
-  </div>
-
-  <!-- Email / SMTP -->
-  <div class="zf-card" style="margin-bottom: 20px;">
-    <div class="zf-card-title" style="margin-bottom:16px;">
-      <div class="zf-card-icon" style="background:#EEF2FF;color:#4F46E5;">
+      <div class="zf-card-icon" style="background:#FEF3C7;color:#D97706;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       </div>
-      <span>Email (SMTP)</span>
-      <span id="smtp-status" class="zf-badge zf-badge-gray" style="margin-left:auto;">Checking…</span>
+      <span>{{ t['settings_google_title'] if t else 'Gmail &amp; Email Delivery' }}</span>
+      <span id="gmail-status-badge" class="zf-badge zf-badge-gray" style="margin-inline-start:auto;">{{ t['settings_checking'] if t else 'Checking…' }}</span>
     </div>
-    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:12px;">
-      Used to send lifestyle recommendations to manual patients who have no Telegram account.
-      Set <code style="background:#F3F4F6;padding:2px 5px;border-radius:4px;font-size:12px;">SMTP_HOST</code>,
-      <code style="background:#F3F4F6;padding:2px 5px;border-radius:4px;font-size:12px;">SMTP_USER</code>, and
-      <code style="background:#F3F4F6;padding:2px 5px;border-radius:4px;font-size:12px;">SMTP_PASSWORD</code> in your <code style="background:#F3F4F6;padding:2px 5px;border-radius:4px;font-size:12px;">.env</code> file.
-      For Gmail use an <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:#4F46E5;">App Password</a>.
+
+    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:14px;">
+      {{ t['settings_google_desc'] if t else 'Connect your Google account to send lifestyle recommendations to patients directly from your Gmail inbox. Uses OAuth2 with gmail.send and gmail.readonly scopes — no passwords stored, tokens encrypted at rest.' }}
     </p>
-    <div id="smtp-detail" style="font-size:12px;color:#6B7280;background:#F9FAFB;border-radius:8px;padding:10px 12px;"></div>
+
+    <!-- Scope pills -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+      <span style="font-size:11px;font-weight:600;background:#DCFCE7;color:#166534;padding:3px 10px;border-radius:999px;">📅 Google Calendar</span>
+      <span style="font-size:11px;font-weight:600;background:#DBEAFE;color:#1E40AF;padding:3px 10px;border-radius:999px;">✉️ Gmail Send</span>
+      <span style="font-size:11px;font-weight:600;background:#F3E8FF;color:#6B21A8;padding:3px 10px;border-radius:999px;">📥 Gmail Read</span>
+    </div>
+
+    <!-- Dynamic status detail -->
+    <div id="gmail-detail" style="font-size:12px;color:#6B7280;background:#F9FAFB;border-radius:8px;padding:10px 12px;margin-bottom:14px;"></div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <a href="/auth/login" class="zf-btn zf-btn-primary" id="gmail-connect-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        {{ t['settings_connect_google'] if t else 'Connect Google' }}
+      </a>
+      <form id="google-disconnect-form" method="post" action="/auth/disconnect" style="display:none;">
+        <button type="submit" class="zf-btn" style="background:#FEE2E2;color:#DC2626;border:none;"
+          onclick="return confirm('{{ t['settings_disconnect_confirm'] if t else 'Disconnect Google? Calendar sync and Gmail email delivery will both stop.' }}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          {{ t['settings_disconnect_google'] if t else 'Disconnect Google' }}
+        </button>
+      </form>
+      <a href="/schedule" class="zf-btn zf-btn-outline" style="font-size:13px;">
+        {{ t['settings_open_schedule'] if t else 'Open Availability Schedule →' }}
+      </a>
+    </div>
   </div>
 
   <!-- Telegram Bot -->
@@ -96,8 +71,8 @@
           <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.725 8.123c-.13.617-.473.77-.957.478l-2.65-1.951-1.279 1.23c-.141.141-.26.26-.534.26l.19-2.7 4.905-4.426c.213-.19-.047-.295-.33-.106l-6.062 3.817-2.612-.815c-.568-.177-.58-.568.119-.841l10.213-3.937c.473-.177.888.106.732.841z"/>
         </svg>
       </div>
-      <span>Telegram Bot</span>
-      <span id="bot-status" class="zf-badge zf-badge-gray" style="margin-left:auto;">Status Unknown</span>
+      <span>{{ t['settings_telegram_title'] if t else 'Telegram Bot' }}</span>
+      <span id="bot-status" class="zf-badge zf-badge-gray" style="margin-inline-start:auto;">{{ t['settings_status_unknown'] if t else 'Status Unknown' }}</span>
     </div>
     <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:16px;">The patient bot and therapist bot are configured via environment variables. Run <code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px;">python run.py</code> to start both bots.</p>
     <div id="bot-info" style="background:#F9FAFB;border-radius:10px;padding:14px;font-size:13px;color:#374151;line-height:1.8;">
@@ -111,28 +86,28 @@
       <div class="zf-card-icon" style="background:#CCFBF1;color:#0D9488;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </div>
-      <span>Clinic Information</span>
+      <span>{{ t['settings_clinic_title'] if t else 'Clinic Information' }}</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px;">
       <div>
-        <label class="zf-field-label">Clinic Name</label>
+        <label class="zf-field-label">{{ t['settings_clinic_name'] if t else 'Clinic Name' }}</label>
         <input type="text" class="zf-input" value="ZenFlow TCM Clinic" />
       </div>
       <div>
-        <label class="zf-field-label">Timezone</label>
+        <label class="zf-field-label">{{ t['settings_timezone'] if t else 'Timezone' }}</label>
         <input type="text" class="zf-input" value="Asia/Jerusalem" />
       </div>
       <div>
-        <label class="zf-field-label">Therapist Name</label>
+        <label class="zf-field-label">{{ t['settings_therapist_name'] if t else 'Therapist Name' }}</label>
         <input type="text" class="zf-input" placeholder="Your name…" />
       </div>
       <div>
-        <label class="zf-field-label">Session Duration (minutes)</label>
+        <label class="zf-field-label">{{ t['settings_session_duration'] if t else 'Session Duration (minutes)' }}</label>
         <input type="number" class="zf-input" value="60" />
       </div>
     </div>
     <div style="margin-top:14px;">
-      <button class="zf-btn zf-btn-primary" onclick="alert('Settings saved (persistence coming soon)')">Save Changes</button>
+      <button class="zf-btn zf-btn-primary" onclick="alert('Settings saved (persistence coming soon)')">{{ t['settings_save'] if t else 'Save Changes' }}</button>
     </div>
   </div>
 
@@ -144,18 +119,18 @@
           <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161l-1.725 8.123c-.13.617-.473.77-.957.478l-2.65-1.951-1.279 1.23c-.141.141-.26.26-.534.26l.19-2.7 4.905-4.426c.213-.19-.047-.295-.33-.106l-6.062 3.817-2.612-.815c-.568-.177-.58-.568.119-.841l10.213-3.937c.473-.177.888.106.732.841z"/>
         </svg>
       </div>
-      <span>Bot Activation</span>
+      <span>{{ t['settings_bot_activation_title'] if t else 'Bot Activation' }}</span>
     </div>
-    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:16px;">Generate a one-time code to link your Telegram account with the therapist bot. Valid for 10 minutes.</p>
+    <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:16px;">{{ t['settings_bot_activation_desc'] if t else 'Generate a one-time code to link your Telegram account with the therapist bot. Valid for 10 minutes.' }}</p>
     <div id="act-code-box" style="display:none;background:#F0FDF4;border:2px solid #6EE7B7;border-radius:12px;padding:16px;margin-bottom:14px;text-align:center;">
       <div id="act-code" style="font-family:'Courier New',monospace;font-size:28px;font-weight:700;letter-spacing:5px;color:#0D9488;"></div>
-      <button onclick="copyActCode()" style="margin-top:10px;background:#0D9488;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">Copy Code</button>
+      <button id="copy-code-btn" onclick="copyActCode()" style="margin-top:10px;background:#0D9488;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">{{ t['settings_copy_code'] if t else 'Copy Code' }}</button>
     </div>
     <div id="act-bot-links" style="display:none;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button class="zf-btn zf-btn-primary" onclick="generateActCode()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>
-        Generate Activation Code
+        {{ t['settings_generate_code'] if t else 'Generate Activation Code' }}
       </button>
       <a id="therapist-bot-btn" href="#" target="_blank" class="zf-btn zf-btn-outline" style="display:none;">Open Therapist Bot →</a>
       <a id="patient-bot-btn" href="#" target="_blank" class="zf-btn zf-btn-outline" style="display:none;">Open Patient Bot →</a>
@@ -168,7 +143,7 @@
       <div class="zf-card-icon" style="background:#FEE2E2;color:#DC2626;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       </div>
-      <span>Account</span>
+      <span>{{ t['settings_account_title'] if t else 'Account' }}</span>
     </div>
     <div style="display:flex;align-items:center;gap:14px;background:#F9FAFB;border-radius:10px;padding:14px;">
       <div style="width:40px;height:40px;background:#CCFBF1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#0D9488;">
@@ -187,7 +162,7 @@
       <div class="zf-card-icon" style="background:#FEE2E2;color:#DC2626;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
       </div>
-      <span>Data Management</span>
+      <span>{{ t['settings_data_title'] if t else 'Data Management' }}</span>
     </div>
     <p style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:14px;">Appointment data is stored locally in <code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px;">data/appointments/</code>. Each patient has a folder with one JSON file per appointment.</p>
     <div id="data-stats" style="background:#F9FAFB;border-radius:10px;padding:14px;font-size:13px;color:#374151;line-height:1.8;">
@@ -199,7 +174,7 @@
   <div style="margin-top:32px;padding-top:24px;border-top:1px solid #E5E7EB;">
     <a href="/logout" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 18px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='#FEE2E2';this.style.borderColor='#FCA5A5'" onmouseout="this.style.background='#FEF2F2';this.style.borderColor='#FECACA'">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Sign out of ZenFlow
+      {{ t['settings_signout'] if t else 'Sign out of ZenFlow' }}
     </a>
   </div>
 
@@ -207,6 +182,16 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+const _ZF_SETTINGS_T = {
+  copy_code:   "{{ t['settings_copy_code'] if t else 'Copy Code' }}",
+  copied:      "{{ t['settings_copied'] if t else '✓ Copied!' }}",
+  reconnect:   "{{ t['settings_reconnect_google'] if t else '↻ Reconnect Google' }}",
+  stat_patients: "{{ t['dashboard_stat_patients'] if t else 'Total Patients' }}",
+  stat_sessions: "{{ t['dashboard_stat_sessions'] if t else 'Total Sessions' }}",
+  stat_intake:   "{{ t['dashboard_stat_intake'] if t else 'Intake Summaries' }}",
+};
+</script>
 <style>
 .zf-status-item {
   display: flex;
@@ -252,57 +237,67 @@ async function loadStatus() {
 loadStatus();
 setInterval(loadStatus, 15000);
 
-// SMTP status
-(async function checkSmtp() {
-  const badge  = document.getElementById('smtp-status');
-  const detail = document.getElementById('smtp-detail');
+// Google (Calendar + Gmail) connection status
+(async function checkGoogle() {
+  const badge      = document.getElementById('gmail-status-badge');
+  const detail     = document.getElementById('gmail-detail');
+  const connectBtn = document.getElementById('gmail-connect-btn');
+  const disconnFrm = document.getElementById('google-disconnect-form');
   try {
-    const d = await fetch('/api/status').then(r => r.json());
-    // Re-use the system status response but check env directly via a lightweight probe
-    const r = await fetch('/api/my/alerts');  // just to see if server is alive
-    if (!r) throw new Error();
-  } catch (_) {}
-  // Read SMTP config status from a dedicated endpoint we expose via /api/status
-  // For now, check whether the status call itself includes smtp info; if not, check env
-  try {
-    const resp = await fetch('/api/smtp-status');
+    const resp = await fetch('/api/gmail-status');
     if (resp.ok) {
       const d = await resp.json();
-      if (d.configured) {
-        badge.textContent = '✓ Configured';
-        badge.className = 'zf-badge zf-badge-green';
-        detail.textContent = `Sending as: ${d.from || d.user} via ${d.host}:${d.port}`;
+      if (d.connected) {
+        badge.textContent  = '✓ Connected';
+        badge.className    = 'zf-badge zf-badge-green';
+        detail.innerHTML   = [
+          '<div style="display:flex;align-items:center;gap:8px;">',
+          '  <span style="width:8px;height:8px;background:#10B981;border-radius:50%;box-shadow:0 0 0 3px #D1FAE5;flex-shrink:0;"></span>',
+          '  <span style="color:#065F46;font-weight:600;">Google account connected</span>',
+          '</div>',
+          '<div style="margin-top:6px;color:#6B7280;">',
+          '  Calendar sync ✓ &nbsp;·&nbsp; Gmail send ✓ &nbsp;·&nbsp; Gmail read ✓',
+          '  <br>Tokens encrypted and stored securely in the database.',
+          '</div>',
+        ].join('');
+        connectBtn.innerHTML = connectBtn.innerHTML.replace(connectBtn.textContent.trim(), _ZF_SETTINGS_T.reconnect);
+        disconnFrm.style.display = '';
       } else {
-        badge.textContent = 'Not configured';
-        badge.className = 'zf-badge zf-badge-gray';
-        detail.innerHTML = 'Set <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASSWORD</code> in your .env file to enable email delivery.';
+        badge.textContent  = 'Not connected';
+        badge.className    = 'zf-badge zf-badge-gray';
+        detail.innerHTML   = [
+          '<div style="display:flex;align-items:center;gap:8px;">',
+          '  <span style="width:8px;height:8px;background:#EF4444;border-radius:50%;box-shadow:0 0 0 3px #FEE2E2;flex-shrink:0;"></span>',
+          '  <span style="color:#991B1B;font-weight:600;">Not connected</span>',
+          '</div>',
+          '<div style="margin-top:6px;color:#6B7280;">',
+          '  Click <strong>Connect Google</strong> to authorise Calendar sync and Gmail email delivery.',
+          '</div>',
+        ].join('');
+        disconnFrm.style.display = 'none';
       }
     }
   } catch (_) {
-    badge.textContent = 'Not configured';
-    badge.className = 'zf-badge zf-badge-gray';
-    detail.innerHTML = 'Set <code>SMTP_HOST</code>, <code>SMTP_USER</code>, and <code>SMTP_PASSWORD</code> in your .env to enable email.';
+    badge.textContent = 'Unknown';
+    badge.className   = 'zf-badge zf-badge-gray';
+    detail.textContent = 'Could not reach the server to check connection status.';
+  }
+})();
+
+// Flash a success banner if we just returned from the OAuth flow
+(function checkOAuthReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('connected')) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:16px;inset-inline-end:20px;z-index:9999;background:#ECFDF5;border:1px solid #6EE7B7;border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;color:#065F46;box-shadow:0 4px 12px rgba(0,0,0,.1);';
+    banner.textContent = '✓ Google account connected successfully';
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 4000);
+    history.replaceState({}, '', '/settings');
   }
 })();
 
 async function loadSettings() {
-  // GCal status
-  try {
-    const r = await fetch('/api/calendars');
-    if (r.ok) {
-      document.getElementById('gcal-status').textContent = '✓ Connected';
-      document.getElementById('gcal-status').className = 'zf-badge zf-badge-green';
-      document.getElementById('gcal-disconnect-form').style.display = '';
-    } else {
-      document.getElementById('gcal-status').textContent = 'Local calendar';
-      document.getElementById('gcal-status').className = 'zf-badge zf-badge-gray';
-      document.getElementById('gcal-disconnect-form').style.display = 'none';
-    }
-  } catch {
-    document.getElementById('gcal-status').textContent = 'Local calendar';
-    document.getElementById('gcal-status').className = 'zf-badge zf-badge-gray';
-    document.getElementById('gcal-disconnect-form').style.display = 'none';
-  }
 
   // Patients / data stats
   try {
@@ -311,9 +306,9 @@ async function loadSettings() {
     const withIntake = patients.reduce((s, p) => s + p.intake_count, 0);
     document.getElementById('data-stats').innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
-        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${patients.length}</div><div style="font-size:12px;color:#9CA3AF;">Total Patients</div></div>
-        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${totalSessions}</div><div style="font-size:12px;color:#9CA3AF;">Total Sessions</div></div>
-        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${withIntake}</div><div style="font-size:12px;color:#9CA3AF;">Intake Forms</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${patients.length}</div><div style="font-size:12px;color:#9CA3AF;">${_ZF_SETTINGS_T.stat_patients}</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${totalSessions}</div><div style="font-size:12px;color:#9CA3AF;">${_ZF_SETTINGS_T.stat_sessions}</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:#0D9488;">${withIntake}</div><div style="font-size:12px;color:#9CA3AF;">${_ZF_SETTINGS_T.stat_intake}</div></div>
       </div>`;
   } catch {
     document.getElementById('data-stats').textContent = 'Error loading data stats';
@@ -328,37 +323,6 @@ async function loadSettings() {
     </div>`;
 }
 loadSettings();
-
-// Language toggle
-(async function initLang() {
-  try {
-    const d = await fetch('/api/my/language').then(r => r.json());
-    applyLangToggle(d.language || 'en');
-  } catch (_) { applyLangToggle('en'); }
-})();
-
-function applyLangToggle(lang) {
-  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
-  document.getElementById('lang-he').classList.toggle('active', lang === 'he');
-}
-
-async function setLanguage(lang) {
-  applyLangToggle(lang);
-  try {
-    await fetch('/api/my/language', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: lang }),
-    });
-    const saved = document.getElementById('lang-saved');
-    saved.style.display = '';
-    setTimeout(() => { saved.style.display = 'none'; }, 1500);
-    // Reload so base.html re-renders with the new dir/lang attributes
-    setTimeout(() => window.location.reload(), 600);
-  } catch (e) {
-    alert('Could not save language preference: ' + e.message);
-  }
-}
 
 async function generateActCode() {
   try {
@@ -387,10 +351,10 @@ async function generateActCode() {
 
 function copyActCode() {
   const code = document.getElementById('act-code').textContent.trim();
+  const btn = document.getElementById('copy-code-btn');
   navigator.clipboard.writeText(code).then(() => {
-    const btn = event.target;
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => { btn.textContent = 'Copy Code'; }, 2000);
+    btn.textContent = _ZF_SETTINGS_T.copied;
+    setTimeout(() => { btn.textContent = _ZF_SETTINGS_T.copy_code; }, 2000);
   });
 }
 </script>

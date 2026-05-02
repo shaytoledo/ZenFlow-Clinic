@@ -119,6 +119,22 @@ async def get_active_relay_conversations() -> list[dict]:
                 try:
                     data = json.loads(raw)
                     if isinstance(data, dict) and data.get("patient_id"):
+                        pid = data["patient_id"]
+                        # Compute per-patient unread count
+                        hist_raw = await r.get(f"zenflow:relay:history:{pid}")
+                        lastseen_raw = await r.get(f"zenflow:relay:lastseen:{pid}")
+                        lastseen = float(lastseen_raw) if lastseen_raw else 0.0
+                        unread = 0
+                        if hist_raw:
+                            try:
+                                msgs = json.loads(hist_raw)
+                                unread = sum(
+                                    1 for m in msgs
+                                    if m.get("role") == "patient" and float(m.get("ts", 0)) > lastseen
+                                )
+                            except Exception:
+                                pass
+                        data["unread_count"] = unread
                         sessions.append(data)
                         valid = True
                 except Exception:
@@ -210,6 +226,16 @@ async def mark_conversation_read(patient_id: int) -> None:
         await r.set(f"zenflow:relay:lastseen:{patient_id}", str(time.time()), ex=86400)
     except Exception as e:
         logger.debug(f"mark_conversation_read error: {e}")
+
+
+async def mark_conversation_unread(patient_id: int) -> None:
+    """Force unread state for one patient by deleting the last-seen marker."""
+    try:
+        from bot.redis_client import get_async_redis
+        r = get_async_redis()
+        await r.delete(f"zenflow:relay:lastseen:{patient_id}")
+    except Exception as e:
+        logger.debug(f"mark_conversation_unread error: {e}")
 
 
 async def delete_conversation(patient_id: int) -> int:

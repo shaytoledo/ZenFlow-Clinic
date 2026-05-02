@@ -64,6 +64,7 @@ def aggregate_patients(appointments: list[dict]) -> list[dict]:
                 "id": pid,
                 "name": apt.get("patient_name", f"Patient {pid}"),
                 "sessions": 0,
+                "active_count": 0,
                 "intake_count": 0,
                 "last_appointment": None,
                 "last_time": None,
@@ -71,6 +72,8 @@ def aggregate_patients(appointments: list[dict]) -> list[dict]:
             }
         p = patients[pid]
         p["sessions"] += 1
+        if apt.get("status") == "active":
+            p["active_count"] += 1
         if apt.get("intake_history"):
             p["intake_count"] += 1
         apt_date = apt.get("date", "")
