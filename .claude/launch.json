@@ -3,21 +3,21 @@
   "configurations": [
     {
       "name": "Web Dashboard",
-      "runtimeExecutable": "C:/Users/shayt/PycharmProjects/Clinic/.venv/Scripts/python.exe",
+      "runtimeExecutable": "C:/Users/shayt/PycharmProjects/ZenFlow_Clinic/.venv/Scripts/python.exe",
       "runtimeArgs": ["startup/run_web.py"],
-      "port": 8000
+      "port": 8080
     },
     {
       "name": "Telegram Bots",
-      "runtimeExecutable": "C:/Users/shayt/PycharmProjects/Clinic/.venv/Scripts/python.exe",
+      "runtimeExecutable": "C:/Users/shayt/PycharmProjects/ZenFlow_Clinic/.venv/Scripts/python.exe",
       "runtimeArgs": ["startup/run_bots.py"],
       "port": 4040
     },
     {
       "name": "Full Launch (All Services)",
-      "runtimeExecutable": "C:/Users/shayt/PycharmProjects/Clinic/.venv/Scripts/python.exe",
+      "runtimeExecutable": "C:/Users/shayt/PycharmProjects/ZenFlow_Clinic/.venv/Scripts/python.exe",
       "runtimeArgs": ["startup/launch.py"],
-      "port": 8000
+      "port": 8080
     }
   ]
 }

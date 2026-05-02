@@ -4,7 +4,7 @@
 
 {% block topbar_actions %}
 <a href="/patients" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 12px;">
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="zf-rtl-flip"><polyline points="15 18 9 12 15 6"/></svg>
   {{ t['treatment_all_patients'] if t else 'All Patients' }}
 </a>
 {% endblock %}
@@ -36,7 +36,7 @@
   <!-- AI Suggested Points — full-width card grid -->
   <div id="ai-points-section" style="display:none;margin-top:20px;">
     <div class="zf-card" style="padding:0;overflow:hidden;">
-      <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #F3F4F6;">
+      <div class="zf-card-title" style="padding:16px 20px 12px;border-bottom:1px solid #F3F4F6;">
         <div class="zf-card-icon" style="background:linear-gradient(135deg,#CCFBF1,#A7F3D0);color:#0D9488;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
@@ -46,7 +46,7 @@
         </div>
         <div>
           <span style="font-size:14px;font-weight:700;color:#111827;">{{ t['treatment_ai_points_header'] if t else 'AI-Suggested Acupuncture Points' }}</span>
-          <span style="font-size:11px;color:#9CA3AF;margin-left:8px;" id="ai-points-count"></span>
+          <span style="font-size:11px;color:#9CA3AF;margin-inline-start:8px;" id="ai-points-count"></span>
         </div>
         <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#CCFBF1;color:#0D9488;padding:3px 10px;border-radius:999px;">{{ t['treatment_personalised_formula'] if t else 'Personalised Formula' }}</span>
       </div>
@@ -68,7 +68,7 @@
           </div>
           <span>{{ t['treatment_ai_intake_summary'] if t else 'AI Intake Summary' }}</span>
           <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#F3E8FF;color:#9333EA;padding:2px 8px;border-radius:999px;" id="intake-source-badge">{{ t['treatment_from_telegram'] if t else 'From Telegram Bot' }}</span>
-          <button onclick="toggleIntake()" id="intake-toggle" style="margin-left:8px;background:none;border:none;cursor:pointer;color:#9CA3AF;">
+          <button onclick="toggleIntake()" id="intake-toggle" style="margin-inline-start:8px;background:none;border:none;cursor:pointer;color:#9CA3AF;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" id="intake-chevron"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
         </div>
