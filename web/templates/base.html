@@ -8,6 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  {% if therapist and therapist.language == 'he' %}
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  {% endif %}
   <link rel="stylesheet" href="/static/style.css" />
   {% block extra_head %}{% endblock %}
 </head>
@@ -27,28 +30,28 @@
         <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
         </svg>
-        <span>Dashboard</span>
+        <span>{{ t['nav_dashboard'] if t else 'Dashboard' }}</span>
       </a>
 
       <a href="/schedule" class="zf-nav-item {% if active == 'schedule' %}active{% endif %}">
         <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
         </svg>
-        <span>Schedule</span>
+        <span>{{ t['nav_schedule'] if t else 'Schedule' }}</span>
       </a>
 
       <a href="/patients" class="zf-nav-item {% if active == 'patients' %}active{% endif %}">
         <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
-        <span>Patients</span>
+        <span>{{ t['nav_patients'] if t else 'Patients' }}</span>
       </a>
 
       <a href="/messages" class="zf-nav-item {% if active == 'messages' %}active{% endif %}">
         <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        <span>Messages</span>
+        <span>{{ t['nav_messages'] if t else 'Messages' }}</span>
         <span id="msg-badge" class="zf-nav-badge hidden">0</span>
       </a>
 
@@ -56,14 +59,14 @@
         <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
-        <span>Session History</span>
+        <span>{{ t['nav_sessions'] if t else 'Session History' }}</span>
       </a>
 
       <a href="/settings" class="zf-nav-item {% if active == 'settings' %}active{% endif %}">
         <svg class="zf-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
-        <span>Settings</span>
+        <span>{{ t['nav_settings'] if t else 'Settings' }}</span>
       </a>
     </nav>
 
@@ -72,7 +75,7 @@
         <div class="zf-user-avatar">{{ (therapist.name[:2] if therapist else 'DR') | upper }}</div>
         <div style="flex:1;min-width:0;">
           <span class="zf-user-name">{{ therapist.name if therapist else 'Guest' }}</span>
-          <span class="zf-user-role">Acupuncturist · ZenFlow</span>
+          <span class="zf-user-role">{{ t['role_label'] if t else 'Acupuncturist · ZenFlow' }}</span>
         </div>
       </div>
     </div>
@@ -86,6 +89,37 @@
       </div>
       <div class="zf-topbar-right">
         {% block topbar_actions %}{% endblock %}
+
+        <!-- Language switcher -->
+        <button id="lang-toggle-btn"
+                onclick="toggleLanguage()"
+                title="{{ t['lang_switch_title'] if t else 'Switch language' }}"
+                style="background:none;border:1px solid #E5E7EB;border-radius:10px;padding:6px 11px;cursor:pointer;color:#374151;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;letter-spacing:.4px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span>{{ t['lang_switch_label'] if t else 'HE' }}</span>
+        </button>
+
+        <!-- Notification bell -->
+        <div style="position:relative;margin:0 2px;">
+          <button id="notif-bell" onclick="toggleNotifPanel(event)" title="{{ t['notif_title'] if t else 'Notifications' }}"
+                  style="background:none;border:1px solid #E5E7EB;border-radius:10px;padding:7px 10px;cursor:pointer;color:#374151;display:flex;align-items:center;position:relative;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notif-badge" class="hidden" style="position:absolute;top:-4px;right:-4px;background:#DC2626;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:999px;min-width:16px;text-align:center;line-height:14px;"></span>
+          </button>
+          <div id="notif-panel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:360px;max-height:480px;overflow-y:auto;background:#fff;border:1px solid #E5E7EB;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.16);z-index:1000;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #F3F4F6;">
+              <strong style="font-size:13px;color:#111827;">{{ t['notif_title'] if t else 'Notifications' }}</strong>
+              <button onclick="markAllNotifsRead()" style="background:none;border:none;color:#0D9488;cursor:pointer;font-size:11px;text-decoration:underline;padding:0;">{{ t['notif_mark_all_read'] if t else 'Mark all read' }}</button>
+            </div>
+            <div id="notif-list" style="padding:6px 0;">
+              <div style="padding:24px 16px;text-align:center;color:#9CA3AF;font-size:12px;">{{ t['notif_loading'] if t else 'Loading…' }}</div>
+            </div>
+          </div>
+        </div>
+
         <div class="zf-topbar-date">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <span id="topbar-datetime"></span>
@@ -101,13 +135,41 @@
 </div>
 
 <script>
+  const _ZF_LANG = "{{ therapist.language if therapist and therapist.language else 'en' }}";
+  const _ZF_NOTIF_STR = {
+    empty:   "{{ t['notif_empty'] if t else 'No notifications.' }}",
+    failed:  "{{ t['notif_failed'] if t else 'Failed to load notifications.' }}",
+    resolved:"{{ t['notif_mark_resolved'] if t else 'Mark resolved' }}",
+    just_now:"{{ t['notif_just_now'] if t else 'just now' }}",
+    min_ago: "{{ t['notif_min_ago'] if t else 'min ago' }}",
+    h_ago:   "{{ t['notif_h_ago'] if t else 'h ago' }}",
+  };
+
+  // ── Language toggler ────────────────────────────────────────────────────────
+  async function toggleLanguage() {
+    const next = _ZF_LANG === 'en' ? 'he' : 'en';
+    try {
+      const r = await fetch('/api/my/language', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: next }),
+      });
+      if (r.ok) {
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error('Language switch failed', e);
+    }
+  }
+
   // Live clock in topbar
   function updateClock() {
     const el = document.getElementById('topbar-datetime');
     if (el) {
       const now = new Date();
-      el.textContent = now.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })
-        + ' · ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+      const locale = _ZF_LANG === 'he' ? 'he-IL' : 'en-GB';
+      el.textContent = now.toLocaleDateString(locale, { weekday:'short', day:'numeric', month:'short' })
+        + ' · ' + now.toLocaleTimeString(locale, { hour:'2-digit', minute:'2-digit' });
     }
   }
   updateClock();
@@ -126,10 +188,116 @@
         badge.textContent = '';
         badge.classList.add('hidden');
       }
-    } catch (_) { /* ignore transient errors */ }
+    } catch (_) { }
   }
   refreshMsgBadge();
   setInterval(refreshMsgBadge, 8000);
+
+  // ── Notification bell ───────────────────────────────────────────────────────
+  async function refreshNotifBadge() {
+    const badge = document.getElementById('notif-badge');
+    if (!badge) return;
+    try {
+      const d = await fetch('/api/notifications/unread-count').then(r => r.ok ? r.json() : null);
+      if (d && d.unread > 0) {
+        badge.textContent = d.unread > 99 ? '99+' : d.unread;
+        badge.classList.remove('hidden');
+      } else {
+        badge.textContent = '';
+        badge.classList.add('hidden');
+      }
+    } catch (_) {}
+  }
+
+  async function toggleNotifPanel(ev) {
+    ev.stopPropagation();
+    const panel = document.getElementById('notif-panel');
+    const open = panel.style.display === 'block';
+    panel.style.display = open ? 'none' : 'block';
+    if (!open) await loadNotifList();
+  }
+
+  document.addEventListener('click', (ev) => {
+    const panel = document.getElementById('notif-panel');
+    const bell  = document.getElementById('notif-bell');
+    if (!panel || !bell) return;
+    if (panel.style.display === 'block' && !panel.contains(ev.target) && !bell.contains(ev.target)) {
+      panel.style.display = 'none';
+    }
+  });
+
+  function _notifIcon(severity) {
+    const map = {
+      success: { color: '#16A34A', bg: '#DCFCE7', svg: '<polyline points="20 6 9 17 4 12"/>' },
+      warning: { color: '#D97706', bg: '#FEF3C7', svg: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
+      error:   { color: '#DC2626', bg: '#FEE2E2', svg: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' },
+      info:    { color: '#2563EB', bg: '#DBEAFE', svg: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
+    };
+    const m = map[severity] || map.info;
+    return `<div style="width:28px;height:28px;border-radius:8px;background:${m.bg};color:${m.color};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">${m.svg}</svg></div>`;
+  }
+
+  function _formatNotifTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso.replace(' ', 'T') + 'Z');
+    const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
+    if (diffMin < 1)  return _ZF_NOTIF_STR.just_now;
+    if (diffMin < 60) return diffMin + ' ' + _ZF_NOTIF_STR.min_ago;
+    if (diffMin < 24 * 60) return Math.floor(diffMin / 60) + ' ' + _ZF_NOTIF_STR.h_ago;
+    const locale = _ZF_LANG === 'he' ? 'he-IL' : 'en-GB';
+    return d.toLocaleDateString(locale, { day:'numeric', month:'short' });
+  }
+
+  async function loadNotifList() {
+    const list = document.getElementById('notif-list');
+    try {
+      const d = await fetch('/api/notifications').then(r => r.json());
+      const items = d.items || [];
+      if (items.length === 0) {
+        list.innerHTML = `<div style="padding:24px 16px;text-align:center;color:#9CA3AF;font-size:12px;">${_ZF_NOTIF_STR.empty}</div>`;
+        return;
+      }
+      list.innerHTML = items.map(n => {
+        const unread = !n.read_at;
+        const persist = n.persistent && !n.resolved_at;
+        const bgColor = persist ? '#FEFCE8' : (unread ? '#F0FDFA' : '#fff');
+        const action = persist
+          ? `<button onclick="resolveNotif(${n.id})" style="background:#0D9488;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:6px;">${_ZF_NOTIF_STR.resolved}</button>`
+          : '';
+        return `<div onclick="markNotifRead(${n.id})" style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid #F3F4F6;cursor:pointer;background:${bgColor};">
+          ${_notifIcon(n.severity || 'info')}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:${unread ? '600' : '500'};color:#111827;line-height:1.35;">${(n.title||'').replace(/[<>]/g, '')}</div>
+            ${n.body ? `<div style="font-size:11px;color:#6B7280;margin-top:2px;line-height:1.45;">${(n.body||'').replace(/[<>]/g, '')}</div>` : ''}
+            <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">${_formatNotifTime(n.created_at)}</div>
+            ${action}
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      list.innerHTML = `<div style="padding:24px 16px;text-align:center;color:#DC2626;font-size:12px;">${_ZF_NOTIF_STR.failed}</div>`;
+    }
+  }
+
+  async function markNotifRead(id) {
+    try { await fetch(`/api/notifications/${id}/read`, { method: 'POST' }); } catch (_) {}
+    refreshNotifBadge();
+  }
+
+  async function markAllNotifsRead() {
+    try { await fetch('/api/notifications/read-all', { method: 'POST' }); } catch (_) {}
+    refreshNotifBadge();
+    await loadNotifList();
+  }
+
+  async function resolveNotif(id) {
+    try { await fetch(`/api/notifications/${id}/resolve`, { method: 'POST' }); } catch (_) {}
+    refreshNotifBadge();
+    await loadNotifList();
+  }
+
+  refreshNotifBadge();
+  setInterval(refreshNotifBadge, 15000);
 </script>
 {% block extra_scripts %}{% endblock %}
 </body>

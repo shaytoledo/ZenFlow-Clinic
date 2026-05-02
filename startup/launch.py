@@ -16,12 +16,12 @@ What it does:
 
 Individual services (for development):
     python startup/run_bots.py    # Telegram bots only
-    python startup/run_web.py     # Web dashboard only  →  http://localhost:8000
+    python startup/run_web.py     # Web dashboard only  →  http://localhost:8080
 
 Services started:
     Telegram patient bot  — patients book, cancel, and chat
     Telegram therapist bot — therapist receives and replies to patient messages
-    Web dashboard         — http://localhost:8000
+    Web dashboard         — http://localhost:8080
       /               dashboard (today's schedule + stats)
       /schedule       FullCalendar availability manager
       /patients       patient list + session history
@@ -261,8 +261,8 @@ print("   Launching services")
 print(f"{DIVIDER}")
 print("   Bot logs   →  logs/botLogs.text")
 print("   Web logs   →  logs/webLogs.text")
-print("   Dashboard  →  http://localhost:8000")
-print("   Register   →  http://localhost:8000/register")
+print("   Dashboard  →  http://localhost:8080")
+print("   Register   →  http://localhost:8080/register")
 print("   Stop with Ctrl+C\n")
 
 os.chdir(ROOT)

@@ -23,7 +23,7 @@ from web.deps import (
     _get_therapist_bot_username,
     _load_therapists_fresh,
 )
-from web.gcal import is_authenticated
+from web.gcal import is_authenticated, is_gmail_authenticated
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
@@ -127,6 +127,20 @@ async def get_smtp_status():
         "port": cfg["port"] if configured else 587,
         "user": cfg["user"] if configured else "",
         "from": cfg["from"] if configured else "",
+    })
+
+
+@router.get("/gmail-status")
+async def get_gmail_status(request: Request):
+    """Return Gmail OAuth2 connection status for the current therapist."""
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    connected = is_gmail_authenticated(therapist["id"])
+    return JSONResponse({
+        "connected": connected,
+        "therapist_id": therapist["id"],
+        "detail": "Gmail connected" if connected else "Not connected",
     })
 
 

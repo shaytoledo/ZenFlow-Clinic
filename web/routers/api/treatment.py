@@ -128,14 +128,69 @@ async def complete_session(
     patient_id: int, apt_date: str, apt_time: str,
     body: CompleteSessionIn, request: Request,
 ):
-    """Save session notes and mark complete in one atomic step, then redirect to dashboard."""
-    _require_auth(request)
+    """Save session notes, mark complete, and auto-queue 24h recommendation delivery.
+
+    The auto-queue uses the saved AI recommendations (`ai_recommendations`) — if
+    they exist and weren't already sent or queued, we schedule them to deliver
+    exactly 24 hours from now. Therapist can still hit "Send Now" to override.
+    """
+    therapist = _require_auth(request)
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
-    # Save notes + completion timestamp together
+
     import datetime as _dt
     notes = body.model_dump()
     notes["completed_at"] = _dt.datetime.now().isoformat()
     await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, notes)
+
+    # Auto-queue: if AI recommendations exist + not yet sent + not already queued, schedule them
+    try:
+        from web.repositories.treatment_repo import get_by_appointment, save_pending_recommendations
+        row = await asyncio.to_thread(get_by_appointment, apt_id)
+        if row:
+            recs       = row.get("ai_recommendations") or {}
+            already_sent     = bool(row.get("recommendations_sent_at"))
+            already_queued   = bool(row.get("pending_rec_send_at"))
+            has_content      = isinstance(recs, dict) and any(recs.get(k) for k in ("diet","sleep","exercise","stress"))
+
+            if has_content and not already_sent and not already_queued:
+                items = []
+                for cat_key, cat_label, icon in [("sleep","Sleep","🌙"),("diet","Diet","🥗"),("stress","Stress","🧘"),("exercise","Exercise","🏃")]:
+                    if recs.get(cat_key):
+                        items.append({"id": cat_key, "category": cat_label, "icon": icon,
+                                      "text": recs[cat_key], "enabled": True})
+                send_at = (_dt.datetime.now() + _dt.timedelta(hours=24)).isoformat()
+                await asyncio.to_thread(save_pending_recommendations, apt_id, items, send_at)
+
+                # Look up patient name + check contact info for the alert
+                from bot.db import get_db
+                apt_row = await asyncio.to_thread(
+                    lambda: get_db().execute(
+                        "SELECT patient_name, patient_phone, patient_email, source FROM appointments WHERE id=?",
+                        (apt_id,),
+                    ).fetchone()
+                )
+                ar = dict(apt_row) if apt_row else {}
+                patient_name = ar.get("patient_name") or "Patient"
+                source = ar.get("source") or "telegram"
+                has_email = bool((ar.get("patient_email") or "").strip())
+                is_manual = (source == "manual") or (patient_id < 0)
+
+                from web.services import notification_service
+                if is_manual and not has_email:
+                    # Persistent missing-contact alert — won't be deliverable in 24h
+                    await asyncio.to_thread(
+                        notification_service.alert_missing_contact,
+                        therapist["id"], apt_id, patient_id, patient_name,
+                    )
+                else:
+                    # Info: queued for delivery
+                    await asyncio.to_thread(
+                        notification_service.alert_recommendations_queued,
+                        therapist["id"], apt_id, patient_id, patient_name, send_at,
+                    )
+    except Exception as e:
+        logger.warning(f"complete_session: auto-queue failed for apt {apt_id}: {e}")
+
     return JSONResponse({"ok": True, "redirect": "/"})
 
 
@@ -184,7 +239,7 @@ async def send_recommendations(
           * has phone but no email → 422 "needs_email" so the frontend can ask
           * has neither phone nor email → 400 "no_contact"
     """
-    _require_auth(request)
+    therapist = _require_auth(request)
     enabled = [item for item in body.items if item.get("enabled")]
     if not enabled:
         raise HTTPException(status_code=400, detail="No recommendations selected")
@@ -196,6 +251,20 @@ async def send_recommendations(
         send_at = (_dt.datetime.now() + _dt.timedelta(hours=body.schedule_hours)).isoformat()
         from web.repositories.treatment_repo import save_pending_recommendations as _save_pending
         await asyncio.to_thread(_save_pending, apt_id, enabled, send_at)
+
+        # Lookup name for the notification
+        from bot.db import get_db
+        ar = await asyncio.to_thread(
+            lambda: get_db().execute(
+                "SELECT patient_name FROM appointments WHERE id=?", (apt_id,)
+            ).fetchone()
+        )
+        pname = (dict(ar).get("patient_name") if ar else "Patient") or "Patient"
+        from web.services import notification_service
+        await asyncio.to_thread(
+            notification_service.alert_recommendations_queued,
+            therapist["id"], apt_id, patient_id, pname, send_at,
+        )
         return JSONResponse({
             "ok": True,
             "queued": True,
@@ -230,14 +299,20 @@ async def send_recommendations(
         from web.services.email_service import send_email, EmailNotConfigured
         subject, text = _format_recommendations_for_email(enabled, patient_name)
         try:
-            await asyncio.to_thread(send_email, body.email.strip(), subject, text)
+            await asyncio.to_thread(
+                send_email,
+                therapist["id"],       # therapist_id — uses their Gmail OAuth token
+                body.email.strip(),    # to
+                subject,
+                text,
+            )
         except EmailNotConfigured:
-            # SMTP not configured — return the text so the UI can show a copy-paste fallback
+            # Gmail not connected — return the text so the UI can show a copy-paste fallback
             return JSONResponse(content={
                 "ok": False,
                 "status": "no_smtp",
                 "text": f"{subject}\n\n{text}",
-                "detail": "Email service not configured. Copy the text below to send manually.",
+                "detail": "Gmail is not connected. Go to Settings → Connect Google, then retry.",
             })
         except Exception as e:
             logger.error(f"send_recommendations(email) error: {e}")
@@ -285,6 +360,16 @@ async def send_recommendations(
         })
     except Exception:
         pass
+
+    # Record a success notification
+    try:
+        from web.services import notification_service
+        await asyncio.to_thread(
+            notification_service.alert_recommendations_sent,
+            therapist["id"], apt_id, patient_id, patient_name, sent_via, sent_to,
+        )
+    except Exception as e:
+        logger.debug(f"send_recommendations: notification create failed: {e}")
     return JSONResponse({"ok": True, "sent_via": sent_via, "sent_to": sent_to})
 
 
@@ -406,7 +491,8 @@ async def rediagnose(
     garbage we still save and return whatever fields we recovered so the
     therapist sees an updated diagnosis instead of a red error banner.
     """
-    _require_auth(request)
+    therapist = _require_auth(request)
+    lang = (therapist.get("language") or "en") if isinstance(therapist, dict) else "en"
 
     time_str = apt_time.replace("-", ":")
     from bot.db import get_db
@@ -433,12 +519,14 @@ async def rediagnose(
 
     try:
         from bot.patient_bot.services.ai_intake import (
-            _LLM_LONG, SYSTEM_PROMPT, TCM_DIAGNOSIS_PROMPT, select_points_for_diagnosis,
+            _LLM_LONG, SYSTEM_PROMPT, get_diagnosis_prompt, select_points_for_diagnosis,
         )
         from langchain_core.messages import HumanMessage, SystemMessage
 
         if _LLM_LONG is None:
             raise HTTPException(status_code=503, detail="AI model not available")
+
+        diag_prompt = get_diagnosis_prompt(lang)
 
         # Build context block for the diagnosis step
         context_block = ""
@@ -455,7 +543,7 @@ async def rediagnose(
             HumanMessage(content=(
                 f"{context_block}"
                 f"Updated clinical examination findings:\n{findings_context}\n\n"
-                f"{TCM_DIAGNOSIS_PROMPT}"
+                f"{diag_prompt}"
             )),
         ]
         resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=180)
@@ -506,7 +594,8 @@ async def generate_points(
     Runs synchronously so the frontend receives the points the moment they are ready
     (no polling needed; the HTTP response IS the result).
     """
-    _require_auth(request)
+    therapist = _require_auth(request)
+    lang = (therapist.get("language") or "en") if isinstance(therapist, dict) else "en"
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
 
     from web.repositories.treatment_repo import (
@@ -538,6 +627,7 @@ async def generate_points(
             treatment_principles=treatment_principles,
             intake_context=intake_context or "No prior intake on file.",
             log_tag=f"apt{apt_id}",
+            lang=lang,
         )
 
         logger.info(f"generate-points apt{apt_id} — AI returned {len(points)} point(s)")
@@ -577,7 +667,8 @@ async def regenerate_points(
     status-flip pattern as the bot's background pipeline so the frontend poller
     can render each batch incrementally.
     """
-    _require_auth(request)
+    therapist = _require_auth(request)
+    lang = (therapist.get("language") or "en") if isinstance(therapist, dict) else "en"
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
 
     from web.repositories.treatment_repo import (
@@ -618,6 +709,7 @@ async def regenerate_points(
             intake_context=intake_context or "No prior intake on file.",
             log_tag=f"apt{apt_id}",
             batch_number=1,
+            lang=lang,
         )
         if batch_a:
             await asyncio.to_thread(_append, apt_id, batch_a)
@@ -633,6 +725,7 @@ async def regenerate_points(
             log_tag=f"apt{apt_id}",
             batch_number=2,
             existing_codes=existing_codes,
+            lang=lang,
         )
         if batch_b:
             await asyncio.to_thread(_append, apt_id, batch_b)

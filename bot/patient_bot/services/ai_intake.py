@@ -42,6 +42,21 @@ CORE RULES:
 - Do NOT include greetings or pleasantries. Just ask the question directly.\
 """
 
+SYSTEM_PROMPT_HE = """\
+אתה עוזר קבלה קליני של מרפאת ZenFlow, מרפאת דיקור סיני (TCM) מורשית.
+תפקידך לנהל שיחת תשאול קצרה ומותאמת לפני הטיפול — \
+לאסוף את המידע שהמטפל זקוק לו לאבחון ולטיפול.
+
+כללים:
+- שאל שאלה אחת בלבד בכל הודעה.
+- כל שאלה חייבת להתאים לתשובה הקודמת של המטופל — אל תלך לפי סקריפט קבוע.
+- שמור על שאלות קצרות ושיחתיות. אל תשתמש בז׳רגון רפואי.
+- קבל תשובות קצרות ("כן", "לא", "yes", "no") והמשך בהתאם.
+- שאף לסיים ב-5 החלפות. לא יותר מ-7.
+- שאל תמיד בעברית.
+- אל תכלול ברכות. פשוט שאל את השאלה ישירות.\
+"""
+
 SUMMARY_INSTRUCTION = """\
 Based on this intake conversation, write a concise clinical summary for the acupuncturist.
 Include: chief complaint, key symptoms, relevant TCM patterns if apparent, and suggested focus areas.
@@ -159,6 +174,99 @@ Output ONLY a raw JSON array. No markdown, no explanation, no wrapper object.
 OUTPUT ONLY THE JSON ARRAY. NOTHING ELSE.\
 """
 
+TCM_DIAGNOSIS_PROMPT_HE = """\
+אתה מטפל TCM בכיר המכין הערכה למטופל ספציפי יחיד.
+השתמש בתמליל התשאול המלא, בסיכום הקליני ובממצאי הלשון/הדופק של המטפל (אם סופקו).
+כל שדה חייב להתייחס לפרטים ספציפיים שהמטופל ציין — אל תחזור על טקסט ספר לימוד.
+
+החזר JSON תקין בלבד (ללא פרוזה, ללא גדרות קוד) עם המפתחות הבאים:
+- tcm_pattern               תסמונת ראשית בטרמינולוגיה TCM סטנדרטית (בעברית)
+- treatment_principles      אסטרטגיה קלינית ב-1-2 משפטים (בעברית)
+- diagnosis_certainty       מספר שלם 0-100
+- recommendations           אובייקט עם ערכי מחרוזת עבור "diet", "sleep", "exercise", "stress" — 1-2 משפטים מותאמים אישית כל אחד (בעברית)
+
+החזר את ה-JSON בלבד, ללא טקסט נוסף.\
+"""
+
+POINT_SELECTION_PROMPT_HE = """\
+אתה מטפל TCM בכיר. בנה את החלק הראשון של פורמולת דיקור מדויקת למטופל זה.
+
+אבחנה:
+דפוס: {tcm_pattern}
+עקרונות טיפול: {treatment_principles}
+
+הקשר המטופל (השתמש בתסמינים הספציפיים שלמטה לכל נימוק):
+{intake_context}
+
+נקודות ייחוס (העדף אלה; הוסף אחרות בסימון סטנדרטי אם נדרש):
+ST36 Zusanli - מטפח Qi/דם, עיכול, חסינות
+LI4  Hegu    - מפנה רוח-חום, עוצר כאב (הימנע בהריון)
+PC6  Neiguan - לב, בחילה, פותח חזה
+LR3  Taichong - Liver Qi, Yang, מחזור
+SP6  Sanyinjiao - דם/Yin, מחזור, Spleen
+GV20 Baihui  - נפש, Yang, מוח
+HT7  Shenmen - Shen, נדודי שינה, חרדה
+KD3  Taixi   - Kidney Yin/Yang, גב תחתון
+GB20 Fengchi - רוח, כאב ראש, עיניים
+BL23 Shenshu - כליה, מותני, אוזניים
+CV6  Qihai   - Qi מקורי, Yang
+CV12 Zhongwan - Spleen/Stomach, לחות
+CV17 Shanzhong - חזה, Shen
+GV14 Dazhui  - חיצוני, חום, Yang
+LU7  Lieque  - רוח חיצוני, ריאה
+LI11 Quchi   - חום, דם, לחות
+SP9  Yinlingquan - לחות, Burner תחתון
+ST40 Fenglong - ליחה/לחות, Shen
+YINTANG - Shen, כאב ראש קדמי, שינה
+
+כללים:
+- בחר בדיוק 5 עד 7 נקודות לאצווה זו (לא פחות מ-5, לא יותר מ-7).
+- כל נימוק (rationale) חייב להצביע על תסמין ספציפי של מטופל זה — ללא טקסט גנרי.
+- שמור על קודי הנקודות באנגלית (למשל ST36, LR3, YINTANG) — אל תתרגם אותם.
+- כתוב את שדות rationale, location ו-needle_technique בעברית.
+
+פלט מערך JSON גולמי בלבד. ללא markdown, ללא הסבר, ללא עטיפה.
+[
+  {{"code":"LR3","rationale":"נימוק ספציפי למטופל זה בעברית","location":"גב כף הרגל, חיבור מטטרסלים 1 ו-2","needle_technique":"אנכי 0.5-1 cun"}},
+  {{"code":"SP6","rationale":"נימוק ספציפי למטופל זה בעברית","location":"3 cun מעל הקרסול המדיאלי, לאחור משפת הטיביה","needle_technique":"אנכי 1-1.5 cun"}}
+]
+פלט מערך ה-JSON בלבד.\
+"""
+
+POINT_SELECTION_PROMPT_BATCH2_HE = """\
+אתה מטפל TCM בכיר. כבר בחרת את האצווה הראשונה של נקודות למטופל זה.
+כעת בחר 5 עד 7 נקודות משלימות להשלמת הפורמולה.
+
+אבחנה:
+דפוס: {tcm_pattern}
+עקרונות טיפול: {treatment_principles}
+
+הקשר המטופל:
+{intake_context}
+
+נקודות שנבחרו כבר (אל תחזור על אף אחת):
+{existing_codes}
+
+כללים:
+- בחר בדיוק 5 עד 7 נקודות חדשות (לא פחות מ-5, לא יותר מ-7).
+- אל תחזור על נקודה שנמצאת ברשימה לעיל.
+- כל נימוק חייב להצביע על תסמין ספציפי של מטופל זה.
+- שמור על קודי הנקודות באנגלית — אל תתרגם אותם.
+- כתוב את שדות rationale, location ו-needle_technique בעברית.
+- שמור על קוהרנטיות קלינית עם האצווה הראשונה.
+
+פלט מערך JSON גולמי בלבד.
+[
+  {{"code":"HT7","rationale":"נימוק ספציפי בעברית","location":"קמט פרק כף היד, הצד הרדיאלי של flexor carpi ulnaris","needle_technique":"אנכי 0.3-0.5 cun"}}
+]
+פלט מערך ה-JSON בלבד.\
+"""
+
+
+def get_diagnosis_prompt(lang: str = "en") -> str:
+    return TCM_DIAGNOSIS_PROMPT_HE if lang == "he" else TCM_DIAGNOSIS_PROMPT
+
+
 FALLBACK_QUESTIONS = [
     "What's the main issue or discomfort bringing you in today?",
     "How long have you been experiencing this?",
@@ -166,6 +274,22 @@ FALLBACK_QUESTIONS = [
     "How would you rate the intensity on a scale of 1 to 10?",
     "Have you had any treatment for this before?",
 ]
+
+FALLBACK_QUESTIONS_HE = [
+    "מה הבעיה העיקרית או הכאב שהביא אותך לטיפול היום?",
+    "כמה זמן אתה חווה את זה?",
+    "האם זה מחמיר בשעה מסוימת ביום?",
+    "כיצד היית מדרג את העוצמה בסולם של 1 עד 10?",
+    "האם קיבלת טיפול כלשהו בגלל זה בעבר?",
+]
+
+
+def get_fallback_questions(lang: str = "en") -> list[str]:
+    return FALLBACK_QUESTIONS_HE if lang == "he" else FALLBACK_QUESTIONS
+
+
+def get_system_prompt(lang: str = "en") -> str:
+    return SYSTEM_PROMPT_HE if lang == "he" else SYSTEM_PROMPT
 
 # ── LLM singleton — selected by USE_AI env var ────────────────────────────────
 if USE_AI == "anthropic":
@@ -296,7 +420,7 @@ def initialize_intake(user_id: int, opening_question: str) -> None:
     logger.info(f"[{user_id}] Intake history initialized")
 
 
-async def get_next_question(user_id: int, user_answer: str) -> str:
+async def get_next_question(user_id: int, user_answer: str, lang: str = "en") -> str:
     """Add user answer to history, ask LangChain for the next question."""
     hist = _get_history(user_id)
     hist.add_user_message(user_answer)
@@ -304,16 +428,18 @@ async def get_next_question(user_id: int, user_answer: str) -> str:
     # Compress history if it's growing too long
     await _maybe_compress(user_id)
 
+    sys_prompt = get_system_prompt(lang)
+
     # Build context: system prompt + optional rolling summary + recent messages
     summary = _rolling_summaries.get(user_id)
     if summary:
         context_messages = [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=sys_prompt),
             SystemMessage(content=f"[Conversation so far: {summary}]"),
             *hist.messages[-_BUFFER_KEEP:],
         ]
     else:
-        context_messages = [SystemMessage(content=SYSTEM_PROMPT)] + hist.messages[-3:]
+        context_messages = [SystemMessage(content=sys_prompt)] + hist.messages[-3:]
 
     if _LLM is not None:
         try:
@@ -327,8 +453,9 @@ async def get_next_question(user_id: int, user_answer: str) -> str:
         except Exception as e:
             logger.warning(f"[{user_id}] LangChain error: {e} — using fallback question")
 
+    fallback_qs = get_fallback_questions(lang)
     answered = sum(1 for m in hist.messages if isinstance(m, HumanMessage))
-    fallback = FALLBACK_QUESTIONS[min(answered, len(FALLBACK_QUESTIONS) - 1)]
+    fallback = fallback_qs[min(answered, len(fallback_qs) - 1)]
     hist.add_ai_message(fallback)
     logger.info(f"[{user_id}] fallback question {answered + 1} sent")
     return fallback
@@ -469,6 +596,7 @@ async def select_points_for_diagnosis(
     _retry: int = 0,
     batch_number: int = 1,
     existing_codes: list[str] | None = None,
+    lang: str = "en",
 ) -> list[dict]:
     """Stage 2 — given an established diagnosis, ask the AI for acupuncture points.
 
@@ -485,14 +613,16 @@ async def select_points_for_diagnosis(
 
     if batch_number == 2 and existing_codes:
         existing_list = ", ".join(existing_codes)
-        prompt = POINT_SELECTION_PROMPT_BATCH2.format(
+        tmpl = POINT_SELECTION_PROMPT_BATCH2_HE if lang == "he" else POINT_SELECTION_PROMPT_BATCH2
+        prompt = tmpl.format(
             tcm_pattern=tcm_pattern or "Unknown pattern",
             treatment_principles=treatment_principles or "Restore balance",
             intake_context=(intake_context or "No prior intake on file.")[:800],
             existing_codes=existing_list,
         )
     else:
-        prompt = POINT_SELECTION_PROMPT.format(
+        tmpl = POINT_SELECTION_PROMPT_HE if lang == "he" else POINT_SELECTION_PROMPT
+        prompt = tmpl.format(
             tcm_pattern=tcm_pattern or "Unknown pattern",
             treatment_principles=treatment_principles or "Restore balance",
             intake_context=(intake_context or "No prior intake on file.")[:1000],
@@ -512,7 +642,7 @@ async def select_points_for_diagnosis(
             return await select_points_for_diagnosis(
                 tcm_pattern, treatment_principles, intake_context,
                 log_tag=log_tag, _retry=1,
-                batch_number=batch_number, existing_codes=existing_codes,
+                batch_number=batch_number, existing_codes=existing_codes, lang=lang,
             )
 
         logger.info(f"[{log_tag}] Stage 2 batch {batch_number} complete — {len(points)} points selected")
@@ -524,7 +654,7 @@ async def select_points_for_diagnosis(
             return await select_points_for_diagnosis(
                 tcm_pattern, treatment_principles, intake_context,
                 log_tag=log_tag, _retry=1,
-                batch_number=batch_number, existing_codes=existing_codes,
+                batch_number=batch_number, existing_codes=existing_codes, lang=lang,
             )
     except Exception as e:
         logger.error(f"[{log_tag}] Point selection unexpected error: {e}", exc_info=True)

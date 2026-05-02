@@ -143,7 +143,7 @@ async def prefetch_calendar(therapist_id: str) -> None:
     instantly. Stores under the rolling-14d key so any FullCalendar sub-range
     request inside the window hits the cache.
     """
-    from web.gcal import GCalClient, is_authenticated, token_file_for
+    from web.gcal import GCalClient, is_authenticated
     if not is_authenticated(therapist_id):
         return
     try:
@@ -153,7 +153,7 @@ async def prefetch_calendar(therapist_id: str) -> None:
             return  # already warm
 
         start, end = _rolling_window()
-        client = await asyncio.to_thread(GCalClient.load, token_file_for(therapist_id))
+        client = await asyncio.to_thread(GCalClient.load, therapist_id)
         events = await asyncio.to_thread(client.get_events, start, end)
         await r.set(
             _rolling_key(therapist_id),

@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block page_title_tag %}Treatment Session{% endblock %}
-{% block page_heading %}Active Treatment Session{% endblock %}
+{% block page_title_tag %}{{ t['treatment_title'] if t else 'Treatment Session' }}{% endblock %}
+{% block page_heading %}{{ t['treatment_active_session'] if t else 'Active Treatment Session' }}{% endblock %}
 
 {% block topbar_actions %}
 <a href="/patients" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 12px;">
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-  All Patients
+  {{ t['treatment_all_patients'] if t else 'All Patients' }}
 </a>
 {% endblock %}
 
@@ -16,8 +16,8 @@
   <div id="no-telegram-banner" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:none;align-items:center;gap:10px;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <div>
-      <span style="font-size:13px;font-weight:600;color:#92400E;">No Telegram account linked</span>
-      <span style="font-size:12px;color:#B45309;margin-left:6px;">This patient was booked manually — automated follow-up will not be sent. Use the manual feedback section below after the session.</span>
+      <span style="font-size:13px;font-weight:600;color:#92400E;">{{ t['treatment_no_telegram'] if t else 'No Telegram account linked' }}</span>
+      <span style="font-size:12px;color:#B45309;margin-left:6px;">{{ t['treatment_no_telegram_body'] if t else 'This patient was booked manually — automated follow-up will not be sent. Use the manual feedback section below after the session.' }}</span>
     </div>
   </div>
 
@@ -28,7 +28,7 @@
       <h2 class="zf-treatment-name" id="pt-name">Loading…</h2>
       <p class="zf-treatment-meta" id="pt-meta">Loading…</p>
     </div>
-    <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+    <div style="margin-inline-start:auto;display:flex;gap:10px;align-items:center;">
       <span class="zf-badge zf-badge-blue" id="pt-session-num">Session —</span>
     </div>
   </div>
@@ -45,10 +45,10 @@
           </svg>
         </div>
         <div>
-          <span style="font-size:14px;font-weight:700;color:#111827;">AI-Suggested Acupuncture Points</span>
+          <span style="font-size:14px;font-weight:700;color:#111827;">{{ t['treatment_ai_points_header'] if t else 'AI-Suggested Acupuncture Points' }}</span>
           <span style="font-size:11px;color:#9CA3AF;margin-left:8px;" id="ai-points-count"></span>
         </div>
-        <span style="margin-left:auto;font-size:11px;font-weight:500;background:#CCFBF1;color:#0D9488;padding:3px 10px;border-radius:999px;">Personalised Formula</span>
+        <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#CCFBF1;color:#0D9488;padding:3px 10px;border-radius:999px;">{{ t['treatment_personalised_formula'] if t else 'Personalised Formula' }}</span>
       </div>
       <div id="ai-points-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0;"></div>
     </div>
@@ -66,8 +66,8 @@
           <div class="zf-card-icon" style="background:#F3E8FF;color:#9333EA;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.84A2.5 2.5 0 0 1 9.5 2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.84A2.5 2.5 0 0 0 14.5 2"/></svg>
           </div>
-          <span>AI Intake Summary</span>
-          <span style="margin-left:auto;font-size:11px;font-weight:500;background:#F3E8FF;color:#9333EA;padding:2px 8px;border-radius:999px;" id="intake-source-badge">From Telegram Bot</span>
+          <span>{{ t['treatment_ai_intake_summary'] if t else 'AI Intake Summary' }}</span>
+          <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#F3E8FF;color:#9333EA;padding:2px 8px;border-radius:999px;" id="intake-source-badge">{{ t['treatment_from_telegram'] if t else 'From Telegram Bot' }}</span>
           <button onclick="toggleIntake()" id="intake-toggle" style="margin-left:8px;background:none;border:none;cursor:pointer;color:#9CA3AF;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" id="intake-chevron"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
@@ -83,8 +83,8 @@
           <div class="zf-card-icon" style="background:#CCFBF1;color:#0D9488;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           </div>
-          <span>Clinical Summary</span>
-          <span id="diag-confidence-badge" style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;display:none;"></span>
+          <span>{{ t['treatment_clinical_summary'] if t else 'Clinical Summary' }}</span>
+          <span id="diag-confidence-badge" style="margin-inline-start:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;display:none;"></span>
         </div>
         <div id="summary-body" style="margin-top:14px;">
           <p style="font-size:13px;color:#9CA3AF;">Loading summary…</p>
@@ -97,21 +97,21 @@
           <div class="zf-card-icon" style="background:#FEE2E2;color:#DC2626;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
-          <span>Tongue &amp; Pulse Findings</span>
-          <span style="margin-left:auto;font-size:11px;color:#9CA3AF;">Press Enter to update diagnosis</span>
+          <span>{{ t['treatment_tongue_pulse'] if t else 'Tongue &amp; Pulse Findings' }}</span>
+          <span style="margin-inline-start:auto;font-size:11px;color:#9CA3AF;">{{ t['treatment_press_enter_update'] if t else 'Press Enter to update diagnosis' }}</span>
         </div>
         <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px;">
           <div>
-            <label class="zf-field-label">Tongue Observation</label>
-            <input type="text" class="zf-input" id="tongue-input" placeholder="e.g. Red body, thin yellow coating, slight cracks…" />
+            <label class="zf-field-label">{{ t['treatment_tongue_label'] if t else 'Tongue Observation' }}</label>
+            <input type="text" class="zf-input" id="tongue-input" placeholder="{{ t['treatment_tongue_placeholder'] if t else 'e.g. Red body, thin yellow coating, slight cracks…' }}" />
           </div>
           <div>
-            <label class="zf-field-label">Pulse Observation</label>
-            <input type="text" class="zf-input" id="pulse-input" placeholder="e.g. Wiry, slightly rapid, thin on right guan…" />
+            <label class="zf-field-label">{{ t['treatment_pulse_label'] if t else 'Pulse Observation' }}</label>
+            <input type="text" class="zf-input" id="pulse-input" placeholder="{{ t['treatment_pulse_placeholder'] if t else 'e.g. Wiry, slightly rapid, thin on right guan…' }}" />
           </div>
           <button id="rediag-btn" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 14px;" onclick="triggerRediagnosis()">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Update Diagnosis
+            {{ t['treatment_update_diagnosis'] if t else 'Update Diagnosis' }}
           </button>
         </div>
       </div>
@@ -122,23 +122,23 @@
           <div class="zf-card-icon" style="background:#FEF3C7;color:#B45309;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L4 5v7c0 5 3.5 9 8 10 4.5-1 8-5 8-10V5l-8-3z"/><path d="M9 12l2 2 4-4"/></svg>
           </div>
-          <span>Therapist Diagnosis</span>
-          <span style="margin-left:auto;font-size:11px;color:#9CA3AF;" id="td-status">—</span>
+          <span>{{ t['treatment_therapist_diagnosis'] if t else 'Therapist Diagnosis' }}</span>
+          <span style="margin-inline-start:auto;font-size:11px;color:#9CA3AF;" id="td-status">—</span>
         </div>
         <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px;">
           <div>
-            <label class="zf-field-label">Your Diagnosis</label>
+            <label class="zf-field-label">{{ t['treatment_your_diagnosis'] if t else 'Your Diagnosis' }}</label>
             <textarea id="therapist-diagnosis" class="zf-textarea" rows="3"
-              placeholder="Your own clinical assessment — pattern, dominant element, channel imbalance, working hypothesis…"
+              placeholder="{{ t['treatment_diagnosis_placeholder'] if t else 'Your own clinical assessment — pattern, dominant element, channel imbalance, working hypothesis…' }}"
               oninput="onTherapistChange()"></textarea>
           </div>
           <div>
-            <label class="zf-field-label">Clinical Notes</label>
+            <label class="zf-field-label">{{ t['treatment_clinical_notes'] if t else 'Clinical Notes' }}</label>
             <textarea id="therapist-notes" class="zf-textarea" rows="3"
-              placeholder="Differential diagnosis, things you ruled out, plan for next sessions…"
+              placeholder="{{ t['treatment_clinical_notes_placeholder'] if t else 'Differential diagnosis, things you ruled out, plan for next sessions…' }}"
               oninput="onTherapistChange()"></textarea>
           </div>
-          <p style="font-size:11px;color:#9CA3AF;margin:0;">Auto-saves as you type. Your record — separate from the AI's diagnosis.</p>
+          <p style="font-size:11px;color:#9CA3AF;margin:0;">{{ t['treatment_autosaves'] if t else 'Auto-saves as you type. Your record — separate from the AI\'s diagnosis.' }}</p>
         </div>
       </div>
 
@@ -153,11 +153,11 @@
           <div class="zf-card-icon" style="background:#DBEAFE;color:#2563EB;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
-          <span>Acupuncture Points Used</span>
-          <span id="points-ai-badge" style="display:none;margin-left:auto;font-size:11px;font-weight:500;background:#DBEAFE;color:#2563EB;padding:2px 8px;border-radius:999px;">AI Formula</span>
+          <span>{{ t['treatment_points_used'] if t else 'Acupuncture Points Used' }}</span>
+          <span id="points-ai-badge" style="display:none;margin-inline-start:auto;font-size:11px;font-weight:500;background:#DBEAFE;color:#2563EB;padding:2px 8px;border-radius:999px;">{{ t['treatment_ai_formula'] if t else 'AI Formula' }}</span>
           <button id="regen-points-btn" class="zf-btn zf-btn-outline" style="margin-left:10px;font-size:13px;padding:8px 16px;gap:7px;font-weight:600;border-color:#0D9488;color:#0D9488;" onclick="regeneratePoints()" title="Re-run point selection (Request 2 + 3)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            Regenerate Points
+            {{ t['treatment_regenerate_points'] if t else 'Regenerate Points' }}
           </button>
         </div>
 
@@ -165,7 +165,7 @@
         <div id="points-progress" style="display:none;margin-top:12px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1.2s linear infinite;flex-shrink:0;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            <span id="points-progress-label" style="font-size:12px;color:#2563EB;font-weight:500;">Diagnosing…</span>
+            <span id="points-progress-label" style="font-size:12px;color:#2563EB;font-weight:500;">{{ t['treatment_diagnosing'] if t else 'Diagnosing…' }}</span>
           </div>
           <div style="background:#DBEAFE;border-radius:999px;height:6px;overflow:hidden;">
             <div id="points-progress-bar" style="height:100%;border-radius:999px;background:linear-gradient(90deg,#2563EB,#0D9488);width:0%;transition:width .5s ease;"></div>
@@ -176,12 +176,12 @@
           <div id="suggested-points" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:32px;"></div>
           <div class="zf-points-input-wrap" id="points-wrap">
             <div id="points-tags" class="zf-points-tags"></div>
-            <input type="text" id="point-input" class="zf-points-input" placeholder="Type point code (e.g. ST36) and press Enter…" />
+            <input type="text" id="point-input" class="zf-points-input" placeholder="{{ t['treatment_point_input_placeholder'] if t else 'Type point code (e.g. ST36) and press Enter…' }}" />
             <button class="zf-points-add" onclick="addPoint()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
           </div>
-          <p style="font-size:11px;color:#9CA3AF;margin-top:6px;" id="point-count">0 points selected · Press Enter to add, Backspace to remove last</p>
+          <p style="font-size:11px;color:#9CA3AF;margin-top:6px;" id="point-count">0 {{ t['treatment_point_count_hint'] if t else 'points selected · Press Enter to add, Backspace to remove last' }}</p>
         </div>
       </div>
 
@@ -191,11 +191,11 @@
           <div class="zf-card-icon" style="background:#EEF2FF;color:#4F46E5;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           </div>
-          <span>Session Notes</span>
-          <span style="margin-left:auto;font-size:11px;color:#9CA3AF;" id="notes-status">—</span>
+          <span>{{ t['treatment_session_notes_title'] if t else 'Session Notes' }}</span>
+          <span style="margin-inline-start:auto;font-size:11px;color:#9CA3AF;" id="notes-status">—</span>
         </div>
         <textarea id="session-notes" class="zf-textarea" rows="6" style="margin-top:14px;"
-          placeholder="Document session observations, treatment modifications, patient responses…"
+          placeholder="{{ t['treatment_session_notes_placeholder'] if t else 'Document session observations, treatment modifications, patient responses…' }}"
           oninput="onNotesChange()"></textarea>
       </div>
 
@@ -205,8 +205,8 @@
           <div class="zf-card-icon" style="background:#FEF3C7;color:#D97706;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           </div>
-          <span>Lifestyle Advice</span>
-          <span style="margin-left:auto;font-size:11px;font-weight:500;background:#DCFCE7;color:#16A34A;padding:2px 8px;border-radius:999px;">Customisable</span>
+          <span>{{ t['treatment_lifestyle'] if t else 'Lifestyle Recommendations' }}</span>
+          <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#DCFCE7;color:#16A34A;padding:2px 8px;border-radius:999px;">Customisable</span>
         </div>
         <p style="font-size:12px;color:#9CA3AF;margin-top:8px;">Toggle recommendations to include in the patient message</p>
         <div id="advice-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;"></div>
@@ -215,7 +215,7 @@
         <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
           <button id="send-advice-btn" class="zf-btn zf-btn-primary" style="flex:1;justify-content:center;" onclick="sendAdvice()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Send Now
+            {{ t['treatment_send_now'] if t else 'Send Now' }}
           </button>
           <button id="send-later-btn" class="zf-btn zf-btn-outline" style="flex:1;justify-content:center;" onclick="sendAdviceLater()" title="Queued to send 24h after session completes">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -228,7 +228,7 @@
       <!-- Complete Session -->
       <button id="complete-btn" class="zf-btn zf-btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:15px;border-radius:14px;gap:8px;" onclick="completeSession()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Complete Session
+        {{ t['treatment_complete_session'] if t else 'Complete Session' }}
       </button>
 
       <!-- ── 24h Follow-up Results (shown when data available) ───────────── -->
@@ -238,7 +238,7 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.49 5.49l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           </div>
           <span>24h Patient Follow-up</span>
-          <span style="margin-left:auto;font-size:11px;font-weight:500;background:#ECFDF5;color:#059669;padding:2px 8px;border-radius:999px;">Via Telegram</span>
+          <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#ECFDF5;color:#059669;padding:2px 8px;border-radius:999px;">Via Telegram</span>
         </div>
         <div id="followup-body" style="margin-top:14px;"></div>
       </div>
@@ -249,11 +249,11 @@
           <div class="zf-card-icon" style="background:#FDF2F8;color:#9D174D;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
-          <span>Manual Patient Feedback</span>
-          <span style="margin-left:auto;font-size:11px;color:#9CA3AF;" id="mf-status">—</span>
+          <span>{{ t['treatment_manual_feedback'] if t else 'Manual Patient Feedback' }}</span>
+          <span style="margin-inline-start:auto;font-size:11px;color:#9CA3AF;" id="mf-status">—</span>
         </div>
         <p style="font-size:12px;color:#9CA3AF;margin-top:6px;margin-bottom:12px;">
-          Enter feedback collected in-person or via phone — use the same format as the automated 24h follow-up.
+          {{ t['treatment_manual_feedback_hint'] if t else 'Rate improvement manually if patient has no Telegram' }}
         </p>
 
         <!-- Star/number rating -->
@@ -278,7 +278,7 @@
 
         <button id="mf-save-btn" class="zf-btn zf-btn-primary" style="margin-top:12px;" onclick="saveManualFeedback()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Save Feedback
+          {{ t['treatment_save_feedback'] if t else 'Save Feedback' }}
         </button>
       </div>
 
@@ -319,16 +319,41 @@
 .zf-star-btn.active { border-color: #0D9488; background: #0D9488; color: #fff; }
 
 /* ── Intake conversation messages ─────────────────────── */
-.zf-intake-msg { padding: 8px 12px; border-radius: 10px; margin-bottom: 8px; }
-.zf-intake-msg.user  { background: #F0F9FF; border-left: 3px solid #2563EB; }
-.zf-intake-msg.ai    { background: #F0FDF4; border-left: 3px solid #0D9488; }
-.zf-intake-role { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #9CA3AF; margin-bottom: 3px; }
-.zf-intake-text { font-size: 13px; color: #374151; line-height: 1.55; }
+.zf-intake-thread { display: flex; flex-direction: column; gap: 10px; }
+.zf-intake-msg {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: flex-start;
+}
+.zf-intake-msg.user  { direction: ltr; }
+.zf-intake-msg.ai    { direction: ltr; }
+.zf-intake-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0; margin-top: 2px;
+}
+.zf-intake-msg.user  .zf-intake-avatar { background: #DBEAFE; color: #1D4ED8; }
+.zf-intake-msg.ai    .zf-intake-avatar { background: #CCFBF1; color: #0D9488; }
+.zf-intake-bubble {
+  border-radius: 12px;
+  padding: 9px 13px;
+  line-height: 1.55;
+}
+.zf-intake-msg.user  .zf-intake-bubble { background: #EFF6FF; border: 1px solid #BFDBFE; }
+.zf-intake-msg.ai    .zf-intake-bubble { background: #F0FDF4; border: 1px solid #A7F3D0; }
+.zf-intake-role {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.6px; margin-bottom: 4px;
+}
+.zf-intake-msg.user  .zf-intake-role { color: #1D4ED8; }
+.zf-intake-msg.ai    .zf-intake-role { color: #0D9488; }
+.zf-intake-text { font-size: 13px; color: #374151; }
 
 /* ── Follow-up conversation ───────────────────────────── */
 .zf-followup-msg { padding: 8px 12px; border-radius: 10px; margin-bottom: 6px; }
-.zf-followup-msg.patient { background: #F0F9FF; border-left: 3px solid #2563EB; }
-.zf-followup-msg.ai      { background: #F0FDF4; border-left: 3px solid #0D9488; }
+.zf-followup-msg.patient { background: #F0F9FF; border-inline-start: 3px solid #2563EB; }
+.zf-followup-msg.ai      { background: #F0FDF4; border-inline-start: 3px solid #0D9488; }
 
 /* ── Metric cards in follow-up ────────────────────────── */
 .zf-metric-card {
@@ -376,6 +401,36 @@ const POINT_INFO = {
   'YIN':  { name: 'Yintang', channel: 'Extra Point', location: 'Midline of forehead, midway between medial ends of eyebrows', actions: 'Calms the Shen, brightens the eyes, relieves frontal headache, supports sleep' },
   'YINTANG': { name: 'Yintang', channel: 'Extra Point', location: 'Midline of forehead, midway between medial ends of eyebrows', actions: 'Calms the Shen, brightens the eyes, relieves frontal headache, supports sleep' },
 };
+
+const POINT_INFO_HE = {
+  'ST36': { name: 'זוסנלי', channel: 'קיבה', location: '3 צון מתחת ל-ST35, רוחב אצבע לרוחב הקצה הקדמי של הטיביה', actions: 'מחזק צ׳י ודם, מחזק עיכול, מעלה חסינות, מרגיע שן' },
+  'LI4':  { name: 'הגו', channel: 'המעי הגדול', location: 'גב היד, בין עצמות המטקרפל הראשונה לשנייה, אמצע המטקרפל השנייה', actions: 'מנקה רוח וחום, עוצר כאב, מזרז לידה (אסור בהריון)' },
+  'PC6':  { name: 'ניגואן', channel: 'קרום הלב', location: '2 צון מעל פרק כף היד, בין גידי הפלמריס לונגוס ופלקסור קרפי רדיאליס', actions: 'מווסת לב, מרגיע נפש, עוצר בחילה, פותח חזה' },
+  'LR3':  { name: 'טאיצ׳ונג', channel: 'כבד', location: 'גב כף הרגל, שקע בין עצמות המטטרסל הראשונה לשנייה', actions: 'מזיז צ׳י כבד, מדכא יאנג כבד, מווסת מחזור, מרגיע רוח' },
+  'SP6':  { name: 'סניינג׳יאו', channel: 'טחול', location: '3 צון מעל הקרסול המדיאלי, לאורך הגבול האחורי של הטיביה', actions: 'מחזק טחול וקיבה, מזין דם ויין, מווסת מחזור' },
+  'GV20': { name: 'בייהוי', channel: 'כלי השלטון', location: 'על קו האמצע של הראש, בצומת עם הקו המחבר את קצות האוזניים', actions: 'מנקה נפש, מרים רוח, מעלה יאנג צ׳י, מועיל למוח' },
+  'HT7':  { name: 'שנמן', channel: 'לב', location: 'פרק כף היד, צד רדיאלי של גיד פלקסור קרפי אולנריס, גבול פרוקסימלי של עצם הפיזיפורם', actions: 'מרגיע שן, מחזק צ׳י ודם של הלב, מטפל בנדודי שינה וחרדה' },
+  'KD3':  { name: 'טאישי', channel: 'כליה', location: 'שקע בין הקרסול המדיאלי לגיד אכילס', actions: 'מחזק יין ויאנג של הכליה, מחזק גב תחתון, מועיל למוח' },
+  'GB20': { name: 'פנגצ׳י', channel: 'כיס המרה', location: 'שקע בין שרירי SCM לטרפז, ברמת GV16', actions: 'מגרש רוח, מנקה ראש ועיניים, מקל על כאב ראש' },
+  'GB21': { name: 'ג׳יאנג׳ינג', channel: 'כיס המרה', location: 'נקודת השיא של הכתף, אמצע בין GV14 לאקרומיון', actions: 'מרפה גידים, מוריד צ׳י מורד, מקל על מתח כתף וצוואר (הימנע בהריון)' },
+  'TE5':  { name: 'וואיגואן', channel: 'שלושת האנרגיזרים', location: '2 צון מעל פרק כף היד על גב הזרוע, בין הרדיוס לאולנה', actions: 'משחרר רוח-חום חיצוני, פותח כלי יאנג מחבר, מקל על כאב אוזניים ומיגרנות' },
+  'BL23': { name: 'שנשו', channel: 'שלפוחית השתן', location: '1.5 צון לרוחב GV4, ברמת הגבול התחתון של עמוד שדרה L2', actions: 'מחזק צ׳י/יאנג של הכליה, מחזק אזור המותניים, מועיל לאוזניים ולעצמות' },
+  'BL40': { name: 'ווייז׳ונג', channel: 'שלפוחית השתן', location: 'אמצע קפל הפופליאל, בין ביצפס פמוריס לסמיטנדינוסוס', actions: 'מפעיל ערוץ, מקל על כאב גב תחתון וסיאטיקה, מנקה חום קיץ' },
+  'CV6':  { name: 'צ׳יהאי', channel: 'כלי ההריון', location: '1.5 צון מתחת לטבור', actions: 'מחזק צ׳י המקור, מחמם ומחזק יאנג, מווסת מחזור' },
+  'CV12': { name: 'ג׳ונגוואן', channel: 'כלי ההריון', location: '4 צון מעל הטבור (אמצע בין CV8 ל-xiphoid)', actions: 'מחזק טחול וקיבה, פותר לחות, מוריד צ׳י קיבה מורד' },
+  'CV17': { name: 'שנג׳ונג', channel: 'כלי ההריון', location: 'קו אמצע קדמי ברמת הרווח הבין-צלעי הרביעי, בין הפטמות', actions: 'פותח חזה, מווסת צ׳י, מוריד צ׳י ריאה מורד, מרגיע שן' },
+  'GV14': { name: 'דאז׳וי', channel: 'כלי השלטון', location: 'קו אמצע מתחת לעמוד שדרה C7', actions: 'משחרר חיצוני, מנקה חום, מווסת יאנג של כל הגוף' },
+  'LU7':  { name: 'ליקווה', channel: 'ריאה', location: '1.5 צון מעל פרק כף היד על הצד הרדיאלי, מעל תהליך הסטילואיד', actions: 'משחרר רוח חיצוני, מוריד ומפיץ צ׳י ריאה, פותח כלי ההריון' },
+  'LI11': { name: 'צ׳וצ׳י', channel: 'המעי הגדול', location: 'קצה לרוחב של קפל המרפק, אמצע בין LU5 לאפיקונדיל לרוחב', actions: 'מנקה חום, מצנן דם, פותר לחות, מווסת צ׳י ודם' },
+  'SP9':  { name: 'יינלינגצ׳ואן', channel: 'טחול', location: 'שקע על הגבול התחתון של הקונדיל המדיאלי של הטיביה', actions: 'פותר לחות, מווסת בורר תחתון, פותח ערוצי מים' },
+  'ST40': { name: 'פנגלונג', channel: 'קיבה', location: '8 צון מתחת ל-ST35, שני רוחבי אצבע לרוחב קצה הטיביה הקדמית', actions: 'פותר ליחה ולחות, מרגיע שן, פותח חזה, מנקה חום' },
+  'YIN':  { name: 'יינטנג', channel: 'נקודה נוספת', location: 'קו אמצע המצח, אמצע בין הקצות המדיאליות של הגבות', actions: 'מרגיע שן, מאיר עיניים, מקל על כאב ראש חזיתי, תומך בשינה' },
+  'YINTANG': { name: 'יינטנג', channel: 'נקודה נוספת', location: 'קו אמצע המצח, אמצע בין הקצות המדיאליות של הגבות', actions: 'מרגיע שן, מאיר עיניים, מקל על כאב ראש חזיתי, תומך בשינה' },
+};
+
+function getPointInfo(code) {
+  return (_ZF_LANG === 'he' ? POINT_INFO_HE : POINT_INFO)[code] || {};
+}
 
 const defaultAdvice = [
   { id: 'sleep', icon: '🌙', category: 'Sleep', text: 'Establish a wind-down routine — dim lights 1 hour before bed, avoid screens, try 4-7-8 breathing.', enabled: true },
@@ -439,7 +494,8 @@ async function loadTreatment() {
 
     const initials = data.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
     document.getElementById('pt-initials').textContent = initials;
-    document.getElementById('pt-name').textContent = data.patient_name;
+    const nameEl = document.getElementById('pt-name');
+    nameEl.innerHTML = `<a href="/patients/${patientId}" style="color:inherit;text-decoration:none;" onmouseover="this.style.color='#0D9488'" onmouseout="this.style.color=''">${escHtml(data.patient_name)}</a>`;
     const d = new Date(data.date);
     document.getElementById('pt-meta').textContent =
       d.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' at ' + data.time;
@@ -551,19 +607,30 @@ async function loadTreatment() {
 function renderIntakeHistory(history, sessionDate) {
   const intakeBody = document.getElementById('intake-body');
   if (history && history.length > 0) {
-    intakeBody.innerHTML = history.map(msg => {
+    const msgs = history.map(msg => {
       const isUser = msg.role === 'user';
+      const icon = isUser
+        ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+        : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.84A2.5 2.5 0 0 1 9.5 2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.84A2.5 2.5 0 0 0 14.5 2"/></svg>`;
       return `<div class="zf-intake-msg ${isUser ? 'user' : 'ai'}">
-        <div class="zf-intake-role">${isUser ? '👤 Patient' : '🤖 AI Assistant'}</div>
-        <div class="zf-intake-text">${escHtml(msg.content)}</div>
+        <div class="zf-intake-avatar">${icon}</div>
+        <div class="zf-intake-bubble">
+          <div class="zf-intake-role">${isUser ? 'Patient' : 'AI Assistant'}</div>
+          <div class="zf-intake-text">${escHtml(msg.content)}</div>
+        </div>
       </div>`;
-    }).join('') + `<div style="font-size:11px;color:#9CA3AF;margin-top:12px;padding-top:10px;border-top:1px solid #F3F4F6;">
-      Collected via Telegram Bot · ${new Date(sessionDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
-    </div>`;
+    }).join('');
+    const dateStr = new Date(sessionDate).toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+    intakeBody.innerHTML = `<div class="zf-intake-thread">${msgs}</div>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:14px;padding-top:10px;border-top:1px solid #F3F4F6;display:flex;align-items:center;gap:6px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        ${history.length} exchange${history.length !== 1 ? 's' : ''} · Collected via Telegram Bot · ${dateStr}
+      </div>`;
   } else {
-    intakeBody.innerHTML = `<div style="text-align:center;padding:20px 0;">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:8px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    intakeBody.innerHTML = `<div style="text-align:center;padding:24px 0;">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:10px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <p style="font-size:13px;color:#9CA3AF;margin:0;">No intake questionnaire for this session.</p>
+      <p style="font-size:11px;color:#D1D5DB;margin:4px 0 0;">Patient booked without completing the AI intake flow.</p>
     </div>`;
   }
 }
@@ -845,7 +912,7 @@ function renderSuggestedPoints(notes, rawSummary) {
       const aiLocation      = (typeof pt === 'object' && pt.location)         || '';
       const needleTechnique = (typeof pt === 'object' && pt.needle_technique) || '';
 
-      const info   = POINT_INFO[code] || {};
+      const info   = getPointInfo(code);
       const theme  = CHANNEL_COLORS[info.channel] || DEFAULT_COLOR;
       const icon   = CHANNEL_ICONS[info.channel]  || CHANNEL_ICONS['Extra Point'];
       const name   = info.name     || code;
@@ -900,7 +967,7 @@ function renderSuggestedPoints(notes, rawSummary) {
 
         <!-- AI rationale for this patient -->
         ${rationale ? `<div style="background:linear-gradient(135deg,#F0FDFA,#ECFDF5);border-radius:8px;padding:9px 11px;border-left:2.5px solid #0D9488;margin-top:2px;">
-          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:.7px;margin-bottom:3px;">For this patient</div>
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:.7px;margin-bottom:3px;">${_ZF_LANG === 'he' ? 'עבור מטופל זה' : 'For this patient'}</div>
           <p style="font-size:11px;color:#065F46;line-height:1.55;margin:0;">${escHtml(rationale)}</p>
         </div>` : ''}
       </div>`;
@@ -911,10 +978,10 @@ function renderSuggestedPoints(notes, rawSummary) {
 
   // ── 2. Compact chip row inside "Acupuncture Points Used" card ─────────────────
   div.innerHTML =
-    `<span style="font-size:11px;color:#9CA3AF;width:100%;display:block;margin-bottom:6px;">AI formula — click <strong>+</strong> to add:</span>` +
+    `<span style="font-size:11px;color:#9CA3AF;width:100%;display:block;margin-bottom:6px;">${_ZF_LANG === 'he' ? 'פורמולת AI — לחץ <strong>+</strong> להוספה:' : 'AI formula — click <strong>+</strong> to add:'}</span>` +
     pointObjects.map(pt => {
       const code = typeof pt === 'object' ? (pt.code || '') : String(pt);
-      const info  = POINT_INFO[code] || {};
+      const info  = getPointInfo(code);
       const theme = CHANNEL_COLORS[info.channel] || DEFAULT_COLOR;
       return `<button class="zf-point-chip" onclick="quickAddPoint('${escHtml(code)}')"
         style="border-color:${theme.border};color:${theme.code};background:${theme.bg};"
@@ -1699,30 +1766,34 @@ function renderPoints() {
 
 function openPointPanel(code) {
   const panel = document.getElementById('point-panel');
-  const info  = POINT_INFO[code];
+  const info  = getPointInfo(code);
   const rationale = aiPointRationale[code];
+  const isHe = _ZF_LANG === 'he';
   document.getElementById('panel-code').textContent = code;
   let html = '';
   if (rationale) {
     html += `<div style="background:#CCFBF1;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:0.6px;margin-bottom:5px;">AI Rationale for This Session</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:0.6px;margin-bottom:5px;">${isHe ? 'נימוק AI לטיפול זה' : 'AI Rationale for This Session'}</div>
       <p style="font-size:13px;color:#065F46;line-height:1.6;margin:0;">${escHtml(rationale)}</p>
     </div>`;
   }
-  if (info) {
+  if (info && info.name) {
+    const channelLabel = isHe ? 'ערוץ' : 'Channel';
+    const locationLabel = isHe ? 'מיקום' : 'Location';
+    const actionsLabel = isHe ? 'פעולות' : 'Actions';
     html += `
-      <div style="margin-bottom:10px;"><span class="zf-badge zf-badge-teal">${info.channel} Channel</span></div>
+      <div style="margin-bottom:10px;"><span class="zf-badge zf-badge-teal">${info.channel}${isHe ? '' : ' ' + channelLabel}</span></div>
       <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:8px;">${info.name}</div>
       <div style="margin-bottom:12px;">
-        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Location</span>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">${locationLabel}</span>
         <p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.location}</p>
       </div>
       <div>
-        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">Actions</span>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">${actionsLabel}</span>
         <p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.actions}</p>
       </div>`;
   } else {
-    html += `<p style="font-size:13px;color:#9CA3AF;">No reference data for <strong>${code}</strong>.</p>`;
+    html += `<p style="font-size:13px;color:#9CA3AF;">${isHe ? 'אין נתוני עזר עבור' : 'No reference data for'} <strong>${code}</strong>.</p>`;
   }
   document.getElementById('panel-body').innerHTML = html;
   panel.classList.remove('hidden');

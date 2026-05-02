@@ -5,7 +5,7 @@ from datetime import date
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bot.config import THERAPISTS
+from bot.config import THERAPISTS, THERAPIST_BY_ID
 from bot.patient_bot.services.ai_intake import (
     clear_intake,
     generate_diagnosis_only,
@@ -446,6 +446,8 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return SELECTING
 
-    next_q = await get_next_question(user_id, user_answer)
+    therapist_id = context.user_data.get("selected_therapist")
+    lang = THERAPIST_BY_ID.get(therapist_id, {}).get("language", "en") if therapist_id else "en"
+    next_q = await get_next_question(user_id, user_answer, lang=lang)
     await update.message.reply_text(next_q)
     return INTAKE

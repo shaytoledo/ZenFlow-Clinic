@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block page_title_tag %}Messages{% endblock %}
-{% block page_heading %}Messages{% endblock %}
+{% block page_title_tag %}{{ t['messages_title'] if t else 'Messages' }}{% endblock %}
+{% block page_heading %}{{ t['messages_title'] if t else 'Messages' }}{% endblock %}
 
 {% block content %}
 <div style="padding: 28px;">
@@ -8,29 +8,29 @@
   <div style="display:grid; grid-template-columns: 300px 1fr; gap: 0; height: calc(100vh - 120px); border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
 
     <!-- Patient list panel -->
-    <div style="background: white; border-right: 1px solid #E5E7EB; display:flex;flex-direction:column;overflow:hidden;">
+    <div id="msg-patient-panel" style="background: white; border-right: 1px solid #E5E7EB; display:flex;flex-direction:column;overflow:hidden;">
       <div style="padding: 16px 16px 12px; border-bottom: 1px solid #F3F4F6;">
-        <div style="position:relative;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);">
+        <div id="messages-search-wrap" style="position:relative;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" style="position:absolute;inset-inline-start:10px;top:50%;transform:translateY(-50%);">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input type="text" class="zf-input" placeholder="Search patients…" style="padding-left:30px;font-size:13px;" oninput="filterConvos(this.value)" />
+          <input type="text" class="zf-input" placeholder="{{ t['patients_search_placeholder'] if t else 'Search patients…' }}" style="padding-inline-start:30px;font-size:13px;" oninput="filterConvos(this.value)" />
         </div>
         <!-- Live relay / intake tabs -->
         <div style="display:flex;gap:4px;margin-top:10px;">
-          <button id="tab-relay" class="zf-tab-btn active" onclick="switchTab('relay')">Live Chat</button>
-          <button id="tab-intake" class="zf-tab-btn" onclick="switchTab('intake')">Intake History</button>
+          <button id="tab-relay" class="zf-tab-btn active" onclick="switchTab('relay')">{{ t['messages_live_chat'] if t else 'Live Chat' }}</button>
+          <button id="tab-intake" class="zf-tab-btn" onclick="switchTab('intake')">{{ t['messages_intake_history'] if t else 'Intake History' }}</button>
         </div>
       </div>
       <div id="convo-list" style="overflow-y:auto;flex:1;">
-        <div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">Loading…</div>
+        <div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">{{ t['dashboard_loading'] if t else 'Loading…' }}</div>
       </div>
     </div>
 
     <!-- Message thread panel -->
     <div style="background: #F9FAFB; display:flex;flex-direction:column;overflow:hidden;">
       <div id="thread-header" style="background:white;border-bottom:1px solid #E5E7EB;padding:14px 20px;display:flex;align-items:center;gap:12px;min-height:62px;">
-        <div style="font-size:13px;color:#9CA3AF;">Select a patient to view conversation</div>
+        <div style="font-size:13px;color:#9CA3AF;">{{ t['messages_select_patient'] if t else 'Select a patient to view conversation' }}</div>
       </div>
       <div id="thread-body" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;">
         <!-- messages rendered here -->
@@ -71,6 +71,26 @@
 
 {% block extra_scripts %}
 <script>
+const _ZF_MSG_T = {
+  no_active_relay:     "{{ t['messages_no_active_relay'] if t else 'No active relay sessions.' }}",
+  select_patient:      "{{ t['messages_select_patient'] if t else 'Select a patient to view conversation' }}",
+  relay_active:        "{{ t['messages_relay_active'] if t else '🟢 Live relay session — messages sent here go via Telegram' }}",
+  relay_item:          "{{ t['messages_relay_item'] if t else '🟢 Active relay session' }}",
+  no_messages:         "{{ t['messages_no_messages'] if t else 'No messages yet in this relay session.' }}",
+  no_intake:           "{{ t['messages_no_intake'] if t else 'No intake conversations recorded yet' }}",
+  intake_conv_history: "{{ t['messages_intake_conv_history'] if t else 'Intake conversation history' }}",
+  sender_you:          "{{ t['messages_sender_you'] if t else '🩺 You' }}",
+  sender_patient:      "{{ t['messages_sender_patient'] if t else '👤 Patient' }}",
+  sender_ai:           "{{ t['messages_sender_ai'] if t else '🤖 AI Assistant' }}",
+  view_profile:        "{{ t['messages_view_profile'] if t else 'View Profile →' }}",
+  refresh:             "{{ t['messages_refresh'] if t else '↻ Refresh' }}",
+  no_patients:         "{{ t['messages_no_patients'] if t else 'No patients found' }}",
+  error:               "{{ t['messages_error'] if t else 'Error loading messages' }}",
+  loading:             "{{ t['dashboard_loading'] if t else 'Loading…' }}",
+  live_chat:           "{{ t['messages_live_chat'] if t else 'Live Chat' }}",
+  intake_history:      "{{ t['messages_intake_history'] if t else 'Intake History' }}",
+};
+const _locale = _ZF_LANG === 'he' ? 'he-IL' : 'en-GB';
 let _patients = [];
 let _relayPatients = [];
 let _selectedId = null;
@@ -84,7 +104,7 @@ function switchTab(tab) {
   _selectedId = null;
   document.getElementById('tab-relay').classList.toggle('active', tab === 'relay');
   document.getElementById('tab-intake').classList.toggle('active', tab === 'intake');
-  document.getElementById('thread-header').innerHTML = '<div style="font-size:13px;color:#9CA3AF;">Select a patient to view conversation</div>';
+  document.getElementById('thread-header').innerHTML = `<div style="font-size:13px;color:#9CA3AF;">${_ZF_MSG_T.select_patient}</div>`;
   document.getElementById('thread-body').innerHTML = '';
   document.getElementById('thread-input').classList.add('hidden');
 
@@ -101,14 +121,14 @@ async function loadRelayList() {
     renderRelayList(_relayPatients);
   } catch(e) {
     document.getElementById('convo-list').innerHTML =
-      '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">No active relay sessions</div>';
+      `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">${_ZF_MSG_T.no_active_relay}</div>`;
   }
 }
 
 function renderRelayList(sessions) {
   const el = document.getElementById('convo-list');
   if (sessions.length === 0) {
-    el.innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">No active relay sessions.<br><span style="font-size:11px;">Patients start a chat via the Telegram bot.</span></div>';
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">${_ZF_MSG_T.no_active_relay}</div>`;
     return;
   }
   el.innerHTML = sessions.map(s => {
@@ -116,25 +136,37 @@ function renderRelayList(sessions) {
     const name = s.patient_name || `Patient ${pid}`;
     const safeName = name.replace(/'/g, "\\'");
     const initials = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-    return `<div class="zf-convo-item ${_selectedId === pid ? 'active' : ''}" onclick="openRelayConvo(${pid}, '${safeName}')" oncontextmenu="showChatContextMenu(event, ${pid}, '${safeName}'); return false;">
+    const unread = s.unread_count || 0;
+    const isActive = _selectedId === pid;
+    const unreadDot = unread > 0
+      ? `<span style="min-width:18px;height:18px;background:#2563EB;color:#fff;border-radius:999px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;flex-shrink:0;">${unread}</span>`
+      : '';
+    return `<div class="zf-convo-item ${isActive ? 'active' : ''}" onclick="openRelayConvo(${pid}, '${safeName}')" oncontextmenu="showChatContextMenu(event, ${pid}, '${safeName}', ${unread}); return false;" style="${unread > 0 && !isActive ? 'background:#EFF6FF;' : ''}">
       <div class="zf-avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;">${initials}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:#111827;">${name}</div>
-        <div style="font-size:11px;color:#0D9488;font-weight:500;">🟢 Active relay session</div>
+        <div style="font-size:13px;font-weight:${unread > 0 ? '700' : '600'};color:#111827;">${name}</div>
+        <div style="font-size:11px;color:#0D9488;font-weight:500;">${_ZF_MSG_T.relay_item}</div>
       </div>
+      ${unreadDot}
     </div>`;
   }).join('');
 }
 
 // ── Right-click context menu ─────────────────────────────────────────────────
 
-function showChatContextMenu(ev, patientId, patientName) {
+function showChatContextMenu(ev, patientId, patientName, currentUnread) {
   closeChatContextMenu();
   const menu = document.createElement('div');
   menu.id = 'zf-chat-ctx';
-  menu.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;min-width:180px;font-size:13px;';
+  menu.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;min-width:190px;font-size:13px;';
+  const btnBase = 'display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;font-weight:500;padding:8px 12px;border-radius:6px;cursor:pointer;text-align:left;font-family:inherit;font-size:13px;';
   menu.innerHTML = `
-    <button id="zf-ctx-delete" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;color:#DC2626;font-weight:500;padding:8px 12px;border-radius:6px;cursor:pointer;text-align:left;font-family:inherit;font-size:13px;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='none'">
+    <button id="zf-ctx-unread" style="${btnBase}color:#2563EB;" onmouseover="this.style.background='#EFF6FF'" onmouseout="this.style.background='none'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Mark as Unread
+    </button>
+    <div style="height:1px;background:#F3F4F6;margin:2px 0;"></div>
+    <button id="zf-ctx-delete" style="${btnBase}color:#DC2626;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='none'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
       Delete chat
     </button>
@@ -145,6 +177,12 @@ function showChatContextMenu(ev, patientId, patientName) {
   const y = Math.min(ev.clientY, window.innerHeight - h - 8);
   menu.style.left = x + 'px';
   menu.style.top  = y + 'px';
+
+  document.getElementById('zf-ctx-unread').onclick = async () => {
+    closeChatContextMenu();
+    await fetch(`/api/messages/unread/${patientId}`, { method: 'POST' });
+    loadRelayList();
+  };
 
   document.getElementById('zf-ctx-delete').onclick = () => {
     closeChatContextMenu();
@@ -189,11 +227,11 @@ async function openRelayConvo(patientId, patientName) {
     <div class="zf-avatar" style="width:34px;height:34px;font-size:12px;">${initials}</div>
     <div>
       <div style="font-size:14px;font-weight:600;color:#111827;">${patientName}</div>
-      <div style="font-size:11px;color:#0D9488;">🟢 Live relay session — messages sent here go via Telegram</div>
+      <div style="font-size:11px;color:#0D9488;">${_ZF_MSG_T.relay_active}</div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;">
-      <button onclick="refreshMessages()" class="zf-btn zf-btn-outline" style="font-size:11px;padding:4px 10px;">↻ Refresh</button>
-      <a href="/patients" style="font-size:12px;color:#0D9488;text-decoration:none;font-weight:500;line-height:1;display:flex;align-items:center;">View Profile →</a>
+    <div style="margin-inline-start:auto;display:flex;gap:8px;">
+      <button onclick="refreshMessages()" class="zf-btn zf-btn-outline" style="font-size:11px;padding:4px 10px;">${_ZF_MSG_T.refresh}</button>
+      <a href="/patients" style="font-size:12px;color:#0D9488;text-decoration:none;font-weight:500;line-height:1;display:flex;align-items:center;">${_ZF_MSG_T.view_profile}</a>
     </div>
   `;
   document.getElementById('thread-input').classList.remove('hidden');
@@ -208,12 +246,12 @@ async function fetchRelayHistory(patientId) {
     const data = await fetch(`/api/messages/history/${patientId}`).then(r => r.json());
     const messages = data.messages || [];
     if (messages.length === 0) {
-      threadBody.innerHTML = '<div style="text-align:center;color:#9CA3AF;font-size:13px;margin-top:40px;">No messages yet — the patient hasn\'t sent anything via the relay.</div>';
+      threadBody.innerHTML = `<div style="text-align:center;color:#9CA3AF;font-size:13px;margin-top:40px;">${_ZF_MSG_T.no_messages}</div>`;
       return;
     }
     renderMessages(threadBody, messages, 'relay');
   } catch(e) {
-    threadBody.innerHTML = '<div style="text-align:center;color:#EF4444;font-size:13px;">Error loading messages</div>';
+    threadBody.innerHTML = `<div style="text-align:center;color:#EF4444;font-size:13px;">${_ZF_MSG_T.error}</div>`;
   }
 }
 
@@ -221,10 +259,10 @@ function renderMessages(container, messages, mode) {
   if (mode === 'relay') {
     container.innerHTML = messages.map(msg => {
       const isTherapist = msg.role === 'therapist';
-      const timeStr = msg.ts ? new Date(msg.ts * 1000).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : '';
+      const timeStr = msg.ts ? new Date(msg.ts * 1000).toLocaleTimeString(_locale, {hour:'2-digit',minute:'2-digit'}) : '';
       return `<div style="display:flex;${isTherapist ? 'justify-content:flex-end;' : ''}">
         <div class="zf-msg-bubble ${isTherapist ? 'user' : 'ai'}">
-          <div style="font-size:10px;font-weight:600;color:${isTherapist ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isTherapist ? '🩺 You' : '👤 Patient'} ${timeStr ? '· ' + timeStr : ''}</div>
+          <div style="font-size:10px;font-weight:600;color:${isTherapist ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isTherapist ? _ZF_MSG_T.sender_you : _ZF_MSG_T.sender_patient} ${timeStr ? '· ' + timeStr : ''}</div>
           <div style="font-size:13px;line-height:1.5;">${msg.text}</div>
         </div>
       </div>`;
@@ -234,7 +272,7 @@ function renderMessages(container, messages, mode) {
       const isUser = msg.role === 'user';
       return `<div style="display:flex;${isUser ? 'justify-content:flex-end;' : ''}">
         <div class="zf-msg-bubble ${isUser ? 'user' : 'ai'}">
-          <div style="font-size:10px;font-weight:600;color:${isUser ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isUser ? '👤 Patient' : '🤖 AI Assistant'}</div>
+          <div style="font-size:10px;font-weight:600;color:${isUser ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isUser ? _ZF_MSG_T.sender_patient : _ZF_MSG_T.sender_ai}</div>
           <div style="font-size:13px;line-height:1.5;">${msg.content}</div>
         </div>
       </div>`;
@@ -295,7 +333,7 @@ async function loadIntakeList() {
     renderConvoList(_patients);
   } catch(e) {
     document.getElementById('convo-list').innerHTML =
-      '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">Error loading</div>';
+      `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">${_ZF_MSG_T.error}</div>`;
   }
 }
 
@@ -313,13 +351,13 @@ function filterConvos(q) {
 function renderConvoList(patients) {
   const el = document.getElementById('convo-list');
   if (patients.length === 0) {
-    el.innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">No patients found</div>';
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px;">${_ZF_MSG_T.no_patients}</div>`;
     return;
   }
   el.innerHTML = patients.map(p => {
     const initials = p.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
     const lastDate = p.last_appointment
-      ? new Date(p.last_appointment).toLocaleDateString('en-GB', {day:'numeric',month:'short'})
+      ? new Date(p.last_appointment).toLocaleDateString(_locale, {day:'numeric',month:'short'})
       : '';
     return `<div class="zf-convo-item ${_selectedId === p.id ? 'active' : ''}" onclick="openIntakeConvo(${p.id}, '${p.name.replace(/'/g,"\\'")}')">
       <div class="zf-avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;">${initials}</div>
@@ -342,21 +380,21 @@ async function openIntakeConvo(patientId, patientName) {
     <div class="zf-avatar" style="width:34px;height:34px;font-size:12px;">${initials}</div>
     <div>
       <div style="font-size:14px;font-weight:600;color:#111827;">${patientName}</div>
-      <div style="font-size:11px;color:#9CA3AF;">Intake conversation history</div>
+      <div style="font-size:11px;color:#9CA3AF;">${_ZF_MSG_T.intake_conv_history}</div>
     </div>
-    <a href="/patients" style="margin-left:auto;font-size:12px;color:#0D9488;text-decoration:none;font-weight:500;">View Profile →</a>
+    <a href="/patients" style="margin-inline-start:auto;font-size:12px;color:#0D9488;text-decoration:none;font-weight:500;">${_ZF_MSG_T.view_profile}</a>
   `;
   document.getElementById('thread-input').classList.add('hidden');
 
   const threadBody = document.getElementById('thread-body');
-  threadBody.innerHTML = '<div style="text-align:center;color:#9CA3AF;font-size:13px;">Loading…</div>';
+  threadBody.innerHTML = `<div style="text-align:center;color:#9CA3AF;font-size:13px;">${_ZF_MSG_T.loading}</div>`;
 
   try {
     const data = await fetch(`/api/patients/${patientId}`).then(r => r.json());
     const allMsgs = [];
     data.appointments.forEach(apt => {
       if (apt.intake_history && apt.intake_history.length > 0) {
-        allMsgs.push({ type: 'date', text: new Date(apt.date).toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' — Intake Session' });
+        allMsgs.push({ type: 'date', text: new Date(apt.date).toLocaleDateString(_locale, {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' — ' + _ZF_MSG_T.intake_history });
         apt.intake_history.forEach(msg => allMsgs.push(msg));
       }
     });
@@ -364,7 +402,7 @@ async function openIntakeConvo(patientId, patientName) {
     if (allMsgs.length === 0) {
       threadBody.innerHTML = `<div style="text-align:center;color:#9CA3AF;font-size:13px;margin-top:40px;">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round" style="display:block;margin:0 auto 10px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        No intake conversations recorded yet
+        ${_ZF_MSG_T.no_intake}
       </div>`;
       return;
     }
@@ -376,14 +414,14 @@ async function openIntakeConvo(patientId, patientName) {
       const isUser = msg.role === 'user';
       return `<div style="display:flex;${isUser ? 'justify-content:flex-end;' : ''}">
         <div class="zf-msg-bubble ${isUser ? 'user' : 'ai'}">
-          <div style="font-size:10px;font-weight:600;color:${isUser ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isUser ? '👤 Patient' : '🤖 AI Assistant'}</div>
+          <div style="font-size:10px;font-weight:600;color:${isUser ? 'rgba(255,255,255,0.7)' : '#9CA3AF'};margin-bottom:4px;">${isUser ? _ZF_MSG_T.sender_patient : _ZF_MSG_T.sender_ai}</div>
           <div style="font-size:13px;line-height:1.5;">${msg.content}</div>
         </div>
       </div>`;
     }).join('');
     threadBody.scrollTop = threadBody.scrollHeight;
   } catch(e) {
-    threadBody.innerHTML = '<div style="text-align:center;color:#EF4444;font-size:13px;">Error loading conversation</div>';
+    threadBody.innerHTML = `<div style="text-align:center;color:#EF4444;font-size:13px;">${_ZF_MSG_T.error}</div>`;
   }
 }
 

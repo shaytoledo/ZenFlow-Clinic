@@ -101,22 +101,61 @@ def insert_manual(
     apt_date: str,
     apt_time: str,
     patient_phone: str = "",
+    patient_email: str = "",
     summary: str = "",
+    existing_patient_id: int | None = None,
 ) -> tuple[int, int]:
     """Insert a manually-created appointment (no Telegram intake).
 
-    Generates a unique negative `patient_id` so it cannot collide with real
+    If `existing_patient_id` is provided, the new appointment is attached to that
+    existing patient (so the EHR groups all sessions together). Otherwise a new
+    unique negative `patient_id` is generated so it cannot collide with real
     Telegram user IDs (which are positive). Returns (appointment_id, patient_id).
     """
-    import time
-    patient_id = -int(time.time() * 1000)  # always negative, monotonic
+    if existing_patient_id is not None:
+        patient_id = int(existing_patient_id)
+    else:
+        import time
+        patient_id = -int(time.time() * 1000)  # always negative, monotonic
     cur = _conn().execute(
         """INSERT INTO appointments
-           (patient_id, patient_name, therapist_id, date, time, status, summary, source, patient_phone)
-           VALUES (?, ?, ?, ?, ?, 'active', ?, 'manual', ?)""",
-        (patient_id, patient_name, therapist_id, apt_date, apt_time, summary, patient_phone),
+           (patient_id, patient_name, therapist_id, date, time, status, summary,
+            source, patient_phone, patient_email)
+           VALUES (?, ?, ?, ?, ?, 'active', ?, 'manual', ?, ?)""",
+        (patient_id, patient_name, therapist_id, apt_date, apt_time, summary,
+         patient_phone, patient_email),
     )
     return int(cur.lastrowid), patient_id
+
+
+def search_patients(query: str, limit: int = 10) -> list[dict]:
+    """Search distinct patients by name (latest contact info per patient).
+
+    Returns: [{patient_id, patient_name, patient_phone, patient_email, source, last_seen}]
+    """
+    q = (query or "").strip()
+    if q:
+        rows = _conn().execute(
+            """SELECT patient_id, patient_name, patient_phone, patient_email, source,
+                      MAX(created_at) AS last_seen
+               FROM appointments
+               WHERE patient_name LIKE ?
+               GROUP BY patient_id
+               ORDER BY last_seen DESC
+               LIMIT ?""",
+            (f"%{q}%", limit),
+        ).fetchall()
+    else:
+        rows = _conn().execute(
+            """SELECT patient_id, patient_name, patient_phone, patient_email, source,
+                      MAX(created_at) AS last_seen
+               FROM appointments
+               GROUP BY patient_id
+               ORDER BY last_seen DESC
+               LIMIT ?""",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in rows]
 
 
 def list_in_date_range(therapist_id: str, start_date: str, end_date: str) -> list[dict]:

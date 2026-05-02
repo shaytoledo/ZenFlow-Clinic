@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block page_title_tag %}Session — {{ patient.name }}{% endblock %}
+{% block page_heading %}{{ t['archive_session_record'] if t else 'Session Record' }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="/patients/{{ patient.patient_id }}" class="zf-btn zf-btn-outline" style="font-size:13px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  {{ patient.name }}
+</a>
+{% endblock %}
+
+{% block content %}
+{% set rating_colors = {1: '#DC2626', 2: '#EA580C', 3: '#D97706', 4: '#16A34A', 5: '#0D9488'} %}
+{% set rating_labels = {1: t['chart_much_worse'] if t else 'Much worse', 2: t['chart_slightly_worse'] if t else 'Slightly worse', 3: t['chart_same'] if t else 'About the same', 4: t['chart_noticeably_better'] if t else 'Noticeably better', 5: t['chart_much_better'] if t else 'Much better'} %}
+{% set cert_color = '#16A34A' if session.diagnosis_certainty and session.diagnosis_certainty >= 75 else ('#D97706' if session.diagnosis_certainty and session.diagnosis_certainty >= 50 else '#DC2626') %}
+
+<div style="padding:28px;">
+
+  <!-- Session Header Card -->
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="zf-avatar" style="width:52px;height:52px;font-size:18px;font-weight:800;flex-shrink:0;">
+          {{ patient.name[:2] | upper }}
+        </div>
+        <div>
+          <a href="/patients/{{ patient.patient_id }}" style="font-size:18px;font-weight:800;color:#111827;text-decoration:none;" onmouseover="this.style.color='#0D9488'" onmouseout="this.style.color='#111827'">{{ patient.name }}</a>
+          <div style="font-size:13px;color:#6B7280;margin-top:2px;">
+            {{ session.date }} at {{ session.time }}
+            {% if session.therapist_id %} · Therapist {{ session.therapist_id }}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+        {% if session.intake_history %}
+        <span class="zf-badge zf-badge-teal">{{ t['archive_intake_badge'] if t else 'Intake ✓' }}</span>
+        {% endif %}
+        {% if session.completed_at %}
+        <span class="zf-badge zf-badge-green">{{ t['archive_completed'] if t else 'Completed' }}</span>
+        {% else %}
+        <span class="zf-badge zf-badge-gray">{{ t['archive_in_progress'] if t else 'In progress' }}</span>
+        {% endif %}
+        {% set rating = session.followup_rating or session.manual_feedback_rating %}
+        {% if rating %}
+        <span style="font-size:12px;font-weight:700;color:{{ rating_colors[rating] }};background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:3px 9px;">
+          {{ rating }}/5 {{ rating_labels[rating] }}
+        </span>
+        {% endif %}
+        <a href="/treatment/{{ patient.patient_id }}/{{ session.date }}/{{ session.time.replace(':', '-') }}"
+           class="zf-btn zf-btn-primary" style="font-size:12px;padding:6px 14px;">
+          {{ t['archive_open_editor'] if t else 'Open in Session Editor' }}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Intake Summary -->
+  {% if session.intake_history %}
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div class="ehr-section-header" style="margin-bottom:14px;">
+      <span class="ehr-section-icon" style="background:#DBEAFE;">💬</span>
+      <span class="ehr-section-title">{{ t['archive_ai_intake'] if t else 'AI Intake Conversation' }}</span>
+      <span class="zf-badge zf-badge-blue" style="font-size:10px;margin-inline-start:auto;">{{ session.intake_history | length }} {{ t['archive_exchanges'] if t else 'exchanges' }}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;" class="ehr-intake-list">
+      {% for msg in session.intake_history %}
+      {% if msg.role == 'assistant' %}
+      <div class="ehr-intake-ai" style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="width:28px;height:28px;border-radius:8px;background:#CCFBF1;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">🤖</div>
+        <div dir="auto" style="background:#F0FDFA;border:1px solid #CCFBF1;border-radius:0 10px 10px 10px;padding:8px 12px;font-size:13px;color:#065F46;line-height:1.55;max-width:90%;">
+          {{ msg.content }}
+        </div>
+      </div>
+      {% elif msg.role == 'user' %}
+      <div class="ehr-intake-user" style="display:flex;gap:10px;align-items:flex-start;flex-direction:row-reverse;">
+        <div style="width:28px;height:28px;border-radius:8px;background:#EDE9FE;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>
+        <div dir="auto" style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px 0 10px 10px;padding:8px 12px;font-size:13px;color:#4C1D95;line-height:1.55;max-width:90%;">
+          {{ msg.content }}
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- TCM Diagnosis -->
+  {% if session.tcm_pattern or session.treatment_principles %}
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div class="ehr-section-header" style="margin-bottom:16px;">
+      <span class="ehr-section-icon" style="background:#CCFBF1;">🔬</span>
+      <span class="ehr-section-title">{{ t['archive_tcm_diagnosis'] if t else 'TCM Diagnosis' }}</span>
+      {% if session.diagnosis_certainty %}
+      <span style="margin-inline-start:auto;font-size:12px;font-weight:700;color:{{ cert_color }};background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:3px 9px;">
+        {{ session.diagnosis_certainty }}{{ t['archive_certainty'] if t else '% certainty' }}
+      </span>
+      {% endif %}
+    </div>
+    {% if session.tcm_pattern %}
+    <div style="background:#F0FDFA;border-inline-start:3px solid #0D9488;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0D9488;margin-bottom:4px;">{{ t['archive_pattern'] if t else 'Pattern' }}</div>
+      <div style="font-size:14px;font-weight:700;color:#111827;">{{ session.tcm_pattern }}</div>
+    </div>
+    {% endif %}
+    {% if session.treatment_principles %}
+    <div style="background:#F9FAFB;border-radius:8px;padding:10px 14px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9CA3AF;margin-bottom:4px;">{{ t['archive_principles'] if t else 'Treatment Principles' }}</div>
+      <div style="font-size:13px;color:#374151;line-height:1.6;">{{ session.treatment_principles }}</div>
+    </div>
+    {% endif %}
+    {% if session.therapist_diagnosis %}
+    <div style="background:#FEF3C7;border-radius:8px;padding:10px 14px;margin-top:10px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#92400E;margin-bottom:4px;">{{ t['archive_therapist_diagnosis'] if t else 'Therapist Diagnosis' }}</div>
+      <div style="font-size:13px;color:#374151;line-height:1.6;">{{ session.therapist_diagnosis }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- AI Suggested Points -->
+  {% if session.ai_suggested_points %}
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div class="ehr-section-header" style="margin-bottom:14px;">
+      <span class="ehr-section-icon" style="background:#FEF3C7;">📍</span>
+      <span class="ehr-section-title">{{ t['archive_ai_suggested'] if t else 'AI Suggested Acupuncture Points' }}</span>
+      <span class="zf-badge zf-badge-gray" style="font-size:10px;margin-inline-start:auto;">{{ session.ai_suggested_points | length }} {{ t['archive_points'] if t else 'points' }}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      {% for pt in session.ai_suggested_points %}
+      <div style="display:flex;gap:12px;align-items:flex-start;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;">
+        <span style="font-size:13px;font-weight:800;color:#92400E;background:#FEF3C7;border-radius:6px;padding:2px 8px;flex-shrink:0;min-width:48px;text-align:center;">
+          {% if pt is mapping %}{{ pt.code or pt.name or '' }}{% else %}{{ pt }}{% endif %}
+        </span>
+        {% if pt is mapping and pt.rationale %}
+        <span style="font-size:12px;color:#374151;line-height:1.55;">{{ pt.rationale }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Tongue & Pulse -->
+  {% if session.tongue_observation or session.pulse_observation %}
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div class="ehr-section-header" style="margin-bottom:14px;">
+      <span class="ehr-section-icon" style="background:#FCE7F3;">🩺</span>
+      <span class="ehr-section-title">{{ t['archive_physical_exam'] if t else 'Physical Examination' }}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      {% if session.tongue_observation %}
+      <div style="background:#FDF2F8;border:1px solid #FBCFE8;border-radius:8px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9D174D;margin-bottom:6px;">{{ t['archive_tongue'] if t else 'Tongue' }}</div>
+        <div style="font-size:13px;color:#374151;line-height:1.6;">{{ session.tongue_observation }}</div>
+      </div>
+      {% endif %}
+      {% if session.pulse_observation %}
+      <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#5B21B6;margin-bottom:6px;">{{ t['archive_pulse'] if t else 'Pulse' }}</div>
+        <div style="font-size:13px;color:#374151;line-height:1.6;">{{ session.pulse_observation }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Points Actually Used -->
+  {% if session.used_points %}
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div class="ehr-section-header" style="margin-bottom:14px;">
+      <span class="ehr-section-icon" style="background:#ECFDF5;">✅</span>
+      <span class="ehr-section-title">{{ t['archive_points_used'] if t else 'Points Used in This Session' }}</span>
+      <span class="zf-badge zf-badge-teal" style="font-size:10px;margin-inline-start:auto;">{{ session.used_points | length }} {{ t['archive_points'] if t else 'points' }}</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      {% for pt in session.used_points %}
+      <span style="font-size:13px;font-weight:700;background:#D1FAE5;color:#065F46;border-radius:8px;padding:5px 12px;">
+        {% if pt is mapping %}{{ pt.code or pt.name or '' }}{% else %}{{ pt }}{% endif %}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Session Notes -->
+  {% if session.session_notes or session.therapist_notes %}
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div class="ehr-section-header" style="margin-bottom:14px;">
+      <span class="ehr-section-icon" style="background:#F3F4F6;">📝</span>
+      <span class="ehr-section-title">{{ t['archive_clinical_notes'] if t else 'Clinical Notes' }}</span>
+    </div>
+    {% if session.session_notes %}
+    <div style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9CA3AF;margin-bottom:6px;">{{ t['archive_session_notes'] if t else 'Session Notes' }}</div>
+      <div style="font-size:13px;color:#374151;line-height:1.65;background:#F9FAFB;border-radius:8px;padding:10px 14px;">{{ session.session_notes }}</div>
+    </div>
+    {% endif %}
+    {% if session.therapist_notes %}
+    <div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9CA3AF;margin-bottom:6px;">{{ t['archive_therapist_notes'] if t else 'Therapist Notes' }}</div>
+      <div style="font-size:13px;color:#374151;line-height:1.65;background:#F9FAFB;border-radius:8px;padding:10px 14px;">{{ session.therapist_notes }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- AI Lifestyle Recommendations -->
+  {% if session.ai_recommendations %}
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div class="ehr-section-header" style="margin-bottom:14px;">
+      <span class="ehr-section-icon" style="background:#F0FDF4;">🌿</span>
+      <span class="ehr-section-title">{{ t['archive_lifestyle'] if t else 'AI Lifestyle Recommendations' }}</span>
+      {% if session.recommendations_sent_at %}
+      <span style="margin-inline-start:auto;font-size:11px;color:#6B7280;">{{ t['archive_sent'] if t else 'Sent' }} {{ session.recommendations_sent_at[:10] }}</span>
+      {% endif %}
+    </div>
+    {% set recs = session.ai_recommendations %}
+    {% if recs is mapping %}
+    {% for category, text in recs.items() %}
+    {% if text %}
+    <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;">
+      <span style="font-size:12px;font-weight:700;color:#065F46;background:#D1FAE5;border-radius:6px;padding:2px 8px;white-space:nowrap;flex-shrink:0;text-transform:capitalize;">{{ category }}</span>
+      <span style="font-size:13px;color:#374151;line-height:1.55;">{{ text }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    <div style="font-size:13px;color:#374151;line-height:1.65;">{{ recs }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Follow-up Data -->
+  {% set fc = session.followup_conversation %}
+  {% set manual_rating = session.manual_feedback_rating %}
+  {% if fc or manual_rating %}
+  <div class="zf-card" style="margin-bottom:20px;">
+    <div class="ehr-section-header" style="margin-bottom:14px;">
+      <span class="ehr-section-icon" style="background:#FEE2E2;">💌</span>
+      <span class="ehr-section-title">{{ t['archive_followup'] if t else 'Follow-up Response' }}</span>
+      {% if session.followup_sent_at %}
+      <span style="margin-inline-start:auto;font-size:11px;color:#6B7280;">{{ session.followup_sent_at[:10] }}</span>
+      {% endif %}
+    </div>
+    {% if fc is mapping %}
+      {% set rating = fc.improvement_rating or session.followup_rating %}
+      {% if rating %}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:13px;color:#6B7280;">{{ t['archive_improvement'] if t else 'Patient improvement:' }}</span>
+        <span style="font-size:14px;font-weight:800;color:{{ rating_colors[rating] }};">{{ rating }}/5 — {{ rating_labels[rating] }}</span>
+      </div>
+      {% endif %}
+      {% if fc.pain_rating %}
+      <div style="font-size:13px;color:#374151;margin-bottom:6px;">{{ t['archive_pain_level'] if t else 'Pain level:' }} <strong>{{ fc.pain_rating }}/10</strong></div>
+      {% endif %}
+      {% if fc.notes %}
+      <div style="background:#F9FAFB;border-radius:8px;padding:10px 14px;font-size:13px;color:#374151;line-height:1.6;margin-top:6px;">
+        💬 "{{ fc.notes }}"
+      </div>
+      {% endif %}
+    {% elif manual_rating %}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:{% if session.manual_feedback_notes %}10{% else %}0{% endif %}px;">
+      <span style="font-size:13px;color:#6B7280;">{{ t['archive_therapist_feedback'] if t else 'Therapist feedback:' }}</span>
+      <span style="font-size:14px;font-weight:800;color:{{ rating_colors[manual_rating] }};">{{ manual_rating }}/5 — {{ rating_labels[manual_rating] }}</span>
+    </div>
+    {% if session.manual_feedback_notes %}
+    <div style="background:#FEF3C7;border-radius:8px;padding:10px 14px;font-size:13px;color:#374151;line-height:1.6;">
+      📝 {{ session.manual_feedback_notes }}
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+.ehr-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ehr-section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.ehr-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+/* RTL flip for chat bubbles */
+[dir="rtl"] .ehr-intake-user {
+  flex-direction: row !important;
+}
+</style>
+{% endblock %}

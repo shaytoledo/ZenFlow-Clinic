@@ -27,6 +27,7 @@ from web.routers.api.treatment import router as treatment_router
 from web.routers.api.availability import router as avail_router
 from web.routers.api.messages import router as messages_router
 from web.routers.api.system import router as system_router
+from web.routers.api.notifications import router as notifications_router
 
 app = FastAPI(title="ZenFlow Therapist")
 
@@ -61,3 +62,4 @@ app.include_router(treatment_router)
 app.include_router(avail_router)
 app.include_router(messages_router)
 app.include_router(system_router)
+app.include_router(notifications_router)

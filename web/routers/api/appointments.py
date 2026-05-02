@@ -24,21 +24,51 @@ class ManualAppointmentIn(BaseModel):
     date: str           # YYYY-MM-DD
     time: str           # HH:MM
     patient_phone: str = ""
+    patient_email: str = ""
     notes: str = ""     # free-text — saved into appointments.summary
+    existing_patient_id: int | None = None  # when picking an existing patient
 
 
 @router.get("/appointments/today")
 async def get_today_appointments():
-    apts = appointment_service.list_today()
-    apts.sort(key=lambda x: x.get("time", ""))
-    return JSONResponse([{
-        "patient_id": a["patient_id"],
-        "patient_name": a.get("patient_name", ""),
-        "date": a.get("date"),
-        "time": a.get("time"),
-        "summary": (a.get("summary") or "")[:200],
-        "intake_history": a.get("intake_history", []),
-    } for a in apts])
+    from datetime import date as _date
+
+    all_apts = await asyncio.to_thread(appointment_repo.list_all)
+    today_str = _date.today().isoformat()
+
+    today_apts = sorted(
+        [a for a in all_apts if a.get("date") == today_str and a.get("status") == "active"],
+        key=lambda x: x.get("time", ""),
+    )
+    all_active = [a for a in all_apts if a.get("status") == "active"]
+    patient_count = len({a["patient_id"] for a in all_active if a.get("patient_id")})
+    session_count = len(all_active)
+    intake_count = sum(1 for a in today_apts if a.get("intake_history"))
+    recent = sorted(all_active, key=lambda x: (x.get("date", ""), x.get("time", "")), reverse=True)[:10]
+
+    def _fmt(a: dict) -> dict:
+        return {
+            "patient_id":   a["patient_id"],
+            "patient_name": a.get("patient_name", ""),
+            "date":         a.get("date"),
+            "time":         a.get("time"),
+            "summary":      (a.get("summary") or "")[:200],
+            "has_intake":   bool(a.get("intake_history")),
+        }
+
+    today_count = len(today_apts)
+    today_label = f"{today_count} appointment{'s' if today_count != 1 else ''} today"
+
+    return JSONResponse({
+        "today_count":    today_count,
+        "today_label":    today_label,
+        "intake_count":   intake_count,
+        "patient_count":  patient_count,
+        "session_count":  session_count,
+        "today":          [_fmt(a) for a in today_apts],
+        "intake_alerts":  [],
+        "recent":         [_fmt(a) for a in recent],
+    })
 
 
 @router.post("/appointments")
@@ -70,7 +100,9 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
             apt_date=body.date,
             apt_time=body.time,
             patient_phone=body.patient_phone.strip(),
+            patient_email=body.patient_email.strip(),
             summary=body.notes.strip(),
+            existing_patient_id=body.existing_patient_id,
         )
 
         # Mirror the bot's booking flow: consume the availability slot and (if
@@ -116,24 +148,17 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
 
 @router.get("/patients/search")
 async def search_patients(q: str = ""):
-    """Return matching patient names for autocomplete (max 10)."""
-    from bot.db import get_db
-    q = (q or "").strip()
-    if not q:
-        rows = await asyncio.to_thread(
-            lambda: get_db().execute(
-                "SELECT DISTINCT patient_name FROM appointments WHERE status='active' ORDER BY patient_name LIMIT 20"
-            ).fetchall()
-        )
-    else:
-        rows = await asyncio.to_thread(
-            lambda: get_db().execute(
-                "SELECT DISTINCT patient_name FROM appointments WHERE patient_name LIKE ? AND status='active' ORDER BY patient_name LIMIT 10",
-                (f"%{q}%",),
-            ).fetchall()
-        )
-    names = [r["patient_name"] for r in rows if r["patient_name"]]
-    return JSONResponse({"results": names})
+    """Return matching patients for autocomplete with full contact info."""
+    rows = await asyncio.to_thread(appointment_repo.search_patients, q, 10)
+    return JSONResponse({"results": [
+        {
+            "patient_id":    r["patient_id"],
+            "patient_name":  r["patient_name"],
+            "patient_phone": r.get("patient_phone") or "",
+            "patient_email": r.get("patient_email") or "",
+            "source":        r.get("source") or "telegram",
+        } for r in rows
+    ]})
 
 
 @router.get("/patients")
