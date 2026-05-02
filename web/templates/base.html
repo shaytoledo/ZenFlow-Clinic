@@ -86,9 +86,9 @@
     <header class="zf-topbar">
       <div class="zf-topbar-left">
         <h1 class="zf-page-title">{% block page_heading %}{% endblock %}</h1>
+        <div class="zf-topbar-actions">{% block topbar_actions %}{% endblock %}</div>
       </div>
       <div class="zf-topbar-right">
-        {% block topbar_actions %}{% endblock %}
 
         <!-- Language switcher -->
         <button id="lang-toggle-btn"

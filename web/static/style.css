@@ -584,7 +584,7 @@ body {
 .zf-sidebar {
   width: 232px;
   background: white;
-  border-right: 1px solid #E5E7EB;
+  border-inline-end: 1px solid #E5E7EB;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -642,7 +642,7 @@ body {
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 999px;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .zf-sidebar-footer {
@@ -710,6 +710,7 @@ body {
 
 .zf-topbar-left { display: flex; align-items: center; gap: 12px; }
 .zf-topbar-right { display: flex; align-items: center; gap: 12px; }
+.zf-topbar-actions { display: flex; align-items: center; gap: 8px; }
 
 .zf-page-title {
   font-size: 15px;
@@ -1211,38 +1212,36 @@ body {
   direction: rtl;
 }
 
-/* ── Sidebar — moves to the RIGHT in RTL via flex row-reverse ─────────────── */
-[dir="rtl"] .zf-app           { flex-direction: row-reverse; }
-[dir="rtl"] .zf-sidebar       { border-inline-end: 1px solid #E5E7EB; border-inline-start: none; }
-[dir="rtl"] .zf-sidebar-brand { flex-direction: row-reverse; }
+/* ── Sidebar — moves to RIGHT naturally with direction:rtl on <html> ─────── */
+/* .zf-app flex-direction:row flows R→L in RTL, sidebar (first child) = FAR RIGHT */
+/* border-inline-end on .zf-sidebar already resolves correctly in both directions */
+[dir="rtl"] .zf-sidebar-brand { flex-direction: row-reverse; } /* keeps logo on LEFT */
 [dir="rtl"] .zf-nav           { text-align: right; }
-[dir="rtl"] .zf-nav-item      { flex-direction: row-reverse; text-align: right; }
+[dir="rtl"] .zf-nav-item      { text-align: right; }
 [dir="rtl"] .zf-nav-icon      { margin-inline-end: 0; margin-inline-start: 0; }
-[dir="rtl"] .zf-nav-badge     { margin-inline-start: auto; margin-inline-end: 0; }
+/* margin-inline-start:auto on .zf-nav-badge already resolves correctly */
 [dir="rtl"] .zf-sidebar-footer{ direction: rtl; }
-[dir="rtl"] .zf-user-card     { flex-direction: row-reverse; text-align: right; }
+[dir="rtl"] .zf-user-card     { text-align: right; }
 [dir="rtl"] .zf-user-name,
 [dir="rtl"] .zf-user-role     { text-align: right; }
 
-/* ── Topbar — Logo on right, controls on left ─────────────────────────────── */
-[dir="rtl"] .zf-topbar       { flex-direction: row-reverse; }
-[dir="rtl"] .zf-topbar-left  { flex-direction: row-reverse; }
-[dir="rtl"] .zf-topbar-right { flex-direction: row-reverse; }
+/* ── Topbar — natural RTL row flows title+actions to RIGHT, controls to LEFT ─ */
+/* No flex-direction override needed — direction:rtl handles it automatically.  */
+
+/* topbar-actions: sits inside zf-topbar-left, adjacent to the page title */
+[dir="rtl"] .zf-topbar-actions { gap: 8px; }
 
 /* Notification panel: bell is on the LEFT in RTL, so panel anchors left */
 [dir="rtl"] #notif-panel     { right: auto !important; left: 0 !important; }
 [dir="rtl"] #notif-badge     { right: auto !important; left: -4px !important; top: -4px !important; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
-[dir="rtl"] .zf-card-title   { flex-direction: row-reverse; }
+/* Natural RTL row: icon RIGHT, title LEFT, actions FAR-LEFT — no override needed */
 [dir="rtl"] .zf-card-icon    { margin-inline-end: 0; margin-inline-start: 8px; }
-[dir="rtl"] .zf-section-hdr  { flex-direction: row-reverse; }
-[dir="rtl"] .zf-section-title { flex-direction: row-reverse; }
 [dir="rtl"] .zf-section-title svg { margin-inline-end: 0; margin-inline-start: 6px; }
 
 /* ── Stat cards ──────────────────────────────────────────────────────────── */
 [dir="rtl"] .zf-stat-card    { direction: rtl; text-align: right; }
-[dir="rtl"] .zf-stat-header  { flex-direction: row-reverse; }
 
 /* ── Tables ──────────────────────────────────────────────────────────────── */
 [dir="rtl"] .zf-table        { direction: rtl; }
@@ -1260,46 +1259,42 @@ body {
 [dir="rtl"] #point-input                { text-align: right; direction: rtl; }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
-[dir="rtl"] .zf-btn          { flex-direction: row-reverse; }
+/* Natural RTL row handles icon-right, text-left ordering automatically */
 [dir="rtl"] .zf-btn svg      { margin-inline-end: 0; margin-inline-start: 6px; }
 
 /* ── Badges ──────────────────────────────────────────────────────────────── */
 [dir="rtl"] .zf-badge        { direction: rtl; }
 
 /* ── Patients toolbar ────────────────────────────────────────────────────── */
-[dir="rtl"] .zf-patients-toolbar { flex-direction: row-reverse; }
-[dir="rtl"] .zf-filter-chips     { flex-direction: row-reverse; }
+/* Natural RTL row: search RIGHT, filters/actions LEFT — no override needed */
 
 /* ── Treatment header ─────────────────────────────────────────────────────── */
-[dir="rtl"] .zf-treatment-hdr    { flex-direction: row-reverse; }
-[dir="rtl"] #no-telegram-banner  { flex-direction: row-reverse; }
+/* Natural RTL row handles title RIGHT, actions LEFT automatically */
 [dir="rtl"] #no-telegram-banner > div > span { margin-inline-start: 6px; margin-inline-end: 0; margin-left: 0; margin-right: 6px; }
 
 /* ── Points input wrapper ─────────────────────────────────────────────────── */
 [dir="rtl"] .zf-points-tags     { direction: rtl; }
-[dir="rtl"] #points-wrap        { flex-direction: row-reverse; }
 
 /* ── Drawer — opens from LEFT in RTL ─────────────────────────────────────── */
 [dir="rtl"] .zf-drawer-panel    { right: auto; left: 0; transform: translateX(-100%); }
 [dir="rtl"] .zf-drawer.open .zf-drawer-panel { transform: translateX(0); }
-[dir="rtl"] .zf-drawer-header  { flex-direction: row-reverse; }
 [dir="rtl"] .zf-drawer-body    { direction: rtl; text-align: right; }
 
 /* ── Patient profile timeline ─────────────────────────────────────────────── */
 [dir="rtl"] .ehr-session-row   { direction: rtl; }
 [dir="rtl"] #timeline-list .ehr-session-row > div:first-child { order: 2; }
 [dir="rtl"] #timeline-list .ehr-session-row > div:last-child  { order: 1; }
-[dir="rtl"] .ehr-section-header { flex-direction: row-reverse; }
+/* Natural RTL row: section title RIGHT, badge/action FAR-LEFT — no override */
 [dir="rtl"] .ehr-section-title  { text-align: right; }
 /* Border accent stays on the visual start (right side in RTL) */
 [dir="rtl"] .zf-history-item   { border-inline-end: 3px solid var(--primary); border-inline-start: none; padding-inline-start: 0; padding-inline-end: 14px; }
-[dir="rtl"] .zf-history-header { flex-direction: row-reverse; }
+/* Natural RTL row handles history header title/date ordering */
 
 /* ── Charts section ───────────────────────────────────────────────────────── */
 [dir="rtl"] #charts-section     { direction: rtl; }
-[dir="rtl"] #charts-section > div:first-child { flex-direction: row-reverse; }
+/* Natural RTL row handles charts header ordering — no override needed */
 [dir="rtl"] #donut-legend       { direction: rtl; }
-[dir="rtl"] #donut-legend > div { flex-direction: row-reverse; }
+/* Natural RTL row handles legend item (dot RIGHT, label LEFT) — no override needed */
 
 /* ── Point info panel — flips to LEFT in RTL ─────────────────────────────── */
 [dir="rtl"] .zf-point-panel {
@@ -1320,7 +1315,7 @@ body {
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 4px;
 }
-[dir="rtl"] .zf-convo-item { flex-direction: row-reverse; }
+/* Natural RTL row handles convo list item layout — no override needed */
 
 /* ── General margin/padding mirroring ────────────────────────────────────── */
 [dir="rtl"] [style*="margin-left:auto"]  { margin-left: 0 !important; margin-right: auto !important; }
@@ -1329,10 +1324,8 @@ body {
 [dir="rtl"] .zf-diag-conf-badge { margin-inline-start: auto; margin-inline-end: 0; }
 
 /* ── Session archive ──────────────────────────────────────────────────────── */
-/* In RTL the user row has row-reverse inline; double-reverse = row = correct */
-[dir="rtl"] .ehr-intake-user  { flex-direction: row !important; }
-/* AI row in RTL: push icon to the left (inline-end side) */
-[dir="rtl"] .ehr-intake-ai    { flex-direction: row-reverse; }
+/* Natural RTL row: user icon RIGHT, bubble LEFT — no override needed */
+/* Natural RTL row: AI icon RIGHT, bubble LEFT — no override needed */
 /* Section header: push badge to inline-start (right in RTL) */
 [dir="rtl"] .ehr-section-header { direction: rtl; }
 [dir="rtl"] .ehr-section-header .zf-badge { margin-left: 0 !important; margin-right: auto !important; }
@@ -1651,8 +1644,95 @@ body {
 [dir="rtl"] #reply-input  { text-align: right; direction: rtl; }
 
 /* ── zf-advice-item (lifestyle recommendations) ── */
-[dir="rtl"] .zf-advice-item { flex-direction: row-reverse; text-align: right; }
+/* Natural RTL row handles icon RIGHT, text LEFT — no row-reverse needed */
+[dir="rtl"] .zf-advice-item { text-align: right; }
 
 /* ── Points section right column flip ── */
 [dir="rtl"] #points-progress { direction: rtl; }
-[dir="rtl"] #points-progress > div { flex-direction: row-reverse; }
+/* Natural RTL row handles point progress item layout — no override needed */
+
+/* ── Directional arrows (chevron-left ← becomes → in RTL) ─────────────────── */
+[dir="rtl"] .zf-rtl-flip { transform: scaleX(-1); }
+
+/* ── Topbar dismiss / utility buttons with physical padding-left ───────────── */
+[dir="rtl"] #alerts-banner button[title="Dismiss"] {
+  padding: 0 8px 0 0 !important;
+}
+
+/* ── Treatment: margin-inline-start already used; physical margin-left guards ─ */
+[dir="rtl"] [style*="margin-left:8px"]  { margin-left: 0 !important; margin-right: 8px !important; }
+[dir="rtl"] [style*="margin-left: 8px"] { margin-left: 0 !important; margin-right: 8px !important; }
+[dir="rtl"] [style*="margin-left:6px"]  { margin-left: 0 !important; margin-right: 6px !important; }
+[dir="rtl"] [style*="margin-left: 6px"] { margin-left: 0 !important; margin-right: 6px !important; }
+
+/* ── Two-column grids: CSS grid with dir=rtl mirrors column order natively ─── */
+/* No override needed — browser handles grid-template-columns mirroring. */
+
+/* ── AI points count label (margin-left:8px inline) ──────────────────────── */
+[dir="rtl"] #ai-points-count { margin-left: 0 !important; margin-right: 8px !important; }
+
+/* ── Topbar actions group: ensure correct gap in RTL ─────────────────────── */
+[dir="rtl"] .zf-topbar-actions .zf-btn + .zf-btn,
+[dir="rtl"] .zf-topbar-actions .zf-btn + a,
+[dir="rtl"] .zf-topbar-actions a + .zf-btn {
+  margin-inline-start: 0;
+  margin-inline-end: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ABSOLUTE RTL OVERHAUL — Phase 3
+   Global typography · all form elements · inline card headers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Global headings and body text — right-align all block text in RTL */
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3,
+[dir="rtl"] h4, [dir="rtl"] h5, [dir="rtl"] h6 { text-align: right; }
+[dir="rtl"] p  { text-align: right; }
+[dir="rtl"] li { text-align: right; }
+
+/* 2. All form elements — not just .zf-input / .zf-textarea utility classes */
+[dir="rtl"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="image"]) {
+  text-align: right;
+  direction: rtl;
+}
+[dir="rtl"] textarea {
+  text-align: right;
+  direction: rtl;
+}
+[dir="rtl"] select {
+  direction: rtl;
+}
+[dir="rtl"] input::placeholder,
+[dir="rtl"] textarea::placeholder {
+  text-align: right;
+  direction: rtl;
+}
+
+/* 3. Inline card headers without .zf-card-title: natural RTL row already correct */
+
+/* 4. Section-title inline SVG: swap physical margin-right → margin-left */
+[dir="rtl"] .zf-section-title svg {
+  margin-right: 0 !important;
+  margin-left: 6px !important;
+}
+
+/* 5. Physical margin-left:10px override (e.g. Regenerate Points button) */
+[dir="rtl"] [style*="margin-left:10px"]  { margin-left: 0 !important; margin-right: 10px !important; }
+[dir="rtl"] [style*="margin-left: 10px"] { margin-left: 0 !important; margin-right: 10px !important; }
+
+/* 6. Intake thread: ensure rtl direction propagates to message rows */
+[dir="rtl"] .zf-intake-thread { direction: rtl; }
+[dir="rtl"] .zf-intake-msg.ai { direction: rtl; text-align: right; }
+
+/* 7. Flex rows that use justify-content:space-between inside modals
+   — direction:rtl on <html> already puts the first child on the right,
+   so no flex-direction override is needed; just ensure the h3 is right-aligned
+   (covered by rule 1 above). */
+
+/* 8. Advice items: text inside toggle rows */
+[dir="rtl"] .zf-advice-item { direction: rtl; }
+
+/* 9. Point info panel header: h3 right, close button left — natural RTL row handles it */
+
+/* 10. Star-rating row: keep numeric order 1→5 reading left-to-right */
+[dir="rtl"] #mf-stars { flex-direction: row-reverse; }

@@ -148,6 +148,7 @@ def get_auth_url() -> str:
     """Return the Google consent URL (Calendar + Gmail scopes, offline access)."""
     flow = _make_flow()
     url, _ = flow.authorization_url(prompt="consent", access_type="offline")
+    logger.info(f"[OAuth] redirect_uri → {GOOGLE_REDIRECT_URI}")
     return url
 
 
