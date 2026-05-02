@@ -1,12 +1,13 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def get_main_keyboard(show_change_therapist: bool = True) -> InlineKeyboardMarkup:
+def get_main_keyboard(lang: str = "en", show_change_therapist: bool = True) -> InlineKeyboardMarkup:
+    from bot.locales import t
     rows = [
-        [InlineKeyboardButton("📅 Schedule Appointment", callback_data="schedule")],
-        [InlineKeyboardButton("❌ Cancel Appointment",   callback_data="cancel")],
-        [InlineKeyboardButton("💬 Connect to Therapist", callback_data="therapist")],
+        [InlineKeyboardButton("📅 " + t("bot_schedule",        lang), callback_data="schedule")],
+        [InlineKeyboardButton("❌ " + t("bot_cancel",           lang), callback_data="cancel")],
+        [InlineKeyboardButton("💬 " + t("bot_therapist",        lang), callback_data="therapist")],
     ]
     if show_change_therapist:
-        rows.append([InlineKeyboardButton("👨‍⚕️ Change Therapist", callback_data="change_therapist")])
+        rows.append([InlineKeyboardButton("👨‍⚕️ " + t("bot_change_therapist", lang), callback_data="change_therapist")])
     return InlineKeyboardMarkup(rows)

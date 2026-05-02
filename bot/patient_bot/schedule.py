@@ -6,6 +6,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bot.config import THERAPISTS, THERAPIST_BY_ID
+from bot.locales import get_lang, t
 from bot.patient_bot.services.ai_intake import (
     clear_intake,
     generate_diagnosis_only,
@@ -29,7 +30,9 @@ from bot.utils import get_main_keyboard
 
 logger = logging.getLogger(__name__)
 
-OPENING_QUESTION = "What's the main issue or discomfort bringing you in today?"
+
+def _lang(context: ContextTypes.DEFAULT_TYPE) -> str:
+    return get_lang(context.user_data.get("selected_therapist"))
 
 
 # ── therapist selection ───────────────────────────────────────────────────────
@@ -45,29 +48,29 @@ async def show_therapist_choice(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
     context.user_data["therapist_flow"] = "schedule"
 
-    active = [t for t in THERAPISTS if t.get("active")]
+    lang = _lang(context)
+    active = [th for th in THERAPISTS if th.get("active")]
     if not active:
         await query.edit_message_text(
-            "No therapists are available at the moment. Please contact the clinic.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back_main")]]),
+            t("bot_no_therapists_contact", lang),
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("bot_back", lang), callback_data="back_main")]]),
         )
         return SELECTING
 
-    # Auto-select: only one therapist, or patient already picked one
     existing = context.user_data.get("selected_therapist")
     if len(active) == 1:
         context.user_data["selected_therapist"] = active[0]["id"]
         return await show_week_choice(update, context)
-    if existing and any(t["id"] == existing for t in active):
+    if existing and any(th["id"] == existing for th in active):
         return await show_week_choice(update, context)
 
     keyboard = [
-        [InlineKeyboardButton(t["name"], callback_data=f"sel_t_{t['id']}")]
-        for t in active
+        [InlineKeyboardButton(th["name"], callback_data=f"sel_t_{th['id']}")]
+        for th in active
     ]
-    keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_main")])
+    keyboard.append([InlineKeyboardButton(t("bot_back", lang), callback_data="back_main")])
     await query.edit_message_text(
-        "Choose your therapist:",
+        t("bot_choose_therapist", lang),
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
     return THERAPIST_SELECT
@@ -80,23 +83,25 @@ async def select_therapist_and_continue(update: Update, context: ContextTypes.DE
     context.user_data["selected_therapist"] = therapist_id
     flow = context.user_data.pop("therapist_flow", "schedule")
 
+    # Language is now known
+    lang = get_lang(therapist_id)
+
     if flow == "contact":
         await query.answer()
-        await query.edit_message_text("What would you like to say to the therapist?\n\nType your message below:")
+        await query.edit_message_text(t("bot_message_therapist_prompt", lang))
         return THERAPIST_INPUT
 
     if flow == "welcome":
-        therapist = next((t for t in THERAPISTS if t["id"] == therapist_id), None)
+        therapist = next((th for th in THERAPISTS if th["id"] == therapist_id), None)
         t_name = therapist["name"] if therapist else "your therapist"
         await query.answer()
         await query.edit_message_text(
-            f"Great! You'll be working with *{t_name}*. 🌿\n\nWhat would you like to do?",
+            t("bot_working_with", lang, name=t_name),
             parse_mode="Markdown",
-            reply_markup=get_main_keyboard(),
+            reply_markup=get_main_keyboard(lang),
         )
         return SELECTING
 
-    # Schedule flow: show_week_choice handles query.answer()
     return await show_week_choice(update, context)
 
 
@@ -108,25 +113,21 @@ async def show_week_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await query.answer()
     logger.info(f"[{update.effective_user.id}] show_week_choice")
 
+    lang = _lang(context)
     keyboard = [
-        [InlineKeyboardButton("📅 This week", callback_data="week_0")],
-        [InlineKeyboardButton("📅 Next week", callback_data="week_1")],
-        [InlineKeyboardButton("⬅️ Back",      callback_data="back_main")],
+        [InlineKeyboardButton(t("bot_this_week", lang), callback_data="week_0")],
+        [InlineKeyboardButton(t("bot_next_week", lang), callback_data="week_1")],
+        [InlineKeyboardButton(t("bot_back",      lang), callback_data="back_main")],
     ]
     await query.edit_message_text(
-        "Which week would you like to book?",
+        t("bot_which_week", lang),
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
     return SCHEDULE_WEEK
 
 
 async def show_days(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Step 2 — show days that have available slots in the chosen week.
-
-    Triggered by:
-      • week_0 / week_1  (initial selection)
-      • back_days        (back from hour picker — reuses stored week)
-    """
+    """Step 2 — show days that have available slots in the chosen week."""
     query = update.callback_query
     await query.answer()
 
@@ -136,15 +137,16 @@ async def show_days(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     else:
         week_offset = context.user_data.get("selected_week", 0)
 
-    week_label = "This week" if week_offset == 0 else "Next week"
+    lang = _lang(context)
+    week_label = t("bot_label_this_week", lang) if week_offset == 0 else t("bot_label_next_week", lang)
     logger.info(f"[{update.effective_user.id}] show_days week_offset={week_offset}")
 
     therapist_id = context.user_data.get("selected_therapist")
     days = await get_available_days(week_offset=week_offset, therapist_id=therapist_id)
     if not days:
         await query.edit_message_text(
-            f"No available slots for {week_label.lower()}. Please try another week or contact the clinic directly.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back_week")]]),
+            t("bot_no_slots_week", lang, week=week_label.lower()),
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("bot_back", lang), callback_data="back_week")]]),
         )
         return SCHEDULE_WEEK
 
@@ -152,9 +154,9 @@ async def show_days(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         [InlineKeyboardButton(d.strftime("%A, %d %b"), callback_data=f"day_{d.isoformat()}")]
         for d in days
     ]
-    keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_week")])
+    keyboard.append([InlineKeyboardButton(t("bot_back", lang), callback_data="back_week")])
     await query.edit_message_text(
-        f"📅 *{week_label}* — choose a day:",
+        t("bot_choose_day", lang, week=week_label),
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -170,19 +172,20 @@ async def show_hours(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["selected_day"] = day_iso
     logger.info(f"[{update.effective_user.id}] show_hours for {day_iso}")
 
+    lang = _lang(context)
     therapist_id = context.user_data.get("selected_therapist")
     hours = await get_available_hours(selected_day, therapist_id=therapist_id)
     if not hours:
         await query.edit_message_text(
-            "No available hours on this day. Please choose another.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="back_days")]]),
+            t("bot_no_hours", lang),
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("bot_back", lang), callback_data="back_days")]]),
         )
         return SCHEDULE_DAY
 
     keyboard = [[InlineKeyboardButton(h, callback_data=f"hour_{h}")] for h in hours]
-    keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_days")])
+    keyboard.append([InlineKeyboardButton(t("bot_back", lang), callback_data="back_days")])
     await query.edit_message_text(
-        f"Available hours on *{selected_day.strftime('%A, %d %b')}*:",
+        t("bot_choose_hour", lang, day=selected_day.strftime("%A, %d %b")),
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -200,15 +203,15 @@ async def confirm_appointment(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["selected_time"] = time_slot
 
     day = date.fromisoformat(context.user_data["selected_day"])
+    lang = _lang(context)
     logger.info(f"[{update.effective_user.id}] slot chosen {day} {time_slot}")
 
     keyboard = [
-        [InlineKeyboardButton("✅ Yes, let's do it", callback_data="intake_yes")],
-        [InlineKeyboardButton("❌ No, skip",          callback_data="intake_no")],
+        [InlineKeyboardButton(t("bot_yes_intake",  lang), callback_data="intake_yes")],
+        [InlineKeyboardButton(t("bot_skip_intake", lang), callback_data="intake_no")],
     ]
     await query.edit_message_text(
-        f"📅 *{day.strftime('%A, %d %b')}* at *{time_slot}* — noted!\n\n"
-        f"Would you like to answer a few quick questions to help optimise your treatment session?",
+        t("bot_intake_prompt", lang, day=day.strftime("%A, %d %b"), time=time_slot),
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -221,13 +224,14 @@ async def start_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     await query.answer()
 
     user_id = update.effective_user.id
-    context.user_data["intake_count"] = 0
-    initialize_intake(user_id, OPENING_QUESTION)
+    lang = _lang(context)
+    opening_q = t("bot_intake_q1", lang)
 
-    await query.edit_message_text(
-        "Great! A few quick questions to help your acupuncturist prepare. 🌿"
-    )
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=OPENING_QUESTION)
+    context.user_data["intake_count"] = 0
+    initialize_intake(user_id, opening_q)
+
+    await query.edit_message_text(t("bot_intake_start", lang))
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=opening_q)
     return INTAKE
 
 
@@ -239,10 +243,11 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user = update.effective_user
     day = date.fromisoformat(context.user_data["selected_day"])
     time_slot = context.user_data["selected_time"]
-
-    apt_summary = "Patient opted to skip the intake questionnaire."
+    lang = _lang(context)
     selected_therapist = context.user_data.get("selected_therapist")
-    gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name, apt_summary,
+
+    gcal_id = await book_slot(day, time_slot, user.full_name or user.first_name,
+                               "Patient opted to skip the intake questionnaire.",
                                therapist_id=selected_therapist)
     appointment_id = save_appointment(
         patient_id=user.id,
@@ -250,7 +255,7 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         day=day,
         time_slot=time_slot,
         intake_history=[],
-        summary=apt_summary,
+        summary="",
         gcal_apt_event_id=gcal_id,
         therapist_id=selected_therapist or "",
     )
@@ -262,11 +267,9 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         context.user_data["selected_therapist"] = selected_therapist
 
     await query.edit_message_text(
-        f"✅ *Appointment successfully booked!*\n"
-        f"📅 *{day.strftime('%A, %d %B %Y')}* at *{time_slot}*\n\n"
-        f"We look forward to seeing you at ZenFlow Clinic 🌿",
+        t("bot_booked", lang, day=day.strftime("%A, %d %B %Y"), time=time_slot),
         parse_mode="Markdown",
-        reply_markup=get_main_keyboard(),
+        reply_markup=get_main_keyboard(lang),
     )
     return SELECTING
 
@@ -284,8 +287,6 @@ async def _summary_and_tcm(
     Stage 0 — Clinical summary: update appointment text + intake session record.
     Stage 1 — TCM diagnosis:    save pattern/principles/certainty/recommendations.
     Stage 2 — Point selection:  save ai_suggested_points (6–15 points).
-
-    The patient confirmation message is already sent before this task starts.
     """
     from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -296,7 +297,6 @@ async def _summary_and_tcm(
         update_appointment_summary(appointment_id, summary, history)
         logger.info(f"[{user_id}] Stage 0 done — summary saved")
 
-        # Build LangChain context for the diagnosis call
         from bot.patient_bot.services.ai_intake import _get_history, _rolling_summaries
         hist = _get_history(user_id)
         rolling = _rolling_summaries.get(user_id)
@@ -307,7 +307,6 @@ async def _summary_and_tcm(
         context_parts.extend(hist.messages)
         context_parts.append(HumanMessage(content=f"Clinical summary:\n{summary}\n\n{TCM_DIAGNOSIS_PROMPT}"))
 
-        # Build plain-text intake context string for the point selection call
         intake_lines = []
         if rolling:
             intake_lines.append(f"[Conversation summary: {rolling}]")
@@ -319,7 +318,7 @@ async def _summary_and_tcm(
                 intake_lines.append(f"Assistant: {m.content}")
         intake_context = "\n".join(intake_lines) or summary
 
-        # ── Stage 1: TCM diagnosis (no points) ────────────────────────────────
+        # ── Stage 1: TCM diagnosis ─────────────────────────────────────────────
         from web.repositories.treatment_repo import set_points_status as _set_status_early
         import asyncio as _asyncio_early
         await _asyncio_early.to_thread(_set_status_early, appointment_id, "GENERATING_STAGE_1")
@@ -327,7 +326,7 @@ async def _summary_and_tcm(
         save_treatment_notes(appointment_id, user_id, diagnosis)
         logger.info(f"[{user_id}] Stage 1 done — diagnosis saved: {diagnosis['tcm_pattern']}")
 
-        # ── Stage 2A: first batch of 5-7 acupuncture points ──────────────────
+        # ── Stage 2A: first batch of 5-7 acupuncture points ───────────────────
         if diagnosis["tcm_pattern"]:
             from web.repositories.treatment_repo import (
                 append_points as _append_points,
@@ -352,7 +351,7 @@ async def _summary_and_tcm(
             else:
                 logger.error(f"[{user_id}] Stage 2A FAILED — no points returned. Pattern: {diagnosis['tcm_pattern']!r}")
 
-            # ── Stage 2B: second batch of 5-7 complementary points ────────────
+            # ── Stage 2B: second batch of complementary points ─────────────────
             await _asyncio.to_thread(_set_status, appointment_id, "GENERATING_STAGE_2B")
             existing_codes = [p["code"] for p in batch_a if isinstance(p, dict) and p.get("code")]
             logger.info(f"[{user_id}] Stage 2B start — selecting complementary batch (avoiding {existing_codes})")
@@ -408,10 +407,9 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         day = date.fromisoformat(context.user_data["selected_day"])
         time_slot = context.user_data["selected_time"]
         selected_therapist = context.user_data.get("selected_therapist")
+        lang = get_lang(selected_therapist)
         patient_name = user.full_name or user.first_name
 
-        # Book the slot and save appointment immediately with a placeholder summary.
-        # AI summary + TCM diagnosis run in the background so the patient never waits.
         gcal_id = await book_slot(
             day, time_slot, patient_name,
             "Intake in progress — AI summary pending.",
@@ -422,14 +420,13 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
             patient_name=patient_name,
             day=day,
             time_slot=time_slot,
-            intake_history=[],           # updated by background task once summary is ready
+            intake_history=[],
             summary="",
             gcal_apt_event_id=gcal_id,
             therapist_id=selected_therapist or "",
         )
         save_treatment_notes(appointment_id, user_id, {})
 
-        # Background: generate summary → update appointment → TCM diagnosis + points
         asyncio.ensure_future(_summary_and_tcm(appointment_id, user_id, user_answer))
 
         context.user_data.clear()
@@ -437,17 +434,14 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
             context.user_data["selected_therapist"] = selected_therapist
 
         await update.message.reply_text(
-            f"✅ *Appointment confirmed\\!*\n"
-            f"📅 *{day.strftime('%A, %d %b')}* at *{time_slot}*\n\n"
-            f"We look forward to seeing you at ZenFlow Clinic 🌿\n\n"
-            f"What else can I help you with?",
-            parse_mode="MarkdownV2",
-            reply_markup=get_main_keyboard(),
+            t("bot_booked", lang, day=day.strftime("%A, %d %b"), time=time_slot),
+            parse_mode="Markdown",
+            reply_markup=get_main_keyboard(lang),
         )
         return SELECTING
 
     therapist_id = context.user_data.get("selected_therapist")
-    lang = THERAPIST_BY_ID.get(therapist_id, {}).get("language", "en") if therapist_id else "en"
+    lang = get_lang(therapist_id)
     next_q = await get_next_question(user_id, user_answer, lang=lang)
     await update.message.reply_text(next_q)
     return INTAKE
