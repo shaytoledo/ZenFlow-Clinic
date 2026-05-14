@@ -1,0 +1,14 @@
+# Python backend
+backend/.env
+backend/.venv/
+backend/__pycache__/
+backend/*.pyc
+backend/promptbase.db
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude worktree metadata
+.claude/
