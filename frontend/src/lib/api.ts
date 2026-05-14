@@ -1,6 +1,7 @@
 const BASE = "/api";
 
 export type TargetModel = "claude" | "gpt-4" | "gemini";
+export type ProjectRole = "OWNER" | "EDITOR" | "VIEWER";
 
 export interface Project {
   id: string;
@@ -9,6 +10,7 @@ export interface Project {
   context: string;
   createdAt: string;
   updatedAt: string;
+  role: ProjectRole;
 }
 
 export interface PromptHistoryItem {
@@ -21,12 +23,42 @@ export interface PromptHistoryItem {
 
 export interface ProjectWithHistory extends Project {
   prompts: PromptHistoryItem[];
+  owner: { id: string; name: string | null; email: string | null; image: string | null } | null;
 }
 
 export interface OptimizeResponse {
   optimized_prompt: string;
   target_model: TargetModel;
   history_id: string;
+}
+
+export interface ProjectMemberUser {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+}
+
+export interface ProjectMember {
+  id: string;
+  role: string;
+  createdAt: string;
+  user: ProjectMemberUser;
+}
+
+export interface ProjectInvite {
+  id: string;
+  email: string;
+  role: string;
+  token: string;
+  expiresAt: string;
+}
+
+export interface MembersResponse {
+  owner: ProjectMemberUser | null;
+  members: ProjectMember[];
+  invites: ProjectInvite[];
+  role: ProjectRole;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -62,5 +94,20 @@ export const api = {
       request<PromptHistoryItem[]>(`/projects/${projectId}/prompts/`),
     delete: (projectId: string, historyId: string) =>
       request<void>(`/projects/${projectId}/prompts/${historyId}`, { method: "DELETE" }),
+  },
+  members: {
+    list: (projectId: string) => request<MembersResponse>(`/projects/${projectId}/members`),
+    invite: (projectId: string, email: string, role: string) =>
+      request<{ invite: ProjectInvite; acceptUrl: string }>(`/projects/${projectId}/members`, {
+        method: "POST",
+        body: JSON.stringify({ email, role }),
+      }),
+    updateRole: (projectId: string, memberId: string, role: string) =>
+      request<ProjectMember>(`/projects/${projectId}/members/${memberId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+      }),
+    remove: (projectId: string, memberId: string) =>
+      request<void>(`/projects/${projectId}/members/${memberId}`, { method: "DELETE" }),
   },
 };

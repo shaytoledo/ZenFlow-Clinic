@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess } from "@/lib/project-access";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -9,9 +10,8 @@ export async function GET(_req: Request, { params }: Params) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const project = await prisma.project.findUnique({ where: { id } });
-  if (!project || project.userId !== session.user.id)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const access = await getProjectAccess(id, session.user.id);
+  if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const prompts = await prisma.promptHistory.findMany({
     where: { projectId: id },

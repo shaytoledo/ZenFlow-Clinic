@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { Users } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import ContextEditor from "@/components/ContextEditor";
 import PromptOptimizer from "@/components/PromptOptimizer";
+import SharePanel from "@/components/SharePanel";
 import { api, type Project, type ProjectWithHistory } from "@/lib/api";
 
 export default function ProjectPage() {
@@ -12,6 +14,7 @@ export default function ProjectPage() {
   const [project, setProject] = useState<ProjectWithHistory | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [notFound, setNotFound] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const loadProjects = useCallback(async () => {
     const data = await api.projects.list();
@@ -54,16 +57,31 @@ export default function ProjectPage() {
     );
   }
 
+  const isOwner = project.role === "OWNER";
+
   return (
     <div className="flex min-h-screen">
       <Sidebar projects={projects} activeProjectId={id} onProjectsChange={loadProjects} />
       <main className="flex-1 p-8 max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-          {project.description && (
-            <p className="text-sm text-gray-500 mt-1">{project.description}</p>
-          )}
+        {/* Header */}
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+            {project.description && (
+              <p className="text-sm text-gray-500 mt-1">{project.description}</p>
+            )}
+          </div>
+
+          {/* Share button — always visible (owners can manage, others can see members) */}
+          <button
+            onClick={() => setShowShare(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors shrink-0"
+          >
+            <Users size={15} />
+            {isOwner ? "Share" : "Members"}
+          </button>
         </div>
+
         <div className="space-y-5">
           <ContextEditor
             project={project}
@@ -72,6 +90,15 @@ export default function ProjectPage() {
           <PromptOptimizer projectId={id} initialHistory={project.prompts} />
         </div>
       </main>
+
+      {/* Share panel */}
+      {showShare && (
+        <SharePanel
+          projectId={id}
+          projectRole={project.role}
+          onClose={() => setShowShare(false)}
+        />
+      )}
     </div>
   );
 }

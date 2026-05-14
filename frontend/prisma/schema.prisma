@@ -11,16 +11,17 @@ datasource db {
 // ── NextAuth required models ──────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
+  id            String          @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?         @unique
   emailVerified DateTime?
   image         String?
-  password      String?   // null for Google OAuth users
+  password      String?
   accounts      Account[]
   sessions      Session[]
   projects      Project[]
-  createdAt     DateTime  @default(now())
+  memberships   ProjectMember[]
+  createdAt     DateTime        @default(now())
 }
 
 model Account {
@@ -68,10 +69,42 @@ model Project {
   userId      String
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   prompts     PromptHistory[]
+  members     ProjectMember[]
+  invites     ProjectInvite[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
   @@index([userId])
+}
+
+// Role of an invited collaborator. Owners are identified by Project.userId.
+// EDITOR — can read & write context, run optimizations, view/delete history
+// VIEWER — can run optimizations and view history only
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // "EDITOR" | "VIEWER"
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+// Pending email invitations (deleted once accepted or expired)
+model ProjectInvite {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  email     String
+  role      String   @default("VIEWER")
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
 }
 
 model PromptHistory {

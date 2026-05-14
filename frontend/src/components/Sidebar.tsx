@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { FolderOpen, Plus, Trash2, Zap, LogOut } from "lucide-react";
+import { FolderOpen, Plus, Trash2, Zap, LogOut, Users } from "lucide-react";
 import { clsx } from "clsx";
 import { api, type Project } from "@/lib/api";
 
@@ -20,6 +20,9 @@ export default function Sidebar({ projects, activeProjectId, onProjectsChange }:
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const owned = projects.filter((p) => p.role === "OWNER");
+  const shared = projects.filter((p) => p.role !== "OWNER");
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +48,44 @@ export default function Sidebar({ projects, activeProjectId, onProjectsChange }:
     if (activeProjectId === id) router.push("/dashboard");
   }
 
+  function ProjectLink({ p, showDelete }: { p: Project; showDelete: boolean }) {
+    return (
+      <Link
+        key={p.id}
+        href={`/projects/${p.id}`}
+        className={clsx(
+          "group flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors",
+          activeProjectId === p.id
+            ? "bg-brand-50 text-brand-700 font-medium"
+            : "text-gray-700 hover:bg-gray-100"
+        )}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <FolderOpen size={15} className="shrink-0" />
+          <span className="truncate">{p.name}</span>
+          {p.role === "EDITOR" && (
+            <span className="text-[10px] font-medium text-brand-500 bg-brand-50 px-1.5 py-0.5 rounded shrink-0">
+              Editor
+            </span>
+          )}
+          {p.role === "VIEWER" && (
+            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+              Viewer
+            </span>
+          )}
+        </div>
+        {showDelete && (
+          <button
+            onClick={(e) => handleDelete(e, p.id)}
+            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all shrink-0 ml-1"
+          >
+            <Trash2 size={13} />
+          </button>
+        )}
+      </Link>
+    );
+  }
+
   return (
     <aside className="w-64 shrink-0 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
       {/* Logo */}
@@ -58,8 +99,9 @@ export default function Sidebar({ projects, activeProjectId, onProjectsChange }:
 
       {/* Projects list */}
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
+        {/* My Projects */}
         <div className="flex items-center justify-between px-2 mb-2">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Projects</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">My Projects</span>
           <button
             onClick={() => setCreating(true)}
             className="text-gray-400 hover:text-brand-500 transition-colors"
@@ -83,7 +125,7 @@ export default function Sidebar({ projects, activeProjectId, onProjectsChange }:
           </form>
         )}
 
-        {projects.length === 0 && !creating && (
+        {owned.length === 0 && !creating && (
           <p className="text-sm text-gray-400 px-2 py-4 text-center">
             No projects yet.
             <br />
@@ -93,29 +135,24 @@ export default function Sidebar({ projects, activeProjectId, onProjectsChange }:
           </p>
         )}
 
-        {projects.map((p) => (
-          <Link
-            key={p.id}
-            href={`/projects/${p.id}`}
-            className={clsx(
-              "group flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors",
-              activeProjectId === p.id
-                ? "bg-brand-50 text-brand-700 font-medium"
-                : "text-gray-700 hover:bg-gray-100"
-            )}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <FolderOpen size={15} className="shrink-0" />
-              <span className="truncate">{p.name}</span>
-            </div>
-            <button
-              onClick={(e) => handleDelete(e, p.id)}
-              className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all shrink-0 ml-1"
-            >
-              <Trash2 size={13} />
-            </button>
-          </Link>
+        {owned.map((p) => (
+          <ProjectLink key={p.id} p={p} showDelete />
         ))}
+
+        {/* Shared with me */}
+        {shared.length > 0 && (
+          <>
+            <div className="flex items-center gap-1.5 px-2 mt-4 mb-2">
+              <Users size={12} className="text-gray-400" />
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Shared with me
+              </span>
+            </div>
+            {shared.map((p) => (
+              <ProjectLink key={p.id} p={p} showDelete={false} />
+            ))}
+          </>
+        )}
       </div>
 
       {/* User footer */}

@@ -1,28 +1,35 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess } from "@/lib/project-access";
 
 type Params = { params: Promise<{ id: string }> };
-
-async function getOwnedProject(projectId: string, userId: string) {
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project || project.userId !== userId) return null;
-  return project;
-}
 
 export async function GET(_req: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const project = await prisma.project.findUnique({
-    where: { id },
-    include: { prompts: { orderBy: { createdAt: "desc" } } },
-  });
-  if (!project || project.userId !== session.user.id)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const access = await getProjectAccess(id, session.user.id);
+  if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  return NextResponse.json(project);
+  const prompts = await prisma.promptHistory.findMany({
+    where: { projectId: id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Attach role and member list for the frontend
+  const owner = await prisma.user.findUnique({
+    where: { id: access.project.userId },
+    select: { id: true, name: true, email: true, image: true },
+  });
+
+  return NextResponse.json({
+    ...access.project,
+    prompts,
+    role: access.role,
+    owner,
+  });
 }
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -30,8 +37,9 @@ export async function PATCH(req: Request, { params }: Params) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const project = await getOwnedProject(id, session.user.id);
-  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const access = await getProjectAccess(id, session.user.id);
+  if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!access.canEdit) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const updated = await prisma.project.update({
@@ -42,7 +50,7 @@ export async function PATCH(req: Request, { params }: Params) {
       ...(body.context !== undefined && { context: body.context }),
     },
   });
-  return NextResponse.json(updated);
+  return NextResponse.json({ ...updated, role: access.role });
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
@@ -50,8 +58,9 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const project = await getOwnedProject(id, session.user.id);
-  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const access = await getProjectAccess(id, session.user.id);
+  if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!access.isOwner) return NextResponse.json({ error: "Only the owner can delete a project" }, { status: 403 });
 
   await prisma.project.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
