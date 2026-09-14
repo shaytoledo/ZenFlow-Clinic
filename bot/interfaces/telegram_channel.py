@@ -10,6 +10,8 @@ added the wrapper pattern is the same — just point at the WhatsApp client.
 
 from __future__ import annotations
 
+from typing import Any
+
 import logging
 
 from .channel import MessagingChannel, OutboundMessage
@@ -22,7 +24,7 @@ class TelegramChannel(MessagingChannel):
 
     name = "telegram"
 
-    async def send(self, message: OutboundMessage) -> dict:
+    async def send(self, message: OutboundMessage) -> dict[str, Any]:
         from web.services.telegram_service import send_to_patient
 
         parse_mode = (message.extra or {}).get("parse_mode", "Markdown")
@@ -38,7 +40,7 @@ class TelegramTherapistChannel(MessagingChannel):
 
     name = "telegram_therapist"
 
-    async def send(self, message: OutboundMessage) -> dict:
+    async def send(self, message: OutboundMessage) -> dict[str, Any]:
         from web.services.telegram_service import send_via_therapist_bot
 
         parse_mode = (message.extra or {}).get("parse_mode", "Markdown")

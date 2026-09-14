@@ -7,8 +7,12 @@ bell-icon dropdown on the topbar.
 
 from __future__ import annotations
 
+import sqlite3
 
-def _conn():
+from typing import Any
+
+
+def _conn() -> sqlite3.Connection:
     from bot.db import get_db
 
     return get_db()
@@ -43,10 +47,12 @@ def create(
             1 if persistent else 0,
         ),
     )
+    if cur.lastrowid is None:  # pragma: no cover - sqlite always sets it after INSERT
+        raise RuntimeError("INSERT did not return a rowid")
     return int(cur.lastrowid)
 
 
-def list_for_therapist(therapist_id: str, limit: int = 50) -> list[dict]:
+def list_for_therapist(therapist_id: str, limit: int = 50) -> list[dict[str, Any]]:
     """Newest notifications first. Persistent unresolved alerts always rank first."""
     rows = (
         _conn()
@@ -100,7 +106,7 @@ def resolve(therapist_id: str, notification_id: int) -> None:
     )
 
 
-def find_active_missing_contact(therapist_id: str, appointment_id: int) -> dict | None:
+def find_active_missing_contact(therapist_id: str, appointment_id: int) -> dict[str, Any] | None:
     """Return an unresolved missing-contact notification for this appointment, if any.
 
     Used to avoid creating duplicates when the therapist completes a session

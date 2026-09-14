@@ -6,6 +6,8 @@ The `MessagingChannel` abstract base class — every chat backend implements it.
 
 from __future__ import annotations
 
+from typing import Any
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -23,7 +25,7 @@ class OutboundMessage:
     recipient_id: str  # Telegram user id, WhatsApp phone, etc. (str for portability)
     text: str
     reply_to_message_id: str | None = None
-    extra: dict | None = None
+    extra: dict[str, Any] | None = None
 
 
 class MessagingChannel(ABC):
@@ -32,7 +34,7 @@ class MessagingChannel(ABC):
     name: str = "abstract"
 
     @abstractmethod
-    async def send(self, message: OutboundMessage) -> dict:
+    async def send(self, message: OutboundMessage) -> dict[str, Any]:
         """Deliver one message. Return the provider's success payload.
 
         Implementations should raise `RuntimeError` on a hard failure so the
@@ -47,7 +49,7 @@ class MessagingChannel(ABC):
         recipient_id: str | int,
         text: str,
         reply_to_message_id: str | int | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Convenience wrapper — most callers don't need the dataclass."""
         return await self.send(
             OutboundMessage(

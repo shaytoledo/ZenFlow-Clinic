@@ -6,16 +6,20 @@ All SQL access for the `treatment_notes` table.
 
 from __future__ import annotations
 
+import sqlite3
+
+from typing import Any
+
 import json
 
 
-def _conn():
+def _conn() -> sqlite3.Connection:
     from bot.db import get_db
 
     return get_db()
 
 
-def _decode(row) -> dict:
+def _decode(row: sqlite3.Row) -> dict[str, Any]:
     """Convert a SQLite row to a dict, parsing the JSON columns back to Python."""
     d = dict(row)
     for key in ("ai_suggested_points", "ai_recommendations", "used_points"):
@@ -35,7 +39,7 @@ def _decode(row) -> dict:
     return d
 
 
-def get_by_appointment(appointment_id: int) -> dict | None:
+def get_by_appointment(appointment_id: int) -> dict[str, Any] | None:
     row = (
         _conn()
         .execute("SELECT * FROM treatment_notes WHERE appointment_id=?", (appointment_id,))
@@ -44,7 +48,7 @@ def get_by_appointment(appointment_id: int) -> dict | None:
     return _decode(row) if row else None
 
 
-def _json_or_none(value) -> str | None:
+def _json_or_none(value: Any) -> str | None:
     """Serialise a list/dict to JSON only when it is non-empty.
 
     Returning None for empty collections lets COALESCE in the UPSERT keep any
@@ -57,7 +61,7 @@ def _json_or_none(value) -> str | None:
     return json.dumps(value, ensure_ascii=False)
 
 
-def upsert(appointment_id: int, patient_id: int, notes: dict) -> None:
+def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
     """Insert or update treatment notes for an appointment.
 
     All JSON-typed fields (ai_suggested_points, ai_recommendations, used_points)
@@ -120,7 +124,7 @@ def set_points_status(appointment_id: int, status: str) -> None:
     )
 
 
-def save_points(appointment_id: int, points: list[dict]) -> None:
+def save_points(appointment_id: int, points: list[dict[str, Any]]) -> None:
     """Dedicated Stage-2 writer: unconditionally overwrites ai_suggested_points.
 
     Uses a direct UPDATE (not UPSERT) so COALESCE cannot block a non-empty
@@ -153,7 +157,7 @@ def save_points(appointment_id: int, points: list[dict]) -> None:
             raise
 
 
-def append_points(appointment_id: int, new_points: list[dict]) -> None:
+def append_points(appointment_id: int, new_points: list[dict[str, Any]]) -> None:
     """Append a batch of points to ai_suggested_points without overwriting existing ones.
 
     Safe against concurrent writes: reads current value, merges in Python, writes back.
@@ -174,7 +178,7 @@ def append_points(appointment_id: int, new_points: list[dict]) -> None:
                 )
                 .fetchone()
             )
-            existing: list = []
+            existing: list[Any] = []
             if row and row["ai_suggested_points"]:
                 try:
                     existing = json.loads(row["ai_suggested_points"])
@@ -200,7 +204,7 @@ def append_points(appointment_id: int, new_points: list[dict]) -> None:
             raise
 
 
-def save_followup_conversation(appointment_id: int, conversation_data: dict) -> None:
+def save_followup_conversation(appointment_id: int, conversation_data: dict[str, Any]) -> None:
     """Persist the structured follow-up conversation (replaces simple followup_rating)."""
     _conn().execute(
         """UPDATE treatment_notes
@@ -224,7 +228,7 @@ def save_manual_feedback(appointment_id: int, rating: int | None, notes: str) ->
     )
 
 
-def save_pending_recommendations(appointment_id: int, items: list, send_at_iso: str) -> None:
+def save_pending_recommendations(appointment_id: int, items: list[Any], send_at_iso: str) -> None:
     """Store lifestyle recommendations to be auto-sent 24h after session completion."""
     _conn().execute(
         """UPDATE treatment_notes
@@ -243,7 +247,7 @@ def clear_pending_recommendations(appointment_id: int) -> None:
     )
 
 
-def list_due_pending_recommendations(now_iso: str) -> list[dict]:
+def list_due_pending_recommendations(now_iso: str) -> list[dict[str, Any]]:
     """Return sessions whose pending recommendations are due to send."""
     rows = (
         _conn()
@@ -270,7 +274,7 @@ def list_due_pending_recommendations(now_iso: str) -> list[dict]:
     return rows_out
 
 
-def list_completed_for_followup(window_start_iso: str, window_end_iso: str) -> list[dict]:
+def list_completed_for_followup(window_start_iso: str, window_end_iso: str) -> list[dict[str, Any]]:
     """Completed sessions whose `completed_at` is in [start, end] — used by 24h follow-up."""
     rows = (
         _conn()

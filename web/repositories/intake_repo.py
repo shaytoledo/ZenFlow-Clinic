@@ -6,16 +6,20 @@ All SQL access for the `intake_sessions` table.
 
 from __future__ import annotations
 
+import sqlite3
+
+from typing import Any
+
 import json
 
 
-def _conn():
+def _conn() -> sqlite3.Connection:
     from bot.db import get_db
 
     return get_db()
 
 
-def get_for_appointment(appointment_id: int) -> dict | None:
+def get_for_appointment(appointment_id: int) -> dict[str, Any] | None:
     row = (
         _conn()
         .execute(
@@ -37,7 +41,9 @@ def get_for_appointment(appointment_id: int) -> dict | None:
     return d
 
 
-def insert(appointment_id: int, patient_id: int, therapist_id: str, history: list[dict]) -> None:
+def insert(
+    appointment_id: int, patient_id: int, therapist_id: str, history: list[dict[str, Any]]
+) -> None:
     _conn().execute(
         """INSERT INTO intake_sessions
            (appointment_id, patient_id, therapist_id, history_json)

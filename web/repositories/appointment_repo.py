@@ -6,23 +6,27 @@ All SQL access for the `appointments` table (and joined `intake_sessions`).
 
 from __future__ import annotations
 
+import sqlite3
+
+from typing import Any
+
 import json
 
 
-def _conn():
+def _conn() -> sqlite3.Connection:
     from bot.db import get_db
 
     return get_db()
 
 
-def _parse(row) -> dict:
+def _parse(row: sqlite3.Row) -> dict[str, Any]:
     d = dict(row)
     hj = d.pop("history_json", None)
     d["intake_history"] = json.loads(hj) if hj else []
     return d
 
 
-def list_all() -> list[dict]:
+def list_all() -> list[dict[str, Any]]:
     """Every appointment with its intake history (left-joined)."""
     rows = _conn().execute("""SELECT a.*, i.history_json
            FROM appointments a
@@ -30,7 +34,7 @@ def list_all() -> list[dict]:
     return [_parse(r) for r in rows]
 
 
-def list_by_patient(patient_id: int) -> list[dict]:
+def list_by_patient(patient_id: int) -> list[dict[str, Any]]:
     rows = (
         _conn()
         .execute(
@@ -46,7 +50,7 @@ def list_by_patient(patient_id: int) -> list[dict]:
     return [_parse(r) for r in rows]
 
 
-def list_active_by_patient(patient_id: int) -> list[dict]:
+def list_active_by_patient(patient_id: int) -> list[dict[str, Any]]:
     rows = (
         _conn()
         .execute(
@@ -60,7 +64,9 @@ def list_active_by_patient(patient_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def get_by_patient_date_time(patient_id: int, apt_date: str, apt_time: str) -> dict | None:
+def get_by_patient_date_time(
+    patient_id: int, apt_date: str, apt_time: str
+) -> dict[str, Any] | None:
     """Fetch a single appointment record (apt_time accepts HH:MM or HH-MM)."""
     time_str = apt_time.replace("-", ":")
     row = (
@@ -146,10 +152,12 @@ def insert_manual(
             patient_email,
         ),
     )
+    if cur.lastrowid is None:  # pragma: no cover - sqlite always sets it after INSERT
+        raise RuntimeError("INSERT did not return a rowid")
     return int(cur.lastrowid), patient_id
 
 
-def search_patients(query: str, limit: int = 10) -> list[dict]:
+def search_patients(query: str, limit: int = 10) -> list[dict[str, Any]]:
     """Search distinct patients by name (latest contact info per patient).
 
     Returns: [{patient_id, patient_name, patient_phone, patient_email, source, last_seen}]
@@ -187,7 +195,7 @@ def search_patients(query: str, limit: int = 10) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def list_in_date_range(therapist_id: str, start_date: str, end_date: str) -> list[dict]:
+def list_in_date_range(therapist_id: str, start_date: str, end_date: str) -> list[dict[str, Any]]:
     """Return active appointments for `therapist_id` whose date is in [start_date, end_date].
 
     Both bounds are 'YYYY-MM-DD' strings. Used by the schedule page to overlay
@@ -209,7 +217,7 @@ def list_in_date_range(therapist_id: str, start_date: str, end_date: str) -> lis
     return [dict(r) for r in rows]
 
 
-def list_completed_in_window(start_iso: str, end_iso: str) -> list[dict]:
+def list_completed_in_window(start_iso: str, end_iso: str) -> list[dict[str, Any]]:
     """Return all completed appointments whose `completed_at` falls in [start, end].
 
     Used by the 24h follow-up scheduler.

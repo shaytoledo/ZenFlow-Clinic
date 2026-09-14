@@ -6,27 +6,29 @@ All SQL access for the `therapists` table.
 
 from __future__ import annotations
 
+import sqlite3
+
 from typing import Any
 
 
-def _conn():
+def _conn() -> sqlite3.Connection:
     from bot.db import get_db
 
     return get_db()
 
 
-def list_all() -> list[dict]:
+def list_all() -> list[dict[str, Any]]:
     """Return every therapist row as a dict."""
     rows = _conn().execute("SELECT * FROM therapists").fetchall()
     return [dict(r) for r in rows]
 
 
-def get_by_id(therapist_id: str) -> dict | None:
+def get_by_id(therapist_id: str) -> dict[str, Any] | None:
     row = _conn().execute("SELECT * FROM therapists WHERE id=?", (therapist_id,)).fetchone()
     return dict(row) if row else None
 
 
-def get_by_email(email: str) -> dict | None:
+def get_by_email(email: str) -> dict[str, Any] | None:
     if not email:
         return None
     row = (
@@ -37,7 +39,7 @@ def get_by_email(email: str) -> dict | None:
     return dict(row) if row else None
 
 
-def get_by_google_id(google_id: str) -> dict | None:
+def get_by_google_id(google_id: str) -> dict[str, Any] | None:
     if not google_id:
         return None
     row = (
@@ -48,7 +50,7 @@ def get_by_google_id(google_id: str) -> dict | None:
     return dict(row) if row else None
 
 
-def get_by_telegram_id(telegram_id: int) -> dict | None:
+def get_by_telegram_id(telegram_id: int) -> dict[str, Any] | None:
     if not telegram_id:
         return None
     row = (
@@ -76,7 +78,8 @@ def insert(entry: dict[str, Any]) -> str:
             int(bool(entry.get("active"))),
         ),
     )
-    return entry["id"]
+    therapist_id: str = entry["id"]
+    return therapist_id
 
 
 def update_activation(therapist_id: str, telegram_id: int) -> None:
