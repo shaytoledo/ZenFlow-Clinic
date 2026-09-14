@@ -15,7 +15,7 @@ Key schema (mirroring docs/DATA_LAYER.md):
 import asyncio
 import json
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +45,8 @@ def _parse_iso(s: str) -> datetime | None:
             s = s[:-1] + "+00:00"
         dt = datetime.fromisoformat(s)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
+        return dt.astimezone(UTC)
     except Exception:
         return None
 

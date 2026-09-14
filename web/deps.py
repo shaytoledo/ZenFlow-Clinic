@@ -275,6 +275,7 @@ async def _get_therapist_bot_username() -> str:
         return _therapist_bot_username
     try:
         import httpx
+
         from bot.config import THERAPIST_BOT_TOKEN
 
         async with httpx.AsyncClient(timeout=5.0) as client:
@@ -293,6 +294,7 @@ async def _get_patient_bot_username() -> str:
         return _patient_bot_username
     try:
         import httpx
+
         from bot.config import TELEGRAM_TOKEN
 
         async with httpx.AsyncClient(timeout=5.0) as client:
@@ -308,6 +310,7 @@ async def _get_patient_bot_username() -> str:
 def _make_reg_flow():
     """Build a Google OAuth flow for sign-in/registration."""
     from google_auth_oauthlib.flow import Flow
+
     from bot.config import GOOGLE_REDIRECT_URI as _REDIR
 
     config = {

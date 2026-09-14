@@ -15,8 +15,6 @@ from bot.config import GOOGLE_CLIENT_ID
 from web.deps import (
     _active_therapist_or_redirect,
     _find_by_email,
-    _find_by_google_id,
-    _generate_reg_code,
     _get_patient_bot_username,
     _get_session_therapist,
     _get_therapist_bot_username,
@@ -32,7 +30,6 @@ from web.gcal import (
     delete_token_db,
     exchange_code,
     get_auth_url,
-    is_authenticated,
 )
 from web.services.cache_service import prefetch_calendar, purge_calendar
 

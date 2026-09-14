@@ -6,10 +6,9 @@ The `MessagingChannel` abstract base class — every chat backend implements it.
 
 from __future__ import annotations
 
-from typing import Any
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass

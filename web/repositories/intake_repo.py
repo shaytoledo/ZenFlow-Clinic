@@ -6,11 +6,9 @@ All SQL access for the `intake_sessions` table.
 
 from __future__ import annotations
 
-import sqlite3
-
-from typing import Any
-
 import json
+import sqlite3
+from typing import Any
 
 
 def _conn() -> sqlite3.Connection:

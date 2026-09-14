@@ -7,15 +7,12 @@ System health, activation, and therapist status endpoints.
 import asyncio
 import json
 import logging
-import re
-import secrets
-import string
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from bot.config import OLLAMA_HOST, OLLAMA_MODEL, THERAPIST_BOT_TOKEN, THERAPISTS, TELEGRAM_TOKEN
+from bot.config import OLLAMA_HOST, OLLAMA_MODEL, TELEGRAM_TOKEN, THERAPIST_BOT_TOKEN, THERAPISTS
 from web.deps import (
     _active_therapist_or_redirect,
     _generate_reg_code,
@@ -133,7 +130,7 @@ async def get_my_status(request: Request):
 @router.get("/smtp-status")
 async def get_smtp_status():
     """Return whether SMTP is configured (no credentials exposed)."""
-    from web.services.email_service import is_configured, _config
+    from web.services.email_service import _config, is_configured
 
     cfg = _config()
     configured = is_configured()

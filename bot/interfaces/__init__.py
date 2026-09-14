@@ -20,8 +20,8 @@ also need a parallel `whatsapp_bot/` driver — but the OUTBOUND helpers
 """
 
 from .channel import MessagingChannel, OutboundMessage
-from .telegram_channel import TelegramChannel
 from .factory import get_default_channel
+from .telegram_channel import TelegramChannel
 
 __all__ = [
     "MessagingChannel",

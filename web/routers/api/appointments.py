@@ -116,6 +116,7 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
         # we'd rather show the booking with no GCal mirror than lose it.
         try:
             from datetime import date as _date
+
             from bot.patient_bot.services.availability import book_slot
 
             day = _date.fromisoformat(body.date)

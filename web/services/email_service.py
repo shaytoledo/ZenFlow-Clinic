@@ -57,7 +57,7 @@ def send_email(
     EmailNotConfigured  — therapist has never connected Google
     EmailSendError      — Gmail API rejected the request (token revoked etc.)
     """
-    from web.gcal import is_gmail_authenticated, get_gmail_service
+    from web.gcal import get_gmail_service, is_gmail_authenticated
 
     if not is_gmail_authenticated(therapist_id):
         raise EmailNotConfigured(

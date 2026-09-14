@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from bot.db import get_db
 from bot.redis_client import get_async_redis
@@ -139,7 +139,7 @@ def _tmpl(therapist_id: str) -> dict:
 
 
 def _find_due_followups() -> list[dict]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff_max = (now - timedelta(hours=WINDOW_HOURS_MIN)).isoformat()
     cutoff_min = (now - timedelta(hours=WINDOW_HOURS_MAX)).isoformat()
     rows = (
@@ -275,13 +275,13 @@ async def _dispatch_pending_recommendations() -> None:
 
     Each outcome creates a notification for the therapist.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(UTC).isoformat()
     try:
         from web.repositories.treatment_repo import (
-            list_due_pending_recommendations,
             clear_pending_recommendations,
+            list_due_pending_recommendations,
         )
 
         due = await asyncio.to_thread(list_due_pending_recommendations, now_iso)
@@ -319,7 +319,7 @@ async def _dispatch_pending_recommendations() -> None:
         try:
             if is_manual and patient_email:
                 # SMTP fallback
-                from web.services.email_service import send_email, EmailNotConfigured
+                from web.services.email_service import EmailNotConfigured, send_email
 
                 lines = [
                     f"Hi {patient_name.split()[0] if patient_name else 'there'},",

@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from web.deps import _active_therapist_or_redirect
-from web.services import treatment_service, telegram_service
+from web.services import telegram_service, treatment_service
 
 router = APIRouter(prefix="/api/treatment-notes")
 logger = logging.getLogger(__name__)
@@ -366,7 +366,7 @@ async def send_recommendations(
 
     # ── 1) explicit email override (or manual patient defaulting to email)
     if body.email:
-        from web.services.email_service import send_email, EmailNotConfigured
+        from web.services.email_service import EmailNotConfigured, send_email
 
         subject, text = _format_recommendations_for_email(enabled, patient_name)
         try:
@@ -629,13 +629,13 @@ async def rediagnose(
     findings_context = ". ".join(findings_parts) or "No tongue/pulse observation recorded yet."
 
     try:
+        from langchain_core.messages import HumanMessage, SystemMessage
+
         from bot.patient_bot.services.ai_intake import (
             _LLM_LONG,
             SYSTEM_PROMPT,
             get_diagnosis_prompt,
-            select_points_for_diagnosis,
         )
-        from langchain_core.messages import HumanMessage, SystemMessage
 
         if _LLM_LONG is None:
             raise HTTPException(status_code=503, detail="AI model not available")
@@ -697,7 +697,7 @@ async def rediagnose(
 
         return JSONResponse(result)
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(status_code=504, detail="AI model timed out — try again")
     except Exception as e:
         logger.error(f"rediagnose error: {e}")
@@ -724,7 +724,11 @@ async def generate_points(
 
     from web.repositories.treatment_repo import (
         get_by_appointment as _get,
+    )
+    from web.repositories.treatment_repo import (
         save_points as _save_pts,
+    )
+    from web.repositories.treatment_repo import (
         set_points_status as _set_st,
     )
 
@@ -740,7 +744,7 @@ async def generate_points(
     intake_context = await asyncio.to_thread(_load_intake_context, apt_id)
 
     try:
-        from bot.patient_bot.services.ai_intake import select_points_for_diagnosis, _LLM_POINTS
+        from bot.patient_bot.services.ai_intake import _LLM_POINTS, select_points_for_diagnosis
 
         if _LLM_POINTS is None:
             raise HTTPException(status_code=503, detail="AI model not available")
@@ -775,7 +779,7 @@ async def generate_points(
             }
         )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         await asyncio.to_thread(_set_st, apt_id, "FAILED")
         raise HTTPException(status_code=504, detail="AI model timed out on point selection")
     except Exception as e:
@@ -805,8 +809,12 @@ async def regenerate_points(
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
 
     from web.repositories.treatment_repo import (
-        get_by_appointment as _get,
         append_points as _append,
+    )
+    from web.repositories.treatment_repo import (
+        get_by_appointment as _get,
+    )
+    from web.repositories.treatment_repo import (
         set_points_status as _set_st,
     )
 
@@ -832,7 +840,7 @@ async def regenerate_points(
     )
 
     try:
-        from bot.patient_bot.services.ai_intake import select_points_for_diagnosis, _LLM_POINTS
+        from bot.patient_bot.services.ai_intake import _LLM_POINTS, select_points_for_diagnosis
 
         if _LLM_POINTS is None:
             await asyncio.to_thread(_set_st, apt_id, "FAILED")
@@ -882,7 +890,7 @@ async def regenerate_points(
             }
         )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         await asyncio.to_thread(_set_st, apt_id, "FAILED")
         raise HTTPException(status_code=504, detail="AI model timed out on point selection")
     except Exception as e:

@@ -5,8 +5,8 @@ Redis client singletons for ZenFlow.
 - get_sync_redis()  — sync client (for LangChain history backend + sync helpers)
 """
 
-import redis.asyncio as aioredis
 import redis as syncredis
+import redis.asyncio as aioredis
 
 from bot.config import REDIS_URL
 

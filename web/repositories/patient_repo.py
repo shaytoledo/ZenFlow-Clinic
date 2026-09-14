@@ -6,11 +6,9 @@ Full patient history: appointments JOIN treatment_notes JOIN intake_sessions.
 
 from __future__ import annotations
 
-import sqlite3
-
-from typing import Any
-
 import json
+import sqlite3
+from typing import Any
 
 
 def _conn() -> sqlite3.Connection:

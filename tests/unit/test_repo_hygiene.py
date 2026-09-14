@@ -46,9 +46,7 @@ def _tracked_files() -> list[str]:
 def test_no_forbidden_files_are_tracked() -> None:
     tracked = _tracked_files()
     offenders = sorted(
-        f
-        for f in tracked
-        if any(fnmatch.fnmatch(f, pat) for pat in FORBIDDEN_TRACKED_PATTERNS)
+        f for f in tracked if any(fnmatch.fnmatch(f, pat) for pat in FORBIDDEN_TRACKED_PATTERNS)
     )
     assert offenders == [], f"forbidden files are tracked in git: {offenders}"
 

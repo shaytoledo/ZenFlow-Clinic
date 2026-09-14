@@ -17,7 +17,7 @@ import asyncio
 import json
 import logging
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -152,10 +152,10 @@ async def get_available_days(week_offset: int = 0, therapist_id: str | None = No
                     0,
                     0,
                     0,
-                    tzinfo=timezone.utc,
+                    tzinfo=UTC,
                 ).isoformat()
                 time_max = datetime(
-                    range_end.year, range_end.month, range_end.day, 23, 59, 59, tzinfo=timezone.utc
+                    range_end.year, range_end.month, range_end.day, 23, 59, 59, tzinfo=UTC
                 ).isoformat()
                 events = await asyncio.to_thread(
                     service.events()

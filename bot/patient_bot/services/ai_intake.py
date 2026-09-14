@@ -466,7 +466,7 @@ async def get_next_question(user_id: int, user_answer: str, lang: str = "en") ->
             hist.add_ai_message(question)
             logger.info(f"[{user_id}] next question generated via LangChain ({USE_AI})")
             return question
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"[{user_id}] AI timeout — using fallback question")
         except Exception as e:
             logger.warning(f"[{user_id}] LangChain error: {e} — using fallback question")
@@ -504,7 +504,7 @@ async def generate_summary(user_id: int, final_answer: str) -> str:
             resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=OLLAMA_TIMEOUT)
             logger.info(f"[{user_id}] clinical summary generated via LangChain ({USE_AI})")
             return resp.content.strip()
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"[{user_id}] AI timeout on summary")
         except Exception as e:
             logger.warning(f"[{user_id}] LangChain error on summary: {e}")
@@ -694,7 +694,7 @@ async def select_points_for_diagnosis(
         )
         return points
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(
             f"[{log_tag}] Ollama timeout on point selection batch {batch_number} (attempt {_retry + 1})"
         )
@@ -759,7 +759,7 @@ async def generate_diagnosis_only(
             f"[{log_tag}] Stage-1 diagnosis: {result['tcm_pattern']} ({result['diagnosis_certainty']}%)"
         )
         return result
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(f"[{log_tag}] Ollama timeout — diagnosis stage 1")
     except json.JSONDecodeError as e:
         logger.warning(f"[{log_tag}] Diagnosis stage 1 JSON parse error: {e}")
@@ -828,7 +828,7 @@ async def generate_tcm_diagnosis(user_id: int, clinical_summary: str) -> dict:
             f"[{user_id}] TCM diagnosis: {result['tcm_pattern']} ({result['diagnosis_certainty']}%)"
         )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(f"[{user_id}] Ollama timeout on TCM diagnosis (step 1)")
         return fallback
     except json.JSONDecodeError as e:

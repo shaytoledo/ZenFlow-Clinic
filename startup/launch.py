@@ -297,7 +297,7 @@ try:
     time.sleep(2)
     web_proc = _start_web()
 
-    print(f"\n   All services running.  Press Ctrl+C to stop.\n")
+    print("\n   All services running.  Press Ctrl+C to stop.\n")
 
     bot_restarts = 0
     while True:

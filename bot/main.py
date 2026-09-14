@@ -34,7 +34,6 @@ from bot.patient_bot.therapist import (
     show_therapist_for_contact,
     start_relay,
 )
-from bot.therapist_bot.main import build_therapist_app
 from bot.states import (
     CANCEL_SELECT,
     INTAKE,
@@ -47,6 +46,7 @@ from bot.states import (
     THERAPIST_RELAY,
     THERAPIST_SELECT,
 )
+from bot.therapist_bot.main import build_therapist_app
 
 # ── logging ──────────────────────────────────────────────────────────────────
 

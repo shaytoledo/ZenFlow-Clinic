@@ -27,7 +27,7 @@ import base64
 import hashlib
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from cryptography.fernet import Fernet
@@ -235,13 +235,12 @@ def _make_flow() -> Flow:
 
 
 def _to_utc(dt_str: str) -> str:
-    from datetime import timezone
 
     dt_str = dt_str.replace(" ", "+")
     dt = datetime.fromisoformat(dt_str)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ── Calendar client ───────────────────────────────────────────────────────────

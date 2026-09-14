@@ -5,9 +5,11 @@ from datetime import date
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bot.config import THERAPISTS, THERAPIST_BY_ID
+from bot.config import THERAPISTS
 from bot.locales import get_lang, t
 from bot.patient_bot.services.ai_intake import (
+    SYSTEM_PROMPT,
+    TCM_DIAGNOSIS_PROMPT,
     clear_intake,
     generate_diagnosis_only,
     generate_summary,
@@ -15,8 +17,6 @@ from bot.patient_bot.services.ai_intake import (
     get_next_question,
     initialize_intake,
     select_points_for_diagnosis,
-    SYSTEM_PROMPT,
-    TCM_DIAGNOSIS_PROMPT,
 )
 from bot.patient_bot.services.appointments import (
     save_appointment,
@@ -339,7 +339,8 @@ async def _summary_and_tcm(
         if rolling:
             intake_lines.append(f"[Conversation summary: {rolling}]")
         for m in hist.messages:
-            from langchain_core.messages import HumanMessage as HM, AIMessage as AM
+            from langchain_core.messages import AIMessage as AM
+            from langchain_core.messages import HumanMessage as HM
 
             if isinstance(m, HM):
                 intake_lines.append(f"Patient: {m.content}")
@@ -348,8 +349,9 @@ async def _summary_and_tcm(
         intake_context = "\n".join(intake_lines) or summary
 
         # ── Stage 1: TCM diagnosis ─────────────────────────────────────────────
-        from web.repositories.treatment_repo import set_points_status as _set_status_early
         import asyncio as _asyncio_early
+
+        from web.repositories.treatment_repo import set_points_status as _set_status_early
 
         await _asyncio_early.to_thread(_set_status_early, appointment_id, "GENERATING_STAGE_1")
         diagnosis = await generate_diagnosis_only(
@@ -360,11 +362,14 @@ async def _summary_and_tcm(
 
         # ── Stage 2A: first batch of 5-7 acupuncture points ───────────────────
         if diagnosis["tcm_pattern"]:
+            import asyncio as _asyncio
+
             from web.repositories.treatment_repo import (
                 append_points as _append_points,
+            )
+            from web.repositories.treatment_repo import (
                 set_points_status as _set_status,
             )
-            import asyncio as _asyncio
 
             await _asyncio.to_thread(_set_status, appointment_id, "GENERATING_STAGE_2A")
             logger.info(
@@ -419,16 +424,18 @@ async def _summary_and_tcm(
             )
         else:
             logger.warning(f"[{user_id}] Stage 2 skipped — no tcm_pattern from Stage 1")
-            from web.repositories.treatment_repo import set_points_status as _set_fail
             import asyncio as _asyncio_fail
+
+            from web.repositories.treatment_repo import set_points_status as _set_fail
 
             await _asyncio_fail.to_thread(_set_fail, appointment_id, "FAILED")
 
     except Exception as e:
         logger.warning(f"[{user_id}] Background pipeline error: {e}")
         try:
-            from web.repositories.treatment_repo import set_points_status as _set_fail
             import asyncio as _asyncio_fail
+
+            from web.repositories.treatment_repo import set_points_status as _set_fail
 
             await _asyncio_fail.to_thread(_set_fail, appointment_id, "FAILED")
         except Exception:

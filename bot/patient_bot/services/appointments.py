@@ -162,6 +162,7 @@ def get_booked_slots(day: date) -> set[str]:
 def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> None:
     """Upsert treatment notes for an appointment."""
     import json as _json
+
     from bot.db import get_db
 
     conn = get_db()
@@ -222,6 +223,7 @@ def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> N
 def get_treatment_notes(appointment_id: int) -> dict | None:
     """Load treatment notes for an appointment, or None if not found."""
     import json as _json
+
     from bot.db import get_db
 
     conn = get_db()

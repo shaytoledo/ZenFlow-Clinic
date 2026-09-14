@@ -18,7 +18,6 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from string import Formatter
 
 logger = logging.getLogger(__name__)
 

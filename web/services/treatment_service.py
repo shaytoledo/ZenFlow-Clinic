@@ -69,7 +69,7 @@ def list_all_sessions(therapist_id: str | None = None, sort_by: str = "date") ->
         "last_access": "COALESCE(tn.updated_at, a.created_at) DESC",
     }
     order_clause = order_map.get(sort_by, "a.date DESC, a.time DESC")
-    query = f"""
+    query = """
         SELECT
             a.id AS appointment_id,
             a.patient_id, a.patient_name, a.date, a.time,
