@@ -223,6 +223,9 @@ trailing-whitespace, check-added-large-files, detect-private-key, gitleaks, ו-h
 החלף os.getenv מפוזר ב-bot/config.py, web/*, startup/*.
 דרישות:
   - כשל מיידי בעלייה אם SESSION_SECRET חסר/ברירת מחדל ו-ENV != "dev"
+  - HTTPS בלבד (ADR-14): דחה כל URL מוגדר שאינו localhost/127.0.0.1 ואינו https://
+    (rediss:// עבור REDIS_URL) כאשר ENV != "dev" — OLLAMA_HOST, REDIS_URL, כל
+    GOOGLE_*_REDIRECT_URI, וכל webhook/CDN/S3 עתידי. בדוק גם את מסלול הקבלה וגם את מסלול הדחייה.
   - הפרד TOKEN_ENCRYPTION_KEY מ-SESSION_SECRET (ראה F7) עם מסלול מיגרציה מתועד
     שמצפין מחדש שורות google_tokens קיימות
   - מודל FeatureFlags מטופס: ZF_CLOUD, ZF_STORAGE_S3, ZF_QUEUE_BACKEND,

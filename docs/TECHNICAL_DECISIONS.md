@@ -272,3 +272,59 @@ _cfg.THERAPIST_BY_ID[new_therapist["id"]] = new_therapist
 - All files still share the browser global scope (no true encapsulation without a bundler)
 - `mainCal` is declared in `main-calendar.js` but referenced in earlier files — safe because those references only execute after `DOMContentLoaded`, when `mainCal` has already been assigned
 - The legacy `web/static/app.js` remains on disk but is no longer loaded anywhere
+
+---
+
+## ADR-13: Code-Quality Toolchain and the Baseline-Ratchet Policy
+
+**Date:** 2026-09-14 (Phase 0.2 of `docs/MASTER_PLAN_EN.md`)
+
+**Decision:** `black` (100 cols, py312) is the single formatter; `ruff` lints
+(`E,F,W,I,B,UP,S,ASYNC,C4,SIM`); `mypy` runs everywhere but is **strict only** for
+`bot/interfaces` and `web/repositories`; `pytest` with `asyncio_mode=auto`; coverage gate via
+`fail_under`. Everything is configured in one `pyproject.toml`, enforced by `.pre-commit-config.yaml`
+(pre-commit-hooks, black, ruff, gitleaks, local pytest) and exposed as `make` / `tasks.py` targets.
+
+**Baseline-ratchet policy.** On 2026-09-14 the code had 283 ruff findings, 533 mypy errors and 0 %
+test coverage. Instead of fixing everything in one risky sweep (clinical code with no test suite
+yet) the tooling encodes the measured baseline explicitly:
+- `[tool.ruff.lint] ignore` lists the pre-existing rule codes with the phase that removes each;
+- `[[tool.mypy.overrides]] ignore_errors = true` lists the 38 modules with pre-existing type errors;
+- `[tool.coverage.report] fail_under = 0`.
+Each is a debt list: a phase that touches a module removes it from the list and fixes it; the
+coverage floor rises +5 per phase. **Adding to any of these lists is forbidden.**
+
+**Alternatives considered:**
+- `ruff format` instead of / in addition to black — rejected: the two disagree on method chains
+  around multi-line SQL strings (seen in `web/repositories/appointment_repo.py`); two formatters
+  that fight make the gate impossible. The plan named black; black stays.
+- Fix all findings up front — rejected: ~800 mechanical edits with no tests to catch regressions.
+- `uv` for locking — deferred; `pip-tools` needs no new binary and the launcher already uses pip.
+
+**Lockfile policy:** `requirements.in` / `requirements-dev.in` are the human-edited inputs;
+`requirements.txt` / `requirements-dev.txt` are compiled by pip-tools and **constrained to the
+versions the venv was verified with** (so locking did not silently upgrade transitive packages).
+`cryptography` (imported by `web/gcal.py`) and `langchain-anthropic` (lazily imported) were missing
+and are now pinned. The index URL is written explicitly as `https://pypi.org/simple`.
+
+**Consequences:** `make all` is green today by construction; real quality comes from shrinking the
+baselines phase by phase, which `docs/PROGRESS.md` tracks.
+
+---
+
+## ADR-14: HTTPS-Only for Every Non-Local URL
+
+**Date:** 2026-09-14 (owner decision during Phase 0.2)
+
+**Decision:** any configured URL that does not point at `localhost` / `127.0.0.1` must use
+`https://` (`rediss://` for Redis, `wss://` for websockets). Plain `http://` is permitted for local
+development only. This applies to `OLLAMA_HOST`, `REDIS_URL`, all `GOOGLE_*_REDIRECT_URI` values,
+the package index URL, and any future webhook / CDN / S3 endpoint.
+
+**Enforcement path:** documented now in `.env.example`, `docs/ARCHITECTURE.md` and the plan
+(Phase 0.4 settings validation rejects non-local `http://` when `ENV != dev`; Phase 0.5 makes the
+session cookie `https_only` outside dev; Phase 9.4 adds HSTS). `tests/unit/test_tooling.py` already
+fails if `.env.example` or the lockfiles contain a non-local `http://`.
+
+**Reasons:** the system carries medical records, OAuth tokens and bot tokens; an OAuth redirect or a
+Redis connection over plain HTTP exposes them on the wire.

@@ -137,7 +137,7 @@ When `python startup/launch.py` is run:
 ```
 1. Python 3.11+ check
 2. Create / activate .venv
-3. pip install -r requirements.txt
+3. pip install -r requirements.txt   (pinned lockfile; dev tools: requirements-dev.txt)
 4. Validate .env (TELEGRAM_TOKEN required)
 5. Start Redis  (Windows service → binary → error)
 6. Start Ollama (ollama serve → pull model if missing)
@@ -252,19 +252,29 @@ uvicorn starts FastAPI app
 
 ## Environment Variables
 
+Template: [`.env.example`](../.env.example) (committed, no values). Copy it to `.env`.
+
+**URL rule (security, ADR-14):** every URL that is not `localhost` / `127.0.0.1` MUST use `https://`
+(and `rediss://` for Redis). Plain `http://` is only for local development. Phase 0.4 makes the
+app refuse to start with a non-local `http://` URL when `ENV != dev`.
+
 | Variable | Default | Purpose |
 |---|---|---|
+| `ENV` | `dev` | `dev` / `staging` / `prod` — controls fail-fast checks and cookie flags |
 | `TELEGRAM_TOKEN` | — | Patient bot token (@BotFather) |
 | `THERAPIST_BOT_TOKEN` | — | Therapist bot token (separate bot) |
 | `OLLAMA_MODEL` | `gemma3:latest` | Local LLM model |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
-| `USE_AI` | `ollama` | `ollama` or `anthropic` (future) |
+| `USE_AI` | `ollama` | `ollama` or `anthropic` |
+| `ANTHROPIC_API_KEY` | — | Only when `USE_AI=anthropic` |
+| `MESSAGING_CHANNEL` | `telegram` | Outbound channel adapter (`bot/interfaces/`) |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
 | `SESSION_SECRET` | — | Signs `zf_session` cookie (web) |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
 | `GOOGLE_REDIRECT_URI` | `http://localhost:8000/auth/callback` | Calendar OAuth redirect |
 | `GOOGLE_REG_REDIRECT_URI` | `http://localhost:8000/register/google/callback` | Registration OAuth redirect |
+| `GOOGLE_GMAIL_REDIRECT_URI` | `http://localhost:8000/settings/gmail/callback` | Gmail OAuth redirect |
 
 ---
 

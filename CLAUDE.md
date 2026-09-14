@@ -17,7 +17,18 @@ python startup/run_web.py           # Web dashboard only  →  http://localhost:
 
 # Pull the required AI model (first time only)
 ollama pull gemma3:latest
+
+# Quality gate (Phase 0.2) — `make <target>` or, on Windows without make, `python tasks.py <target>`
+python tasks.py lint        # black --check + ruff
+python tasks.py type        # mypy (strict islands: bot/interfaces, web/repositories)
+python tasks.py test-fast   # pytest -m "not slow" -x
+python tasks.py all         # lint + type + test + security — run before every commit
+python tasks.py lock        # recompile requirements*.txt from requirements*.in
 ```
+
+> Work follows `docs/MASTER_PLAN_EN.md`; the living checklist is `docs/PROGRESS.md`.
+> The ruff `ignore` list and mypy `ignore_errors` module list in `pyproject.toml` are baselines to
+> ratchet DOWN — never add to them (ADR-13).
 
 > Full start guide: `startup/START.md`
 

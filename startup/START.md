@@ -25,14 +25,20 @@ python -m venv .venv
 # Mac / Linux
 source .venv/bin/activate
 
-pip install -r requirements.txt
+pip install -r requirements.txt          # runtime (pinned lockfile)
+pip install -r requirements-dev.txt      # black / ruff / mypy / pytest / pre-commit (development)
+pre-commit install                       # git hooks (or: python tasks.py hooks)
 ```
 
 ---
 
 ## 2. Configure `.env`
 
-Create `.env` in the **project root** (not in `startup/`):
+Copy `.env.example` (project root) to `.env` and fill in the values. Every variable is documented
+there. **Security rule (ADR-14):** any URL that is not `localhost` must be `https://` (Redis:
+`rediss://`); plain `http://` is for local development only.
+
+Minimal local `.env`:
 
 ```env
 # ── Telegram ────────────────────────────────────────────────
@@ -136,6 +142,26 @@ tail -f logs/webLogs.text
 
 ---
 
+## Developer tooling (Phase 0.2)
+
+`make <target>` — or on Windows without make: `python tasks.py <target>`
+
+| Target | What it runs |
+|---|---|
+| `fmt` | `black` + `ruff --fix` |
+| `lint` | `black --check` + `ruff check` |
+| `type` | `mypy` (strict for `bot/interfaces`, `web/repositories`; baseline-ignored elsewhere) |
+| `test` / `test-fast` | `pytest --cov` / `pytest -m "not slow" -x` |
+| `security` | `bandit` + `pytest tests/security` |
+| `all` | lint + type + test + security — the local gate |
+| `lock` | recompile `requirements*.txt` from `requirements*.in` (pip-tools) |
+| `hooks` | `pre-commit install` |
+
+Config lives in `pyproject.toml`; hooks in `.pre-commit-config.yaml`. The ruff ignore list and the
+mypy `ignore_errors` module list are **baselines to ratchet down**, never to grow (ADR-13).
+
+---
+
 ## Database reference
 
 ### SQLite — `data/zenflow.db`
@@ -230,4 +256,3 @@ redis-cli flushdb           # clear all keys (use only in development)
 
 **Ollama timeout / fallback questions**
 - Ollama is slow or not running. `launch.py` starts it automatically; or run `ollama serve` manually.
-

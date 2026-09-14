@@ -285,4 +285,3 @@ sqlite3 data/zenflow.db "PRAGMA wal_checkpoint(TRUNCATE);"
 ```
 
 > **Warning:** Do not open `data/zenflow.db` in PyCharm's Database plugin while the app is running. PyCharm holds the `.db-shm` file open, which can block writes and cause `SQLITE_LOCKED` errors.
-

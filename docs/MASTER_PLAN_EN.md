@@ -226,6 +226,10 @@ Create `zenflow/settings.py` (pydantic-settings BaseSettings) as the ONE place e
 Replace ad-hoc os.getenv across bot/config.py, web/*, startup/*.
 Requirements:
   - Fail fast at startup if SESSION_SECRET is missing/default and ENV != "dev"
+  - HTTPS-only (ADR-14): reject any configured URL that is not localhost/127.0.0.1 and does not
+    use https:// (rediss:// for REDIS_URL) when ENV != "dev" — OLLAMA_HOST, REDIS_URL, every
+    GOOGLE_*_REDIRECT_URI, and any future webhook/CDN/S3 endpoint. Test both the accept and the
+    reject path.
   - Separate TOKEN_ENCRYPTION_KEY from SESSION_SECRET (see F7) with a documented migration path
     that re-encrypts existing google_tokens rows
   - A typed FeatureFlags model: ZF_CLOUD, ZF_STORAGE_S3, ZF_QUEUE_BACKEND,

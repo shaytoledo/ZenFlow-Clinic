@@ -12,7 +12,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
 | 0.1 | Repo hygiene (untrack `*.rdb`, secret sweep) | [x] | 2026-09-14 | 941e8c9 | Untracked `*.rdb` + `.claude/settings.local.json`; secret sweep → `docs/SECURITY_FINDINGS.md` SF-001..004; history rewritten with git-filter-repo + force-pushed; orphan `main` deleted. Tokens kept by owner decision |
-| 0.2 | pyproject, black, ruff, mypy, pre-commit, Makefile | [ ] | | | |
+| 0.2 | pyproject, black, ruff, mypy, pre-commit, Makefile | [x] | 2026-09-14 | 3a43bc2 | + black 4abcc89, strict-island types a428572, ruff fixes e3c02fb/6033fb9. Baselines: ruff ignore list, mypy 38 modules ignored, coverage 0% (fail_under=0), bandit 5 medium / 51 low. ADR-13/14. HTTPS rule added to plan 0.4 (owner request) |
 | 0.3 | `tests/` harness + conftest fixtures + 10 smoke tests | [ ] | | | |
 | 0.4 | `zenflow/settings.py` + feature-flag registry | [ ] | | | |
 | 0.5 | Structured logging + redaction + request-id | [ ] | | | |
