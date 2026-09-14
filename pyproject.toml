@@ -64,6 +64,15 @@ check_untyped_defs = false
 module = ["bot.interfaces.*", "web.repositories.*"]
 strict = true
 
+# Tests: pytest fixtures are duck-typed by design; keep them checked but not strict.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_any_generics = false
+warn_return_any = false
+
 # -- Phase 0.2 baseline ratchet: modules with pre-existing type errors (measured 2026-09-14).
 # Each phase that touches one of these modules removes it from this list and fixes its errors.
 # Never add a module here.
@@ -128,8 +137,8 @@ branch = true
 omit = ["*/__init__.py"]
 
 [tool.coverage.report]
-# Measured baseline on 2026-09-14 (only hygiene/tooling tests exist yet).
-# Rule: ratchet +5 per phase; never lower it.
-fail_under = 0
+# Measured baselines: 0 % after Phase 0.2 (tooling tests only), 30 % after Phase 0.3 (harness +
+# smoke tests). Rule: ratchet +5 per phase; never lower it.
+fail_under = 30
 show_missing = true
 skip_covered = true

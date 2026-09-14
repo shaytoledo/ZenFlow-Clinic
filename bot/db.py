@@ -6,15 +6,38 @@ db.py — SQLite singleton for ZenFlow.
 - Auto-creates tables and runs schema migrations on first call to init_db()
 """
 
+import contextlib
 import logging
+import os
 import sqlite3
 import threading
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-_DB_PATH = Path(__file__).parent.parent / "data" / "zenflow.db"
+_DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "zenflow.db"
 _local = threading.local()
+
+
+def db_path() -> Path:
+    """Resolve the SQLite file: `ZENFLOW_DB_PATH` env var if set, else data/zenflow.db.
+
+    Read on every call (not cached at import) so the test harness can point each test at a
+    throw-away file even though bot.config opens the database at import time.
+    """
+    override = os.environ.get("ZENFLOW_DB_PATH")
+    return Path(override) if override else _DEFAULT_DB_PATH
+
+
+def close_db() -> None:
+    """Close and forget this thread's cached connection (tests; graceful shutdown)."""
+    conn = getattr(_local, "conn", None)
+    if conn is not None:
+        with contextlib.suppress(Exception):
+            conn.close()
+    _local.conn = None
+    _local.path = None
+
 
 _SCHEMA_STMTS = [
     """CREATE TABLE IF NOT EXISTS therapists (
@@ -76,19 +99,26 @@ _SCHEMA_STMTS = [
 
 def get_db() -> sqlite3.Connection:
     """Return a thread-local SQLite connection (WAL mode, Row factory, autocommit)."""
+    path = db_path()
     conn = getattr(_local, "conn", None)
+    if conn is not None and getattr(_local, "path", None) != path:
+        # The configured file changed (test harness) — a pooled thread must not keep
+        # writing to the old one.
+        close_db()
+        conn = None
     if conn is None:
-        _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         # isolation_level=None = autocommit: Python never issues an implicit BEGIN,
         # so there are no stale open transactions when a thread is reused from the pool.
         conn = sqlite3.connect(
-            str(_DB_PATH), check_same_thread=False, timeout=30.0, isolation_level=None
+            str(path), check_same_thread=False, timeout=30.0, isolation_level=None
         )
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=30000")
         conn.execute("PRAGMA foreign_keys=ON")
         _local.conn = conn
+        _local.path = path
     return conn
 
 
