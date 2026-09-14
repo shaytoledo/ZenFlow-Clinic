@@ -6,6 +6,7 @@ All SQL access for the `therapists` table.
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 from typing import Any
 
@@ -98,8 +99,6 @@ def next_id() -> str:
     row = _conn().execute("SELECT id FROM therapists WHERE id LIKE 't%' ORDER BY id").fetchall()
     nums = []
     for r in row:
-        try:
+        with contextlib.suppress(ValueError, IndexError):
             nums.append(int(r[0][1:]))
-        except (ValueError, IndexError):
-            pass
     return f"t{(max(nums) + 1) if nums else 1}"

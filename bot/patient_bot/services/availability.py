@@ -14,6 +14,7 @@ Returns empty results when neither Google nor local availability is configured.
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import uuid
@@ -181,10 +182,8 @@ async def get_available_days(week_offset: int = 0, therapist_id: str | None = No
 
     # Cache result (10 min TTL)
     if r and cache_key and result:
-        try:
+        with contextlib.suppress(Exception):
             await r.set(cache_key, json.dumps([d.isoformat() for d in result]), ex=600)
-        except Exception:
-            pass
 
     return result
 
@@ -256,10 +255,8 @@ async def get_available_hours(day: date, therapist_id: str | None = None) -> lis
 
     # Cache result (10 min TTL)
     if r and cache_key:
-        try:
+        with contextlib.suppress(Exception):
             await r.set(cache_key, json.dumps(result), ex=600)
-        except Exception:
-            pass
 
     return result
 
@@ -501,10 +498,8 @@ def get_booked_slots(day: date) -> set[str]:
     logger.debug(f"Booked slots on {day}: {booked}")
 
     if r and key is not None:
-        try:
+        with contextlib.suppress(Exception):
             r.set(key, _json.dumps(list(booked)), ex=300)
-        except Exception:
-            pass
 
     return booked
 

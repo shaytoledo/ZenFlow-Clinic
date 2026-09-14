@@ -5,6 +5,7 @@ System health, activation, and therapist status endpoints.
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 
@@ -176,10 +177,8 @@ async def get_my_alerts(request: Request):
         raw_list = await r.lrange(alert_key, 0, 49)
         alerts = []
         for raw in raw_list:
-            try:
+            with contextlib.suppress(Exception):
                 alerts.append(json.loads(raw))
-            except Exception:
-                pass
         return JSONResponse({"alerts": alerts, "count": len(alerts)})
     except Exception as e:
         logger.error(f"get_my_alerts error: {e}")

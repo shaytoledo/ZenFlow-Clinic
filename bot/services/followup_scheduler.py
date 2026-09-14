@@ -19,6 +19,7 @@ are not silently dropped on a rolling deploy.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 from datetime import UTC, datetime, timedelta
@@ -417,7 +418,7 @@ async def _dispatch_pending_recommendations() -> None:
 
         except Exception as e:
             logger.error(f"dispatch_pending_recommendations failed for appt={apt_id}: {e}")
-            try:
+            with contextlib.suppress(Exception):
                 await asyncio.to_thread(
                     notification_service.alert_send_failed,
                     therapist_id,
@@ -426,8 +427,6 @@ async def _dispatch_pending_recommendations() -> None:
                     patient_name,
                     str(e),
                 )
-            except Exception:
-                pass
 
 
 # ── Loop ──────────────────────────────────────────────────────────────────────

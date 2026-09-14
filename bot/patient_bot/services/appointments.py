@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 from datetime import date
@@ -151,10 +152,8 @@ def get_booked_slots(day: date) -> set[str]:
     logger.debug(f"Booked slots on {day}: {booked}")
 
     if r and key is not None:
-        try:
+        with contextlib.suppress(Exception):
             r.set(key, _json.dumps(list(booked)), ex=300)
-        except Exception:
-            pass
 
     return booked
 

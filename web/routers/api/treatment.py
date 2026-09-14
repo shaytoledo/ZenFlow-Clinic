@@ -5,6 +5,7 @@ Treatment notes CRUD, re-diagnosis, session completion, and Telegram recommendat
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import re as _re
@@ -430,15 +431,13 @@ async def send_recommendations(
     # Stamp delivery time on the treatment row (best-effort)
     import datetime as _dt
 
-    try:
+    with contextlib.suppress(Exception):
         await asyncio.to_thread(
             treatment_service.save_notes,
             apt_id,
             patient_id,
             {"recommendations_sent_at": _dt.datetime.now().isoformat()},
         )
-    except Exception:
-        pass
 
     # Record a success notification
     try:
@@ -784,10 +783,8 @@ async def generate_points(
         raise HTTPException(status_code=504, detail="AI model timed out on point selection")
     except Exception as e:
         logger.error(f"generate-points error: {e}", exc_info=True)
-        try:
+        with contextlib.suppress(Exception):
             await asyncio.to_thread(_set_st, apt_id, "FAILED")
-        except Exception:
-            pass
         raise HTTPException(status_code=500, detail=f"AI service error: {e}")
 
 
@@ -895,10 +892,8 @@ async def regenerate_points(
         raise HTTPException(status_code=504, detail="AI model timed out on point selection")
     except Exception as e:
         logger.error(f"regenerate-points error: {e}", exc_info=True)
-        try:
+        with contextlib.suppress(Exception):
             await asyncio.to_thread(_set_st, apt_id, "FAILED")
-        except Exception:
-            pass
         raise HTTPException(status_code=500, detail=f"AI service error: {e}")
 
 

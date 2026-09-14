@@ -54,7 +54,7 @@ def _json_or_none(value: Any) -> str | None:
     """
     if value is None:
         return None
-    if isinstance(value, (list, dict)) and not value:
+    if isinstance(value, list | dict) and not value:
         return None
     return json.dumps(value, ensure_ascii=False)
 

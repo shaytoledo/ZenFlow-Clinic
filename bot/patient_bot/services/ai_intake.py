@@ -745,7 +745,7 @@ async def generate_diagnosis_only(
             "tcm_pattern": str(parsed.get("tcm_pattern", "")),
             "treatment_principles": str(parsed.get("treatment_principles", "")),
             "diagnosis_certainty": (
-                int(raw_certainty) if isinstance(raw_certainty, (int, float)) else 0
+                int(raw_certainty) if isinstance(raw_certainty, int | float) else 0
             ),
             "suggested_points": [],
             "recommendations": {
@@ -814,7 +814,7 @@ async def generate_tcm_diagnosis(user_id: int, clinical_summary: str) -> dict:
             "tcm_pattern": str(parsed.get("tcm_pattern", "")),
             "treatment_principles": str(parsed.get("treatment_principles", "")),
             "diagnosis_certainty": (
-                int(raw_certainty) if isinstance(raw_certainty, (int, float)) else 0
+                int(raw_certainty) if isinstance(raw_certainty, int | float) else 0
             ),
             "suggested_points": [],
             "recommendations": {
