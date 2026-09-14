@@ -1,28 +1,484 @@
+# Locked by pip-compile from requirements.in. Do not edit by hand: make lock / python tasks.py lock
+--index-url https://pypi.org/simple
+
+aiohappyeyeballs==2.6.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   aiohttp
+aiohttp==3.13.3
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-community
+aiosignal==1.4.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   aiohttp
+annotated-types==0.7.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   pydantic
+anthropic==0.97.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   langchain-anthropic
+anyio==4.12.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   anthropic
+    #   httpx
+    #   langchain-redis
+    #   starlette
+attrs==25.4.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   aiohttp
+certifi==2025.11.12
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   httpcore
+    #   httpx
+    #   langchain-redis
+    #   requests
+cffi==2.0.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   cryptography
+charset-normalizer==3.4.4
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   requests
+click==8.3.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   uvicorn
+colorama==0.4.6
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   click
+cryptography==46.0.5
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   google-auth
+dataclasses-json==0.6.7
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-community
+distro==1.9.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   anthropic
+docstring-parser==0.18.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   anthropic
+fastapi==0.115.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+frozenlist==1.8.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   aiohttp
+    #   aiosignal
+google-api-core==2.30.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-api-python-client
+google-api-python-client==2.149.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+google-auth==2.48.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-api-core
+    #   google-api-python-client
+    #   google-auth-httplib2
+    #   google-auth-oauthlib
+google-auth-httplib2==0.2.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   google-api-python-client
+google-auth-oauthlib==1.2.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+googleapis-common-protos==1.72.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-api-core
+greenlet==3.3.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   sqlalchemy
+h11==0.16.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   httpcore
+    #   uvicorn
+hf-xet==1.2.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-redis
+httpcore==1.0.9
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   httpx
+    #   langchain-redis
+httplib2==0.31.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-api-python-client
+    #   google-auth-httplib2
+httpx==0.27.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   anthropic
+    #   langgraph-sdk
+    #   langsmith
+    #   ollama
+    #   python-telegram-bot
+httpx-sse==0.4.3
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-community
+idna==3.11
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   anyio
+    #   httpx
+    #   requests
+    #   yarl
+itsdangerous==2.2.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+jinja2==3.1.6
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   langchain-redis
+jiter==0.14.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   anthropic
+jsonpatch==1.33
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-core
+jsonpath-ng==1.8.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   redisvl
+jsonpointer==3.0.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   jsonpatch
+langchain==1.2.15
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+langchain-anthropic==1.4.3
+    # via -r requirements.in
+langchain-classic==1.0.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-community
+langchain-community==0.4.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+langchain-core==1.3.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   langchain
+    #   langchain-anthropic
+    #   langchain-classic
+    #   langchain-community
+    #   langchain-ollama
+    #   langchain-redis
+    #   langchain-text-splitters
+    #   langgraph
+    #   langgraph-checkpoint
+    #   langgraph-prebuilt
+langchain-ollama==1.1.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+langchain-protocol==0.0.12
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-core
+langchain-redis==0.2.5
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+langchain-text-splitters==1.1.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-classic
+langgraph==1.1.9
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain
+langgraph-checkpoint==4.0.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langgraph
+    #   langgraph-prebuilt
+langgraph-prebuilt==1.0.11
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langgraph
+langgraph-sdk==0.3.9
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langgraph
+langsmith==0.7.36
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-classic
+    #   langchain-community
+    #   langchain-core
+markupsafe==3.0.3
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   jinja2
+marshmallow==3.26.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   dataclasses-json
+ml-dtypes==0.5.4
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   redisvl
+multidict==6.7.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   aiohttp
+    #   yarl
+mypy-extensions==1.1.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   typing-inspect
+numpy==1.26.4
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-community
+    #   ml-dtypes
+    #   redisvl
+oauthlib==3.3.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   requests-oauthlib
+ollama==0.6.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   langchain-ollama
+orjson==3.11.7
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langgraph-sdk
+    #   langsmith
+ormsgpack==1.12.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langgraph-checkpoint
+packaging==24.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-core
+    #   langsmith
+    #   marshmallow
+propcache==0.4.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   aiohttp
+    #   yarl
+proto-plus==1.27.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-api-core
+protobuf==6.33.5
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-api-core
+    #   googleapis-common-protos
+    #   proto-plus
+pyasn1==0.6.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.4.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-auth
+pycparser==3.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   cffi
+pydantic==2.12.5
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   anthropic
+    #   fastapi
+    #   langchain
+    #   langchain-anthropic
+    #   langchain-classic
+    #   langchain-core
+    #   langgraph
+    #   langsmith
+    #   ollama
+    #   pydantic-settings
+    #   redisvl
+pydantic-core==2.41.5
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   pydantic
+pydantic-settings==2.14.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-community
+pyparsing==3.3.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   httplib2
+python-dotenv==1.2.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   pydantic-settings
+python-multipart==0.0.26
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
 python-telegram-bot==21.6
-python-dotenv>=1.0.0
-
-# AI / LLM
-langchain>=1.2.0
-langchain-community>=0.4.0
-langchain-ollama>=0.1.0
-ollama>=0.3.0
-
-# Google Calendar
-google-api-python-client>=2.100.0
-google-auth-httplib2>=0.2.0
-google-auth-oauthlib>=1.2.0
-
-# Therapist web frontend
-fastapi>=0.110.0
-uvicorn>=0.29.0
-jinja2>=3.1.0
-python-multipart>=0.0.9
-itsdangerous>=2.1.0
-httpx>=0.27.0
-
-# Redis (cache + relay sessions + LangChain history backend)
-redis>=5.0.0
-langchain-redis>=0.1.0
-
-# Anthropic (production AI — set USE_AI=anthropic + ANTHROPIC_API_KEY)
-anthropic>=0.40.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+python-ulid==3.1.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-redis
+    #   redisvl
+pyyaml==6.0.3
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-classic
+    #   langchain-community
+    #   langchain-core
+    #   redisvl
+redis==5.1.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   redisvl
+redisvl==0.18.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-redis
+requests==2.32.5
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-api-core
+    #   langchain-classic
+    #   langchain-community
+    #   langsmith
+    #   requests-oauthlib
+    #   requests-toolbelt
+requests-oauthlib==2.0.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-auth-oauthlib
+requests-toolbelt==1.0.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langsmith
+rsa==4.9.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-auth
+sniffio==1.3.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   anthropic
+    #   httpx
+sqlalchemy==2.0.35
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-classic
+    #   langchain-community
+starlette==0.38.6
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+    #   fastapi
+tenacity==8.5.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-community
+    #   langchain-core
+    #   redisvl
+typing-extensions==4.15.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   aiosignal
+    #   anthropic
+    #   anyio
+    #   fastapi
+    #   langchain-core
+    #   langchain-protocol
+    #   langchain-redis
+    #   pydantic
+    #   pydantic-core
+    #   sqlalchemy
+    #   typing-inspect
+    #   typing-inspection
+typing-inspect==0.9.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   dataclasses-json
+typing-inspection==0.4.2
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   pydantic
+    #   pydantic-settings
+uritemplate==4.2.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   google-api-python-client
+urllib3==2.6.3
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-redis
+    #   requests
+uuid-utils==0.14.1
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langchain-core
+    #   langsmith
+uvicorn==0.30.6
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
+xxhash==3.6.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langgraph
+    #   langsmith
+yarl==1.22.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   aiohttp
+zstandard==0.25.0
+    # via
+    #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   langsmith

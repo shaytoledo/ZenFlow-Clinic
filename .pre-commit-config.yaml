@@ -1,0 +1,44 @@
+# Install once:  pre-commit install        (or: python tasks.py hooks)
+# Run on demand: pre-commit run --all-files
+minimum_pre_commit_version: "3.8.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 26.5.1
+    hooks:
+      - id: black
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      # ruff-format is intentionally NOT enabled: black is the single formatter
+      # (the two disagree on method chains around multi-line strings).
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (not slow)
+        entry: python -m pytest -m "not slow" -x -q -p no:cacheprovider
+        language: system
+        pass_filenames: false
+        always_run: true
