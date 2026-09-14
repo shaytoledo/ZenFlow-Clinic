@@ -36,6 +36,7 @@ Prerequisites:
               launch.py starts it automatically on each run (not auto-start on boot)
     Ollama  — install from https://ollama.com  (auto-started by this script)
 """
+
 import json
 import os
 import subprocess
@@ -50,14 +51,14 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # startup/launch.py lives one level inside the project root
-ROOT   = Path(__file__).resolve().parent.parent
-VENV   = ROOT / ".venv"
+ROOT = Path(__file__).resolve().parent.parent
+VENV = ROOT / ".venv"
 PYTHON = VENV / "Scripts" / "python.exe" if sys.platform == "win32" else VENV / "bin" / "python"
-PIP    = VENV / "Scripts" / "pip.exe"    if sys.platform == "win32" else VENV / "bin" / "pip"
-REQ    = ROOT / "requirements.txt"
-ENV    = ROOT / ".env"
+PIP = VENV / "Scripts" / "pip.exe" if sys.platform == "win32" else VENV / "bin" / "pip"
+REQ = ROOT / "requirements.txt"
+ENV = ROOT / ".env"
 
-TOTAL   = 6
+TOTAL = 6
 DIVIDER = "─" * 54
 
 
@@ -106,7 +107,8 @@ else:
 step(3, "Dependencies")
 result = subprocess.run(
     [str(PIP), "install", "-r", str(REQ), "--quiet"],
-    capture_output=True, text=True,
+    capture_output=True,
+    text=True,
 )
 if result.returncode != 0:
     print(f"  !!  pip error:\n{result.stderr}")
@@ -121,14 +123,15 @@ if not ENV.exists():
     sys.exit(1)
 
 env_vars = {
-    k: v for line in ENV.read_text().splitlines()
+    k: v
+    for line in ENV.read_text().splitlines()
     if "=" in line and not line.strip().startswith("#")
     for k, v in [line.strip().split("=", 1)]
 }
-token         = env_vars.get("TELEGRAM_TOKEN", "")
+token = env_vars.get("TELEGRAM_TOKEN", "")
 therapist_tok = env_vars.get("THERAPIST_BOT_TOKEN", "")
-model         = env_vars.get("OLLAMA_MODEL", "gemma3:latest")
-redis_url     = env_vars.get("REDIS_URL", "redis://localhost:6379/0")
+model = env_vars.get("OLLAMA_MODEL", "gemma3:latest")
+redis_url = env_vars.get("REDIS_URL", "redis://localhost:6379/0")
 
 if not token or "<" in token:
     print("  !!  TELEGRAM_TOKEN is not set in .env")
@@ -156,8 +159,8 @@ def _redis_running(url: str) -> bool:
     """Try a raw socket connection to the Redis port."""
     try:
         parts = url.replace("redis://", "").split("/")[0].split(":")
-        host  = parts[0] or "localhost"
-        port  = int(parts[1]) if len(parts) > 1 else 6379
+        host = parts[0] or "localhost"
+        port = int(parts[1]) if len(parts) > 1 else 6379
         with _socket.create_connection((host, port), timeout=2):
             return True
     except Exception:
@@ -170,7 +173,8 @@ def _start_redis(url: str) -> bool:
     try:
         result = subprocess.run(
             ["sc", "start", "Redis"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if result.returncode in (0, 1056):  # 1056 = already running
             for _ in range(8):
@@ -239,8 +243,8 @@ else:
     print("  OK  Ollama is running")
 
 try:
-    resp      = urllib.request.urlopen(f"{host}/api/tags", timeout=5)
-    tags      = json.loads(resp.read())
+    resp = urllib.request.urlopen(f"{host}/api/tags", timeout=5)
+    tags = json.loads(resp.read())
     installed = [m["name"] for m in tags.get("models", [])]
     if not any(model in m for m in installed):
         print(f"  Pulling model '{model}' (may take a few minutes) ...")
@@ -267,11 +271,11 @@ print("   Stop with Ctrl+C\n")
 
 os.chdir(ROOT)
 
-BOT_MAX_RETRIES = 5   # restart the bot process up to 5 times on crash
-BOT_RETRY_DELAY = 5   # seconds to wait between restarts
+BOT_MAX_RETRIES = 5  # restart the bot process up to 5 times on crash
+BOT_RETRY_DELAY = 5  # seconds to wait between restarts
 
 _RUN_BOTS = str(ROOT / "startup" / "run_bots.py")
-_RUN_WEB  = str(ROOT / "startup" / "run_web.py")
+_RUN_WEB = str(ROOT / "startup" / "run_web.py")
 
 web_proc: subprocess.Popen | None = None
 
@@ -309,10 +313,14 @@ try:
             code = bot_proc.returncode
             bot_restarts += 1
             if bot_restarts > BOT_MAX_RETRIES:
-                print(f"\n   !!  Telegram bots failed {BOT_MAX_RETRIES} times in a row — giving up.")
+                print(
+                    f"\n   !!  Telegram bots failed {BOT_MAX_RETRIES} times in a row — giving up."
+                )
                 raise SystemExit(1)
-            print(f"\n   !!  Telegram bots exited (code {code}) — retrying in {BOT_RETRY_DELAY}s "
-                  f"(attempt {bot_restarts}/{BOT_MAX_RETRIES})...")
+            print(
+                f"\n   !!  Telegram bots exited (code {code}) — retrying in {BOT_RETRY_DELAY}s "
+                f"(attempt {bot_restarts}/{BOT_MAX_RETRIES})..."
+            )
             time.sleep(BOT_RETRY_DELAY)
             bot_proc = _start_bots()
 

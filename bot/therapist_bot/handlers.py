@@ -11,7 +11,9 @@ from bot.patient_bot.services.relay import append_history
 from bot.therapist_bot.services.relay import get_current_patient, get_patient_for_msg
 from web.i18n import translate as _t
 
-_END_KB = InlineKeyboardMarkup([[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]])
+_END_KB = InlineKeyboardMarkup(
+    [[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]]
+)
 _REG_CODE_RE = re.compile(r"^[A-Z0-9]{8}$")
 _reg_lock = threading.Lock()
 
@@ -34,12 +36,15 @@ async def start_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         lang = _therapist_lang(user_id)
         name = THERAPIST_MAP[user_id].get("name", "Therapist")
         await update.message.reply_text(
-            _t("bot_greeting", lang, name=name) + "\n\n"
-            + ("Patient messages will appear here when they connect with you.\n"
-               "Reply directly to each forwarded message to respond."
-               if lang == "en" else
-               "הודעות מטופלים יופיעו כאן כשיתחברו אליך.\n"
-               "השב/י ישירות לכל הודעה מועברת כדי להגיב למטופל.")
+            _t("bot_greeting", lang, name=name)
+            + "\n\n"
+            + (
+                "Patient messages will appear here when they connect with you.\n"
+                "Reply directly to each forwarded message to respond."
+                if lang == "en"
+                else "הודעות מטופלים יופיעו כאן כשיתחברו אליך.\n"
+                "השב/י ישירות לכל הודעה מועברת כדי להגיב למטופל."
+            )
         )
     else:
         await update.message.reply_text(
@@ -88,8 +93,8 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
             if patient_id is None:
                 no_chat_msg = (
                     "⚠️ Could not find the patient for this message. They may have ended the chat."
-                    if lang == "en" else
-                    "⚠️ לא נמצא המטופל להודעה זו. ייתכן שסיים/ה את השיחה."
+                    if lang == "en"
+                    else "⚠️ לא נמצא המטופל להודעה זו. ייתכן שסיים/ה את השיחה."
                 )
                 await msg.reply_text(no_chat_msg)
                 return
@@ -106,8 +111,8 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
         if patient_id is None:
             no_active_msg = (
                 "⚠️ No active patient chat. Wait for a patient to message you first."
-                if lang == "en" else
-                "⚠️ אין שיחת מטופל פעילה. המתן/י עד שמטופל ישלח הודעה."
+                if lang == "en"
+                else "⚠️ אין שיחת מטופל פעילה. המתן/י עד שמטופל ישלח הודעה."
             )
             await msg.reply_text(no_active_msg, parse_mode="Markdown")
             return
@@ -131,6 +136,7 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
 async def _handle_registration(msg, user_id: int, code: str) -> None:
     """Activate a therapist via their one-time registration code."""
     from bot.redis_client import get_sync_redis
+
     r = get_sync_redis()
     raw = r.get(f"zenflow:reg:{code}")
     if not raw:
@@ -228,9 +234,7 @@ def _register_therapist_to_db(
                 (new_id, name, telegram_id, email or None, google_id or None),
             )
             conn.commit()
-            entry_row = conn.execute(
-                "SELECT * FROM therapists WHERE id=?", (new_id,)
-            ).fetchone()
+            entry_row = conn.execute("SELECT * FROM therapists WHERE id=?", (new_id,)).fetchone()
 
         entry = dict(entry_row)
         entry["active"] = bool(entry.get("active"))
@@ -246,11 +250,13 @@ def _register_therapist_to_db(
         _cfg.THERAPISTS.clear()
         _cfg.THERAPISTS.extend(all_therapists)
         _cfg.THERAPIST_MAP.clear()
-        _cfg.THERAPIST_MAP.update({
-            t["telegram_id"]: t
-            for t in all_therapists
-            if t.get("active") and t.get("telegram_id")
-        })
+        _cfg.THERAPIST_MAP.update(
+            {
+                t["telegram_id"]: t
+                for t in all_therapists
+                if t.get("active") and t.get("telegram_id")
+            }
+        )
         _cfg.THERAPIST_BY_ID.clear()
         _cfg.THERAPIST_BY_ID.update({t["id"]: t for t in all_therapists if t.get("active")})
 

@@ -3,6 +3,7 @@ web/repositories/therapist_repo.py
 ───────────────────────────────────
 All SQL access for the `therapists` table.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -10,6 +11,7 @@ from typing import Any
 
 def _conn():
     from bot.db import get_db
+
     return get_db()
 
 
@@ -20,36 +22,40 @@ def list_all() -> list[dict]:
 
 
 def get_by_id(therapist_id: str) -> dict | None:
-    row = _conn().execute(
-        "SELECT * FROM therapists WHERE id=?", (therapist_id,)
-    ).fetchone()
+    row = _conn().execute("SELECT * FROM therapists WHERE id=?", (therapist_id,)).fetchone()
     return dict(row) if row else None
 
 
 def get_by_email(email: str) -> dict | None:
     if not email:
         return None
-    row = _conn().execute(
-        "SELECT * FROM therapists WHERE LOWER(email)=LOWER(?) LIMIT 1", (email,)
-    ).fetchone()
+    row = (
+        _conn()
+        .execute("SELECT * FROM therapists WHERE LOWER(email)=LOWER(?) LIMIT 1", (email,))
+        .fetchone()
+    )
     return dict(row) if row else None
 
 
 def get_by_google_id(google_id: str) -> dict | None:
     if not google_id:
         return None
-    row = _conn().execute(
-        "SELECT * FROM therapists WHERE google_id=? LIMIT 1", (google_id,)
-    ).fetchone()
+    row = (
+        _conn()
+        .execute("SELECT * FROM therapists WHERE google_id=? LIMIT 1", (google_id,))
+        .fetchone()
+    )
     return dict(row) if row else None
 
 
 def get_by_telegram_id(telegram_id: int) -> dict | None:
     if not telegram_id:
         return None
-    row = _conn().execute(
-        "SELECT * FROM therapists WHERE telegram_id=? LIMIT 1", (telegram_id,)
-    ).fetchone()
+    row = (
+        _conn()
+        .execute("SELECT * FROM therapists WHERE telegram_id=? LIMIT 1", (telegram_id,))
+        .fetchone()
+    )
     return dict(row) if row else None
 
 
@@ -82,16 +88,12 @@ def update_activation(therapist_id: str, telegram_id: int) -> None:
 
 
 def update_calendar_name(therapist_id: str, name: str) -> None:
-    _conn().execute(
-        "UPDATE therapists SET calendar_name=? WHERE id=?", (name, therapist_id)
-    )
+    _conn().execute("UPDATE therapists SET calendar_name=? WHERE id=?", (name, therapist_id))
 
 
 def next_id() -> str:
     """Generate the next sequential therapist id (t1, t2, …)."""
-    row = _conn().execute(
-        "SELECT id FROM therapists WHERE id LIKE 't%' ORDER BY id"
-    ).fetchall()
+    row = _conn().execute("SELECT id FROM therapists WHERE id LIKE 't%' ORDER BY id").fetchall()
     nums = []
     for r in row:
         try:

@@ -11,6 +11,7 @@ Today this always returns `TelegramChannel`. To add WhatsApp:
 Callers should NEVER instantiate channels directly — go through this factory
 so the swap is one line of config, not a code change in every endpoint.
 """
+
 from __future__ import annotations
 
 import os

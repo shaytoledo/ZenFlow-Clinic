@@ -5,6 +5,7 @@ db.py — SQLite singleton for ZenFlow.
 - WAL mode for concurrent reads from bot + web processes
 - Auto-creates tables and runs schema migrations on first call to init_db()
 """
+
 import logging
 import sqlite3
 import threading
@@ -80,8 +81,9 @@ def get_db() -> sqlite3.Connection:
         _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         # isolation_level=None = autocommit: Python never issues an implicit BEGIN,
         # so there are no stale open transactions when a thread is reused from the pool.
-        conn = sqlite3.connect(str(_DB_PATH), check_same_thread=False,
-                               timeout=30.0, isolation_level=None)
+        conn = sqlite3.connect(
+            str(_DB_PATH), check_same_thread=False, timeout=30.0, isolation_level=None
+        )
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=30000")
@@ -147,7 +149,9 @@ def init_db() -> None:
         resolved_at TEXT,
         created_at TEXT DEFAULT (datetime('now'))
     )""")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_notif_therapist_unread ON notifications(therapist_id, read_at)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_notif_therapist_unread ON notifications(therapist_id, read_at)"
+    )
     conn.commit()
     for migration in _migrations:
         try:

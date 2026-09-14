@@ -12,6 +12,7 @@ blocking the asyncio event loop.
 Falls back to SQLite local availability when Google Calendar is not connected.
 Returns empty results when neither Google nor local availability is configured.
 """
+
 import asyncio
 import json
 import logging
@@ -27,6 +28,7 @@ _CLINIC_TZ_NAME = "Asia/Jerusalem"  # passed as string to Google Calendar API
 def _resolve_token_file(therapist_id: str | None = None):
     """Return the token file for the given therapist, or None if not connected."""
     from pathlib import Path
+
     tokens_dir = Path(__file__).parent.parent.parent.parent / "data" / "google_tokens"
     if therapist_id:
         tf = tokens_dir / f"{therapist_id}.json"
@@ -35,6 +37,7 @@ def _resolve_token_file(therapist_id: str | None = None):
 
 
 # ── Google Calendar service ───────────────────────────────────────────────────
+
 
 def _gcal_service(therapist_id: str | None = None):
     tf = _resolve_token_file(therapist_id)
@@ -60,6 +63,7 @@ def _cal_name_for_therapist(therapist_id: str | None) -> str:
     """Return the Google Calendar name for a given therapist id."""
     if therapist_id:
         from bot.config import THERAPIST_BY_ID
+
         t = THERAPIST_BY_ID.get(therapist_id)
         if t:
             return t.get("calendar_name", _AVAILABILITY_CAL_NAME)
@@ -75,6 +79,7 @@ def _find_availability_cal(service, cal_name: str = _AVAILABILITY_CAL_NAME) -> s
 
 
 # ── Date/time helpers ─────────────────────────────────────────────────────────
+
 
 def _week_range(week_offset: int) -> tuple[date, date]:
     today = date.today()
@@ -98,6 +103,7 @@ def _hhmm_min(hhmm: str) -> int:
 
 # ── Public API — availability queries (async) ─────────────────────────────────
 
+
 async def get_available_days(week_offset: int = 0, therapist_id: str | None = None) -> list[date]:
     """Dates with at least one available slot in the target week."""
     range_start, range_end = _week_range(week_offset)
@@ -107,6 +113,7 @@ async def get_available_days(week_offset: int = 0, therapist_id: str | None = No
     # Check Redis cache first
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         cache_key = f"zenflow:avail:days:{therapist_id or 'default'}:{week_offset}"
         cached = await r.get(cache_key)
@@ -121,11 +128,13 @@ async def get_available_days(week_offset: int = 0, therapist_id: str | None = No
     if service is None:
         local = await asyncio.to_thread(_read_local_avail, therapist_id)
         if local:
-            result = sorted({
-                datetime.fromisoformat(s["start"]).date()
-                for s in local
-                if range_start <= datetime.fromisoformat(s["start"]).date() <= range_end
-            })
+            result = sorted(
+                {
+                    datetime.fromisoformat(s["start"]).date()
+                    for s in local
+                    if range_start <= datetime.fromisoformat(s["start"]).date() <= range_end
+                }
+            )
         else:
             result = []
     else:
@@ -136,24 +145,36 @@ async def get_available_days(week_offset: int = 0, therapist_id: str | None = No
             result = []
         else:
             try:
-                time_min = datetime(range_start.year, range_start.month, range_start.day,
-                                    0, 0, 0, tzinfo=timezone.utc).isoformat()
-                time_max = datetime(range_end.year, range_end.month, range_end.day,
-                                    23, 59, 59, tzinfo=timezone.utc).isoformat()
+                time_min = datetime(
+                    range_start.year,
+                    range_start.month,
+                    range_start.day,
+                    0,
+                    0,
+                    0,
+                    tzinfo=timezone.utc,
+                ).isoformat()
+                time_max = datetime(
+                    range_end.year, range_end.month, range_end.day, 23, 59, 59, tzinfo=timezone.utc
+                ).isoformat()
                 events = await asyncio.to_thread(
-                    service.events().list(
+                    service.events()
+                    .list(
                         calendarId=cal_id,
                         timeMin=time_min,
                         timeMax=time_max,
                         singleEvents=True,
                         orderBy="startTime",
-                    ).execute
+                    )
+                    .execute
                 )
-                result = sorted({
-                    datetime.fromisoformat(e["start"]["dateTime"]).date()
-                    for e in events.get("items", [])
-                    if e.get("status") != "cancelled" and "dateTime" in e.get("start", {})
-                })
+                result = sorted(
+                    {
+                        datetime.fromisoformat(e["start"]["dateTime"]).date()
+                        for e in events.get("items", [])
+                        if e.get("status") != "cancelled" and "dateTime" in e.get("start", {})
+                    }
+                )
             except Exception as e:
                 logger.warning(f"get_available_days error: {e}")
                 result = []
@@ -173,6 +194,7 @@ async def get_available_hours(day: date, therapist_id: str | None = None) -> lis
     # Check Redis cache first
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         cache_key = f"zenflow:avail:hours:{therapist_id or 'default'}:{day.isoformat()}"
         cached = await r.get(cache_key)
@@ -198,15 +220,17 @@ async def get_available_hours(day: date, therapist_id: str | None = None) -> lis
         else:
             try:
                 day_start = f"{day.isoformat()}T00:00:00Z"
-                day_end   = f"{day.isoformat()}T23:59:59Z"
+                day_end = f"{day.isoformat()}T23:59:59Z"
                 events = await asyncio.to_thread(
-                    service.events().list(
+                    service.events()
+                    .list(
                         calendarId=cal_id,
                         timeMin=day_start,
                         timeMax=day_end,
                         singleEvents=True,
                         orderBy="startTime",
-                    ).execute
+                    )
+                    .execute
                 )
                 booked = get_booked_slots(day)
                 hours: list[str] = []
@@ -214,11 +238,11 @@ async def get_available_hours(day: date, therapist_id: str | None = None) -> lis
                     if e.get("status") == "cancelled":
                         continue
                     start_str = e.get("start", {}).get("dateTime", "")
-                    end_str   = e.get("end",   {}).get("dateTime", "")
+                    end_str = e.get("end", {}).get("dateTime", "")
                     if not start_str or not end_str:
                         continue
                     ev_start = datetime.fromisoformat(start_str)
-                    ev_end   = datetime.fromisoformat(end_str)
+                    ev_end = datetime.fromisoformat(end_str)
                     current = ev_start
                     while current + timedelta(hours=1) <= ev_end:
                         hhmm = current.strftime("%H:%M")
@@ -242,8 +266,10 @@ async def get_available_hours(day: date, therapist_id: str | None = None) -> lis
 
 # ── Public API — booking / cancellation (async) ───────────────────────────────
 
-async def book_slot(day: date, time_slot: str, patient_name: str, summary: str,
-                    therapist_id: str | None = None) -> str | None:
+
+async def book_slot(
+    day: date, time_slot: str, patient_name: str, summary: str, therapist_id: str | None = None
+) -> str | None:
     """
     1. Removes the 1-hour window from the availability calendar (Google or local).
     2. Creates an appointment event in the primary Google Calendar (if connected).
@@ -253,6 +279,7 @@ async def book_slot(day: date, time_slot: str, patient_name: str, summary: str,
     # Invalidate booked-slots cache and availability caches for this day
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         await r.delete(f"zenflow:slots:{day.isoformat()}")
         # Purge avail days caches for this therapist (all week offsets)
@@ -283,18 +310,20 @@ async def book_slot(day: date, time_slot: str, patient_name: str, summary: str,
                 )
 
         slot_start = _slot_dt(day, time_slot)
-        slot_end   = slot_start + timedelta(hours=1)
+        slot_end = slot_start + timedelta(hours=1)
         fmt = "%Y-%m-%dT%H:%M:%S"
         apt_event = await asyncio.to_thread(
-            service.events().insert(
+            service.events()
+            .insert(
                 calendarId="primary",
                 body={
-                    "summary":     f"🌿 ZenFlow — {patient_name}",
+                    "summary": f"🌿 ZenFlow — {patient_name}",
                     "description": summary or f"Acupuncture appointment with {patient_name}",
                     "start": {"dateTime": slot_start.strftime(fmt), "timeZone": _CLINIC_TZ_NAME},
-                    "end":   {"dateTime": slot_end.strftime(fmt),   "timeZone": _CLINIC_TZ_NAME},
+                    "end": {"dateTime": slot_end.strftime(fmt), "timeZone": _CLINIC_TZ_NAME},
                 },
-            ).execute
+            )
+            .execute
         )
         logger.info(f"GCal appointment created: {apt_event['id']} ({day} {time_slot})")
         return apt_event.get("id")
@@ -303,12 +332,14 @@ async def book_slot(day: date, time_slot: str, patient_name: str, summary: str,
         return None
 
 
-async def restore_slot(day: date, time_slot: str, gcal_apt_event_id: str | None,
-                       therapist_id: str | None = None) -> None:
+async def restore_slot(
+    day: date, time_slot: str, gcal_apt_event_id: str | None, therapist_id: str | None = None
+) -> None:
     """Called on cancellation: deletes appointment event, re-creates availability slot."""
     # Invalidate booked-slots cache
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         await r.delete(f"zenflow:slots:{day.isoformat()}")
     except Exception:
@@ -330,9 +361,7 @@ async def restore_slot(day: date, time_slot: str, gcal_apt_event_id: str | None,
         if gcal_apt_event_id:
             try:
                 await asyncio.to_thread(
-                    service.events().delete(
-                        calendarId="primary", eventId=gcal_apt_event_id
-                    ).execute
+                    service.events().delete(calendarId="primary", eventId=gcal_apt_event_id).execute
                 )
                 logger.info(f"GCal appointment deleted: {gcal_apt_event_id}")
             except Exception as e:
@@ -340,18 +369,23 @@ async def restore_slot(day: date, time_slot: str, gcal_apt_event_id: str | None,
 
         if avail_cal_id:
             slot_start = _slot_dt(day, time_slot)
-            slot_end   = slot_start + timedelta(hours=1)
+            slot_end = slot_start + timedelta(hours=1)
             fmt = "%Y-%m-%dT%H:%M:%S"
             await asyncio.to_thread(
-                service.events().insert(
+                service.events()
+                .insert(
                     calendarId=avail_cal_id,
                     body={
                         "summary": "✅ Available",
-                        "start": {"dateTime": slot_start.strftime(fmt), "timeZone": _CLINIC_TZ_NAME},
-                        "end":   {"dateTime": slot_end.strftime(fmt),   "timeZone": _CLINIC_TZ_NAME},
+                        "start": {
+                            "dateTime": slot_start.strftime(fmt),
+                            "timeZone": _CLINIC_TZ_NAME,
+                        },
+                        "end": {"dateTime": slot_end.strftime(fmt), "timeZone": _CLINIC_TZ_NAME},
                         "colorId": "10",
                     },
-                ).execute
+                )
+                .execute
             )
             logger.info(f"Availability restored: {day} {time_slot}")
     except Exception as e:
@@ -360,36 +394,40 @@ async def restore_slot(day: date, time_slot: str, gcal_apt_event_id: str | None,
 
 # ── Internal helpers (sync — called via asyncio.to_thread) ────────────────────
 
+
 def _find_covering_event(service, cal_id: str, day: date, time_slot: str):
     """Return the availability event whose window covers the given 1-hour slot."""
     day_start = f"{day.isoformat()}T00:00:00Z"
-    day_end   = f"{day.isoformat()}T23:59:59Z"
-    events = service.events().list(
-        calendarId=cal_id,
-        timeMin=day_start,
-        timeMax=day_end,
-        singleEvents=True,
-    ).execute()
+    day_end = f"{day.isoformat()}T23:59:59Z"
+    events = (
+        service.events()
+        .list(
+            calendarId=cal_id,
+            timeMin=day_start,
+            timeMax=day_end,
+            singleEvents=True,
+        )
+        .execute()
+    )
 
-    slot_min     = _hhmm_min(time_slot)
+    slot_min = _hhmm_min(time_slot)
     slot_end_min = slot_min + 60
 
     for e in events.get("items", []):
         if e.get("status") == "cancelled":
             continue
         start_str = e.get("start", {}).get("dateTime", "")
-        end_str   = e.get("end",   {}).get("dateTime", "")
+        end_str = e.get("end", {}).get("dateTime", "")
         if not start_str or not end_str:
             continue
         ev_start_min = _hhmm_min(datetime.fromisoformat(start_str).strftime("%H:%M"))
-        ev_end_min   = _hhmm_min(datetime.fromisoformat(end_str).strftime("%H:%M"))
+        ev_end_min = _hhmm_min(datetime.fromisoformat(end_str).strftime("%H:%M"))
         if ev_start_min <= slot_min and ev_end_min >= slot_end_min:
             return e
     return None
 
 
-def _remove_hour_from_event(service, cal_id: str, event: dict,
-                             day: date, time_slot: str) -> None:
+def _remove_hour_from_event(service, cal_id: str, event: dict, day: date, time_slot: str) -> None:
     """Shrink or split an availability event to remove one booked hour."""
     ev_s = datetime.fromisoformat(event["start"]["dateTime"]).replace(tzinfo=None)
     ev_e = datetime.fromisoformat(event["end"]["dateTime"]).replace(tzinfo=None)
@@ -403,19 +441,22 @@ def _remove_hour_from_event(service, cal_id: str, event: dict,
 
     elif ev_s == sl_s:
         service.events().patch(
-            calendarId=cal_id, eventId=event["id"],
+            calendarId=cal_id,
+            eventId=event["id"],
             body={"start": {"dateTime": sl_e.strftime(fmt), "timeZone": _CLINIC_TZ_NAME}},
         ).execute()
 
     elif ev_e == sl_e:
         service.events().patch(
-            calendarId=cal_id, eventId=event["id"],
+            calendarId=cal_id,
+            eventId=event["id"],
             body={"end": {"dateTime": sl_s.strftime(fmt), "timeZone": _CLINIC_TZ_NAME}},
         ).execute()
 
     else:
         service.events().patch(
-            calendarId=cal_id, eventId=event["id"],
+            calendarId=cal_id,
+            eventId=event["id"],
             body={"end": {"dateTime": sl_s.strftime(fmt), "timeZone": _CLINIC_TZ_NAME}},
         ).execute()
         service.events().insert(
@@ -423,13 +464,14 @@ def _remove_hour_from_event(service, cal_id: str, event: dict,
             body={
                 "summary": event.get("summary", "✅ Available"),
                 "start": {"dateTime": sl_e.strftime(fmt), "timeZone": _CLINIC_TZ_NAME},
-                "end":   {"dateTime": ev_e.strftime(fmt), "timeZone": _CLINIC_TZ_NAME},
+                "end": {"dateTime": ev_e.strftime(fmt), "timeZone": _CLINIC_TZ_NAME},
                 "colorId": "10",
             },
         ).execute()
 
 
 # ── Booked-slot helpers ────────────────────────────────────────────────────────
+
 
 def get_booked_slots(day: date) -> set[str]:
     """Return booked time slots for a given day (Redis-cached, 5 min TTL)."""
@@ -438,6 +480,7 @@ def get_booked_slots(day: date) -> set[str]:
     # Try sync Redis cache
     try:
         from bot.redis_client import get_sync_redis
+
         r = get_sync_redis()
         key = f"zenflow:slots:{day.isoformat()}"
         cached = r.get(key)
@@ -448,6 +491,7 @@ def get_booked_slots(day: date) -> set[str]:
         key = None
 
     from bot.db import get_db
+
     conn = get_db()
     rows = conn.execute(
         "SELECT time FROM appointments WHERE date=? AND status='active'",
@@ -467,9 +511,11 @@ def get_booked_slots(day: date) -> set[str]:
 
 # ── Local availability (SQLite-backed, no Google Calendar) ───────────────────
 
+
 def _read_local_avail(therapist_id: str | None) -> list[dict]:
     """Read local availability slots for a therapist from SQLite."""
     from bot.db import get_db
+
     conn = get_db()
     rows = conn.execute(
         "SELECT id, start_dt AS start, end_dt AS end FROM availability WHERE therapist_id=?",
@@ -485,7 +531,7 @@ async def _local_hours(day: date, slots: list[dict]) -> list[str]:
     for s in slots:
         try:
             ev_start = datetime.fromisoformat(s["start"]).replace(tzinfo=None)
-            ev_end   = datetime.fromisoformat(s["end"]).replace(tzinfo=None)
+            ev_end = datetime.fromisoformat(s["end"]).replace(tzinfo=None)
         except Exception:
             continue
         if ev_start.date() != day:
@@ -502,9 +548,10 @@ async def _local_hours(day: date, slots: list[dict]) -> list[str]:
 def _remove_hour_from_local(therapist_id: str | None, day: date, time_slot: str) -> None:
     """Shrink or split the SQLite availability slot that covers the booked hour."""
     from bot.db import get_db
+
     conn = get_db()
 
-    slot_min     = _hhmm_min(time_slot)
+    slot_min = _hhmm_min(time_slot)
     slot_end_min = slot_min + 60
     tid = therapist_id or "default"
 
@@ -517,7 +564,7 @@ def _remove_hour_from_local(therapist_id: str | None, day: date, time_slot: str)
     for row in rows:
         try:
             ev_start = datetime.fromisoformat(row["start_dt"]).replace(tzinfo=None)
-            ev_end   = datetime.fromisoformat(row["end_dt"]).replace(tzinfo=None)
+            ev_end = datetime.fromisoformat(row["end_dt"]).replace(tzinfo=None)
         except Exception:
             continue
         if ev_start.date() != day:
@@ -561,6 +608,7 @@ def _remove_hour_from_local(therapist_id: str | None, day: date, time_slot: str)
 def _add_hour_to_local(therapist_id: str | None, day: date, time_slot: str) -> None:
     """Add a 1-hour availability slot back to SQLite (used on cancellation)."""
     from bot.db import get_db
+
     conn = get_db()
     sl_s = _slot_dt(day, time_slot)
     sl_e = sl_s + timedelta(hours=1)

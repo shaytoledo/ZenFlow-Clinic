@@ -3,6 +3,7 @@ web/routers/api/system.py
 ──────────────────────────
 System health, activation, and therapist status endpoints.
 """
+
 import asyncio
 import json
 import logging
@@ -51,6 +52,7 @@ async def get_system_status(request: Request):
     # Redis
     try:
         from bot.redis_client import get_async_redis
+
         await get_async_redis().ping()
         out["redis"] = {"ok": True, "label": "Redis", "detail": "Connected"}
     except Exception as e:
@@ -59,11 +61,17 @@ async def get_system_status(request: Request):
     # Ollama
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
-            models = [m["name"] for m in (await client.get(f"{OLLAMA_HOST}/api/tags")).json().get("models", [])]
+            models = [
+                m["name"]
+                for m in (await client.get(f"{OLLAMA_HOST}/api/tags")).json().get("models", [])
+            ]
         model_ok = any(OLLAMA_MODEL in m for m in models)
         out["ollama"] = {
-            "ok": model_ok, "label": "Ollama",
-            "detail": f"Model '{OLLAMA_MODEL}' ready" if model_ok else f"Model '{OLLAMA_MODEL}' not found",
+            "ok": model_ok,
+            "label": "Ollama",
+            "detail": (
+                f"Model '{OLLAMA_MODEL}' ready" if model_ok else f"Model '{OLLAMA_MODEL}' not found"
+            ),
         }
     except Exception:
         out["ollama"] = {"ok": False, "label": "Ollama", "detail": "Not running"}
@@ -86,10 +94,15 @@ async def get_system_status(request: Request):
     # Active relay sessions
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         keys = await r.keys("zenflow:relay:active:*")
         n = len(keys)
-        out["relay"] = {"ok": True, "label": "Active Chats", "detail": f"{n} patient{'s' if n != 1 else ''} in relay"}
+        out["relay"] = {
+            "ok": True,
+            "label": "Active Chats",
+            "detail": f"{n} patient{'s' if n != 1 else ''} in relay",
+        }
     except Exception:
         out["relay"] = {"ok": False, "label": "Active Chats", "detail": "Redis unavailable"}
 
@@ -112,22 +125,27 @@ async def get_my_status(request: Request):
     therapist = next((t for t in _load_therapists_fresh() if t.get("id") == tid), None)
     if not therapist:
         raise HTTPException(status_code=404, detail="Therapist not found")
-    return JSONResponse({"active": bool(therapist.get("active")), "name": therapist.get("name", "")})
+    return JSONResponse(
+        {"active": bool(therapist.get("active")), "name": therapist.get("name", "")}
+    )
 
 
 @router.get("/smtp-status")
 async def get_smtp_status():
     """Return whether SMTP is configured (no credentials exposed)."""
     from web.services.email_service import is_configured, _config
+
     cfg = _config()
     configured = is_configured()
-    return JSONResponse({
-        "configured": configured,
-        "host": cfg["host"] if configured else "",
-        "port": cfg["port"] if configured else 587,
-        "user": cfg["user"] if configured else "",
-        "from": cfg["from"] if configured else "",
-    })
+    return JSONResponse(
+        {
+            "configured": configured,
+            "host": cfg["host"] if configured else "",
+            "port": cfg["port"] if configured else 587,
+            "user": cfg["user"] if configured else "",
+            "from": cfg["from"] if configured else "",
+        }
+    )
 
 
 @router.get("/gmail-status")
@@ -137,11 +155,13 @@ async def get_gmail_status(request: Request):
     if redirect:
         raise HTTPException(status_code=401, detail="Not authenticated")
     connected = is_gmail_authenticated(therapist["id"])
-    return JSONResponse({
-        "connected": connected,
-        "therapist_id": therapist["id"],
-        "detail": "Gmail connected" if connected else "Not connected",
-    })
+    return JSONResponse(
+        {
+            "connected": connected,
+            "therapist_id": therapist["id"],
+            "detail": "Gmail connected" if connected else "Not connected",
+        }
+    )
 
 
 @router.get("/my/alerts")
@@ -153,6 +173,7 @@ async def get_my_alerts(request: Request):
     therapist_id = therapist["id"]
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         alert_key = f"zenflow:alerts:{therapist_id}"
         raw_list = await r.lrange(alert_key, 0, 49)
@@ -176,6 +197,7 @@ async def clear_my_alerts(request: Request):
         raise HTTPException(status_code=401, detail="Not authenticated")
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         await r.delete(f"zenflow:alerts:{therapist['id']}")
     except Exception:
@@ -189,10 +211,11 @@ async def get_my_language(request: Request):
     if redirect:
         raise HTTPException(status_code=401, detail="Not authenticated")
     from bot.db import get_db
+
     row = await asyncio.to_thread(
-        lambda: get_db().execute(
-            "SELECT language FROM therapists WHERE id=?", (therapist["id"],)
-        ).fetchone()
+        lambda: get_db()
+        .execute("SELECT language FROM therapists WHERE id=?", (therapist["id"],))
+        .fetchone()
     )
     lang = (dict(row).get("language") if row else None) or "en"
     return JSONResponse({"language": lang})
@@ -208,6 +231,7 @@ async def set_my_language(request: Request):
     if lang not in ("en", "he"):
         raise HTTPException(status_code=400, detail="Supported languages: en, he")
     from bot.db import get_db
+
     await asyncio.to_thread(
         lambda: get_db().execute(
             "UPDATE therapists SET language=? WHERE id=?", (lang, therapist["id"])
@@ -216,6 +240,7 @@ async def set_my_language(request: Request):
     # Refresh in-memory therapist list
     try:
         from bot.config import reload_therapists
+
         reload_therapists()
     except Exception:
         pass
@@ -228,23 +253,30 @@ async def get_my_activation_code(request: Request):
     if not therapist:
         raise HTTPException(status_code=401, detail="Not signed in")
     from bot.redis_client import get_async_redis
+
     code = _generate_reg_code()
     r = get_async_redis()
     await r.set(
         f"zenflow:reg:{code}",
-        json.dumps({
-            "name": therapist["name"],
-            "email": therapist.get("email", ""),
-            "google_id": therapist.get("google_id", ""),
-        }),
+        json.dumps(
+            {
+                "name": therapist["name"],
+                "email": therapist.get("email", ""),
+                "google_id": therapist.get("google_id", ""),
+            }
+        ),
         ex=600,
     )
     therapist_username = await _get_therapist_bot_username()
     patient_username = await _get_patient_bot_username()
-    return JSONResponse({
-        "code": code,
-        "therapist_bot_link": f"https://t.me/{therapist_username}" if therapist_username else "",
-        "patient_bot_link": f"https://t.me/{patient_username}" if patient_username else "",
-        "therapist_bot_username": therapist_username,
-        "patient_bot_username": patient_username,
-    })
+    return JSONResponse(
+        {
+            "code": code,
+            "therapist_bot_link": (
+                f"https://t.me/{therapist_username}" if therapist_username else ""
+            ),
+            "patient_bot_link": f"https://t.me/{patient_username}" if patient_username else "",
+            "therapist_bot_username": therapist_username,
+            "patient_bot_username": patient_username,
+        }
+    )

@@ -3,6 +3,7 @@ web/repositories/appointment_repo.py
 ─────────────────────────────────────
 All SQL access for the `appointments` table (and joined `intake_sessions`).
 """
+
 from __future__ import annotations
 
 import json
@@ -10,6 +11,7 @@ import json
 
 def _conn():
     from bot.db import get_db
+
     return get_db()
 
 
@@ -22,69 +24,79 @@ def _parse(row) -> dict:
 
 def list_all() -> list[dict]:
     """Every appointment with its intake history (left-joined)."""
-    rows = _conn().execute(
-        """SELECT a.*, i.history_json
+    rows = _conn().execute("""SELECT a.*, i.history_json
            FROM appointments a
-           LEFT JOIN intake_sessions i ON i.appointment_id = a.id"""
-    ).fetchall()
+           LEFT JOIN intake_sessions i ON i.appointment_id = a.id""").fetchall()
     return [_parse(r) for r in rows]
 
 
 def list_by_patient(patient_id: int) -> list[dict]:
-    rows = _conn().execute(
-        """SELECT a.*, i.history_json
+    rows = (
+        _conn()
+        .execute(
+            """SELECT a.*, i.history_json
            FROM appointments a
            LEFT JOIN intake_sessions i ON i.appointment_id = a.id
            WHERE a.patient_id=?
            ORDER BY a.date, a.time""",
-        (patient_id,),
-    ).fetchall()
+            (patient_id,),
+        )
+        .fetchall()
+    )
     return [_parse(r) for r in rows]
 
 
 def list_active_by_patient(patient_id: int) -> list[dict]:
-    rows = _conn().execute(
-        """SELECT * FROM appointments
+    rows = (
+        _conn()
+        .execute(
+            """SELECT * FROM appointments
            WHERE patient_id=? AND status='active'
            ORDER BY date, time""",
-        (patient_id,),
-    ).fetchall()
+            (patient_id,),
+        )
+        .fetchall()
+    )
     return [dict(r) for r in rows]
 
 
-def get_by_patient_date_time(
-    patient_id: int, apt_date: str, apt_time: str
-) -> dict | None:
+def get_by_patient_date_time(patient_id: int, apt_date: str, apt_time: str) -> dict | None:
     """Fetch a single appointment record (apt_time accepts HH:MM or HH-MM)."""
     time_str = apt_time.replace("-", ":")
-    row = _conn().execute(
-        """SELECT a.*, i.history_json
+    row = (
+        _conn()
+        .execute(
+            """SELECT a.*, i.history_json
            FROM appointments a
            LEFT JOIN intake_sessions i ON i.appointment_id = a.id
            WHERE a.patient_id=? AND a.date=? AND a.time=?
            ORDER BY a.created_at DESC LIMIT 1""",
-        (patient_id, apt_date, time_str),
-    ).fetchone()
+            (patient_id, apt_date, time_str),
+        )
+        .fetchone()
+    )
     return _parse(row) if row else None
 
 
 def get_id(patient_id: int, apt_date: str, apt_time: str) -> int | None:
     """Return just the appointment id (HH:MM or HH-MM accepted)."""
     time_str = apt_time.replace("-", ":")
-    row = _conn().execute(
-        """SELECT id FROM appointments
+    row = (
+        _conn()
+        .execute(
+            """SELECT id FROM appointments
            WHERE patient_id=? AND date=? AND time=?
            ORDER BY created_at DESC LIMIT 1""",
-        (patient_id, apt_date, time_str),
-    ).fetchone()
+            (patient_id, apt_date, time_str),
+        )
+        .fetchone()
+    )
     return row[0] if row else None
 
 
 def update_status(appointment_id: int, status: str) -> None:
     """Set status to 'active' or 'cancelled' (soft delete only — record preserved)."""
-    _conn().execute(
-        "UPDATE appointments SET status=? WHERE id=?", (status, appointment_id)
-    )
+    _conn().execute("UPDATE appointments SET status=? WHERE id=?", (status, appointment_id))
 
 
 def set_gcal_event_id(appointment_id: int, event_id: str | None) -> None:
@@ -116,14 +128,23 @@ def insert_manual(
         patient_id = int(existing_patient_id)
     else:
         import time
+
         patient_id = -int(time.time() * 1000)  # always negative, monotonic
     cur = _conn().execute(
         """INSERT INTO appointments
            (patient_id, patient_name, therapist_id, date, time, status, summary,
             source, patient_phone, patient_email)
            VALUES (?, ?, ?, ?, ?, 'active', ?, 'manual', ?, ?)""",
-        (patient_id, patient_name, therapist_id, apt_date, apt_time, summary,
-         patient_phone, patient_email),
+        (
+            patient_id,
+            patient_name,
+            therapist_id,
+            apt_date,
+            apt_time,
+            summary,
+            patient_phone,
+            patient_email,
+        ),
     )
     return int(cur.lastrowid), patient_id
 
@@ -135,26 +156,34 @@ def search_patients(query: str, limit: int = 10) -> list[dict]:
     """
     q = (query or "").strip()
     if q:
-        rows = _conn().execute(
-            """SELECT patient_id, patient_name, patient_phone, patient_email, source,
+        rows = (
+            _conn()
+            .execute(
+                """SELECT patient_id, patient_name, patient_phone, patient_email, source,
                       MAX(created_at) AS last_seen
                FROM appointments
                WHERE patient_name LIKE ?
                GROUP BY patient_id
                ORDER BY last_seen DESC
                LIMIT ?""",
-            (f"%{q}%", limit),
-        ).fetchall()
+                (f"%{q}%", limit),
+            )
+            .fetchall()
+        )
     else:
-        rows = _conn().execute(
-            """SELECT patient_id, patient_name, patient_phone, patient_email, source,
+        rows = (
+            _conn()
+            .execute(
+                """SELECT patient_id, patient_name, patient_phone, patient_email, source,
                       MAX(created_at) AS last_seen
                FROM appointments
                GROUP BY patient_id
                ORDER BY last_seen DESC
                LIMIT ?""",
-            (limit,),
-        ).fetchall()
+                (limit,),
+            )
+            .fetchall()
+        )
     return [dict(r) for r in rows]
 
 
@@ -164,15 +193,19 @@ def list_in_date_range(therapist_id: str, start_date: str, end_date: str) -> lis
     Both bounds are 'YYYY-MM-DD' strings. Used by the schedule page to overlay
     booked appointments on the calendar.
     """
-    rows = _conn().execute(
-        """SELECT id, patient_id, patient_name, therapist_id, date, time, source,
+    rows = (
+        _conn()
+        .execute(
+            """SELECT id, patient_id, patient_name, therapist_id, date, time, source,
                   gcal_apt_event_id
            FROM appointments
            WHERE therapist_id=? AND status='active'
              AND date >= ? AND date <= ?
            ORDER BY date, time""",
-        (therapist_id, start_date, end_date),
-    ).fetchall()
+            (therapist_id, start_date, end_date),
+        )
+        .fetchall()
+    )
     return [dict(r) for r in rows]
 
 
@@ -181,8 +214,10 @@ def list_completed_in_window(start_iso: str, end_iso: str) -> list[dict]:
 
     Used by the 24h follow-up scheduler.
     """
-    rows = _conn().execute(
-        """SELECT a.id, a.patient_id, a.patient_name, a.therapist_id,
+    rows = (
+        _conn()
+        .execute(
+            """SELECT a.id, a.patient_id, a.patient_name, a.therapist_id,
                   a.date, a.time, t.completed_at
            FROM appointments a
            JOIN treatment_notes t ON t.appointment_id = a.id
@@ -190,6 +225,8 @@ def list_completed_in_window(start_iso: str, end_iso: str) -> list[dict]:
              AND t.completed_at >= ?
              AND t.completed_at <= ?
              AND a.status='active'""",
-        (start_iso, end_iso),
-    ).fetchall()
+            (start_iso, end_iso),
+        )
+        .fetchall()
+    )
     return [dict(r) for r in rows]

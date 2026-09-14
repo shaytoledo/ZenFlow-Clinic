@@ -4,6 +4,7 @@ web/services/availability_service.py
 CRUD abstraction for local availability slots (SQLite `availability` table).
 Google Calendar operations remain in web/gcal.py.
 """
+
 import logging
 import uuid
 
@@ -13,16 +14,22 @@ logger = logging.getLogger(__name__)
 def list_local(therapist_id: str | None) -> list[dict]:
     """Read all local availability slots for a therapist."""
     from bot.db import get_db
-    rows = get_db().execute(
-        "SELECT id, start_dt AS start, end_dt AS end FROM availability WHERE therapist_id=?",
-        (therapist_id or "default",),
-    ).fetchall()
+
+    rows = (
+        get_db()
+        .execute(
+            "SELECT id, start_dt AS start, end_dt AS end FROM availability WHERE therapist_id=?",
+            (therapist_id or "default",),
+        )
+        .fetchall()
+    )
     return [dict(r) for r in rows]
 
 
 def add_local(therapist_id: str, start: str, end: str) -> dict:
     """Insert a new local availability slot and return the FullCalendar-ready dict."""
     from bot.db import get_db
+
     new_id = uuid.uuid4().hex
     conn = get_db()
     conn.execute(
@@ -33,6 +40,7 @@ def add_local(therapist_id: str, start: str, end: str) -> dict:
     # Invalidate bot availability cache for this therapist
     try:
         from bot.redis_client import get_sync_redis
+
         r = get_sync_redis()
         for key in r.scan_iter(f"zenflow:avail:*:{therapist_id}:*"):
             r.delete(key)
@@ -44,6 +52,7 @@ def add_local(therapist_id: str, start: str, end: str) -> dict:
 def remove_local(slot_id: str) -> None:
     """Delete a local availability slot by ID."""
     from bot.db import get_db
+
     get_db().execute("DELETE FROM availability WHERE id=?", (slot_id,))
     get_db().commit()
 

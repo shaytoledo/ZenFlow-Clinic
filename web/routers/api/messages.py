@@ -3,6 +3,7 @@ web/routers/api/messages.py
 ────────────────────────────
 Messaging endpoints: unread count, conversation list, send reply via Telegram.
 """
+
 import json
 import logging
 
@@ -111,6 +112,7 @@ async def _last_forwarded_msg_id(patient_id: int) -> int | None:
     """Look up the most recent therapist-bot message_id forwarded for this patient."""
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         raw = await r.get(f"zenflow:relay:active:{patient_id}")
         if not raw:

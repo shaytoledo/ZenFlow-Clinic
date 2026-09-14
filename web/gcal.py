@@ -22,6 +22,7 @@ in a single flow.  The scopes are:
     https://www.googleapis.com/auth/gmail.send
     https://www.googleapis.com/auth/gmail.readonly
 """
+
 import base64
 import hashlib
 import json
@@ -57,20 +58,19 @@ GMAIL_SCOPES = SCOPES
 
 # ── Legacy file paths (kept only for one-time migration) ──────────────────────
 
-_TOKENS_DIR      = Path(__file__).parent.parent / "data" / "google_tokens"
+_TOKENS_DIR = Path(__file__).parent.parent / "data" / "google_tokens"
 _GMAIL_TOKENS_DIR = Path(__file__).parent.parent / "data" / "gmail_tokens"
 
 AVAILABILITY_CAL_NAME = "ZenFlow Availability"
-AVAILABILITY_TITLE    = "✅ Available"
+AVAILABILITY_TITLE = "✅ Available"
 
 
 # ── Encryption ────────────────────────────────────────────────────────────────
 
+
 def _fernet() -> Fernet:
     """Derive a stable Fernet key from SESSION_SECRET (sha-256 → 32 bytes → b64url)."""
-    key = base64.urlsafe_b64encode(
-        hashlib.sha256(SESSION_SECRET.encode("utf-8")).digest()
-    )
+    key = base64.urlsafe_b64encode(hashlib.sha256(SESSION_SECRET.encode("utf-8")).digest())
     return Fernet(key)
 
 
@@ -84,8 +84,10 @@ def _decrypt(ciphertext: str) -> str:
 
 # ── DB token CRUD ─────────────────────────────────────────────────────────────
 
+
 def _save_token_db(therapist_id: str, creds: Credentials) -> None:
     from bot.db import get_db
+
     encrypted = _encrypt(creds.to_json())
     scopes_str = " ".join(creds.scopes or SCOPES)
     get_db().execute(
@@ -102,10 +104,15 @@ def _save_token_db(therapist_id: str, creds: Credentials) -> None:
 
 def _load_token_db(therapist_id: str) -> Credentials | None:
     from bot.db import get_db
-    row = get_db().execute(
-        "SELECT encrypted_token FROM google_tokens WHERE therapist_id = ?",
-        (therapist_id,),
-    ).fetchone()
+
+    row = (
+        get_db()
+        .execute(
+            "SELECT encrypted_token FROM google_tokens WHERE therapist_id = ?",
+            (therapist_id,),
+        )
+        .fetchone()
+    )
     if not row:
         return None
     try:
@@ -118,12 +125,12 @@ def _load_token_db(therapist_id: str) -> Credentials | None:
 
 def delete_token_db(therapist_id: str) -> None:
     from bot.db import get_db
-    get_db().execute(
-        "DELETE FROM google_tokens WHERE therapist_id = ?", (therapist_id,)
-    )
+
+    get_db().execute("DELETE FROM google_tokens WHERE therapist_id = ?", (therapist_id,))
 
 
 # ── Legacy file migration ─────────────────────────────────────────────────────
+
 
 def _migrate_legacy_file(therapist_id: str) -> bool:
     """If a legacy JSON token file exists, move it to the DB and delete the file.
@@ -144,6 +151,7 @@ def _migrate_legacy_file(therapist_id: str) -> bool:
 
 # ── Public OAuth helpers ───────────────────────────────────────────────────────
 
+
 def get_auth_url() -> str:
     """Return the Google consent URL (Calendar + Gmail scopes, offline access)."""
     flow = _make_flow()
@@ -161,11 +169,14 @@ def exchange_code(code: str, therapist_id: str) -> None:
 
 def is_authenticated(therapist_id: str) -> bool:
     """True when a (possibly expired) token exists for this therapist."""
-    _migrate_legacy_file(therapist_id)   # one-time migration
+    _migrate_legacy_file(therapist_id)  # one-time migration
     from bot.db import get_db
-    row = get_db().execute(
-        "SELECT 1 FROM google_tokens WHERE therapist_id = ?", (therapist_id,)
-    ).fetchone()
+
+    row = (
+        get_db()
+        .execute("SELECT 1 FROM google_tokens WHERE therapist_id = ?", (therapist_id,))
+        .fetchone()
+    )
     return row is not None
 
 
@@ -188,6 +199,7 @@ def load_credentials(therapist_id: str) -> Credentials:
 
 # ── Deprecated path helpers (kept so old call-sites don't break) ──────────────
 
+
 def token_file_for(therapist_id: str) -> Path:
     """Deprecated — returns legacy path.  Use DB functions instead."""
     return _TOKENS_DIR / f"{therapist_id}.json"
@@ -199,6 +211,7 @@ def gmail_token_file_for(therapist_id: str) -> Path:
 
 # ── Service builders ──────────────────────────────────────────────────────────
 
+
 def get_gmail_service(therapist_id: str):
     """Return an authenticated Gmail API service object."""
     creds = load_credentials(therapist_id)
@@ -207,13 +220,14 @@ def get_gmail_service(therapist_id: str):
 
 # ── Internal ──────────────────────────────────────────────────────────────────
 
+
 def _make_flow() -> Flow:
     config = {
         "web": {
-            "client_id":     GOOGLE_CLIENT_ID,
+            "client_id": GOOGLE_CLIENT_ID,
             "client_secret": GOOGLE_CLIENT_SECRET,
-            "auth_uri":      "https://accounts.google.com/o/oauth2/auth",
-            "token_uri":     "https://oauth2.googleapis.com/token",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
             "redirect_uris": [GOOGLE_REDIRECT_URI],
         }
     }
@@ -222,6 +236,7 @@ def _make_flow() -> Flow:
 
 def _to_utc(dt_str: str) -> str:
     from datetime import timezone
+
     dt_str = dt_str.replace(" ", "+")
     dt = datetime.fromisoformat(dt_str)
     if dt.tzinfo is None:
@@ -230,6 +245,7 @@ def _to_utc(dt_str: str) -> str:
 
 
 # ── Calendar client ───────────────────────────────────────────────────────────
+
 
 class GCalClient:
     def __init__(self, service):
@@ -246,8 +262,8 @@ class GCalClient:
         items = self.service.calendarList().list().execute().get("items", [])
         return [
             {
-                "id":    c["id"],
-                "name":  c.get("summary", "Untitled"),
+                "id": c["id"],
+                "name": c.get("summary", "Untitled"),
                 "color": c.get("backgroundColor", "#4285f4"),
             }
             for c in items
@@ -257,11 +273,17 @@ class GCalClient:
         for cal in self.service.calendarList().list().execute().get("items", []):
             if cal.get("summary") == AVAILABILITY_CAL_NAME:
                 return cal["id"]
-        new_cal = self.service.calendars().insert(body={
-            "summary":     AVAILABILITY_CAL_NAME,
-            "description": "ZenFlow Clinic — therapist available slots for patient booking",
-            "timeZone":    "Asia/Jerusalem",
-        }).execute()
+        new_cal = (
+            self.service.calendars()
+            .insert(
+                body={
+                    "summary": AVAILABILITY_CAL_NAME,
+                    "description": "ZenFlow Clinic — therapist available slots for patient booking",
+                    "timeZone": "Asia/Jerusalem",
+                }
+            )
+            .execute()
+        )
         self.service.calendarList().insert(body={"id": new_cal["id"]}).execute()
         logger.info(f"Created availability calendar: {new_cal['id']}")
         return new_cal["id"]
@@ -269,10 +291,10 @@ class GCalClient:
     # ── events ────────────────────────────────────────────────────────────
 
     def get_events(self, time_min: str, time_max: str) -> list[dict]:
-        result    = []
-        time_min  = _to_utc(time_min)
-        time_max  = _to_utc(time_max)
-        all_cals  = self.service.calendarList().list().execute().get("items", [])
+        result = []
+        time_min = _to_utc(time_min)
+        time_max = _to_utc(time_max)
+        all_cals = self.service.calendarList().list().execute().get("items", [])
         avail_cal_id = next(
             (c["id"] for c in all_cals if c.get("summary") == AVAILABILITY_CAL_NAME),
             None,
@@ -283,67 +305,91 @@ class GCalClient:
                 continue
             cal_color = cal.get("backgroundColor", "#4285f4")
             try:
-                resp = self.service.events().list(
-                    calendarId=cal["id"],
-                    timeMin=time_min, timeMax=time_max,
-                    singleEvents=True, orderBy="startTime",
-                ).execute()
+                resp = (
+                    self.service.events()
+                    .list(
+                        calendarId=cal["id"],
+                        timeMin=time_min,
+                        timeMax=time_max,
+                        singleEvents=True,
+                        orderBy="startTime",
+                    )
+                    .execute()
+                )
             except Exception as e:
                 logger.warning(f"Could not fetch calendar {cal.get('summary')}: {e}")
                 continue
             for e in resp.get("items", []):
                 if e.get("status") == "cancelled":
                     continue
-                result.append({
-                    "id":              f"{cal['id']}_{e['id']}",
-                    "title":           e.get("summary", "(busy)"),
-                    "start":           e["start"].get("dateTime", e["start"].get("date")),
-                    "end":             e["end"].get("dateTime", e["end"].get("date")),
-                    "backgroundColor": cal_color,
-                    "borderColor":     cal_color,
-                    "editable":        False,
-                    "extendedProps":   {"type": "busy", "calendarId": cal["id"], "calendarName": cal.get("summary", "")},
-                })
+                result.append(
+                    {
+                        "id": f"{cal['id']}_{e['id']}",
+                        "title": e.get("summary", "(busy)"),
+                        "start": e["start"].get("dateTime", e["start"].get("date")),
+                        "end": e["end"].get("dateTime", e["end"].get("date")),
+                        "backgroundColor": cal_color,
+                        "borderColor": cal_color,
+                        "editable": False,
+                        "extendedProps": {
+                            "type": "busy",
+                            "calendarId": cal["id"],
+                            "calendarName": cal.get("summary", ""),
+                        },
+                    }
+                )
 
         cal_id = self.get_or_create_availability_cal()
-        avail  = self.service.events().list(
-            calendarId=cal_id,
-            timeMin=time_min, timeMax=time_max,
-            singleEvents=True, orderBy="startTime",
-        ).execute()
+        avail = (
+            self.service.events()
+            .list(
+                calendarId=cal_id,
+                timeMin=time_min,
+                timeMax=time_max,
+                singleEvents=True,
+                orderBy="startTime",
+            )
+            .execute()
+        )
         for e in avail.get("items", []):
             if e.get("status") == "cancelled":
                 continue
-            result.append({
-                "id":              e["id"],
-                "title":           "✅ Available",
-                "start":           e["start"].get("dateTime", e["start"].get("date")),
-                "end":             e["end"].get("dateTime", e["end"].get("date")),
-                "backgroundColor": "#27ae60",
-                "borderColor":     "#1e8449",
-                "editable":        False,
-                "extendedProps":   {"type": "available", "calendarId": cal_id},
-            })
+            result.append(
+                {
+                    "id": e["id"],
+                    "title": "✅ Available",
+                    "start": e["start"].get("dateTime", e["start"].get("date")),
+                    "end": e["end"].get("dateTime", e["end"].get("date")),
+                    "backgroundColor": "#27ae60",
+                    "borderColor": "#1e8449",
+                    "editable": False,
+                    "extendedProps": {"type": "available", "calendarId": cal_id},
+                }
+            )
         return result
 
     def create_availability(self, cal_id: str, start: str, end: str) -> dict:
-        event = self.service.events().insert(
-            calendarId=cal_id,
-            body={
-                "summary": AVAILABILITY_TITLE,
-                "start":   {"dateTime": start},
-                "end":     {"dateTime": end},
-                "colorId": "10",
-            },
-        ).execute()
+        event = (
+            self.service.events()
+            .insert(
+                calendarId=cal_id,
+                body={
+                    "summary": AVAILABILITY_TITLE,
+                    "start": {"dateTime": start},
+                    "end": {"dateTime": end},
+                    "colorId": "10",
+                },
+            )
+            .execute()
+        )
         return {
-            "id":              event["id"],
-            "title":           "✅ Available",
-            "start":           start,
-            "end":             end,
+            "id": event["id"],
+            "title": "✅ Available",
+            "start": start,
+            "end": end,
             "backgroundColor": "#27ae60",
-            "borderColor":     "#1e8449",
-            "extendedProps":   {"type": "available", "calendarId": cal_id},
+            "borderColor": "#1e8449",
+            "extendedProps": {"type": "available", "calendarId": cal_id},
         }
 
     def delete_availability(self, cal_id: str, event_id: str) -> None:

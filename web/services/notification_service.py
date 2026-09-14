@@ -4,6 +4,7 @@ web/services/notification_service.py
 Thin domain layer over notification_repo. Centralises the business rules for
 creating typed alerts so callers don't need to know about the schema.
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,8 +19,8 @@ def alert_recommendations_sent(
     appointment_id: int,
     patient_id: int,
     patient_name: str,
-    channel: str,           # "telegram" | "email"
-    destination: str,       # patient id or email address
+    channel: str,  # "telegram" | "email"
+    destination: str,  # patient id or email address
 ) -> int:
     """Patient successfully received recommendations."""
     return notification_repo.create(

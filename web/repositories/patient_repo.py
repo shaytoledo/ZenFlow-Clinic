@@ -3,6 +3,7 @@ web/repositories/patient_repo.py
 ──────────────────────────────────
 Full patient history: appointments JOIN treatment_notes JOIN intake_sessions.
 """
+
 from __future__ import annotations
 
 import json
@@ -10,6 +11,7 @@ import json
 
 def _conn():
     from bot.db import get_db
+
     return get_db()
 
 
@@ -36,8 +38,10 @@ def get_full_history(patient_id: int) -> dict | None:
 
     Returns None if the patient_id does not exist.
     """
-    rows = _conn().execute(
-        """SELECT a.id            AS appointment_id,
+    rows = (
+        _conn()
+        .execute(
+            """SELECT a.id            AS appointment_id,
                   a.patient_id,
                   a.patient_name,
                   a.therapist_id,
@@ -73,8 +77,10 @@ def get_full_history(patient_id: int) -> dict | None:
            WHERE a.patient_id = ?
              AND a.status = 'active'
            ORDER BY a.date DESC, a.time DESC""",
-        (patient_id,),
-    ).fetchall()
+            (patient_id,),
+        )
+        .fetchall()
+    )
 
     if not rows:
         return None

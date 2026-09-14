@@ -3,6 +3,7 @@ web/services/treatment_service.py
 ──────────────────────────────────
 Domain logic for treatment notes. SQL access goes through repositories.
 """
+
 import datetime
 import logging
 
@@ -28,14 +29,13 @@ def save_notes(appointment_id: int, patient_id: int, data: dict) -> None:
 
 def complete_session(appointment_id: int, patient_id: int) -> None:
     """Mark a treatment session as completed (records completion timestamp)."""
-    save_notes(appointment_id, patient_id, {
-        "completed_at": datetime.datetime.now().isoformat()
-    })
+    save_notes(appointment_id, patient_id, {"completed_at": datetime.datetime.now().isoformat()})
 
 
 def list_completed_sessions(therapist_id: str | None = None) -> list[dict]:
     """List all treatment sessions that have been completed, newest first."""
     from bot.db import get_db
+
     query = """
         SELECT
             tn.appointment_id, tn.patient_id, tn.tcm_pattern,
@@ -62,6 +62,7 @@ def list_all_sessions(therapist_id: str | None = None, sort_by: str = "date") ->
     treatment screen and types something — still show up in the history list.
     """
     from bot.db import get_db
+
     order_map = {
         "name": "a.patient_name ASC, a.date DESC",
         "date": "a.date DESC, a.time DESC",

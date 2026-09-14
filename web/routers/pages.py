@@ -3,6 +3,7 @@ web/routers/pages.py
 ─────────────────────
 All HTML page routes for the ZenFlow therapist web app.
 """
+
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -18,7 +19,9 @@ def _page(request: Request, template: str, active: str, **extra) -> HTMLResponse
     if redirect:
         return RedirectResponse(redirect)
     t = get_t(therapist.get("language") if therapist else None)
-    return templates.TemplateResponse(template, {"request": request, "active": active, "therapist": therapist, "t": t, **extra})
+    return templates.TemplateResponse(
+        template, {"request": request, "active": active, "therapist": therapist, "t": t, **extra}
+    )
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -28,7 +31,10 @@ async def index(request: Request, background_tasks: BackgroundTasks):
         return RedirectResponse(redirect)
     background_tasks.add_task(prefetch_calendar, therapist["id"])
     t = get_t(therapist.get("language"))
-    return templates.TemplateResponse("dashboard.html", {"request": request, "active": "dashboard", "therapist": therapist, "t": t})
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request, "active": "dashboard", "therapist": therapist, "t": t},
+    )
 
 
 @router.get("/schedule", response_class=HTMLResponse)
@@ -38,7 +44,9 @@ async def schedule(request: Request, background_tasks: BackgroundTasks):
         return RedirectResponse(redirect)
     background_tasks.add_task(prefetch_calendar, therapist["id"])
     t = get_t(therapist.get("language"))
-    return templates.TemplateResponse("schedule.html", {"request": request, "active": "schedule", "therapist": therapist, "t": t})
+    return templates.TemplateResponse(
+        "schedule.html", {"request": request, "active": "schedule", "therapist": therapist, "t": t}
+    )
 
 
 @router.get("/patients", response_class=HTMLResponse)
@@ -70,6 +78,7 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
 async def onboarding_page(request: Request):
     """Welcome page shown to newly-registered therapists before bot activation."""
     from web.deps import _get_session_therapist
+
     therapist = _get_session_therapist(request)
     if not therapist:
         return RedirectResponse("/register")

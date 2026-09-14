@@ -4,6 +4,7 @@ Redis client singletons for ZenFlow.
 - get_async_redis() — asyncio-compatible client (for FastAPI + async bot handlers)
 - get_sync_redis()  — sync client (for LangChain history backend + sync helpers)
 """
+
 import redis.asyncio as aioredis
 import redis as syncredis
 

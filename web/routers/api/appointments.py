@@ -3,6 +3,7 @@ web/routers/api/appointments.py
 ─────────────────────────────────
 REST endpoints for appointments and patient data.
 """
+
 import asyncio
 import logging
 import re
@@ -21,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 class ManualAppointmentIn(BaseModel):
     patient_name: str
-    date: str           # YYYY-MM-DD
-    time: str           # HH:MM
+    date: str  # YYYY-MM-DD
+    time: str  # HH:MM
     patient_phone: str = ""
     patient_email: str = ""
-    notes: str = ""     # free-text — saved into appointments.summary
+    notes: str = ""  # free-text — saved into appointments.summary
     existing_patient_id: int | None = None  # when picking an existing patient
 
 
@@ -44,31 +45,35 @@ async def get_today_appointments():
     patient_count = len({a["patient_id"] for a in all_active if a.get("patient_id")})
     session_count = len(all_active)
     intake_count = sum(1 for a in today_apts if a.get("intake_history"))
-    recent = sorted(all_active, key=lambda x: (x.get("date", ""), x.get("time", "")), reverse=True)[:10]
+    recent = sorted(all_active, key=lambda x: (x.get("date", ""), x.get("time", "")), reverse=True)[
+        :10
+    ]
 
     def _fmt(a: dict) -> dict:
         return {
-            "patient_id":   a["patient_id"],
+            "patient_id": a["patient_id"],
             "patient_name": a.get("patient_name", ""),
-            "date":         a.get("date"),
-            "time":         a.get("time"),
-            "summary":      (a.get("summary") or "")[:200],
-            "has_intake":   bool(a.get("intake_history")),
+            "date": a.get("date"),
+            "time": a.get("time"),
+            "summary": (a.get("summary") or "")[:200],
+            "has_intake": bool(a.get("intake_history")),
         }
 
     today_count = len(today_apts)
     today_label = f"{today_count} appointment{'s' if today_count != 1 else ''} today"
 
-    return JSONResponse({
-        "today_count":    today_count,
-        "today_label":    today_label,
-        "intake_count":   intake_count,
-        "patient_count":  patient_count,
-        "session_count":  session_count,
-        "today":          [_fmt(a) for a in today_apts],
-        "intake_alerts":  [],
-        "recent":         [_fmt(a) for a in recent],
-    })
+    return JSONResponse(
+        {
+            "today_count": today_count,
+            "today_label": today_label,
+            "intake_count": intake_count,
+            "patient_count": patient_count,
+            "session_count": session_count,
+            "today": [_fmt(a) for a in today_apts],
+            "intake_alerts": [],
+            "recent": [_fmt(a) for a in recent],
+        }
+    )
 
 
 @router.post("/appointments")
@@ -112,6 +117,7 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
         try:
             from datetime import date as _date
             from bot.patient_bot.services.availability import book_slot
+
             day = _date.fromisoformat(body.date)
             gcal_id = await book_slot(
                 day=day,
@@ -121,26 +127,29 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
                 therapist_id=therapist_id,
             )
             if gcal_id:
-                await asyncio.to_thread(
-                    appointment_repo.set_gcal_event_id, appt_id, gcal_id
-                )
+                await asyncio.to_thread(appointment_repo.set_gcal_event_id, appt_id, gcal_id)
         except Exception as e:
-            logger.warning(f"create_manual_appointment: book_slot failed (kept appt {appt_id}): {e}")
+            logger.warning(
+                f"create_manual_appointment: book_slot failed (kept appt {appt_id}): {e}"
+            )
 
         # Bust caches — appointments list + rolling Google-events cache
         try:
             from web.services.cache_service import invalidate_appointments, purge_calendar
+
             await invalidate_appointments()
             await purge_calendar(therapist_id)
         except Exception:
             pass
 
-        return JSONResponse({
-            "ok": True,
-            "appointment_id": appt_id,
-            "patient_id": patient_id,
-            "treatment_url": f"/treatment/{patient_id}/{body.date}/{body.time.replace(':','-')}",
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "appointment_id": appt_id,
+                "patient_id": patient_id,
+                "treatment_url": f"/treatment/{patient_id}/{body.date}/{body.time.replace(':','-')}",
+            }
+        )
     except Exception as e:
         logger.error(f"create_manual_appointment failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -150,15 +159,20 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
 async def search_patients(q: str = ""):
     """Return matching patients for autocomplete with full contact info."""
     rows = await asyncio.to_thread(appointment_repo.search_patients, q, 10)
-    return JSONResponse({"results": [
+    return JSONResponse(
         {
-            "patient_id":    r["patient_id"],
-            "patient_name":  r["patient_name"],
-            "patient_phone": r.get("patient_phone") or "",
-            "patient_email": r.get("patient_email") or "",
-            "source":        r.get("source") or "telegram",
-        } for r in rows
-    ]})
+            "results": [
+                {
+                    "patient_id": r["patient_id"],
+                    "patient_name": r["patient_name"],
+                    "patient_phone": r.get("patient_phone") or "",
+                    "patient_email": r.get("patient_email") or "",
+                    "source": r.get("source") or "telegram",
+                }
+                for r in rows
+            ]
+        }
+    )
 
 
 @router.get("/patients")
@@ -177,6 +191,7 @@ async def get_patient_detail(patient_id: int):
 
     # Fetch treatment notes for each appointment to enrich EHR view
     from bot.db import get_db
+
     appointments = []
     for d in records:
         if d.get("patient_name") and name == f"Patient {patient_id}":
@@ -184,54 +199,72 @@ async def get_patient_detail(patient_id: int):
 
         # Look up treatment notes for this appointment
         apt_id = d.get("id") or await asyncio.to_thread(
-            lambda: (get_db().execute(
-                "SELECT id FROM appointments WHERE patient_id=? AND date=? AND time=? ORDER BY created_at DESC LIMIT 1",
-                (patient_id, d.get("date"), d.get("time")),
-            ).fetchone() or {}).get("id") if True else None
+            lambda: (
+                (
+                    get_db()
+                    .execute(
+                        "SELECT id FROM appointments WHERE patient_id=? AND date=? AND time=? ORDER BY created_at DESC LIMIT 1",
+                        (patient_id, d.get("date"), d.get("time")),
+                    )
+                    .fetchone()
+                    or {}
+                ).get("id")
+                if True
+                else None
+            )
         )
 
         notes = {}
         if apt_id:
             row = await asyncio.to_thread(
-                lambda aid=apt_id: get_db().execute(
+                lambda aid=apt_id: get_db()
+                .execute(
                     """SELECT tcm_pattern, treatment_principles, diagnosis_certainty,
                               used_points, completed_at,
                               followup_rating, followup_conversation,
                               manual_feedback_rating, manual_feedback_notes
                        FROM treatment_notes WHERE appointment_id=?""",
                     (aid,),
-                ).fetchone()
+                )
+                .fetchone()
             )
             if row:
                 import json as _json
+
                 r = dict(row)
                 try:
                     r["used_points"] = _json.loads(r["used_points"]) if r.get("used_points") else []
                 except Exception:
                     r["used_points"] = []
                 try:
-                    r["followup_conversation"] = _json.loads(r["followup_conversation"]) if r.get("followup_conversation") else None
+                    r["followup_conversation"] = (
+                        _json.loads(r["followup_conversation"])
+                        if r.get("followup_conversation")
+                        else None
+                    )
                 except Exception:
                     r["followup_conversation"] = None
                 notes = r
 
-        appointments.append({
-            "date": d.get("date"),
-            "time": d.get("time"),
-            "summary": d.get("summary", ""),
-            "intake_history": d["intake_history"],
-            "status": d.get("status"),
-            "appointment_id": apt_id,
-            "tcm_pattern": notes.get("tcm_pattern"),
-            "treatment_principles": notes.get("treatment_principles"),
-            "diagnosis_certainty": notes.get("diagnosis_certainty"),
-            "used_points": notes.get("used_points", []),
-            "completed_at": notes.get("completed_at"),
-            "followup_rating": notes.get("followup_rating"),
-            "followup_conversation": notes.get("followup_conversation"),
-            "manual_feedback_rating": notes.get("manual_feedback_rating"),
-            "manual_feedback_notes": notes.get("manual_feedback_notes"),
-        })
+        appointments.append(
+            {
+                "date": d.get("date"),
+                "time": d.get("time"),
+                "summary": d.get("summary", ""),
+                "intake_history": d["intake_history"],
+                "status": d.get("status"),
+                "appointment_id": apt_id,
+                "tcm_pattern": notes.get("tcm_pattern"),
+                "treatment_principles": notes.get("treatment_principles"),
+                "diagnosis_certainty": notes.get("diagnosis_certainty"),
+                "used_points": notes.get("used_points", []),
+                "completed_at": notes.get("completed_at"),
+                "followup_rating": notes.get("followup_rating"),
+                "followup_conversation": notes.get("followup_conversation"),
+                "manual_feedback_rating": notes.get("manual_feedback_rating"),
+                "manual_feedback_notes": notes.get("manual_feedback_notes"),
+            }
+        )
 
     return JSONResponse({"id": patient_id, "name": name, "appointments": appointments})
 

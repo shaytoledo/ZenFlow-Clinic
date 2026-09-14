@@ -15,6 +15,7 @@ Legacy: the old single-rating flow used `zenflow:followup:awaiting:{id}`.
 That key is still checked as a fallback so existing in-flight sessions
 are not silently dropped on a rolling deploy.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -31,7 +32,7 @@ POLL_INTERVAL_SECONDS = 1800
 WINDOW_HOURS_MIN = 22
 WINDOW_HOURS_MAX = 26
 SENT_TTL_SECONDS = 7 * 86400
-CONV_TTL_SECONDS = 48 * 3600   # patient has 48h to finish the conversation
+CONV_TTL_SECONDS = 48 * 3600  # patient has 48h to finish the conversation
 
 # ── Message templates ────────────────────────────────────────────────────────
 
@@ -61,8 +62,11 @@ _TEMPLATES = {
             "Take good care of yourself. See you soon! 🌿"
         ),
         "improvement_labels": {
-            1: "Much worse", 2: "Slightly worse", 3: "About the same",
-            4: "Noticeably better", 5: "Much better",
+            1: "Much worse",
+            2: "Slightly worse",
+            3: "About the same",
+            4: "Noticeably better",
+            5: "Much better",
         },
         "err_pain": "Please reply with a number between *1* and *10*. 🙏",
         "err_improvement": "Please reply with a number between *1* and *5*. 🙏",
@@ -92,8 +96,11 @@ _TEMPLATES = {
             "תשמור/י על עצמך. להתראות! 🌿"
         ),
         "improvement_labels": {
-            1: "הורע מאוד", 2: "הורע מעט", 3: "ללא שינוי",
-            4: "השתפר בניכר", 5: "השתפר מאוד",
+            1: "הורע מאוד",
+            2: "הורע מעט",
+            3: "ללא שינוי",
+            4: "השתפר בניכר",
+            5: "השתפר מאוד",
         },
         "err_pain": "אנא ענה/י במספר בין *1* ל־*10*. 🙏",
         "err_improvement": "אנא ענה/י במספר בין *1* ל־*5*. 🙏",
@@ -101,9 +108,9 @@ _TEMPLATES = {
 }
 
 # Keep legacy module-level names pointing to English for any outside callers
-FOLLOWUP_STEP1    = _TEMPLATES["en"]["step1"]
-FOLLOWUP_STEP2    = _TEMPLATES["en"]["step2"]
-FOLLOWUP_STEP3    = _TEMPLATES["en"]["step3"]
+FOLLOWUP_STEP1 = _TEMPLATES["en"]["step1"]
+FOLLOWUP_STEP2 = _TEMPLATES["en"]["step2"]
+FOLLOWUP_STEP3 = _TEMPLATES["en"]["step3"]
 FOLLOWUP_COMPLETE = _TEMPLATES["en"]["complete"]
 IMPROVEMENT_LABELS = _TEMPLATES["en"]["improvement_labels"]
 
@@ -112,9 +119,12 @@ def _get_therapist_lang(therapist_id: str) -> str:
     """Return the stored language preference for a therapist ('en' or 'he')."""
     try:
         from bot.db import get_db
-        row = get_db().execute(
-            "SELECT language FROM therapists WHERE id=?", (therapist_id,)
-        ).fetchone()
+
+        row = (
+            get_db()
+            .execute("SELECT language FROM therapists WHERE id=?", (therapist_id,))
+            .fetchone()
+        )
         return (dict(row).get("language") if row else None) or "en"
     except Exception:
         return "en"
@@ -127,20 +137,25 @@ def _tmpl(therapist_id: str) -> dict:
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
 
+
 def _find_due_followups() -> list[dict]:
     now = datetime.now(timezone.utc)
     cutoff_max = (now - timedelta(hours=WINDOW_HOURS_MIN)).isoformat()
     cutoff_min = (now - timedelta(hours=WINDOW_HOURS_MAX)).isoformat()
-    rows = get_db().execute(
-        "SELECT t.appointment_id, t.patient_id, a.patient_name, a.therapist_id "
-        "FROM treatment_notes t "
-        "JOIN appointments a ON a.id = t.appointment_id "
-        "WHERE t.completed_at IS NOT NULL "
-        "  AND t.completed_at >= ? AND t.completed_at <= ? "
-        "  AND (t.followup_rating IS NULL OR t.followup_rating = 0)"
-        "  AND t.followup_conversation IS NULL",
-        (cutoff_min, cutoff_max),
-    ).fetchall()
+    rows = (
+        get_db()
+        .execute(
+            "SELECT t.appointment_id, t.patient_id, a.patient_name, a.therapist_id "
+            "FROM treatment_notes t "
+            "JOIN appointments a ON a.id = t.appointment_id "
+            "WHERE t.completed_at IS NOT NULL "
+            "  AND t.completed_at >= ? AND t.completed_at <= ? "
+            "  AND (t.followup_rating IS NULL OR t.followup_rating = 0)"
+            "  AND t.followup_conversation IS NULL",
+            (cutoff_min, cutoff_max),
+        )
+        .fetchall()
+    )
     return [dict(r) for r in rows]
 
 
@@ -153,6 +168,7 @@ def _stamp_sent(appointment_id: int) -> None:
 
 
 # ── Redis keys ────────────────────────────────────────────────────────────────
+
 
 def _sent_key(appointment_id: int) -> str:
     return f"zenflow:followup:sent:{appointment_id}"
@@ -179,6 +195,7 @@ async def _mark_sent(appointment_id: int, patient_id: int) -> None:
 
 # ── Conversation state ────────────────────────────────────────────────────────
 
+
 async def _get_conv_state(patient_id: int) -> dict | None:
     r = get_async_redis()
     raw = await r.get(_conv_key(patient_id))
@@ -203,12 +220,14 @@ async def _clear_conv_state(patient_id: int) -> None:
 
 # ── Sender ────────────────────────────────────────────────────────────────────
 
+
 async def _send_followup(appt: dict) -> None:
     appt_id = int(appt["appointment_id"])
     if await _already_sent(appt_id):
         return
 
     from bot.interfaces import get_default_channel
+
     channel = get_default_channel()
     first_name = (appt.get("patient_name") or "there").split()[0]
     tmpl = _tmpl(appt.get("therapist_id", ""))
@@ -245,6 +264,7 @@ async def _send_followup(appt: dict) -> None:
 
 # ── Pending recommendations dispatcher ───────────────────────────────────────
 
+
 async def _dispatch_pending_recommendations() -> None:
     """Send any queued lifestyle recommendations whose send_at time has passed.
 
@@ -256,12 +276,14 @@ async def _dispatch_pending_recommendations() -> None:
     Each outcome creates a notification for the therapist.
     """
     from datetime import datetime, timezone
+
     now_iso = datetime.now(timezone.utc).isoformat()
     try:
         from web.repositories.treatment_repo import (
             list_due_pending_recommendations,
             clear_pending_recommendations,
         )
+
         due = await asyncio.to_thread(list_due_pending_recommendations, now_iso)
     except Exception as e:
         logger.error(f"list_due_pending_recommendations failed: {e}")
@@ -273,22 +295,22 @@ async def _dispatch_pending_recommendations() -> None:
     from web.services import notification_service
 
     for row in due:
-        apt_id      = row["appointment_id"]
-        pat_id      = row["patient_id"]
-        items       = row["pending_recommendations"]
-        source      = row.get("source", "telegram")
+        apt_id = row["appointment_id"]
+        pat_id = row["patient_id"]
+        items = row["pending_recommendations"]
+        source = row.get("source", "telegram")
         therapist_id = row.get("therapist_id", "") or ""
         patient_name = row.get("patient_name", "Patient") or "Patient"
-        is_manual   = (source == "manual") or (pat_id < 0)
+        is_manual = (source == "manual") or (pat_id < 0)
 
         # Look up email for manual patients
         patient_email = ""
         if is_manual:
             try:
                 row2 = await asyncio.to_thread(
-                    lambda: get_db().execute(
-                        "SELECT patient_email FROM appointments WHERE id=?", (apt_id,)
-                    ).fetchone()
+                    lambda: get_db()
+                    .execute("SELECT patient_email FROM appointments WHERE id=?", (apt_id,))
+                    .fetchone()
                 )
                 patient_email = (dict(row2).get("patient_email") if row2 else "") or ""
             except Exception:
@@ -298,6 +320,7 @@ async def _dispatch_pending_recommendations() -> None:
             if is_manual and patient_email:
                 # SMTP fallback
                 from web.services.email_service import send_email, EmailNotConfigured
+
                 lines = [
                     f"Hi {patient_name.split()[0] if patient_name else 'there'},",
                     "",
@@ -305,10 +328,15 @@ async def _dispatch_pending_recommendations() -> None:
                     "",
                 ]
                 for item in items:
-                    cat  = item.get("category", "")
+                    cat = item.get("category", "")
                     text = item.get("text", "")
                     lines.append(f"• {cat}: {text}")
-                lines += ["", "Take care, and see you at your next session.", "", "— ZenFlow Clinic"]
+                lines += [
+                    "",
+                    "Take care, and see you at your next session.",
+                    "",
+                    "— ZenFlow Clinic",
+                ]
                 body_text = "\n".join(lines)
                 try:
                     await asyncio.to_thread(
@@ -319,13 +347,21 @@ async def _dispatch_pending_recommendations() -> None:
                     )
                     await asyncio.to_thread(
                         notification_service.alert_recommendations_sent,
-                        therapist_id, apt_id, pat_id, patient_name, "email", patient_email,
+                        therapist_id,
+                        apt_id,
+                        pat_id,
+                        patient_name,
+                        "email",
+                        patient_email,
                     )
                     logger.info(f"pending recommendations EMAILED: appt={apt_id} → {patient_email}")
                 except EmailNotConfigured:
                     await asyncio.to_thread(
                         notification_service.alert_send_failed,
-                        therapist_id, apt_id, pat_id, patient_name,
+                        therapist_id,
+                        apt_id,
+                        pat_id,
+                        patient_name,
                         "SMTP not configured — set SMTP_* env vars to enable email fallback.",
                     )
                     # Don't clear queue — let the therapist fix SMTP and retry on next pass
@@ -335,18 +371,30 @@ async def _dispatch_pending_recommendations() -> None:
                 # Persistent alert — no contact info
                 await asyncio.to_thread(
                     notification_service.alert_missing_contact,
-                    therapist_id, apt_id, pat_id, patient_name,
+                    therapist_id,
+                    apt_id,
+                    pat_id,
+                    patient_name,
                 )
-                logger.info(f"pending recs for manual patient (appt={apt_id}) — no email/Telegram, alert raised")
+                logger.info(
+                    f"pending recs for manual patient (appt={apt_id}) — no email/Telegram, alert raised"
+                )
 
             else:
                 # Telegram patient
                 from bot.interfaces import get_default_channel
+
                 channel = get_default_channel()
-                icon_map = {"Diet": "🥗", "Sleep": "🌙", "Exercise": "🏃", "Movement": "🚶", "Stress": "🧘"}
+                icon_map = {
+                    "Diet": "🥗",
+                    "Sleep": "🌙",
+                    "Exercise": "🏃",
+                    "Movement": "🚶",
+                    "Stress": "🧘",
+                }
                 lines = ["*Your post-treatment lifestyle recommendations from ZenFlow Clinic:*\n"]
                 for item in items:
-                    cat  = item.get("category", "")
+                    cat = item.get("category", "")
                     text = item.get("text", "")
                     icon = item.get("icon") or icon_map.get(cat, "•")
                     lines.append(f"{icon} *{cat}:* {text}")
@@ -355,7 +403,12 @@ async def _dispatch_pending_recommendations() -> None:
                 await channel.send_text(recipient_id=pat_id, text=message)
                 await asyncio.to_thread(
                     notification_service.alert_recommendations_sent,
-                    therapist_id, apt_id, pat_id, patient_name, "telegram", str(pat_id),
+                    therapist_id,
+                    apt_id,
+                    pat_id,
+                    patient_name,
+                    "telegram",
+                    str(pat_id),
                 )
                 logger.info(f"pending recommendations sent: appt={apt_id} patient={pat_id}")
 
@@ -367,7 +420,11 @@ async def _dispatch_pending_recommendations() -> None:
             try:
                 await asyncio.to_thread(
                     notification_service.alert_send_failed,
-                    therapist_id, apt_id, pat_id, patient_name, str(e),
+                    therapist_id,
+                    apt_id,
+                    pat_id,
+                    patient_name,
+                    str(e),
                 )
             except Exception:
                 pass
@@ -375,10 +432,13 @@ async def _dispatch_pending_recommendations() -> None:
 
 # ── Loop ──────────────────────────────────────────────────────────────────────
 
+
 async def _scheduler_loop() -> None:
     logger.info(
         "follow-up scheduler started — poll every %ss, window %sh–%sh",
-        POLL_INTERVAL_SECONDS, WINDOW_HOURS_MIN, WINDOW_HOURS_MAX,
+        POLL_INTERVAL_SECONDS,
+        WINDOW_HOURS_MIN,
+        WINDOW_HOURS_MAX,
     )
     while True:
         try:
@@ -403,6 +463,7 @@ def start_followup_scheduler() -> asyncio.Task:
 
 # ── Conversation handler (called from bot/patient_bot/start.py) ───────────────
 
+
 async def consume_followup_conversation(patient_id: int, text: str) -> tuple[bool, str | None]:
     """Handle an incoming patient message as part of the follow-up conversation.
 
@@ -424,6 +485,7 @@ async def consume_followup_conversation(patient_id: int, text: str) -> tuple[boo
                     if 1 <= n <= 5:
                         apt_id = int(legacy_raw)
                         from bot.db import get_db
+
                         await asyncio.to_thread(
                             lambda: get_db().execute(
                                 "UPDATE treatment_notes SET followup_rating=?, updated_at=datetime('now') WHERE appointment_id=?",
@@ -495,6 +557,7 @@ async def consume_followup_conversation(patient_id: int, text: str) -> tuple[boo
             }
             try:
                 from web.repositories.treatment_repo import save_followup_conversation
+
                 await asyncio.to_thread(save_followup_conversation, apt_id, save_data)
             except Exception as e:
                 logger.error(f"save_followup_conversation failed: {e}")
@@ -502,6 +565,7 @@ async def consume_followup_conversation(patient_id: int, text: str) -> tuple[boo
                 try:
                     if state.get("improvement_rating"):
                         from bot.db import get_db
+
                         await asyncio.to_thread(
                             lambda: get_db().execute(
                                 "UPDATE treatment_notes SET followup_rating=?, updated_at=datetime('now') WHERE appointment_id=?",

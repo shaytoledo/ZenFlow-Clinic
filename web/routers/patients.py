@@ -5,6 +5,7 @@ Dedicated patient EHR pages:
   GET /patients/{patient_id}                          — full patient profile
   GET /patients/{patient_id}/session/{appointment_id} — read-only session archive
 """
+
 import asyncio
 
 from fastapi import APIRouter
@@ -24,6 +25,7 @@ async def patient_profile(request: Request, patient_id: int):
         return RedirectResponse(redirect)
 
     from web.repositories import patient_repo
+
     history = await asyncio.to_thread(patient_repo.get_full_history, patient_id)
     if not history:
         return RedirectResponse("/patients")
@@ -48,6 +50,7 @@ async def session_archive(request: Request, patient_id: int, appointment_id: int
         return RedirectResponse(redirect)
 
     from web.repositories import patient_repo
+
     history = await asyncio.to_thread(patient_repo.get_full_history, patient_id)
     if not history:
         return RedirectResponse("/patients")

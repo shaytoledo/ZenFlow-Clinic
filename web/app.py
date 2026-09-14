@@ -10,6 +10,7 @@ Architecture:
   web/deps.py     — shared session helpers and data helpers (backward compat)
   web/app.py      — FastAPI app factory: middleware + router registration
 """
+
 from pathlib import Path
 
 from fastapi import FastAPI, Request

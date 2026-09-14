@@ -18,6 +18,7 @@ python-telegram-bot owns its event loop. To swap chat platforms entirely you
 also need a parallel `whatsapp_bot/` driver — but the OUTBOUND helpers
 (notifications, recommendations, follow-ups) work without that change.
 """
+
 from .channel import MessagingChannel, OutboundMessage
 from .telegram_channel import TelegramChannel
 from .factory import get_default_channel

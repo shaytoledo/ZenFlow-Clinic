@@ -3,6 +3,7 @@ web/routers/api/availability.py
 ──────────────────────────────────
 Calendar and availability slot endpoints.
 """
+
 import asyncio
 import logging
 
@@ -21,7 +22,6 @@ from web.services.cache_service import (
     set_events_cached,
 )
 
-
 SESSION_DURATION_MIN = 60
 
 
@@ -35,8 +35,9 @@ def _appointments_as_fc_events(tid: str, start: str, end: str) -> list[dict]:
     so the schedule never shows the same booking twice.
     """
     from datetime import datetime, timedelta
+
     start_d = (start or "")[:10] or "1970-01-01"
-    end_d   = (end   or "")[:10] or "2999-12-31"
+    end_d = (end or "")[:10] or "2999-12-31"
     rows = appointment_repo.list_in_date_range(tid, start_d, end_d)
     out = []
     for a in rows:
@@ -50,26 +51,29 @@ def _appointments_as_fc_events(tid: str, start: str, end: str) -> list[dict]:
             continue
         date_slug = a["date"]
         time_slug = a["time"].replace(":", "-")
-        out.append({
-            "id":    f"appt-{a['id']}",
-            "title": f"🌿 ZenFlow — {a['patient_name']}",
-            "start": s.isoformat(),
-            "end":   e.isoformat(),
-            # Match the muted earth-tone of regular GCal events so manual
-            # bookings don't stand out in a different colour.
-            "backgroundColor": "#A8907E",
-            "borderColor":     "#8B6F5C",
-            "textColor":       "#FFFFFF",
-            "url":             f"/treatment/{a['patient_id']}/{date_slug}/{time_slug}",
-            "extendedProps": {
-                "type":         "appointment",
-                "appointment_id": a["id"],
-                "patient_id":   a["patient_id"],
-                "patient_name": a["patient_name"],
-                "source":       a.get("source") or "telegram",
-            },
-        })
+        out.append(
+            {
+                "id": f"appt-{a['id']}",
+                "title": f"🌿 ZenFlow — {a['patient_name']}",
+                "start": s.isoformat(),
+                "end": e.isoformat(),
+                # Match the muted earth-tone of regular GCal events so manual
+                # bookings don't stand out in a different colour.
+                "backgroundColor": "#A8907E",
+                "borderColor": "#8B6F5C",
+                "textColor": "#FFFFFF",
+                "url": f"/treatment/{a['patient_id']}/{date_slug}/{time_slug}",
+                "extendedProps": {
+                    "type": "appointment",
+                    "appointment_id": a["id"],
+                    "patient_id": a["patient_id"],
+                    "patient_name": a["patient_name"],
+                    "source": a.get("source") or "telegram",
+                },
+            }
+        )
     return out
+
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
@@ -109,6 +113,7 @@ async def get_free_slots(request: Request, weeks: int = 4):
         get_available_days,
         get_available_hours,
     )
+
     out: dict[str, list[str]] = {}
     try:
         for w in range(max(1, min(weeks, 12))):
@@ -172,7 +177,9 @@ async def get_events(request: Request, start: str, end: str):
 async def create_slot(request: Request, slot: SlotIn):
     tid = _get_session_therapist_id(request)
     if not is_authenticated(tid):
-        fc_event = await asyncio.to_thread(availability_service.add_local, tid, slot.start, slot.end)
+        fc_event = await asyncio.to_thread(
+            availability_service.add_local, tid, slot.start, slot.end
+        )
         return JSONResponse(fc_event)
     try:
         client = await asyncio.to_thread(GCalClient.load, tid)
@@ -181,6 +188,7 @@ async def create_slot(request: Request, slot: SlotIn):
         # Invalidate all cache keys for this therapist (rolling + legacy per-range)
         try:
             from bot.redis_client import get_async_redis
+
             r = get_async_redis()
             keys = [k async for k in r.scan_iter(f"zenflow:gcal:*:{tid}*")]
             if keys:
@@ -207,6 +215,7 @@ async def delete_slot(request: Request, event_id: str, calendarId: str = "local"
         # Invalidate cache so next /api/events fetch is fresh
         try:
             from bot.redis_client import get_async_redis
+
             r = get_async_redis()
             keys = [k async for k in r.scan_iter(f"zenflow:gcal:*:{tid}*")]
             if keys:

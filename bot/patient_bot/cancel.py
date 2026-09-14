@@ -28,16 +28,20 @@ async def show_appointments(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if not appointments:
         await query.edit_message_text(
             t("bot_no_appointments", lang),
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("bot_back", lang), callback_data="back_main")]]),
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton(t("bot_back", lang), callback_data="back_main")]]
+            ),
         )
         return CANCEL_SELECT
 
     context.user_data["apts_to_cancel"] = appointments
     keyboard = [
-        [InlineKeyboardButton(
-            f"{date.fromisoformat(apt['date']).strftime('%A, %d %b')} at {apt['time']}",
-            callback_data=f"cancel_apt_{i}",
-        )]
+        [
+            InlineKeyboardButton(
+                f"{date.fromisoformat(apt['date']).strftime('%A, %d %b')} at {apt['time']}",
+                callback_data=f"cancel_apt_{i}",
+            )
+        ]
         for i, apt in enumerate(appointments)
     ]
     keyboard.append([InlineKeyboardButton(t("bot_back", lang), callback_data="back_main")])

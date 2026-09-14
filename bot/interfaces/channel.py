@@ -3,6 +3,7 @@ bot/interfaces/channel.py
 ──────────────────────────
 The `MessagingChannel` abstract base class — every chat backend implements it.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -18,7 +19,8 @@ class OutboundMessage:
     SMS sender id) belong in `extra` so they round-trip without polluting
     the shared interface.
     """
-    recipient_id: str          # Telegram user id, WhatsApp phone, etc. (str for portability)
+
+    recipient_id: str  # Telegram user id, WhatsApp phone, etc. (str for portability)
     text: str
     reply_to_message_id: str | None = None
     extra: dict | None = None
@@ -47,8 +49,10 @@ class MessagingChannel(ABC):
         reply_to_message_id: str | int | None = None,
     ) -> dict:
         """Convenience wrapper — most callers don't need the dataclass."""
-        return await self.send(OutboundMessage(
-            recipient_id=str(recipient_id),
-            text=text,
-            reply_to_message_id=str(reply_to_message_id) if reply_to_message_id else None,
-        ))
+        return await self.send(
+            OutboundMessage(
+                recipient_id=str(recipient_id),
+                text=text,
+                reply_to_message_id=str(reply_to_message_id) if reply_to_message_id else None,
+            )
+        )

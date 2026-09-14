@@ -11,6 +11,7 @@ Key schema (mirroring docs/DATA_LAYER.md):
                                           requests that fall outside the rolling window.
   zenflow:apts:all                     — 30-s TTL  — All appointments list.
 """
+
 import asyncio
 import json
 import logging
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 ROLLING_DAYS = 14
 ROLLING_TTL = 600  # 10 minutes
+
 
 def _rolling_key(therapist_id: str) -> str:
     return f"zenflow:gcal:rolling14d:{therapist_id}"
@@ -79,6 +81,7 @@ async def get_events_cached(
     """
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
 
         sd = _parse_iso(start)
@@ -87,8 +90,14 @@ async def get_events_cached(
         rolling_end = _parse_iso(_rolling_window()[1])
 
         # Inside the rolling window? Use the shared blob.
-        if sd and ed and rolling_start and rolling_end and \
-                sd >= rolling_start and ed <= rolling_end:
+        if (
+            sd
+            and ed
+            and rolling_start
+            and rolling_end
+            and sd >= rolling_start
+            and ed <= rolling_end
+        ):
             raw = await r.get(_rolling_key(therapist_id))
             if raw:
                 return _filter_events(json.loads(raw), start, end)
@@ -112,6 +121,7 @@ async def set_events_cached(
     """Write events to the appropriate cache slot for the requested range."""
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
 
         sd = _parse_iso(start)
@@ -120,8 +130,14 @@ async def set_events_cached(
         rolling_end = _parse_iso(_rolling_window()[1])
 
         # Inside rolling window: store as the rolling blob (so future sub-windows hit)
-        if sd and ed and rolling_start and rolling_end and \
-                sd >= rolling_start and ed <= rolling_end:
+        if (
+            sd
+            and ed
+            and rolling_start
+            and rolling_end
+            and sd >= rolling_start
+            and ed <= rolling_end
+        ):
             # Only widen the cached range — never shrink it
             await r.set(
                 _rolling_key(therapist_id),
@@ -144,10 +160,12 @@ async def prefetch_calendar(therapist_id: str) -> None:
     request inside the window hits the cache.
     """
     from web.gcal import GCalClient, is_authenticated
+
     if not is_authenticated(therapist_id):
         return
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         if await r.exists(_rolling_key(therapist_id)):
             return  # already warm
@@ -169,6 +187,7 @@ async def purge_calendar(therapist_id: str) -> None:
     """Delete all Google Calendar cache keys for a therapist (called on logout)."""
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         keys = [k async for k in r.scan_iter(f"zenflow:gcal:*:{therapist_id}*")]
         # Also catch the rolling key
@@ -189,6 +208,7 @@ async def invalidate_appointments() -> None:
     """Clear the appointments list cache so next read is fresh."""
     try:
         from bot.redis_client import get_async_redis
+
         await get_async_redis().delete("zenflow:apts:all")
     except Exception:
         pass
@@ -198,6 +218,7 @@ async def get_relay_count() -> int:
     """Return the number of patients currently in an active relay session."""
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         keys = await r.keys("zenflow:relay:active:*")
         return len(keys)
