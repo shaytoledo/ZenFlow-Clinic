@@ -11,7 +11,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 ## Phase 0 — Foundations
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 0.1 | Repo hygiene (untrack `*.rdb`, secret sweep) | [~] | 2026-09-14 | (see below) | Untracked `*.rdb` + `.claude/settings.local.json`; sweep found 3 leaked bot tokens → `docs/SECURITY_FINDINGS.md` SF-001..004. Blocked on: token revocation + history-rewrite decision |
+| 0.1 | Repo hygiene (untrack `*.rdb`, secret sweep) | [~] | 2026-09-14 | a33437c | Untracked `*.rdb` + `.claude/settings.local.json`; sweep found 3 leaked bot tokens → `docs/SECURITY_FINDINGS.md` SF-001..004. Blocked on: token revocation + history-rewrite decision |
 | 0.2 | pyproject, black, ruff, mypy, pre-commit, Makefile | [ ] | | | |
 | 0.3 | `tests/` harness + conftest fixtures + 10 smoke tests | [ ] | | | |
 | 0.4 | `zenflow/settings.py` + feature-flag registry | [ ] | | | |
@@ -22,7 +22,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 |---|---|---|---|---|---|
 | F6 | Multi-tenant IDOR — `require_appointment_access` on all routes | [ ] | | | **highest severity** |
 | F7 | SESSION_SECRET fail-fast + separate TOKEN_ENCRYPTION_KEY | [ ] | | | |
-| F8 | Committed Redis snapshots — untrack + content review | [~] | 2026-09-14 | (see 0.1) | Untracked + reviewed (SF-003: test data, no tokens). History rewrite pending |
+| F8 | Committed Redis snapshots — untrack + content review | [~] | 2026-09-14 | a33437c | Untracked + reviewed (SF-003: test data, no tokens). History rewrite pending |
 | F11 | `/api/status` requires auth; add public `/healthz` | [ ] | | | |
 | — | Session cookie flags (https_only / same_site / max_age) | [ ] | | | |
 
