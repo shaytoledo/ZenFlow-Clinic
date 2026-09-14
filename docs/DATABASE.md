@@ -285,3 +285,13 @@ sqlite3 data/zenflow.db "PRAGMA wal_checkpoint(TRUNCATE);"
 ```
 
 > **Warning:** Do not open `data/zenflow.db` in PyCharm's Database plugin while the app is running. PyCharm holds the `.db-shm` file open, which can block writes and cause `SQLITE_LOCKED` errors.
+
+---
+
+## Database file location (Phase 0.3)
+
+`bot/db.py::db_path()` resolves the SQLite file from the `ZENFLOW_DB_PATH` environment variable,
+falling back to `data/zenflow.db`. It is read on every `get_db()` call, and a thread whose cached
+connection points at a different file reconnects — this is what lets the test harness give every
+test a fresh database even though `bot/config.py` opens the DB at import time. `close_db()` closes
+the current thread's connection. Tests assert they never touch the real file.

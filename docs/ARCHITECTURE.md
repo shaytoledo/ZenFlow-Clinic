@@ -261,6 +261,7 @@ app refuse to start with a non-local `http://` URL when `ENV != dev`.
 | Variable | Default | Purpose |
 |---|---|---|
 | `ENV` | `dev` | `dev` / `staging` / `prod` — controls fail-fast checks and cookie flags |
+| `ZENFLOW_DB_PATH` | `data/zenflow.db` | SQLite file location. The test harness points it at a temp file per test; never set it to the real file in tests |
 | `TELEGRAM_TOKEN` | — | Patient bot token (@BotFather) |
 | `THERAPIST_BOT_TOKEN` | — | Therapist bot token (separate bot) |
 | `OLLAMA_MODEL` | `gemma3:latest` | Local LLM model |

@@ -328,3 +328,36 @@ fails if `.env.example` or the lockfiles contain a non-local `http://`.
 
 **Reasons:** the system carries medical records, OAuth tokens and bot tokens; an OAuth redirect or a
 Redis connection over plain HTTP exposes them on the wire.
+
+---
+
+## ADR-15: Test Harness Design — Path-Injectable SQLite, In-Process Fakes
+
+**Date:** 2026-09-14 (Phase 0.3)
+
+**Problem:** `bot/config.py` reads every env var and calls `init_db()` at import time, and
+`bot/db.py` hard-coded `data/zenflow.db`. Any test that imported project code would have written to
+the production database.
+
+**Decision:**
+- `bot/db.py` resolves the file from `ZENFLOW_DB_PATH` on every `get_db()` call and reconnects a
+  thread whose cached connection points elsewhere. This is the smallest change that makes the DB
+  injectable without restructuring `bot/config.py` (Phase 0.4 does that).
+- `tests/conftest.py` sets the whole environment at module top, before any project import, and
+  asserts the resolved path is never the real file.
+- Redis is `fakeredis` (one `FakeServer` shared by the sync and async clients) patched into the
+  `bot.redis_client` singletons — no Redis process in CI.
+- The web app is exercised through `httpx.ASGITransport`; the authenticated client signs in through
+  the real `/register/signin` form so the session cookie path is covered, not bypassed.
+- Telegram and the LLM are replaced at the narrowest seam: `telegram_service._send` and the three
+  module-level chat models in `ai_intake` (plus an in-memory chat history), so the parsing and
+  fallback logic around them still runs.
+- Factories write through the repositories, not raw SQL, so schema drift surfaces in the factories.
+
+**Alternatives considered:** a `create_app()` factory with dependency injection (right long-term,
+too invasive for Phase 0); an in-memory `:memory:` SQLite (breaks the thread-local / WAL model the
+app relies on); a real Redis container (slower, and fakeredis covers every command used).
+
+**Consequences:** importing `ai_intake` still performs a 3-second-timeout Ollama health probe at
+import time (pointed at a closed port in tests, so it fails instantly). Phase 0.4 removes
+import-time side effects altogether.

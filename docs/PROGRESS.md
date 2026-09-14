@@ -13,17 +13,17 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 |---|---|---|---|---|---|
 | 0.1 | Repo hygiene (untrack `*.rdb`, secret sweep) | [x] | 2026-09-14 | 941e8c9 | Untracked `*.rdb` + `.claude/settings.local.json`; secret sweep → `docs/SECURITY_FINDINGS.md` SF-001..004; history rewritten with git-filter-repo + force-pushed; orphan `main` deleted. Tokens kept by owner decision |
 | 0.2 | pyproject, black, ruff, mypy, pre-commit, Makefile | [x] | 2026-09-14 | 3a43bc2 | + black 4abcc89, strict-island types a428572, ruff fixes e3c02fb/6033fb9. Baselines: ruff ignore list, mypy 38 modules ignored, coverage 0% (fail_under=0), bandit 5 medium / 51 low. ADR-13/14. HTTPS rule added to plan 0.4 (owner request) |
-| 0.3 | `tests/` harness + conftest fixtures + 10 smoke tests | [ ] | | | |
+| 0.3 | `tests/` harness + conftest fixtures + 10 smoke tests | [x] | 2026-09-14 | a8a2a09 | conftest: per-test SQLite (`ZENFLOW_DB_PATH`), fakeredis, ASGI client + real sign-in, freezegun, fake Telegram, fake LLM, 5 factories. Smoke test found **SF-005**: 13 API routes open without a session (strict xfail until 0.5) |
 | 0.4 | `zenflow/settings.py` + feature-flag registry | [ ] | | | |
 | 0.5 | Structured logging + redaction + request-id | [ ] | | | |
 
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| F6 | Multi-tenant IDOR — `require_appointment_access` on all routes | [ ] | | | **highest severity** |
+| F6 | Multi-tenant IDOR — `require_appointment_access` on all routes | [ ] | | | **highest severity** — also close SF-005 (13 routes need *any* auth first; strict xfails in `test_smoke_web.py`) |
 | F7 | SESSION_SECRET fail-fast + separate TOKEN_ENCRYPTION_KEY | [ ] | | | |
 | F8 | Committed Redis snapshots — untrack + content review | [x] | 2026-09-14 | 941e8c9 | Untracked, reviewed (SF-003: fake test data, no tokens — confirmed by owner), purged from history |
-| F11 | `/api/status` requires auth; add public `/healthz` | [ ] | | | |
+| F11 | `/api/status` requires auth; add public `/healthz` | [ ] | | | also `/api/smtp-status` |
 | — | Session cookie flags (https_only / same_site / max_age) | [ ] | | | |
 
 ## Phase 1 — Time, jobs & durable scheduling
@@ -106,6 +106,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 | 9.8 | LLM prompt-injection defences | [ ] | | | real attack surface |
 | 9.9 | Data protection, retention, export/delete | [ ] | | | |
 | 9.10 | Supply-chain scanning in CI | [ ] | | | |
+| 9.11 | Data in transit: HTTPS/TLS everywhere, cert verification, Redis TLS, no secrets in URLs | [ ] | | | owner requirement 2026-09-14 (ADR-14) |
 
 ## Phase 10 — Offensive testing
 | # | Task | Status | Date | Commit | Notes |

@@ -826,6 +826,24 @@ Tests: every mutating endpoint produces exactly one audit row with the right act
 9.10 Supply chain & CI
     pip-audit + safety (deps), bandit + semgrep (code), gitleaks (secrets), trivy (images),
     Dependabot/renovate. All wired into pre-commit and CI, failing the build on HIGH.
+
+9.11 Data in transit — everything that crosses the Internet or a machine boundary (owner
+     requirement, ADR-14)
+    - HTTPS only for the dashboard, the OAuth callbacks and every future webhook; TLS 1.2+;
+      HSTS (9.4); HTTP→HTTPS redirect; certificates from ACM / Let's Encrypt with auto-renewal.
+    - Every outbound call — Telegram Bot API, Google Calendar/Gmail, Anthropic, Ollama when
+      remote — over https:// with certificate verification ON (grep-test: no `verify=False`,
+      no `ssl.CERT_NONE`, no plain http:// to a non-local host; a ruff/bandit rule + a test).
+    - Redis over TLS with AUTH (`rediss://`) whenever it is not on localhost; the relay history
+      and LLM history it holds are clinical data.
+    - Bot ⇄ web ⇄ worker traffic (SQLite file, Redis, the future booking API) stays on a
+      private network or TLS; the internal booking API (7.3) authenticates machine clients.
+    - Patient ⇄ therapist messages travel over Telegram's TLS to Telegram's servers; document
+      that the Bot API is NOT end-to-end encrypted and what that means for consent (Q5).
+      Never place message content, tokens or identifiers in URLs, query strings or logs.
+    - Backups and exports encrypted before they leave the host (9.9).
+    Tests: an outbound-URL inventory test that fails on any non-https non-local URL; a Redis
+    URL validator test; a CSP/HSTS header test; a log-redaction test for message bodies.
 ```
 
 ---

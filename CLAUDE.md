@@ -143,6 +143,13 @@ Any message / /start → SELECTING (main menu)
 - Both bots run concurrently in the same process via `asyncio.run(_run(patient_app, therapist_app))`
 - Routing key: Redis `zenflow:relay:msg:{msg_id}` stores `{patient_id, therapist_id}`
 
+## Tests (Phase 0.3)
+- `tests/conftest.py` pins the environment *before* any project import (`bot/config.py` opens the DB at import time).
+- Every test gets a fresh SQLite file via `ZENFLOW_DB_PATH`; fakeredis is patched into `bot.redis_client`; never touch `data/zenflow.db` or a real Redis.
+- Fixtures: `client`, `authenticated_client` (signs in through the real form), `frozen_clock`, `fake_telegram`, `fake_llm`, `make_therapist/patient/appointment/treatment_notes/completed_session`.
+- `tests/unit` (no I/O), `tests/integration` (ASGI client + SQLite + fakes), `tests/security` (attack scenarios), `tests/e2e`. Markers: `slow`, `integration`, `e2e`, `security`.
+- Known-open API routes are *strict* xfails in `tests/integration/test_smoke_web.py` — delete the entry when you fix the route.
+
 ## Key conventions
 - All Telegram handlers are `async def (update, context) -> int` returning the next state constant.
 - `context.user_data` holds in-flight booking state (`selected_therapist`, `selected_day`, `selected_time`, `intake_count`). Cleared on completion, skip, or cancellation.
@@ -188,6 +195,7 @@ Any message / /start → SELECTING (main menu)
 - Live relay chat visible and sendable from web messages page (`/messages`)
 - System health API (`/api/status`) covering Redis, Ollama, bots, Google Calendar
 - "Change Therapist" button in main menu (appears after therapist is selected)
+- Test harness (`tests/`): per-test SQLite, fakeredis, ASGI client, fake Telegram/LLM, factories; `python tasks.py test`
 
 ## Planned
 - `PicklePersistence` to survive bot restarts without losing in-flight booking state
