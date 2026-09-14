@@ -1,15 +1,38 @@
+# --- secrets & local config (never commit) ---
 .env
+.env.*
+!.env.example
+# Per-developer Claude Code permissions file — has contained bot tokens before
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# --- runtime data (PHI, OAuth tokens, snapshots) ---
 data/
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+# Redis snapshots (relay history, patient messages, one-time codes)
+*.rdb
+dump.rdb
+# Runtime logs may contain Telegram bot tokens — never commit
+logs/*.text
+logs/*.out
+*.log
+
+# --- python ---
 __pycache__/
 *.pyc
 *.pyo
 .venv/
-.idea/
-*.log
-.DS_Store
-dump.rdb
-.claude/scheduled_tasks.lock
 .pytest_cache/
-# Runtime logs may contain Telegram bot tokens — never commit
-logs/*.text
-logs/*.out
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# --- editors / os ---
+.idea/
+.DS_Store
