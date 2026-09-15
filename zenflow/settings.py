@@ -82,6 +82,8 @@ class Settings(BaseSettings):
     # ── runtime ──
     env: Env = "dev"
     zenflow_db_path: str | None = None  # mirrored for documentation; bot/db.py reads it itself
+    log_format: Literal["auto", "console", "json"] = "auto"  # auto = console in dev, json otherwise
+    log_level: str = "INFO"
 
     # ── telegram ──
     telegram_token: str = ""

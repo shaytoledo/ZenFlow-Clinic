@@ -51,32 +51,13 @@ from bot.therapist_bot.main import build_therapist_app
 # ── logging ──────────────────────────────────────────────────────────────────
 
 
-class _SingleLineFormatter(logging.Formatter):
-    """Collapses every log record — including exceptions — to exactly one line."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        if record.exc_info:
-            record.exc_text = repr(record.exc_info[1])
-            record.exc_info = None
-        record.stack_info = None
-        return super().format(record).replace("\n", " | ")
-
-
 def setup_logging() -> None:
-    log_path = Path(__file__).parent.parent / "logs" / "botLogs.text"
-    fmt = _SingleLineFormatter("%(asctime)s [%(levelname)s] %(name)s — %(message)s")
+    """Structured, redacted logging (zenflow.logging). Console in dev, JSON otherwise."""
+    from zenflow import logging as zlog
 
-    file_handler = logging.FileHandler(log_path, encoding="utf-8", mode="w")
-    file_handler.setFormatter(fmt)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(fmt)
-
-    root = logging.getLogger()
-    root.setLevel(logging.INFO)
-    root.handlers.clear()
-    root.addHandler(file_handler)
-    root.addHandler(console_handler)
+    zlog.configure_logging(
+        "bots", file_path=Path(__file__).parent.parent / "logs" / "botLogs.text", file_mode="w"
+    )
 
 
 setup_logging()

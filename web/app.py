@@ -11,11 +11,14 @@ Architecture:
   web/app.py      — FastAPI app factory: middleware + router registration
 """
 
+import logging
+import time
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from bot.config import SESSION_SECRET
@@ -32,9 +35,59 @@ from web.routers.auth import router as auth_router
 # ── Routers────────────────────────────────────────────────────────────────────
 from web.routers.pages import router as pages_router
 from web.routers.patients import router as patients_router
+from zenflow import logging as zlog
 from zenflow.settings import get_settings
 
+_ROOT = Path(__file__).resolve().parent.parent
+zlog.configure_logging("web", file_path=_ROOT / "logs" / "webLogs.text", file_mode="a")
+_access_log = logging.getLogger("web.access")
+
 app = FastAPI(title="ZenFlow Therapist")
+
+_REQUEST_ID_MAX = 64
+
+
+async def request_context_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
+    """Bind request_id (+ therapist_id from the session) for the whole request, echo
+    X-Request-ID, and emit one structured access-log line with duration_ms.
+
+    Registered BEFORE SessionMiddleware so it runs INSIDE it and can read the session.
+    Context set here follows the request into background tasks (contextvars).
+    """
+    supplied = (request.headers.get("x-request-id") or "").strip()
+    rid = (
+        supplied[:_REQUEST_ID_MAX] if supplied and supplied.isprintable() else zlog.new_request_id()
+    )
+    therapist_id = None
+    try:
+        therapist_id = request.session.get("therapist_id")
+    except Exception:  # session middleware absent (should not happen) — never break a request
+        therapist_id = None
+    with zlog.log_context(request_id=rid, therapist_id=therapist_id):
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration = round((time.perf_counter() - start) * 1000, 1)
+        response.headers["X-Request-ID"] = rid
+        if not request.url.path.startswith("/static/"):
+            _access_log.info(
+                "%s %s -> %s",
+                request.method,
+                request.url.path,
+                response.status_code,
+                extra={
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                    "duration_ms": duration,
+                },
+            )
+        return response
+
+
+# Order matters: Starlette wraps later-added middleware OUTSIDE earlier ones. The request-context
+# middleware is added first so SessionMiddleware (added next) is outside it and the session is
+# already decoded when the request id is bound.
+app.add_middleware(BaseHTTPMiddleware, dispatch=request_context_middleware)
 
 
 def session_cookie_kwargs(is_dev: bool) -> dict:

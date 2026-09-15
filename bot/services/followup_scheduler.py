@@ -439,20 +439,27 @@ async def _scheduler_loop() -> None:
         WINDOW_HOURS_MIN,
         WINDOW_HOURS_MAX,
     )
+    from zenflow import logging as zlog
+
     while True:
-        try:
-            due = await asyncio.to_thread(_find_due_followups)
-            if due:
-                logger.info(f"{len(due)} appointment(s) due for 24h follow-up")
-            for appt in due:
-                await _send_followup(appt)
-            # Also dispatch any queued lifestyle recommendations
-            await _dispatch_pending_recommendations()
-        except asyncio.CancelledError:
-            logger.info("follow-up scheduler cancelled")
-            raise
-        except Exception as e:
-            logger.error(f"follow-up scheduler iteration failed: {e}")
+        # One request_id per sweep so every line of this iteration correlates (Phase 0.5).
+        with zlog.log_context(request_id=f"job-{zlog.new_request_id()}"):
+            try:
+                due = await asyncio.to_thread(_find_due_followups)
+                if due:
+                    logger.info(f"{len(due)} appointment(s) due for 24h follow-up")
+                for appt in due:
+                    with zlog.log_context(
+                        appointment_id=appt.get("id"), patient_id=appt.get("patient_id")
+                    ):
+                        await _send_followup(appt)
+                # Also dispatch any queued lifestyle recommendations
+                await _dispatch_pending_recommendations()
+            except asyncio.CancelledError:
+                logger.info("follow-up scheduler cancelled")
+                raise
+            except Exception as e:
+                logger.error(f"follow-up scheduler iteration failed: {e}")
         await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
 
