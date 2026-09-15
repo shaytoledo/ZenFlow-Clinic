@@ -22,11 +22,11 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| F6 | Multi-tenant IDOR — `require_appointment_access` on all routes | [x] | 2026-09-15 | 61835ff | `web/deps.py` authz helpers + tenant filters in repos/services; every appointment/patient/relay/slot path scoped; SF-005/006/007 closed; `tests/security/test_tenant_isolation.py` |
-| F7 | SESSION_SECRET fail-fast + separate TOKEN_ENCRYPTION_KEY | [x] | 2026-09-15 | 7fb2490 | settings + rotation in 0.4; boot refusal verified in a real subprocess (`test_app_refuses_to_boot_with_default_secret_in_prod`). Owner still to set `TOKEN_ENCRYPTION_KEY` on the running install (runbook in ARCHITECTURE.md) |
+| F6 | Multi-tenant IDOR — `require_appointment_access` on all routes | [x] | 2026-09-15 | 61835ff | `web/deps.py` authz helpers + tenant filters in repos/services; every appointment/patient/relay/slot path scoped; SF-005/006/007 closed; `tests/security/test_tenant_isolation.py` — [PR #2](https://github.com/shaytoledo/ZenFlow-Clinic/pull/2) |
+| F7 | SESSION_SECRET fail-fast + separate TOKEN_ENCRYPTION_KEY | [x] | 2026-09-15 | 7fb2490 | settings + rotation in 0.4; boot refusal verified in a real subprocess (`test_app_refuses_to_boot_with_default_secret_in_prod`). Owner still to set `TOKEN_ENCRYPTION_KEY` on the running install (runbook in ARCHITECTURE.md) — [PR #2](https://github.com/shaytoledo/ZenFlow-Clinic/pull/2) |
 | F8 | Committed Redis snapshots — untrack + content review | [x] | 2026-09-14 | 941e8c9 | Untracked, reviewed (SF-003: fake test data, no tokens — confirmed by owner), purged from history — [PR #1](https://github.com/shaytoledo/ZenFlow-Clinic/pull/1) |
-| F11 | `/api/status` requires auth; add public `/healthz` | [x] | 2026-09-15 | 61835ff | router-level auth covers `/api/status` and `/api/smtp-status`; `GET /healthz` → `{"ok": true}` only |
-| — | Session cookie flags (https_only / same_site / max_age) | [x] | 2026-09-15 | 61835ff | `web/app.py::session_cookie_kwargs`: Secure outside dev, SameSite=lax, max_age 30 d, HttpOnly |
+| F11 | `/api/status` requires auth; add public `/healthz` | [x] | 2026-09-15 | 61835ff | router-level auth covers `/api/status` and `/api/smtp-status`; `GET /healthz` → `{"ok": true}` only — [PR #2](https://github.com/shaytoledo/ZenFlow-Clinic/pull/2) |
+| — | Session cookie flags (https_only / same_site / max_age) | [x] | 2026-09-15 | 61835ff | `web/app.py::session_cookie_kwargs`: Secure outside dev, SameSite=lax, max_age 30 d, HttpOnly — [PR #2](https://github.com/shaytoledo/ZenFlow-Clinic/pull/2) |
 
 ## Phase 1 — Time, jobs & durable scheduling
 | # | Task | Status | Date | Commit | Notes |
