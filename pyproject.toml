@@ -48,7 +48,7 @@ known-first-party = ["bot", "web", "startup", "zenflow", "tests"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["bot", "web", "startup", "tests"]
+files = ["bot", "web", "startup", "zenflow", "tests"]
 exclude = ['\.venv/', '\.claude/', 'data/', 'logs/']
 explicit_package_bases = true
 namespace_packages = true
@@ -61,7 +61,7 @@ show_error_codes = true
 check_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = ["bot.interfaces.*", "web.repositories.*"]
+module = ["bot.interfaces.*", "web.repositories.*", "zenflow.*"]
 strict = true
 
 # Tests: pytest fixtures are duck-typed by design; keep them checked but not strict.
@@ -132,13 +132,13 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["bot", "web", "startup"]
+source = ["bot", "web", "startup", "zenflow"]
 branch = true
 omit = ["*/__init__.py"]
 
 [tool.coverage.report]
 # Measured baselines: 0 % after Phase 0.2 (tooling tests only), 30 % after Phase 0.3 (harness +
-# smoke tests). Rule: ratchet +5 per phase; never lower it.
-fail_under = 30
+# smoke tests), 33 % after Phase 0.4. Rule: ratchet +5 per phase; never lower it.
+fail_under = 33
 show_missing = true
 skip_covered = true

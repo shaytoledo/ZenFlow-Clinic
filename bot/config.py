@@ -1,31 +1,36 @@
+"""
+bot/config.py — module-level constants for the bot and web layers.
+
+Since Phase 0.4 every value comes from `zenflow.settings` (the ONE place env vars are read).
+The names below are kept because ~20 modules import them; new code should call
+`zenflow.settings.get_settings()` directly.
+"""
+
 import os
 
-from dotenv import load_dotenv
+from zenflow.settings import get_settings
 
-load_dotenv()
+_s = get_settings()  # raises SettingsError → the process refuses to boot on a bad config
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:latest")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-USE_AI = os.getenv("USE_AI", "ollama")
+ENV = _s.env
+TELEGRAM_TOKEN = _s.telegram_token or None  # legacy: None when unset
+OLLAMA_MODEL = _s.ollama_model
+OLLAMA_HOST = _s.ollama_host
+USE_AI = _s.ai_provider
 
-THERAPIST_BOT_TOKEN = os.getenv("THERAPIST_BOT_TOKEN", "")
+THERAPIST_BOT_TOKEN = _s.therapist_bot_token
 
 _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(_base, "data")
 
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8080/auth/callback")
-GOOGLE_REG_REDIRECT_URI = os.getenv(
-    "GOOGLE_REG_REDIRECT_URI", "http://localhost:8080/register/google/callback"
-)
-GOOGLE_GMAIL_REDIRECT_URI = os.getenv(
-    "GOOGLE_GMAIL_REDIRECT_URI", "http://localhost:8080/auth/gmail/callback"
-)
+GOOGLE_CLIENT_ID = _s.google_client_id
+GOOGLE_CLIENT_SECRET = _s.google_client_secret
+GOOGLE_REDIRECT_URI = _s.google_redirect_uri
+GOOGLE_REG_REDIRECT_URI = _s.google_reg_redirect_uri
+GOOGLE_GMAIL_REDIRECT_URI = _s.google_gmail_redirect_uri
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-SESSION_SECRET = os.getenv("SESSION_SECRET", "changeme-set-in-dotenv")
+REDIS_URL = _s.redis_url
+SESSION_SECRET = _s.session_secret
 
 # Initialize SQLite DB (creates tables, seeds from JSON if empty)
 from bot.db import init_db as _init_db

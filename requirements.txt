@@ -346,6 +346,7 @@ pydantic-core==2.41.5
 pydantic-settings==2.14.0
     # via
     #   -c C:/Users/shayt/AppData/Local/Temp/claude/C--Users-shayt-PycharmProjects-ZenFlow-Clinic--claude-worktrees-master-plan-first-step-41f7c0/7ee3a510-2665-4829-8c93-c2a69196d576/scratchpad/venv-constraints.txt
+    #   -r requirements.in
     #   langchain-community
 pyparsing==3.3.2
     # via

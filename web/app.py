@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from bot.config import SESSION_SECRET
+from web.routers.api.admin import router as admin_router
 from web.routers.api.appointments import router as apts_router
 from web.routers.api.availability import router as avail_router
 from web.routers.api.messages import router as messages_router
@@ -64,3 +65,4 @@ app.include_router(avail_router)
 app.include_router(messages_router)
 app.include_router(system_router)
 app.include_router(notifications_router)
+app.include_router(admin_router)

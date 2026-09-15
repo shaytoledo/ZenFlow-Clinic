@@ -23,8 +23,6 @@ in a single flow.  The scopes are:
     https://www.googleapis.com/auth/gmail.readonly
 """
 
-import base64
-import hashlib
 import json
 import logging
 from datetime import UTC, datetime
@@ -40,8 +38,9 @@ from bot.config import (
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI,
-    SESSION_SECRET,
 )
+from zenflow.settings import get_settings
+from zenflow.token_key import fernet_for
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +68,11 @@ AVAILABILITY_TITLE = "✅ Available"
 
 
 def _fernet() -> Fernet:
-    """Derive a stable Fernet key from SESSION_SECRET (sha-256 → 32 bytes → b64url)."""
-    key = base64.urlsafe_b64encode(hashlib.sha256(SESSION_SECRET.encode("utf-8")).digest())
-    return Fernet(key)
+    """Fernet for stored tokens: TOKEN_ENCRYPTION_KEY, or SESSION_SECRET for pre-0.4 rows.
+
+    Derivation lives in zenflow.token_key; rotate rows with `python -m zenflow.rotate_token_key`.
+    """
+    return fernet_for(get_settings().token_key_material)
 
 
 def _encrypt(plaintext: str) -> str:

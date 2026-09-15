@@ -14,15 +14,15 @@ Speed optimisations applied:
 import asyncio
 import json
 import logging
-import os
 import re
 
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, REDIS_URL
+from zenflow.settings import get_settings
 
-USE_AI = os.getenv("USE_AI", "ollama")
+USE_AI = get_settings().ai_provider
 
 logger = logging.getLogger(__name__)
 
@@ -298,7 +298,7 @@ if USE_AI == "anthropic":
     try:
         from langchain_anthropic import ChatAnthropic
 
-        _ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+        _ANTHROPIC_KEY = get_settings().anthropic_api_key
         _LLM = ChatAnthropic(
             model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=150
         )
