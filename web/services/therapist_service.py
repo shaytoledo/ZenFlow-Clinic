@@ -10,6 +10,8 @@ import logging
 import secrets
 import threading
 
+from zenflow.clock import SQL_NOW
+
 logger = logging.getLogger(__name__)
 
 _web_reg_lock = threading.Lock()
@@ -94,9 +96,10 @@ def register(name: str, email: str, password: str = "", google_id: str = "") -> 
         new_id = f"t{n}"
         password_hash = hash_password(password) if password else None
         conn.execute(
-            """INSERT INTO therapists
-               (id, name, telegram_id, email, password_hash, google_id, calendar_name, active)
-               VALUES (?, ?, 0, ?, ?, ?, 'ZenFlow Availability', 0)""",
+            f"""INSERT INTO therapists
+               (id, name, telegram_id, email, password_hash, google_id, calendar_name, active,
+                created_at)
+               VALUES (?, ?, 0, ?, ?, ?, 'ZenFlow Availability', 0, {SQL_NOW})""",
             (new_id, name, email or None, password_hash, google_id or None),
         )
         conn.commit()

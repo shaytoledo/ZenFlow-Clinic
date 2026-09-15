@@ -3,6 +3,8 @@ import json
 import logging
 from datetime import date
 
+from zenflow.clock import SQL_NOW
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,9 +28,10 @@ def save_appointment(
     conn.execute("BEGIN")
     try:
         cur = conn.execute(
-            """INSERT INTO appointments
-               (patient_id, patient_name, therapist_id, date, time, status, gcal_apt_event_id, summary)
-               VALUES (?, ?, ?, ?, ?, 'active', ?, ?)""",
+            f"""INSERT INTO appointments
+               (patient_id, patient_name, therapist_id, date, time, status, gcal_apt_event_id,
+                summary, created_at)
+               VALUES (?, ?, ?, ?, ?, 'active', ?, ?, {SQL_NOW})""",
             (
                 patient_id,
                 patient_name,
@@ -41,9 +44,9 @@ def save_appointment(
         )
         appointment_id = cur.lastrowid
         conn.execute(
-            """INSERT INTO intake_sessions
-               (appointment_id, patient_id, therapist_id, history_json)
-               VALUES (?, ?, ?, ?)""",
+            f"""INSERT INTO intake_sessions
+               (appointment_id, patient_id, therapist_id, history_json, created_at)
+               VALUES (?, ?, ?, ?, {SQL_NOW})""",
             (
                 appointment_id,
                 patient_id,
@@ -170,8 +173,8 @@ def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> N
            (appointment_id, patient_id, tcm_pattern, treatment_principles,
             diagnosis_certainty, ai_suggested_points, ai_recommendations,
             tongue_observation, pulse_observation, session_notes, used_points,
-            recommendations_sent_at, completed_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
+            recommendations_sent_at, completed_at, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%SZ','now'),strftime('%Y-%m-%dT%H:%M:%SZ','now'))
            ON CONFLICT(appointment_id) DO UPDATE SET
              tcm_pattern=COALESCE(excluded.tcm_pattern, tcm_pattern),
              treatment_principles=COALESCE(excluded.treatment_principles, treatment_principles),
@@ -184,7 +187,7 @@ def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> N
              used_points=COALESCE(excluded.used_points, used_points),
              recommendations_sent_at=COALESCE(excluded.recommendations_sent_at, recommendations_sent_at),
              completed_at=COALESCE(excluded.completed_at, completed_at),
-             updated_at=datetime('now')""",
+             updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')""",
         (
             appointment_id,
             patient_id,

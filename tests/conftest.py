@@ -78,6 +78,15 @@ def db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     dbmod.close_db()
 
 
+@pytest.fixture(autouse=True)
+def _fresh_settings_after_each_test() -> Iterator[None]:
+    """A test that monkeypatches env + reset_settings() must not leak its Settings into the next."""
+    yield
+    from zenflow.settings import reset_settings
+
+    reset_settings()
+
+
 # ── 3. Redis ─────────────────────────────────────────────────────────────────────────────────
 class FakeRedisPair:
     def __init__(self) -> None:

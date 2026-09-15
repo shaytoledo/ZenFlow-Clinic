@@ -7,9 +7,9 @@ Domain logic for appointments. SQL access goes through repositories.
 import asyncio
 import json
 import logging
-from datetime import date
 
 from web.repositories import appointment_repo
+from zenflow import clock
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ async def list_all_cached() -> list[dict]:
 
 
 def list_today() -> list[dict]:
-    today = date.today().isoformat()
+    today = clock.today().isoformat()
     return [a for a in list_all() if a.get("date") == today and a.get("status") == "active"]
 
 

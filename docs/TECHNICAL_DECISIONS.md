@@ -477,3 +477,40 @@ still truncated per start and `logs/webLogs.text` appended, as before. The uvico
 kept; the app adds its own `web.access` line with `request_id`, `therapist_id`, `duration_ms`.
 Redaction is pattern-based — a brand-new secret shape needs a new pattern *and* a test in
 `tests/unit/test_logging.py`.
+
+---
+
+## ADR-19: One Clock — Canonical UTC Strings, Clinic-Local Calendar Dates
+
+**Date:** 2026-09-15 (Phase 1.1, fixes F2)
+
+**Problem:** `completed_at` and `pending_rec_send_at` were written with `datetime.now().isoformat()`
+(host-local, naive), `followup_sent_at` / `created_at` / `updated_at` with SQLite `datetime('now')`
+(UTC, space-separated), and the follow-up window compared them as strings against
+`datetime.now(UTC).isoformat()` (`+00:00`, microseconds). On a UTC+3 host the 22–26 h window was
+really 19–23 h, and the three shapes never sorted consistently.
+
+**Decision:**
+1. `zenflow/clock.py` is the only source of "now". Canonical stored form:
+   `YYYY-MM-DDTHH:MM:SSZ`. `to_iso()` refuses naive datetimes; `parse_iso()` / `normalize()`
+   accept every legacy shape.
+2. SQL stamps use `clock.SQL_NOW` (`strftime('%Y-%m-%dT%H:%M:%SZ','now')`); every INSERT sets
+   `created_at` explicitly so the table DEFAULTs are dead (SQLite cannot alter a DEFAULT without a
+   table rebuild — Phase 12.2.3 Alembic does that).
+3. `CLINIC_TZ` (default `Asia/Jerusalem`) defines "today". `clock.today()` replaces every
+   `date.today()`: the clinic's schedule must not flip at UTC midnight on a cloud host.
+4. Ruff `DTZ` (flake8-datetimez) is enabled repo-wide; the single legitimate naive constructor
+   (`_slot_datetime`, a clinic wall-clock slot) carries a commented `noqa`.
+5. `python -m zenflow.migrate_timestamps` rewrites existing rows (dry-run, backup, idempotent,
+   unparseable rows reported and left alone). Naive Python-written values are interpreted in
+   `--local-tz` (default `CLINIC_TZ`) because the old process ran on the clinic's machine.
+
+**Alternatives considered:** storing epoch integers (compact and comparable, but unreadable in
+`sqlite3` and in logs, and every existing row is text); `+00:00` suffix instead of `Z` (both are
+ISO; `Z` is shorter and is what `strftime` can emit natively); keeping `datetime('now')` and
+normalising on read (leaves SQL-side comparisons broken).
+
+**Consequences:** relay timestamps stay epoch floats (`time.time()`, already UTC). Availability
+slot strings from FullCalendar remain naive wall-clock strings by design. The freezegun quirk that
+`tz_offset` also shifts `datetime.now(UTC)` means tests vary `CLINIC_TZ`, not the host offset;
+host offset cannot influence the code any more by construction.

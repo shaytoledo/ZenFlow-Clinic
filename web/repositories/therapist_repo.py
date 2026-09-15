@@ -10,6 +10,8 @@ import contextlib
 import sqlite3
 from typing import Any
 
+from zenflow.clock import SQL_NOW
+
 
 def _conn() -> sqlite3.Connection:
     from bot.db import get_db
@@ -64,9 +66,10 @@ def get_by_telegram_id(telegram_id: int) -> dict[str, Any] | None:
 def insert(entry: dict[str, Any]) -> str:
     """Insert a new therapist. Returns the assigned id."""
     _conn().execute(
-        """INSERT INTO therapists
-           (id, name, telegram_id, email, password_hash, google_id, calendar_name, active)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        f"""INSERT INTO therapists
+           (id, name, telegram_id, email, password_hash, google_id, calendar_name, active,
+            created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, {SQL_NOW})""",
         (
             entry["id"],
             entry.get("name", ""),

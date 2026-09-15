@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import sqlite3
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -50,16 +48,9 @@ class RotationReport:
 
 
 def _backup_database() -> str:
-    """Consistent copy of the live DB (includes WAL content) next to the file."""
-    src = dbmod.get_db()
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    dest_path = f"{dbmod.db_path()}.bak-{stamp}"
-    dest = sqlite3.connect(dest_path)
-    try:
-        src.backup(dest)
-    finally:
-        dest.close()
-    return dest_path
+    from zenflow.db_backup import backup_database
+
+    return backup_database("bak")
 
 
 def rotate(

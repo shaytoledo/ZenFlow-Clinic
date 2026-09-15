@@ -73,8 +73,8 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
             diagnosis_certainty, ai_suggested_points, ai_recommendations,
             tongue_observation, pulse_observation, session_notes, used_points,
             recommendations_sent_at, completed_at,
-            therapist_diagnosis, therapist_notes, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
+            therapist_diagnosis, therapist_notes, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%SZ','now'),strftime('%Y-%m-%dT%H:%M:%SZ','now'))
            ON CONFLICT(appointment_id) DO UPDATE SET
              tcm_pattern=COALESCE(excluded.tcm_pattern, tcm_pattern),
              treatment_principles=COALESCE(excluded.treatment_principles, treatment_principles),
@@ -89,7 +89,7 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
              completed_at=COALESCE(excluded.completed_at, completed_at),
              therapist_diagnosis=COALESCE(excluded.therapist_diagnosis, therapist_diagnosis),
              therapist_notes=COALESCE(excluded.therapist_notes, therapist_notes),
-             updated_at=datetime('now')""",
+             updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')""",
         (
             appointment_id,
             patient_id,
@@ -117,7 +117,7 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
 def set_points_status(appointment_id: int, status: str) -> None:
     """Update the Stage-2 pipeline status (GENERATING | COMPLETED | FAILED)."""
     _conn().execute(
-        "UPDATE treatment_notes SET points_status=?, updated_at=datetime('now') WHERE appointment_id=?",
+        "UPDATE treatment_notes SET points_status=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
         (status, appointment_id),
     )
 
@@ -143,7 +143,7 @@ def save_points(appointment_id: int, points: list[dict[str, Any]]) -> None:
         try:
             _conn().execute(
                 """UPDATE treatment_notes
-                   SET ai_suggested_points=?, points_status='COMPLETED', updated_at=datetime('now')
+                   SET ai_suggested_points=?, points_status='COMPLETED', updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
                    WHERE appointment_id=?""",
                 (payload, appointment_id),
             )
@@ -191,7 +191,7 @@ def append_points(appointment_id: int, new_points: list[dict[str, Any]]) -> None
             ]
             merged = json.dumps(existing + to_add, ensure_ascii=False)
             _conn().execute(
-                "UPDATE treatment_notes SET ai_suggested_points=?, updated_at=datetime('now') WHERE appointment_id=?",
+                "UPDATE treatment_notes SET ai_suggested_points=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
                 (merged, appointment_id),
             )
             return
@@ -206,7 +206,7 @@ def save_followup_conversation(appointment_id: int, conversation_data: dict[str,
     """Persist the structured follow-up conversation (replaces simple followup_rating)."""
     _conn().execute(
         """UPDATE treatment_notes
-           SET followup_conversation=?, followup_rating=?, followup_sent_at=COALESCE(followup_sent_at, datetime('now')), updated_at=datetime('now')
+           SET followup_conversation=?, followup_rating=?, followup_sent_at=COALESCE(followup_sent_at, strftime('%Y-%m-%dT%H:%M:%SZ','now')), updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
            WHERE appointment_id=?""",
         (
             json.dumps(conversation_data, ensure_ascii=False),
@@ -220,7 +220,7 @@ def save_manual_feedback(appointment_id: int, rating: int | None, notes: str) ->
     """Save therapist-entered patient feedback from the web dashboard."""
     _conn().execute(
         """UPDATE treatment_notes
-           SET manual_feedback_rating=?, manual_feedback_notes=?, updated_at=datetime('now')
+           SET manual_feedback_rating=?, manual_feedback_notes=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
            WHERE appointment_id=?""",
         (rating, notes or None, appointment_id),
     )
@@ -230,7 +230,7 @@ def save_pending_recommendations(appointment_id: int, items: list[Any], send_at_
     """Store lifestyle recommendations to be auto-sent 24h after session completion."""
     _conn().execute(
         """UPDATE treatment_notes
-           SET pending_recommendations=?, pending_rec_send_at=?, updated_at=datetime('now')
+           SET pending_recommendations=?, pending_rec_send_at=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
            WHERE appointment_id=?""",
         (json.dumps(items, ensure_ascii=False), send_at_iso, appointment_id),
     )
@@ -239,7 +239,7 @@ def save_pending_recommendations(appointment_id: int, items: list[Any], send_at_
 def clear_pending_recommendations(appointment_id: int) -> None:
     _conn().execute(
         """UPDATE treatment_notes
-           SET pending_recommendations=NULL, pending_rec_send_at=NULL, updated_at=datetime('now')
+           SET pending_recommendations=NULL, pending_rec_send_at=NULL, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
            WHERE appointment_id=?""",
         (appointment_id,),
     )

@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from web.deps import require_active_therapist
 from web.repositories import appointment_repo
 from web.services import appointment_service
+from zenflow import clock
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
@@ -32,12 +33,11 @@ class ManualAppointmentIn(BaseModel):
 
 @router.get("/appointments/today")
 async def get_today_appointments(request: Request):
-    from datetime import date as _date
 
     therapist = require_active_therapist(request)
     all_apts = await asyncio.to_thread(appointment_repo.list_all)
     all_apts = [a for a in all_apts if a.get("therapist_id") == therapist["id"]]
-    today_str = _date.today().isoformat()
+    today_str = clock.today().isoformat()
 
     today_apts = sorted(
         [a for a in all_apts if a.get("date") == today_str and a.get("status") == "active"],

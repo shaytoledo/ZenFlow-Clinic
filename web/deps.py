@@ -14,10 +14,17 @@ from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
 from bot.config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+from zenflow.clock import SQL_NOW
 
 logger = logging.getLogger(__name__)
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+
+# Stored instants are UTC (ADR-19); templates render them in the clinic's zone.
+from zenflow import clock as _clock  # noqa: E402
+
+templates.env.filters["clinic_date"] = _clock.format_clinic
+templates.env.filters["clinic_datetime"] = lambda v: _clock.format_clinic(v, "%Y-%m-%d %H:%M")
 
 # ── Auth / session helpers ─────────────────────────────────────────────────────
 
@@ -137,9 +144,10 @@ def _register_web_therapist(name: str, email: str, password: str = "", google_id
         new_id = f"t{n}"
         password_hash = _hash_password(password) if password else None
         conn.execute(
-            """INSERT INTO therapists
-               (id, name, telegram_id, email, password_hash, google_id, calendar_name, active)
-               VALUES (?, ?, 0, ?, ?, ?, 'ZenFlow Availability', 0)""",
+            f"""INSERT INTO therapists
+               (id, name, telegram_id, email, password_hash, google_id, calendar_name, active,
+                created_at)
+               VALUES (?, ?, 0, ?, ?, ?, 'ZenFlow Availability', 0, {SQL_NOW})""",
             (new_id, name, email or None, password_hash, google_id or None),
         )
         conn.commit()

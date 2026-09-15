@@ -4,10 +4,10 @@ web/services/treatment_service.py
 Domain logic for treatment notes. SQL access goes through repositories.
 """
 
-import datetime
 import logging
 
 from web.repositories import appointment_repo, treatment_repo
+from zenflow import clock
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def save_notes(appointment_id: int, patient_id: int, data: dict) -> None:
 
 def complete_session(appointment_id: int, patient_id: int) -> None:
     """Mark a treatment session as completed (records completion timestamp)."""
-    save_notes(appointment_id, patient_id, {"completed_at": datetime.datetime.now().isoformat()})
+    save_notes(appointment_id, patient_id, {"completed_at": clock.iso_now()})
 
 
 def list_completed_sessions(therapist_id: str | None = None) -> list[dict]:

@@ -10,6 +10,8 @@ import json
 import sqlite3
 from typing import Any
 
+from zenflow.clock import SQL_NOW
+
 
 def _conn() -> sqlite3.Connection:
     from bot.db import get_db
@@ -141,10 +143,10 @@ def insert_manual(
 
         patient_id = -int(time.time() * 1000)  # always negative, monotonic
     cur = _conn().execute(
-        """INSERT INTO appointments
+        f"""INSERT INTO appointments
            (patient_id, patient_name, therapist_id, date, time, status, summary,
-            source, patient_phone, patient_email)
-           VALUES (?, ?, ?, ?, ?, 'active', ?, 'manual', ?, ?)""",
+            source, patient_phone, patient_email, created_at)
+           VALUES (?, ?, ?, ?, ?, 'active', ?, 'manual', ?, ?, {SQL_NOW})""",
         (
             patient_id,
             patient_name,

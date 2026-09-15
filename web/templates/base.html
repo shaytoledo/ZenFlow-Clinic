@@ -239,7 +239,9 @@
 
   function _formatNotifTime(iso) {
     if (!iso) return '';
-    const d = new Date(iso.replace(' ', 'T') + 'Z');
+    // Canonical values already end in Z (ADR-19); legacy 'YYYY-MM-DD HH:MM:SS' is UTC without it.
+    const norm = iso.replace(' ', 'T');
+    const d = new Date(/(Z|[+-]\d{2}:?\d{2})$/.test(norm) ? norm : norm + 'Z');
     const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
     if (diffMin < 1)  return _ZF_NOTIF_STR.just_now;
     if (diffMin < 60) return diffMin + ' ' + _ZF_NOTIF_STR.min_ago;

@@ -10,6 +10,7 @@ from bot.patient_bot.services.appointments import cancel_appointment, get_patien
 from bot.patient_bot.services.availability import restore_slot
 from bot.states import CANCEL_SELECT, SELECTING
 from bot.utils import get_main_keyboard
+from zenflow.clock import today as clinic_today
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ async def show_appointments(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     logger.info(f"[{patient_id}] cancel: looking up appointments")
 
     appointments = get_patient_appointments(patient_id)
-    today_str = date.today().isoformat()
+    today_str = clinic_today().isoformat()
     appointments = [apt for apt in appointments if apt.get("date", "") >= today_str]
     if not appointments:
         await query.edit_message_text(

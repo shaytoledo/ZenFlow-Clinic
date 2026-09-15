@@ -113,7 +113,7 @@ def _save_token_db(therapist_id: str, creds: Credentials) -> None:
     scopes_str = " ".join(creds.scopes or SCOPES)
     get_db().execute(
         """INSERT INTO google_tokens (therapist_id, encrypted_token, scopes, updated_at)
-           VALUES (?, ?, ?, datetime('now'))
+           VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
            ON CONFLICT(therapist_id) DO UPDATE SET
                encrypted_token = excluded.encrypted_token,
                scopes          = excluded.scopes,

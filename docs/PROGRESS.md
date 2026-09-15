@@ -29,6 +29,14 @@ frozen-clock ordering, default-deny route test. Deferred with tickets: relay own
 2.4), cross-tenant `list_all` cache + Python filtering (→ 7.2/9.1), `availability_service` raw SQL vs repo (→ 9.1),
 optional `therapist_id=None` fail-open defaults on repository reads (→ 9.1: make required).
 
+**Review log — PR #4 (Phase 1.1), 2026-09-15.** Correctness review found 6 issues, all fixed before merge with
+regressions in `tests/unit/test_clock_review.py`: notification time 'ZZ' → Invalid Date; archive page sliced a UTC
+instant as the clinic date (new `clinic_date` / `clinic_datetime` template filters); two therapist INSERTs and both
+treatment_notes upserts still used the legacy `created_at` DEFAULT (static test now enforces explicit `created_at`);
+date-only strings were shifted a day by the migration (now classified `date` and kept; client-supplied
+`recommendations_sent_at` validated + canonicalised, 400 otherwise); rolling calendar window stamped clinic days as UTC
+midnight (`clock.day_bounds_utc`).
+
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
@@ -41,7 +49,7 @@ optional `therapist_id=None` fail-open defaults on repository reads (→ 9.1: ma
 ## Phase 1 — Time, jobs & durable scheduling
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 1.1 | `zenflow/clock.py` + timestamp audit + data migration (F2) | [ ] | | | |
+| 1.1 | `zenflow/clock.py` + timestamp audit + data migration (F2) | [x] | 2026-09-15 | d3e0cfa | canonical `…Z` strings; `SQL_NOW`; explicit created_at on every INSERT; `clock.today()` = CLINIC_TZ date; ruff DTZ; `python -m zenflow.migrate_timestamps`; window test at 23h/2h/48h across three clinic zones. ADR-19 — [PR #4](https://github.com/shaytoledo/ZenFlow-Clinic/pull/4) |
 | 1.2 | ADR: queue backend → `TaskQueue` + `jobs` table + worker | [ ] | | | |
 | 1.3 | Migrate follow-up + recommendation schedulers to jobs (F1) | [ ] | | | |
 
