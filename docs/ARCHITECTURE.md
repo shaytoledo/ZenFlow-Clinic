@@ -148,6 +148,14 @@ When `python startup/launch.py` is run:
 
 ---
 
+## Hosting note: Vercel is disabled
+
+A Vercel project (`zen-flow-clinic`) is connected to this GitHub repository and used to try to
+deploy every commit, failing each time — this is a long-running FastAPI + Telegram-bot service
+(see `Procfile` / `railway.toml`), not a serverless site. `vercel.json` sets
+`git.deploymentEnabled: false` so Vercel no longer creates (failing) deployments or red checks.
+To stop the integration entirely, disconnect the Git repository in the Vercel project settings.
+
 ## Runtime Startup Order (within each process)
 
 ### Bot process (`startup/run_bots.py` → `bot/main.py`)
