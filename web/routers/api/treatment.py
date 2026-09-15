@@ -458,6 +458,10 @@ async def send_recommendations(
             patient_id,
             {"recommendations_sent_at": clock.iso_now()},
         )
+        # Delivered now: drop any auto-queued copy so the T+24h job finds nothing to send.
+        from web.repositories.treatment_repo import clear_pending_recommendations
+
+        await asyncio.to_thread(clear_pending_recommendations, apt_id)
 
     # Record a success notification
     try:

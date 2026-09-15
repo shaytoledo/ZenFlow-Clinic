@@ -44,6 +44,12 @@ budget; empty idempotency key = none; standalone worker runs `init_db()`; `handl
 lock timeout; a cancelled worker releases its job (attempt not charged) and the bot cancels background tasks in
 `post_shutdown`; stats test covers every status.
 
+**Review log — PR #6 (Phase 1.3), 2026-09-15.** 8 findings; 7 fixed with regressions in
+`tests/integration/test_followup_jobs_review.py` (reschedule on re-completion, DB stamp first + repair on retry,
+Redis failure after send, notification failure after send, Send Now clears the queue, dead-letter alert on
+timeout, 48h reconciliation + bad-row isolation) and the weak assertions strengthened. Known limit: a job whose
+worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
+
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|

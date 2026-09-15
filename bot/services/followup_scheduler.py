@@ -22,6 +22,7 @@ import asyncio
 import contextlib
 import json
 import logging
+from typing import Any
 
 from bot.db import get_db
 from bot.redis_client import get_async_redis
@@ -226,7 +227,14 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
     """Send step 1 and open the conversation. With raise_errors=True (job handler) a delivery
     failure propagates so the job retries instead of being silently dropped."""
     appt_id = int(appt["appointment_id"])
-    if await _already_sent(appt_id):
+    patient_id = int(appt["patient_id"])
+    redis_sent = False
+    with contextlib.suppress(Exception):  # Redis is a secondary guard; never block on it
+        redis_sent = await _already_sent(appt_id)
+    if redis_sent:
+        if raise_errors:
+            # An earlier attempt sent but could not stamp the database: repair, don't re-send.
+            await asyncio.to_thread(_stamp_sent, appt_id)
         return
 
     from bot.interfaces import get_default_channel
@@ -244,7 +252,18 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
             raise
         return
 
-    await _mark_sent(appt_id, int(appt["patient_id"]))
+    # Durable stamp FIRST (review fix): after a successful send nothing may make a retry resend.
+    try:
+        await asyncio.to_thread(_stamp_sent, appt_id)
+    except Exception as e:
+        logger.error(f"follow-up DB stamp failed for appt={appt_id}: {e}")
+        with contextlib.suppress(Exception):  # lets the retry repair the stamp instead of resending
+            await _mark_sent(appt_id, patient_id)
+        if raise_errors:
+            raise
+        return
+    with contextlib.suppress(Exception):
+        await _mark_sent(appt_id, patient_id)
 
     # Initialise conversation state at step 1 (awaiting pain level)
     state = {
@@ -257,15 +276,10 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
         "notes": None,
         "conversation": [{"role": "ai", "content": text}],
     }
-    await _set_conv_state(int(appt["patient_id"]), state)
-
-    # The database stamp is the durable dedupe (Redis can be flushed); a job must not swallow it.
     try:
-        await asyncio.to_thread(_stamp_sent, appt_id)
-    except Exception as e:
-        logger.error(f"follow-up DB stamp failed for appt={appt_id}: {e}")
-        if raise_errors:
-            raise
+        await _set_conv_state(patient_id, state)
+    except Exception as e:  # message already delivered; answers fall back to the normal flow
+        logger.error(f"follow-up conversation state not saved for appt={appt_id}: {e}")
 
     logger.info(f"follow-up step-1 sent: appt={appt_id} patient={appt['patient_id']}")
 
@@ -308,7 +322,6 @@ async def dispatch_recommendations(row: dict) -> None:
     """
     from web.repositories.treatment_repo import clear_pending_recommendations
     from web.services import notification_service
-    from zenflow.worker import is_last_attempt
 
     apt_id = int(row["appointment_id"])
     pat_id = int(row["patient_id"])
@@ -342,7 +355,8 @@ async def dispatch_recommendations(row: dict) -> None:
                 )
                 logger.warning(f"recommendations not emailed (Gmail not connected): appt={apt_id}")
                 return  # keep the queue entry; retrying cannot help until the therapist connects
-            await asyncio.to_thread(
+            await asyncio.to_thread(clear_pending_recommendations, apt_id)  # delivered
+            await _best_effort(
                 notification_service.alert_recommendations_sent,
                 therapist_id,
                 apt_id,
@@ -361,6 +375,7 @@ async def dispatch_recommendations(row: dict) -> None:
                 pat_id,
                 patient_name,
             )
+            await asyncio.to_thread(clear_pending_recommendations, apt_id)
             logger.info(
                 f"pending recs for manual patient (appt={apt_id}) — no contact, alert raised"
             )
@@ -371,7 +386,8 @@ async def dispatch_recommendations(row: dict) -> None:
             await get_default_channel().send_text(
                 recipient_id=pat_id, text=_recommendations_telegram_text(items)
             )
-            await asyncio.to_thread(
+            await asyncio.to_thread(clear_pending_recommendations, apt_id)  # delivered
+            await _best_effort(
                 notification_service.alert_recommendations_sent,
                 therapist_id,
                 apt_id,
@@ -382,21 +398,21 @@ async def dispatch_recommendations(row: dict) -> None:
             )
             logger.info(f"pending recommendations sent: appt={apt_id} patient={pat_id}")
 
-        await asyncio.to_thread(clear_pending_recommendations, apt_id)
-
     except Exception as e:
+        # Retried by the queue; the therapist is alerted once, when retries are exhausted
+        # (followup_jobs.recommendations_dead — covers timeouts too).
         logger.error(f"dispatch_recommendations failed for appt={apt_id}: {e}")
-        if is_last_attempt():
-            with contextlib.suppress(Exception):
-                await asyncio.to_thread(
-                    notification_service.alert_send_failed,
-                    therapist_id,
-                    apt_id,
-                    pat_id,
-                    patient_name,
-                    str(e),
-                )
         raise
+
+
+async def _best_effort(fn: Any, *args: Any) -> None:
+    """A notification after a delivered message must never trigger a retry (= a duplicate send)."""
+    try:
+        await asyncio.to_thread(fn, *args)
+    except Exception as e:
+        logger.error(
+            f"notification {getattr(fn, '__name__', fn)} failed (message was delivered): {e}"
+        )
 
 
 # ── Reconciliation sweep (safety net; the primary path enqueues at completion time) ──────────
@@ -410,17 +426,29 @@ def reconcile() -> dict[str, int]:
     from bot.services import followup_jobs as fj
     from web.repositories import treatment_repo
 
-    followups = 0
+    followups = recommendations = errors = 0
+    # Look back as far as a follow-up may still be sent (the handler's expiry), not just 26h.
     for row in treatment_repo.list_recent_completions_without_followup(
-        clock.hours_ago(WINDOW_HOURS_MAX)
+        clock.hours_ago(fj.FOLLOWUP_EXPIRE_HOURS)
     ):
-        fj.enqueue_followup(int(row["appointment_id"]), str(row["completed_at"]))
-        followups += 1
-    recommendations = 0
+        try:
+            fj.enqueue_followup(int(row["appointment_id"]), str(row["completed_at"]))
+            followups += 1
+        except Exception as e:  # one bad row must not abort the sweep
+            errors += 1
+            logger.error(
+                f"reconcile: follow-up enqueue failed for appt={row['appointment_id']}: {e}"
+            )
     for row in treatment_repo.list_all_pending_recommendations():
-        fj.enqueue_recommendations(int(row["appointment_id"]), str(row["pending_rec_send_at"]))
-        recommendations += 1
-    return {"followups": followups, "recommendations": recommendations}
+        try:
+            fj.enqueue_recommendations(int(row["appointment_id"]), str(row["pending_rec_send_at"]))
+            recommendations += 1
+        except Exception as e:
+            errors += 1
+            logger.error(
+                f"reconcile: recommendations enqueue failed for appt={row['appointment_id']}: {e}"
+            )
+    return {"followups": followups, "recommendations": recommendations, "errors": errors}
 
 
 async def _scheduler_loop() -> None:

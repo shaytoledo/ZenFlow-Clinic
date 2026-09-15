@@ -33,11 +33,13 @@ from zenflow.queue import LOCK_TIMEOUT_SECONDS, Job, TaskQueue
 logger = logging.getLogger(__name__)
 
 Handler = Callable[[dict[str, Any]], Awaitable[None]]
+DeadHook = Callable[[dict[str, Any], str], Awaitable[None]]
 
 
 class HandlerRegistry:
     def __init__(self) -> None:
         self._handlers: dict[str, Handler] = {}
+        self._dead_hooks: dict[str, DeadHook] = {}
 
     def handler(self, name: str) -> Callable[[Handler], Handler]:
         def _register(fn: Handler) -> Handler:
@@ -48,8 +50,21 @@ class HandlerRegistry:
 
         return _register
 
+    def on_dead(self, name: str) -> Callable[[DeadHook], DeadHook]:
+        """Register `async def hook(payload, error)` called when a job of `name` exhausts its
+        attempts on a handler error or timeout (not when a crashed worker's lock expires)."""
+
+        def _register(fn: DeadHook) -> DeadHook:
+            self._dead_hooks[name] = fn
+            return fn
+
+        return _register
+
     def get(self, name: str) -> Handler | None:
         return self._handlers.get(name)
+
+    def dead_hook(self, name: str) -> DeadHook | None:
+        return self._dead_hooks.get(name)
 
     def names(self) -> list[str]:
         return sorted(self._handlers)
@@ -127,6 +142,18 @@ class Worker:
                 processed = 0
             await asyncio.sleep(0 if processed else self.poll_interval)
 
+    async def _maybe_dead_hook(self, job: Job, error: str) -> None:
+        """The attempt that just failed was the last one → the job is dead: tell the owner."""
+        if job.attempts < job.max_attempts:
+            return
+        hook = self.registry.dead_hook(job.name)
+        if hook is None:
+            return
+        try:
+            await hook(job.payload, error)
+        except Exception:
+            logger.exception("dead-letter hook for %s failed", job.name)
+
     async def _process(self, job: Job) -> None:
         fields = {
             "request_id": f"job-{job.id}-{zlog.new_request_id()[:8]}",
@@ -160,13 +187,14 @@ class Worker:
             except TimeoutError:
                 msg = f"handler timed out after {self.handler_timeout}s"
                 logger.error(msg)
-                self.queue.fail(job.id, error=msg, worker_id=self.worker_id)
+                if self.queue.fail(job.id, error=msg, worker_id=self.worker_id):
+                    await self._maybe_dead_hook(job, msg)
                 return
             except Exception as exc:
                 logger.exception("job failed (attempt %s/%s)", job.attempts, job.max_attempts)
-                self.queue.fail(
-                    job.id, error=f"{type(exc).__name__}: {exc}", worker_id=self.worker_id
-                )
+                msg = f"{type(exc).__name__}: {exc}"
+                if self.queue.fail(job.id, error=msg, worker_id=self.worker_id):
+                    await self._maybe_dead_hook(job, msg)
                 return
             if not self.queue.complete(job.id, worker_id=self.worker_id):
                 logger.warning("job finished but was no longer ours (cancelled or reclaimed)")

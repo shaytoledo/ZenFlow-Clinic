@@ -36,8 +36,10 @@ FOLLOWUP_DELAY_HOURS = 24
 FOLLOWUP_EXPIRE_HOURS = 48
 
 
-def followup_key(appointment_id: int) -> str:
-    return f"followup:{int(appointment_id)}"
+def followup_key(appointment_id: int, completed_at: str) -> str:
+    # completed_at is part of the key: completing the session again schedules a new follow-up
+    # from the latest completion, and the superseded job skips itself.
+    return f"followup:{int(appointment_id)}:{completed_at}"
 
 
 def recommendations_key(appointment_id: int, send_at: str) -> str:
@@ -46,12 +48,13 @@ def recommendations_key(appointment_id: int, send_at: str) -> str:
 
 def enqueue_followup(appointment_id: int, completed_at: str) -> int:
     """Schedule follow-up step 1 at completed_at + 24h (once per appointment)."""
+    completed_at = clock.normalize(completed_at)
     run_at = clock.to_iso(clock.parse_iso(completed_at) + timedelta(hours=FOLLOWUP_DELAY_HOURS))
     return get_default_queue().enqueue(
         FOLLOWUP_JOB,
-        {"appointment_id": int(appointment_id)},
+        {"appointment_id": int(appointment_id), "completed_at": completed_at},
         run_at=run_at,
-        idempotency_key=followup_key(appointment_id),
+        idempotency_key=followup_key(appointment_id, completed_at),
     )
 
 
@@ -94,6 +97,10 @@ async def handle_followup(payload: dict[str, Any]) -> None:
         logger.info("follow-up skipped: already sent")
         return
     completed = clock.parse_iso(str(row["completed_at"]))
+    expected = payload.get("completed_at")
+    if expected and clock.to_iso(completed) != expected:
+        logger.info("follow-up skipped: superseded by a later completion")
+        return
     if clock.now_utc() > completed + timedelta(hours=FOLLOWUP_EXPIRE_HOURS):
         logger.warning(
             "follow-up skipped: expired (fired more than %sh after completion)",
@@ -123,3 +130,24 @@ async def handle_recommendations(payload: dict[str, Any]) -> None:
         logger.info("recommendations skipped: rescheduled to %s", queued_at)
         return
     await fs.dispatch_recommendations(row)
+
+
+@default_registry.on_dead(RECOMMENDATIONS_JOB)
+async def recommendations_dead(payload: dict[str, Any], error: str) -> None:
+    """Every attempt failed (including timeouts): one persistent alert for the therapist."""
+    from web.repositories import treatment_repo
+    from web.services import notification_service
+
+    row = await asyncio.to_thread(
+        treatment_repo.get_pending_recommendation, int(payload["appointment_id"])
+    )
+    if not row:
+        return
+    await asyncio.to_thread(
+        notification_service.alert_send_failed,
+        row.get("therapist_id", "") or "",
+        int(row["appointment_id"]),
+        int(row["patient_id"]),
+        row.get("patient_name", "Patient") or "Patient",
+        f"Delivery failed after every retry: {error}",
+    )

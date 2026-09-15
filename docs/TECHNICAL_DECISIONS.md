@@ -587,6 +587,19 @@ body)`, so it always raised `TypeError`, was swallowed, and surfaced as a generi
 4. The 30-minute loop survives only as `reconcile()`: a safety net that enqueues jobs for rows
    written before this change or whose enqueue failed.
 
+**Amendment (PR #6 review, 2026-09-15).** At-least-once hazards closed before merge:
+- The follow-up key includes `completed_at` (`followup:{apt}:{completed_at}`); completing again
+  schedules from the latest completion and the superseded job skips.
+- After a successful send the database stamp is written first. Redis is a secondary guard, and a
+  retry that finds the Redis mark without a stamp repairs the stamp instead of re-sending.
+- Recommendations are cleared immediately after delivery; "sent" notifications are best-effort
+  and can no longer trigger a retry (a duplicate message).
+- "Send Now" clears any auto-queued copy, so the T+24h job finds nothing to deliver.
+- Dead-letter hooks (`HandlerRegistry.on_dead`) alert the therapist once when retries are
+  exhausted, including timeouts; the handler no longer alerts per attempt. A worker that keeps
+  crashing is dead-lettered by `claim()` without a hook (Phase 8 surfaces dead letters).
+- Reconciliation looks back the full 48 h expiry window and one bad row no longer aborts a sweep.
+
 **Consequences.** Delivery is at-least-once. A crash between the Telegram send and the database
 stamp can repeat a message once; the ordering keeps that window to milliseconds. Timestamps must
 be canonical for the reconciliation query (run `python -m zenflow.migrate_timestamps` once on an

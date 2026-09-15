@@ -61,7 +61,10 @@ async def test_complete_session_enqueues_both_jobs_once(clinic) -> None:
     assert set(jobs) == {"followup.send_step1", "recommendations.dispatch"}
     assert len(_jobs()) == 2
     assert jobs["followup.send_step1"]["run_at"] == "2026-03-02T12:00:00Z"
-    assert json.loads(jobs["followup.send_step1"]["payload_json"]) == {"appointment_id": apt["id"]}
+    assert json.loads(jobs["followup.send_step1"]["payload_json"]) == {
+        "appointment_id": apt["id"],
+        "completed_at": FROZEN,
+    }
     assert jobs["recommendations.dispatch"]["run_at"] == "2026-03-02T12:00:00Z"
 
 
