@@ -30,6 +30,8 @@ python -m zenflow.rotate_token_key --dry-run
 ```
 
 > Work follows `docs/MASTER_PLAN_EN.md`; the living checklist is `docs/PROGRESS.md`.
+> Every task ends with a pushed branch (`claude/<phase>-<task>-<slug>`) and a Pull Request into
+> `master`; never push to `master` directly, never merge your own PR — the human merges.
 > The ruff `ignore` list and mypy `ignore_errors` module list in `pyproject.toml` are baselines to
 > ratchet DOWN — never add to them (ADR-13).
 

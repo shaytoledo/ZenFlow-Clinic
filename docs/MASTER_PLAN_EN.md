@@ -7,7 +7,8 @@
 >
 > **How to use it.** Never run the whole document at once. Open a session, say:
 > *"Read `docs/MASTER_PLAN_EN.md`. We are working on Phase N, task N.x. Follow the Working
-> Agreement."* One phase = one branch = one PR. Update `docs/PROGRESS.md` at the end of every task.
+> Agreement."* **Every task ends with a pushed branch and a Pull Request into `master`** (see 1.1
+> DELIVER and 1.2). Update `docs/PROGRESS.md` at the end of every task, with the PR link.
 >
 > **Hebrew twin:** `docs/MASTER_PLAN_HE.md` — same content, same numbering. Keep both in sync.
 
@@ -47,7 +48,18 @@ IMPLEMENT → smallest change that makes the test pass. No drive-by refactors.
 VERIFY    → run the full suite + lint + the app itself. Paste real output, never claim success blind.
 DOCUMENT  → update docs/, ADRs, CLAUDE.md and docs/PROGRESS.md.
 COMMIT    → one logical change per commit, conventional-commit message.
+DELIVER   → push the branch and open a Pull Request into `master`. Every task (N.x) ends with a
+            PR; tasks finished on the same day may share one PR, a PR never spans two phases.
+            PR body = what & why, demo commands, the pasted gate output (tests / lint / type /
+            pre-commit), rollback notes, and the PROGRESS.md rows it closes. The human reviews
+            and merges; the agent never merges its own PR and never pushes to `master`.
+            Record the PR link in the task's Notes cell in docs/PROGRESS.md.
 ```
+
+Branching: `claude/<phase>-<task>-<slug>` (e.g. `claude/0.5-security-triage`). While a PR is
+under review the next task branches from it (stacked PRs); after the base PR merges, rebase or
+merge `master` so the stacked PR shows only its own diff. Force-push only your own unmerged
+branch, never `master`.
 
 ### 1.2 Hard rules
 
@@ -59,6 +71,8 @@ COMMIT    → one logical change per commit, conventional-commit message.
 - **Preserve existing behaviour behind flags.** If a change alters a clinical flow, it goes behind a
   feature flag with the old path still tested.
 - **Do not start a new phase while the previous phase's gate is red.**
+- **Every task is delivered as a PR into `master`.** No direct pushes to `master`; the agent
+  opens the PR, the human merges it. A task without a PR link in PROGRESS.md is not done.
 - **Pentesting scope:** local machine and staging only. Never attack production, Telegram,
   Google, or any third-party service.
 
@@ -69,7 +83,7 @@ COMMIT    → one logical change per commit, conventional-commit message.
 - [ ] Full test suite green — output pasted
 - [ ] Manually verified in the running app (or explained why not verifiable)
 - [ ] Docs updated (`docs/*`, `CLAUDE.md` if architecture changed)
-- [ ] `docs/PROGRESS.md` checkbox ticked with date + commit SHA
+- [ ] `docs/PROGRESS.md` checkbox ticked with date + commit SHA + PR link
 - [ ] No new lint/type/security warnings introduced
 
 ### 1.4 Definition of Done (per phase — the gate)
@@ -78,6 +92,7 @@ COMMIT    → one logical change per commit, conventional-commit message.
 - [ ] Coverage did not decrease; new code ≥ the phase's stated coverage target
 - [ ] An ADR written in `docs/TECHNICAL_DECISIONS.md` for every architectural choice
 - [ ] A short demo script in the PR: "run these commands, see this result"
+- [ ] Every task's PR merged into `master` (or one PR per day of work, never spanning phases)
 - [ ] Rollback documented
 
 ---
@@ -1010,7 +1025,8 @@ Context: we are on Phase <N>, task <N.x> — <title>.
 Previous state: <what landed last session; see docs/PROGRESS.md>.
 
 Follow the Working Agreement in section 1: research first, show me what you found, write the
-failing test, then implement. Do not start another task without asking.
+failing test, then implement. Finish by pushing the branch and opening a PR into master;
+put the PR link in docs/PROGRESS.md. Do not start another task without asking.
 
 Specifically for this task:
 <paste the task's prompt block from the phase above>

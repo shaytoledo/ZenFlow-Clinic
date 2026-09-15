@@ -1,8 +1,10 @@
 # ZenFlow — Progress Tracker / מעקב התקדמות
 
 The living checklist for `docs/MASTER_PLAN_EN.md` / `docs/MASTER_PLAN_HE.md`.
-**Rule:** at the end of every task, tick the box and fill in date + commit SHA + a one-line note.
-**כלל:** בסוף כל משימה — סמן, ומלא תאריך + SHA של הקומיט + הערה בשורה אחת.
+**Rule:** at the end of every task, tick the box and fill in date + commit SHA + a one-line note **+ the PR link**
+(every task is delivered as a Pull Request into `master`; the human merges — see Master Plan §1.1 DELIVER).
+**כלל:** בסוף כל משימה — סמן, ומלא תאריך + SHA של הקומיט + הערה בשורה אחת **+ קישור ל-PR**
+(כל משימה נמסרת כ-Pull Request אל `master`; האדם ממזג — ראה תוכנית-אב §1.1 DELIVER).
 
 Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 
