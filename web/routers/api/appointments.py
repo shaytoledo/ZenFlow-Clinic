@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from web.deps import _active_therapist_or_redirect
+from web.deps import _active_therapist_or_redirect, require_active_therapist
 from web.repositories import appointment_repo
 from web.services import appointment_service
 
@@ -31,10 +31,12 @@ class ManualAppointmentIn(BaseModel):
 
 
 @router.get("/appointments/today")
-async def get_today_appointments():
+async def get_today_appointments(request: Request):
     from datetime import date as _date
 
+    therapist = require_active_therapist(request)
     all_apts = await asyncio.to_thread(appointment_repo.list_all)
+    all_apts = [a for a in all_apts if a.get("therapist_id") == therapist["id"]]
     today_str = _date.today().isoformat()
 
     today_apts = sorted(
@@ -157,9 +159,10 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
 
 
 @router.get("/patients/search")
-async def search_patients(q: str = ""):
-    """Return matching patients for autocomplete with full contact info."""
-    rows = await asyncio.to_thread(appointment_repo.search_patients, q, 10)
+async def search_patients(request: Request, q: str = ""):
+    """Return matching patients for autocomplete with full contact info (own patients only)."""
+    therapist = require_active_therapist(request)
+    rows = await asyncio.to_thread(appointment_repo.search_patients, q, 10, therapist["id"])
     return JSONResponse(
         {
             "results": [
@@ -177,15 +180,18 @@ async def search_patients(q: str = ""):
 
 
 @router.get("/patients")
-async def get_patients():
+async def get_patients(request: Request):
+    therapist = require_active_therapist(request)
     appointments = await appointment_service.list_all_cached()
+    appointments = [a for a in appointments if a.get("therapist_id") == therapist["id"]]
     patients = appointment_service.aggregate_patients(appointments)
     return JSONResponse(patients)
 
 
 @router.get("/patients/{patient_id}")
-async def get_patient_detail(patient_id: int):
-    records = appointment_service.list_by_patient(patient_id)
+async def get_patient_detail(patient_id: int, request: Request):
+    therapist = require_active_therapist(request)
+    records = appointment_service.list_by_patient(patient_id, therapist["id"])
     if not records:
         raise HTTPException(status_code=404, detail="Patient not found")
     name = f"Patient {patient_id}"
@@ -271,8 +277,11 @@ async def get_patient_detail(patient_id: int):
 
 
 @router.get("/appointment/{patient_id}/{apt_date}/{apt_time}")
-async def get_appointment_detail(patient_id: int, apt_date: str, apt_time: str):
-    record = appointment_service.get_by_patient_date_time(patient_id, apt_date, apt_time)
+async def get_appointment_detail(patient_id: int, apt_date: str, apt_time: str, request: Request):
+    therapist = require_active_therapist(request)
+    record = appointment_service.get_by_patient_date_time(
+        patient_id, apt_date, apt_time, therapist["id"]
+    )
     if not record:
         raise HTTPException(status_code=404, detail="Appointment not found")
     return JSONResponse(record)

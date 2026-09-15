@@ -361,3 +361,62 @@ async def _handle_reg_google(request: Request, code: str, error: str = ""):
     except Exception as e:
         logger.error(f"Google registration callback error: {e}")
         return RedirectResponse("/register?error=Google+sign-in+failed")
+
+
+# ── Authorization dependencies (Phase 0.5 / F6 / SF-005) ──────────────────────────────────────
+# `require_signed_in` is attached at router level to EVERY /api router in web/app.py, so it runs
+# before body validation: an anonymous caller gets 401, never a 422 that leaks the schema.
+# Object-level checks (`require_appointment_access`, `resolve_owned_appointment`) make sure a
+# signed-in therapist can only reach their OWN appointments — never another tenant's.
+
+
+def require_signed_in(request: Request) -> dict:
+    """Session carries an existing therapist id (active or not). 401 otherwise."""
+    from fastapi import HTTPException
+
+    therapist = _get_session_therapist(request)
+    if not therapist:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return therapist
+
+
+def require_active_therapist(request: Request) -> dict:
+    """Signed in AND activated. 401 otherwise (API semantics — no redirects)."""
+    from fastapi import HTTPException
+
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect or therapist is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return therapist
+
+
+def require_appointment_access(request: Request, appointment_id: int) -> dict:
+    """Load an appointment by row id; 404 if missing, 403 if it belongs to another therapist."""
+    from fastapi import HTTPException
+
+    from web.repositories import appointment_repo
+
+    therapist = require_active_therapist(request)
+    apt = appointment_repo.get_by_id(appointment_id)
+    if not apt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    if apt.get("therapist_id") != therapist["id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return apt
+
+
+def resolve_owned_appointment(
+    request: Request, patient_id: int, apt_date: str, apt_time: str
+) -> dict:
+    """Resolve patient/date/time to THIS therapist's appointment; 404 otherwise (no existence leak)."""
+    from fastapi import HTTPException
+
+    from web.repositories import appointment_repo
+
+    therapist = require_active_therapist(request)
+    apt = appointment_repo.get_by_patient_date_time(
+        patient_id, apt_date, apt_time, therapist_id=therapist["id"]
+    )
+    if not apt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return apt

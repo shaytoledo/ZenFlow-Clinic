@@ -29,29 +29,10 @@ PAGE_ROUTES = [
     "/patients/1",
 ]
 
-# Routes reachable WITHOUT a session as of Phase 0.3 (docs/SECURITY_FINDINGS.md SF-005 / F11).
-# Phase 0.5 must close every one of them; each is a *strict* xfail so the test flips to a
-# failure the moment a route is fixed and someone forgets to delete it here.
-KNOWN_OPEN_API_ROUTES: dict[tuple[str, str], str] = {
-    ("GET", "/api/status"): "F11",
-    ("GET", "/api/smtp-status"): "F11",
-    ("GET", "/api/appointments/today"): "SF-005",
-    ("POST", "/api/appointments"): "SF-005",
-    ("GET", "/api/patients"): "SF-005",
-    ("GET", "/api/patients/search"): "SF-005",
-    ("GET", "/api/patients/{patient_id}"): "SF-005",
-    ("GET", "/api/appointment/{patient_id}/{apt_date}/{apt_time}"): "SF-005",
-    (
-        "POST",
-        "/api/treatment-notes/{patient_id}/{apt_date}/{apt_time}/send-recommendations",
-    ): "SF-005",
-    ("POST", "/api/calendars/refresh"): "SF-005",
-    ("GET", "/api/events"): "SF-005",
-    ("POST", "/api/availability"): "SF-005",
-    ("DELETE", "/api/availability/{event_id}"): "SF-005",
-    ("GET", "/api/messages/active"): "SF-005",
-    ("POST", "/api/messages/send"): "SF-005",
-}
+# Routes reachable WITHOUT a session. Phase 0.5 closed SF-005 / F11: every /api/* route now
+# requires a session (router-level dependency); /healthz is the only public endpoint and lives
+# outside /api. Add an entry here ONLY as a strict xfail with a finding id — never silently.
+KNOWN_OPEN_API_ROUTES: dict[tuple[str, str], str] = {}
 
 
 async def test_app_boots_and_root_redirects_anonymous_to_register(

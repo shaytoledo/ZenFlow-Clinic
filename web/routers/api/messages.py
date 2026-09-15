@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from web.deps import _active_therapist_or_redirect
+from web.deps import require_active_therapist
 from web.services import telegram_service
 
 router = APIRouter(prefix="/api/messages")
@@ -23,30 +23,54 @@ class SendMessageIn(BaseModel):
     text: str
 
 
+async def _own_sessions(therapist: dict) -> list[dict]:
+    """Active relay sessions that belong to this therapist (tenant scoping, F6)."""
+    sessions = await telegram_service.get_active_relay_conversations()
+    return [s for s in sessions if s.get("therapist_id") == therapist["id"]]
+
+
+async def _assert_conversation_owner(therapist: dict, patient_id: int) -> None:
+    """403 if the patient's active relay session belongs to another therapist; 404 if there is
+    no session and the patient never had an appointment with this therapist."""
+    from bot.redis_client import get_async_redis
+
+    raw = await get_async_redis().get(f"zenflow:relay:active:{patient_id}")
+    if raw:
+        try:
+            data = json.loads(raw)
+        except Exception:
+            data = {}
+        if isinstance(data, dict) and data.get("therapist_id") == therapist["id"]:
+            return
+        raise HTTPException(status_code=403, detail="Conversation belongs to another therapist")
+    from web.repositories import appointment_repo
+
+    if appointment_repo.list_by_patient(patient_id, therapist_id=therapist["id"]):
+        return
+    raise HTTPException(status_code=404, detail="Conversation not found")
+
+
 @router.get("/active")
-async def get_active_messages():
-    """Return number of unread patient messages across all active relay sessions."""
-    count = await telegram_service.get_total_unread_count()
+async def get_active_messages(request: Request):
+    """Return number of unread patient messages across this therapist's active relay sessions."""
+    therapist = require_active_therapist(request)
+    sessions = await _own_sessions(therapist)
+    count = sum(int(s.get("unread_count") or 0) for s in sessions)
     return JSONResponse({"count": count})
 
 
 @router.get("/conversations")
 async def list_conversations(request: Request):
-    """List all active relay conversations with patient metadata."""
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    sessions = await telegram_service.get_active_relay_conversations()
-    return JSONResponse(sessions)
+    """List this therapist's active relay conversations with patient metadata."""
+    therapist = require_active_therapist(request)
+    return JSONResponse(await _own_sessions(therapist))
 
 
 @router.get("/history/{patient_id}")
 async def get_message_history(patient_id: int, request: Request):
     """Return stored relay history; opening a conversation marks it as read."""
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    therapist = require_active_therapist(request)
+    await _assert_conversation_owner(therapist, patient_id)
 
     messages = await telegram_service.get_relay_messages(patient_id)
     await telegram_service.mark_conversation_read(patient_id)
@@ -56,9 +80,8 @@ async def get_message_history(patient_id: int, request: Request):
 @router.post("/unread/{patient_id}")
 async def mark_unread(patient_id: int, request: Request):
     """Mark a conversation as unread (removes the last-seen timestamp)."""
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    therapist = require_active_therapist(request)
+    await _assert_conversation_owner(therapist, patient_id)
     await telegram_service.mark_conversation_unread(patient_id)
     return JSONResponse({"ok": True, "patient_id": patient_id})
 
@@ -66,9 +89,8 @@ async def mark_unread(patient_id: int, request: Request):
 @router.delete("/history/{patient_id}")
 async def delete_message_history(patient_id: int, request: Request):
     """Delete a relay conversation from Redis (history + presence + unread)."""
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    therapist = require_active_therapist(request)
+    await _assert_conversation_owner(therapist, patient_id)
     removed = await telegram_service.delete_conversation(patient_id)
     return JSONResponse({"ok": True, "patient_id": patient_id, "removed_keys": removed})
 
@@ -76,9 +98,8 @@ async def delete_message_history(patient_id: int, request: Request):
 @router.post("/send")
 async def send_message(body: SendMessageIn, request: Request):
     """Deliver to patient via patient bot, then echo into the therapist's bot chat."""
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    therapist = require_active_therapist(request)
+    await _assert_conversation_owner(therapist, body.patient_id)
 
     if not body.text.strip():
         raise HTTPException(status_code=400, detail="Message text is required")

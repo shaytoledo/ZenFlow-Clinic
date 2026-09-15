@@ -49,12 +49,14 @@ def add_local(therapist_id: str, start: str, end: str) -> dict:
     return to_fc_event({"id": new_id, "start": start, "end": end})
 
 
-def remove_local(slot_id: str) -> None:
-    """Delete a local availability slot by ID."""
-    from bot.db import get_db
+def remove_local(slot_id: str, therapist_id: str | None = None) -> int:
+    """Delete a local availability slot by ID (tenant-scoped when `therapist_id` is given).
 
-    get_db().execute("DELETE FROM availability WHERE id=?", (slot_id,))
-    get_db().commit()
+    Returns the number of rows deleted (0 = not found / not yours).
+    """
+    from web.repositories import availability_repo
+
+    return availability_repo.delete(slot_id, therapist_id)
 
 
 def to_fc_event(slot: dict) -> dict:
