@@ -217,7 +217,7 @@ Any message / /start → SELECTING (main menu)
 - Ollama adaptive intake with Redis history; fallback questions when unavailable
 - Treatment notes: AI TCM diagnosis saved on booking; therapist adds tongue/pulse/points/notes
 - Session history page (`/sessions`): all sessions sortable by name/date/last access
-- "Complete Session" button sets `completed_at` timestamp
+- "Complete Session" button sets `completed_at` and enqueues the 24h follow-up + recommendation jobs (durable, exactly-once via idempotency keys; `bot/services/followup_jobs.py`)
 - Live relay chat visible and sendable from web messages page (`/messages`)
 - System health API (`/api/status`, auth required) covering Redis, Ollama, bots, Google Calendar; public liveness probe `GET /healthz`
 - "Change Therapist" button in main menu (appears after therapist is selected)

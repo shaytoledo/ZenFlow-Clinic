@@ -22,6 +22,7 @@ import asyncio
 import contextlib
 import json
 import logging
+from typing import Any
 
 from bot.db import get_db
 from bot.redis_client import get_async_redis
@@ -222,9 +223,18 @@ async def _clear_conv_state(patient_id: int) -> None:
 # ── Sender ────────────────────────────────────────────────────────────────────
 
 
-async def _send_followup(appt: dict) -> None:
+async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
+    """Send step 1 and open the conversation. With raise_errors=True (job handler) a delivery
+    failure propagates so the job retries instead of being silently dropped."""
     appt_id = int(appt["appointment_id"])
-    if await _already_sent(appt_id):
+    patient_id = int(appt["patient_id"])
+    redis_sent = False
+    with contextlib.suppress(Exception):  # Redis is a secondary guard; never block on it
+        redis_sent = await _already_sent(appt_id)
+    if redis_sent:
+        if raise_errors:
+            # An earlier attempt sent but could not stamp the database: repair, don't re-send.
+            await asyncio.to_thread(_stamp_sent, appt_id)
         return
 
     from bot.interfaces import get_default_channel
@@ -238,9 +248,22 @@ async def _send_followup(appt: dict) -> None:
         await channel.send_text(recipient_id=appt["patient_id"], text=text)
     except Exception as e:
         logger.warning(f"follow-up send failed for appt={appt_id}: {e}")
+        if raise_errors:
+            raise
         return
 
-    await _mark_sent(appt_id, int(appt["patient_id"]))
+    # Durable stamp FIRST (review fix): after a successful send nothing may make a retry resend.
+    try:
+        await asyncio.to_thread(_stamp_sent, appt_id)
+    except Exception as e:
+        logger.error(f"follow-up DB stamp failed for appt={appt_id}: {e}")
+        with contextlib.suppress(Exception):  # lets the retry repair the stamp instead of resending
+            await _mark_sent(appt_id, patient_id)
+        if raise_errors:
+            raise
+        return
+    with contextlib.suppress(Exception):
+        await _mark_sent(appt_id, patient_id)
 
     # Initialise conversation state at step 1 (awaiting pain level)
     state = {
@@ -253,12 +276,10 @@ async def _send_followup(appt: dict) -> None:
         "notes": None,
         "conversation": [{"role": "ai", "content": text}],
     }
-    await _set_conv_state(int(appt["patient_id"]), state)
-
     try:
-        await asyncio.to_thread(_stamp_sent, appt_id)
-    except Exception as e:
-        logger.debug(f"follow-up DB stamp failed for appt={appt_id}: {e}")
+        await _set_conv_state(patient_id, state)
+    except Exception as e:  # message already delivered; answers fall back to the normal flow
+        logger.error(f"follow-up conversation state not saved for appt={appt_id}: {e}")
 
     logger.info(f"follow-up step-1 sent: appt={appt_id} patient={appt['patient_id']}")
 
@@ -266,199 +287,186 @@ async def _send_followup(appt: dict) -> None:
 # ── Pending recommendations dispatcher ───────────────────────────────────────
 
 
-async def _dispatch_pending_recommendations() -> None:
-    """Send any queued lifestyle recommendations whose send_at time has passed.
+_ICON_MAP = {"Diet": "🥗", "Sleep": "🌙", "Exercise": "🏃", "Movement": "🚶", "Stress": "🧘"}
+_EMAIL_SUBJECT = "Your post-treatment recommendations — ZenFlow Clinic"
+
+
+def _recommendations_email_body(patient_name: str, items: list[dict]) -> str:
+    first = patient_name.split()[0] if patient_name else "there"
+    lines = [f"Hi {first},", "", "Here are your post-treatment lifestyle recommendations:", ""]
+    for item in items:
+        lines.append(f"• {item.get('category', '')}: {item.get('text', '')}")
+    lines += ["", "Take care, and see you at your next session.", "", "— ZenFlow Clinic"]
+    return "\n".join(lines)
+
+
+def _recommendations_telegram_text(items: list[dict]) -> str:
+    lines = ["*Your post-treatment lifestyle recommendations from ZenFlow Clinic:*\n"]
+    for item in items:
+        cat = item.get("category", "")
+        icon = item.get("icon") or _ICON_MAP.get(cat, "•")
+        lines.append(f"{icon} *{cat}:* {item.get('text', '')}")
+    lines.append("\n_Take care and see you at your next session! 🌿_")
+    return "\n".join(lines)
+
+
+async def dispatch_recommendations(row: dict) -> None:
+    """Deliver one appointment's queued recommendations (job handler body, Phase 1.3).
 
     Routing:
-      - Telegram-source patient → patient bot.
-      - Manual patient with email → SMTP fallback.
-      - Manual patient without email → persistent "missing contact" notification.
-
-    Each outcome creates a notification for the therapist.
+      - Telegram patient                 → patient bot; queue entry cleared.
+      - Manual patient with email        → therapist's Gmail; queue entry cleared.
+          * Gmail not connected           → one "send failed" alert, entry KEPT for Send Now.
+      - Manual patient without contact   → persistent "missing contact" alert; entry cleared.
+    Any other failure raises so the job retries; the therapist is alerted on the final attempt.
     """
-    now_iso = clock.iso_now()
-    try:
-        from web.repositories.treatment_repo import (
-            clear_pending_recommendations,
-            list_due_pending_recommendations,
-        )
-
-        due = await asyncio.to_thread(list_due_pending_recommendations, now_iso)
-    except Exception as e:
-        logger.error(f"list_due_pending_recommendations failed: {e}")
-        return
-
-    if not due:
-        return
-
+    from web.repositories.treatment_repo import clear_pending_recommendations
     from web.services import notification_service
 
-    for row in due:
-        apt_id = row["appointment_id"]
-        pat_id = row["patient_id"]
-        items = row["pending_recommendations"]
-        source = row.get("source", "telegram")
-        therapist_id = row.get("therapist_id", "") or ""
-        patient_name = row.get("patient_name", "Patient") or "Patient"
-        is_manual = (source == "manual") or (pat_id < 0)
+    apt_id = int(row["appointment_id"])
+    pat_id = int(row["patient_id"])
+    items = row.get("pending_recommendations") or []
+    therapist_id = row.get("therapist_id", "") or ""
+    patient_name = row.get("patient_name", "Patient") or "Patient"
+    is_manual = (row.get("source") == "manual") or (pat_id < 0)
+    patient_email = (row.get("patient_email") or "").strip()
 
-        # Look up email for manual patients
-        patient_email = ""
-        if is_manual:
+    try:
+        if is_manual and patient_email:
+            from web.services import email_service
+
             try:
-                row2 = await asyncio.to_thread(
-                    lambda: get_db()
-                    .execute("SELECT patient_email FROM appointments WHERE id=?", (apt_id,))
-                    .fetchone()
-                )
-                patient_email = (dict(row2).get("patient_email") if row2 else "") or ""
-            except Exception:
-                patient_email = ""
-
-        try:
-            if is_manual and patient_email:
-                # SMTP fallback
-                from web.services.email_service import EmailNotConfigured, send_email
-
-                lines = [
-                    f"Hi {patient_name.split()[0] if patient_name else 'there'},",
-                    "",
-                    "Here are your post-treatment lifestyle recommendations:",
-                    "",
-                ]
-                for item in items:
-                    cat = item.get("category", "")
-                    text = item.get("text", "")
-                    lines.append(f"• {cat}: {text}")
-                lines += [
-                    "",
-                    "Take care, and see you at your next session.",
-                    "",
-                    "— ZenFlow Clinic",
-                ]
-                body_text = "\n".join(lines)
-                try:
-                    await asyncio.to_thread(
-                        send_email,
-                        patient_email,
-                        "Your post-treatment recommendations — ZenFlow Clinic",
-                        body_text,
-                    )
-                    await asyncio.to_thread(
-                        notification_service.alert_recommendations_sent,
-                        therapist_id,
-                        apt_id,
-                        pat_id,
-                        patient_name,
-                        "email",
-                        patient_email,
-                    )
-                    logger.info(f"pending recommendations EMAILED: appt={apt_id} → {patient_email}")
-                except EmailNotConfigured:
-                    await asyncio.to_thread(
-                        notification_service.alert_send_failed,
-                        therapist_id,
-                        apt_id,
-                        pat_id,
-                        patient_name,
-                        "SMTP not configured — set SMTP_* env vars to enable email fallback.",
-                    )
-                    # Don't clear queue — let the therapist fix SMTP and retry on next pass
-                    continue
-
-            elif is_manual and not patient_email:
-                # Persistent alert — no contact info
+                # F1 fix: the therapist id comes first — send_email(therapist_id, to, subject, body).
                 await asyncio.to_thread(
-                    notification_service.alert_missing_contact,
+                    email_service.send_email,
                     therapist_id,
-                    apt_id,
-                    pat_id,
-                    patient_name,
+                    patient_email,
+                    _EMAIL_SUBJECT,
+                    _recommendations_email_body(patient_name, items),
                 )
-                logger.info(
-                    f"pending recs for manual patient (appt={apt_id}) — no email/Telegram, alert raised"
-                )
-
-            else:
-                # Telegram patient
-                from bot.interfaces import get_default_channel
-
-                channel = get_default_channel()
-                icon_map = {
-                    "Diet": "🥗",
-                    "Sleep": "🌙",
-                    "Exercise": "🏃",
-                    "Movement": "🚶",
-                    "Stress": "🧘",
-                }
-                lines = ["*Your post-treatment lifestyle recommendations from ZenFlow Clinic:*\n"]
-                for item in items:
-                    cat = item.get("category", "")
-                    text = item.get("text", "")
-                    icon = item.get("icon") or icon_map.get(cat, "•")
-                    lines.append(f"{icon} *{cat}:* {text}")
-                lines.append("\n_Take care and see you at your next session! 🌿_")
-                message = "\n".join(lines)
-                await channel.send_text(recipient_id=pat_id, text=message)
-                await asyncio.to_thread(
-                    notification_service.alert_recommendations_sent,
-                    therapist_id,
-                    apt_id,
-                    pat_id,
-                    patient_name,
-                    "telegram",
-                    str(pat_id),
-                )
-                logger.info(f"pending recommendations sent: appt={apt_id} patient={pat_id}")
-
-            # Clear the queue entry on success / handled-alert
-            await asyncio.to_thread(clear_pending_recommendations, apt_id)
-
-        except Exception as e:
-            logger.error(f"dispatch_pending_recommendations failed for appt={apt_id}: {e}")
-            with contextlib.suppress(Exception):
+            except email_service.EmailNotConfigured:
                 await asyncio.to_thread(
                     notification_service.alert_send_failed,
                     therapist_id,
                     apt_id,
                     pat_id,
                     patient_name,
-                    str(e),
+                    "Gmail is not connected — connect Google in Settings, then use Send Now.",
                 )
+                logger.warning(f"recommendations not emailed (Gmail not connected): appt={apt_id}")
+                return  # keep the queue entry; retrying cannot help until the therapist connects
+            await asyncio.to_thread(clear_pending_recommendations, apt_id)  # delivered
+            await _best_effort(
+                notification_service.alert_recommendations_sent,
+                therapist_id,
+                apt_id,
+                pat_id,
+                patient_name,
+                "email",
+                patient_email,
+            )
+            logger.info(f"pending recommendations EMAILED: appt={apt_id}")
+
+        elif is_manual:
+            await asyncio.to_thread(
+                notification_service.alert_missing_contact,
+                therapist_id,
+                apt_id,
+                pat_id,
+                patient_name,
+            )
+            await asyncio.to_thread(clear_pending_recommendations, apt_id)
+            logger.info(
+                f"pending recs for manual patient (appt={apt_id}) — no contact, alert raised"
+            )
+
+        else:
+            from bot.interfaces import get_default_channel
+
+            await get_default_channel().send_text(
+                recipient_id=pat_id, text=_recommendations_telegram_text(items)
+            )
+            await asyncio.to_thread(clear_pending_recommendations, apt_id)  # delivered
+            await _best_effort(
+                notification_service.alert_recommendations_sent,
+                therapist_id,
+                apt_id,
+                pat_id,
+                patient_name,
+                "telegram",
+                str(pat_id),
+            )
+            logger.info(f"pending recommendations sent: appt={apt_id} patient={pat_id}")
+
+    except Exception as e:
+        # Retried by the queue; the therapist is alerted once, when retries are exhausted
+        # (followup_jobs.recommendations_dead — covers timeouts too).
+        logger.error(f"dispatch_recommendations failed for appt={apt_id}: {e}")
+        raise
 
 
-# ── Loop ──────────────────────────────────────────────────────────────────────
+async def _best_effort(fn: Any, *args: Any) -> None:
+    """A notification after a delivered message must never trigger a retry (= a duplicate send)."""
+    try:
+        await asyncio.to_thread(fn, *args)
+    except Exception as e:
+        logger.error(
+            f"notification {getattr(fn, '__name__', fn)} failed (message was delivered): {e}"
+        )
+
+
+# ── Reconciliation sweep (safety net; the primary path enqueues at completion time) ──────────
+
+RECONCILE_INTERVAL_SECONDS = POLL_INTERVAL_SECONDS
+
+
+def reconcile() -> dict[str, int]:
+    """Enqueue jobs for sessions completed or recommendations queued without one (rows written
+    before Phase 1.3, or an enqueue that failed). Idempotency keys make this safe to repeat."""
+    from bot.services import followup_jobs as fj
+    from web.repositories import treatment_repo
+
+    followups = recommendations = errors = 0
+    # Look back as far as a follow-up may still be sent (the handler's expiry), not just 26h.
+    for row in treatment_repo.list_recent_completions_without_followup(
+        clock.hours_ago(fj.FOLLOWUP_EXPIRE_HOURS)
+    ):
+        try:
+            fj.enqueue_followup(int(row["appointment_id"]), str(row["completed_at"]))
+            followups += 1
+        except Exception as e:  # one bad row must not abort the sweep
+            errors += 1
+            logger.error(
+                f"reconcile: follow-up enqueue failed for appt={row['appointment_id']}: {e}"
+            )
+    for row in treatment_repo.list_all_pending_recommendations():
+        try:
+            fj.enqueue_recommendations(int(row["appointment_id"]), str(row["pending_rec_send_at"]))
+            recommendations += 1
+        except Exception as e:
+            errors += 1
+            logger.error(
+                f"reconcile: recommendations enqueue failed for appt={row['appointment_id']}: {e}"
+            )
+    return {"followups": followups, "recommendations": recommendations, "errors": errors}
 
 
 async def _scheduler_loop() -> None:
-    logger.info(
-        "follow-up scheduler started — poll every %ss, window %sh–%sh",
-        POLL_INTERVAL_SECONDS,
-        WINDOW_HOURS_MIN,
-        WINDOW_HOURS_MAX,
-    )
     from zenflow import logging as zlog
 
+    logger.info("follow-up reconciliation started — every %ss", RECONCILE_INTERVAL_SECONDS)
     while True:
-        # One request_id per sweep so every line of this iteration correlates (Phase 0.5).
-        with zlog.log_context(request_id=f"job-{zlog.new_request_id()}"):
+        with zlog.log_context(request_id=f"job-reconcile-{zlog.new_request_id()}"):
             try:
-                due = await asyncio.to_thread(_find_due_followups)
-                if due:
-                    logger.info(f"{len(due)} appointment(s) due for 24h follow-up")
-                for appt in due:
-                    with zlog.log_context(
-                        appointment_id=appt.get("appointment_id"), patient_id=appt.get("patient_id")
-                    ):
-                        await _send_followup(appt)
-                # Also dispatch any queued lifestyle recommendations
-                await _dispatch_pending_recommendations()
+                counts = await asyncio.to_thread(reconcile)
+                if any(counts.values()):
+                    logger.info("reconciliation checked %s", counts)
             except asyncio.CancelledError:
-                logger.info("follow-up scheduler cancelled")
+                logger.info("follow-up reconciliation cancelled")
                 raise
             except Exception as e:
-                logger.error(f"follow-up scheduler iteration failed: {e}")
-        await asyncio.sleep(POLL_INTERVAL_SECONDS)
+                logger.error(f"follow-up reconciliation failed: {e}")
+        await asyncio.sleep(RECONCILE_INTERVAL_SECONDS)
 
 
 def start_followup_scheduler() -> asyncio.Task:

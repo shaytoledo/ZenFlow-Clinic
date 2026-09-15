@@ -44,6 +44,12 @@ budget; empty idempotency key = none; standalone worker runs `init_db()`; `handl
 lock timeout; a cancelled worker releases its job (attempt not charged) and the bot cancels background tasks in
 `post_shutdown`; stats test covers every status.
 
+**Review log — PR #6 (Phase 1.3), 2026-09-15.** 8 findings; 7 fixed with regressions in
+`tests/integration/test_followup_jobs_review.py` (reschedule on re-completion, DB stamp first + repair on retry,
+Redis failure after send, notification failure after send, Send Now clears the queue, dead-letter alert on
+timeout, 48h reconciliation + bad-row isolation) and the weak assertions strengthened. Known limit: a job whose
+worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
+
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
@@ -58,7 +64,7 @@ lock timeout; a cancelled worker releases its job (attempt not charged) and the 
 |---|---|---|---|---|---|
 | 1.1 | `zenflow/clock.py` + timestamp audit + data migration (F2) | [x] | 2026-09-15 | d3e0cfa | canonical `…Z` strings; `SQL_NOW`; explicit created_at on every INSERT; `clock.today()` = CLINIC_TZ date; ruff DTZ; `python -m zenflow.migrate_timestamps`; window test at 23h/2h/48h across three clinic zones. ADR-19 — [PR #4](https://github.com/shaytoledo/ZenFlow-Clinic/pull/4) |
 | 1.2 | ADR: queue backend → `TaskQueue` + `jobs` table + worker | [x] | 2026-09-15 | a5264f4 | ADR-20 (5 options compared, (a) chosen); `zenflow/queue.py` + `zenflow/worker.py`; jobs table; in-process worker at bot post_init; conformance suite: not-early, idempotent, backoff→dead-letter, crash recovery exactly-once, both flag paths — [PR #5](https://github.com/shaytoledo/ZenFlow-Clinic/pull/5) |
-| 1.3 | Migrate follow-up + recommendation schedulers to jobs (F1) | [ ] | | | |
+| 1.3 | Migrate follow-up + recommendation schedulers to jobs (F1) | [x] | 2026-09-15 | 780ba6c | enqueued at Complete Session (T+24h) + on queued recommendations; DB-idempotent handlers; Telegram failure retries; 48h expiry; F1 fixed (therapist id passed; Gmail-not-connected → one alert, entry kept); 30-min poll → `reconcile()` safety net. ADR-21. Phase 1 gate green — [PR #6](https://github.com/shaytoledo/ZenFlow-Clinic/pull/6) |
 
 ## Phase 2 — Bot audit & repair (item 6)
 | # | Task | Status | Date | Commit | Notes |

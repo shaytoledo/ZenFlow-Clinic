@@ -24,6 +24,7 @@ import asyncio
 import logging
 import socket
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from typing import Any
 
 from zenflow import logging as zlog
@@ -32,11 +33,13 @@ from zenflow.queue import LOCK_TIMEOUT_SECONDS, Job, TaskQueue
 logger = logging.getLogger(__name__)
 
 Handler = Callable[[dict[str, Any]], Awaitable[None]]
+DeadHook = Callable[[dict[str, Any], str], Awaitable[None]]
 
 
 class HandlerRegistry:
     def __init__(self) -> None:
         self._handlers: dict[str, Handler] = {}
+        self._dead_hooks: dict[str, DeadHook] = {}
 
     def handler(self, name: str) -> Callable[[Handler], Handler]:
         def _register(fn: Handler) -> Handler:
@@ -47,14 +50,50 @@ class HandlerRegistry:
 
         return _register
 
+    def on_dead(self, name: str) -> Callable[[DeadHook], DeadHook]:
+        """Register `async def hook(payload, error)` called when a job of `name` exhausts its
+        attempts on a handler error or timeout (not when a crashed worker's lock expires)."""
+
+        def _register(fn: DeadHook) -> DeadHook:
+            self._dead_hooks[name] = fn
+            return fn
+
+        return _register
+
     def get(self, name: str) -> Handler | None:
         return self._handlers.get(name)
+
+    def dead_hook(self, name: str) -> DeadHook | None:
+        return self._dead_hooks.get(name)
 
     def names(self) -> list[str]:
         return sorted(self._handlers)
 
 
 default_registry = HandlerRegistry()
+
+#: The job currently being handled (None outside a handler). Lets a handler decide, for example,
+#: to alert a human only on its final attempt instead of on every retry.
+_current_job: ContextVar[Job | None] = ContextVar("zenflow_current_job", default=None)
+
+#: Modules whose import registers handlers on `default_registry`.
+DEFAULT_HANDLER_MODULES: tuple[str, ...] = ("bot.services.followup_jobs",)
+
+
+def current_job() -> Job | None:
+    return _current_job.get()
+
+
+def is_last_attempt() -> bool:
+    job = _current_job.get()
+    return job is not None and job.attempts >= job.max_attempts
+
+
+def load_default_handlers() -> None:
+    import importlib
+
+    for module in DEFAULT_HANDLER_MODULES:
+        importlib.import_module(module)
 
 
 class Worker:
@@ -103,6 +142,18 @@ class Worker:
                 processed = 0
             await asyncio.sleep(0 if processed else self.poll_interval)
 
+    async def _maybe_dead_hook(self, job: Job, error: str) -> None:
+        """The attempt that just failed was the last one → the job is dead: tell the owner."""
+        if job.attempts < job.max_attempts:
+            return
+        hook = self.registry.dead_hook(job.name)
+        if hook is None:
+            return
+        try:
+            await hook(job.payload, error)
+        except Exception:
+            logger.exception("dead-letter hook for %s failed", job.name)
+
     async def _process(self, job: Job) -> None:
         fields = {
             "request_id": f"job-{job.id}-{zlog.new_request_id()[:8]}",
@@ -110,6 +161,13 @@ class Worker:
             "appointment_id": job.payload.get("appointment_id"),
             "patient_id": job.payload.get("patient_id"),
         }
+        token = _current_job.set(job)
+        try:
+            await self._run_handler(job, fields)
+        finally:
+            _current_job.reset(token)
+
+    async def _run_handler(self, job: Job, fields: dict[str, Any]) -> None:
         with zlog.log_context(**fields):
             handler = self.registry.get(job.name)
             if handler is None:
@@ -129,13 +187,14 @@ class Worker:
             except TimeoutError:
                 msg = f"handler timed out after {self.handler_timeout}s"
                 logger.error(msg)
-                self.queue.fail(job.id, error=msg, worker_id=self.worker_id)
+                if self.queue.fail(job.id, error=msg, worker_id=self.worker_id):
+                    await self._maybe_dead_hook(job, msg)
                 return
             except Exception as exc:
                 logger.exception("job failed (attempt %s/%s)", job.attempts, job.max_attempts)
-                self.queue.fail(
-                    job.id, error=f"{type(exc).__name__}: {exc}", worker_id=self.worker_id
-                )
+                msg = f"{type(exc).__name__}: {exc}"
+                if self.queue.fail(job.id, error=msg, worker_id=self.worker_id):
+                    await self._maybe_dead_hook(job, msg)
                 return
             if not self.queue.complete(job.id, worker_id=self.worker_id):
                 logger.warning("job finished but was no longer ours (cancelled or reclaimed)")
@@ -147,6 +206,8 @@ def start_in_process(
     """Run the worker as an asyncio task inside the current process (local dev / single box)."""
     from zenflow.queue import get_default_queue
 
+    if registry is None:
+        load_default_handlers()
     worker = Worker(queue or get_default_queue(), registry, **kw)
     return asyncio.create_task(worker.run_forever(), name="zenflow-worker")
 
@@ -158,6 +219,7 @@ def main() -> None:
 
     zlog.configure_logging("worker")
     dbmod.init_db()  # this process does not import bot.config, which normally creates the schema
+    load_default_handlers()
     asyncio.run(Worker(get_default_queue()).run_forever())
 
 

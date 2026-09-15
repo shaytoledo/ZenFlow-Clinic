@@ -172,6 +172,15 @@ async def complete_session(
     notes["completed_at"] = clock.iso_now()
     await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, notes)
 
+    # Phase 1.3: schedule the 24h follow-up now (durable job) instead of waiting for a poll.
+    from bot.services.followup_jobs import (
+        enqueue_followup,
+        enqueue_recommendations,
+        safe_enqueue,
+    )
+
+    await asyncio.to_thread(safe_enqueue, enqueue_followup, apt_id, notes["completed_at"])
+
     # Auto-queue: if AI recommendations exist + not yet sent + not already queued, schedule them
     try:
         from web.repositories.treatment_repo import get_by_appointment, save_pending_recommendations
@@ -205,6 +214,7 @@ async def complete_session(
                         )
                 send_at = clock.hours_ahead(24)
                 await asyncio.to_thread(save_pending_recommendations, apt_id, items, send_at)
+                await asyncio.to_thread(safe_enqueue, enqueue_recommendations, apt_id, send_at)
 
                 # Look up patient name + check contact info for the alert
                 from bot.db import get_db
@@ -319,6 +329,9 @@ async def send_recommendations(
         from web.repositories.treatment_repo import save_pending_recommendations as _save_pending
 
         await asyncio.to_thread(_save_pending, apt_id, enabled, send_at)
+        from bot.services.followup_jobs import enqueue_recommendations, safe_enqueue
+
+        await asyncio.to_thread(safe_enqueue, enqueue_recommendations, apt_id, send_at)
 
         # Lookup name for the notification
         from bot.db import get_db
@@ -445,6 +458,10 @@ async def send_recommendations(
             patient_id,
             {"recommendations_sent_at": clock.iso_now()},
         )
+        # Delivered now: drop any auto-queued copy so the T+24h job finds nothing to send.
+        from web.repositories.treatment_repo import clear_pending_recommendations
+
+        await asyncio.to_thread(clear_pending_recommendations, apt_id)
 
     # Record a success notification
     try:
