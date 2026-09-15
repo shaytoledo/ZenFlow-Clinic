@@ -69,7 +69,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 2 — Bot audit & repair (item 6)
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 2.1 | `docs/BOT_AUDIT.md` — full handler sweep, ranked findings | [x] | 2026-09-16 | (see git log) | 17 ranked findings B1–B17 (F3/F4/F5 confirmed; new: wrong-patient relay routing, Markdown breaks relay, double booking, stale therapist registry, silent booking loss). **Awaiting owner scope agreement + Q6/Q8/Q9 before 2.2** |
+| 2.1 | `docs/BOT_AUDIT.md` — full handler sweep, ranked findings | [x] | 2026-09-16 | a993baf | 17 ranked findings B1–B17 (F3/F4/F5 confirmed; new: wrong-patient relay routing, Markdown breaks relay, double booking, stale therapist registry, silent booking loss). **Awaiting owner scope agreement + Q6/Q8/Q9 before 2.2** |
 | 2.2 | Known fixes F3, F4, F5 + error handler + /cancel + timeout | [ ] | | | |
 | 2.3 | State persistence across restarts | [ ] | | | |
 | 2.4 | Multi-therapist relay isolation tests | [ ] | | | |
