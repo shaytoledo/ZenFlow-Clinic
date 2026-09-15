@@ -117,6 +117,7 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 
 zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── settings.py              # THE place env vars are read: Settings + FeatureFlags (ZF_*), fail-fast validation
+├── logging.py               # Structured logging: context (request_id…), redaction, console/JSON formatters, timed()
 ├── token_key.py             # Fernet derivation for google_tokens + rotate()
 └── rotate_token_key.py      # python -m zenflow.rotate_token_key [--dry-run]
 
@@ -168,6 +169,7 @@ Any message / /start → SELECTING (main menu)
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
 - Read configuration through `zenflow.settings.get_settings()` — never `os.getenv` (exceptions: `bot/db.py`, `startup/launch.py`). New flags go in `FeatureFlags` with both paths tested.
+- Logging (ADR-18): `logging.getLogger(__name__)` as usual — `zenflow/logging.py` configures the root once per process. Bind context with `zlog.bind(...)` / `with zlog.log_context(appointment_id=..)`; time calls with `zlog.timed(...)`. Never `print()` in services; never log tokens (they are redacted anyway).
 - Authz (ADR-17): every `/api` router is included in `web/app.py` with `dependencies=_API_AUTH`; any endpoint that touches an appointment resolves it via `resolve_owned_appointment` (404) or `require_appointment_access` (403) from `web/deps.py` — never by patient/date/time alone. Repository reads take a `therapist_id` filter.
 - `availability.py` may import `appointments.py` — not the other way around (circular import risk).
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
@@ -190,6 +192,7 @@ Any message / /start → SELECTING (main menu)
 | `SESSION_SECRET` | — | Signs `zf_session` cookie (web dashboard); default refused outside dev |
 | `TOKEN_ENCRYPTION_KEY` | — | Fernet material for stored Google tokens; required outside dev, must differ from `SESSION_SECRET` |
 | `ENV` | `dev` | `dev` / `test` / `staging` / `prod` — enables fail-fast + HTTPS-only validation |
+| `LOG_FORMAT` / `LOG_LEVEL` | `auto` / `INFO` | console in dev, JSON otherwise; root level |
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |

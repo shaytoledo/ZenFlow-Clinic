@@ -130,6 +130,10 @@ The patient bot reads these slots automatically.
 
 ## 7. Monitor logs
 
+Lines are structured (`zenflow/logging.py`): human-readable in dev, one JSON object per line
+when `LOG_FORMAT=json` (or outside dev). Every line carries a `request_id` — grep for it to follow
+one request or one scheduler sweep across services. Secrets are redacted before they are written.
+
 ```bash
 # Windows (PowerShell)
 Get-Content logs/botLogs.text -Wait

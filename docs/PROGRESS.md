@@ -17,7 +17,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 | 0.2 | pyproject, black, ruff, mypy, pre-commit, Makefile | [x] | 2026-09-14 | 3a43bc2 | + black 4abcc89, strict-island types a428572, ruff fixes e3c02fb/6033fb9. Baselines: ruff ignore list, mypy 38 modules ignored, coverage 0% (fail_under=0), bandit 5 medium / 51 low. ADR-13/14. HTTPS rule added to plan 0.4 (owner request) — [PR #1](https://github.com/shaytoledo/ZenFlow-Clinic/pull/1) |
 | 0.3 | `tests/` harness + conftest fixtures + 10 smoke tests | [x] | 2026-09-14 | a8a2a09 | conftest: per-test SQLite (`ZENFLOW_DB_PATH`), fakeredis, ASGI client + real sign-in, freezegun, fake Telegram, fake LLM, 5 factories. Smoke test found **SF-005**: 13 API routes open without a session (strict xfail until 0.5) — [PR #1](https://github.com/shaytoledo/ZenFlow-Clinic/pull/1) |
 | 0.4 | `zenflow/settings.py` + feature-flag registry | [x] | 2026-09-15 | 7fb2490 | pydantic-settings; fail-fast on default secret / missing TOKEN_ENCRYPTION_KEY / non-local http (ADR-14); 8 typed ZF_* flags both paths tested; `/api/admin/flags`; `python -m zenflow.rotate_token_key`. ADR-16 — [PR #1](https://github.com/shaytoledo/ZenFlow-Clinic/pull/1) |
-| 0.5 | Structured logging + redaction + request-id | [ ] | | | |
+| 0.5 | Structured logging + redaction + request-id | [x] | 2026-09-15 | 1b5f224 | `zenflow/logging.py` (stdlib, ADR-18): context via ContextVar + record factory, console/JSON by `LOG_FORMAT`, secret redaction (11 shapes tested), `X-Request-ID` middleware + access log, scheduler job ids |
 
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
