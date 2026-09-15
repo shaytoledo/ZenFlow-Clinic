@@ -359,5 +359,47 @@ too invasive for Phase 0); an in-memory `:memory:` SQLite (breaks the thread-loc
 app relies on); a real Redis container (slower, and fakeredis covers every command used).
 
 **Consequences:** importing `ai_intake` still performs a 3-second-timeout Ollama health probe at
-import time (pointed at a closed port in tests, so it fails instantly). Phase 0.4 removes
-import-time side effects altogether.
+import time (pointed at a closed port in tests, so it fails instantly). Phase 0.4 centralised the
+environment reads; the import-time `init_db()` / therapist-registry load in `bot/config.py` stays
+until Phase 12.2.4 removes the mutable module globals.
+
+---
+
+## ADR-16: One Settings Module, Fail-Fast Validation, Typed Feature Flags
+
+**Date:** 2026-09-15 (Phase 0.4)
+
+**Decision:** `zenflow/settings.py` (pydantic-settings) is the only place environment variables
+are read. `bot/config.py` keeps its module-level constant names (about twenty importers) but
+sources every value from `get_settings()`. Validation runs at construction, so a bad environment
+stops the process before it serves a request:
+- outside `dev`/`test`: `SESSION_SECRET` must be set, non-default and ≥ 32 chars;
+  `TOKEN_ENCRYPTION_KEY` must be set, ≥ 32 chars and different from `SESSION_SECRET` (F7);
+  every non-localhost URL must be `https://` (`rediss://` for Redis) (ADR-14);
+- feature flags are a typed `FeatureFlags` model with the `ZF_` prefix; unknown values are
+  rejected; `GET /api/admin/flags` (auth required) shows the live state and never secrets.
+
+**Key separation (F7):** `web/gcal.py` now derives the Fernet key from `TOKEN_ENCRYPTION_KEY`
+when set and from `SESSION_SECRET` otherwise, so pre-0.4 rows keep decrypting.
+`python -m zenflow.rotate_token_key` re-encrypts `google_tokens` from the old material to the
+new one: dry-run mode, consistent SQLite backup (via the backup API, so WAL content is included),
+idempotent, and rows that decrypt with neither key are reported and left untouched.
+
+**Rule for flags:** every flag has BOTH values exercised in tests (`tests/unit/test_settings.py`
+parametrises all eight). A flag that is never exercised is a lie. Consumers arrive with their
+phases (queue backend 1.2, SSE 3.4, images 4.3, WhatsApp 7.4, cloud 12); until then the only
+runtime consumers are `ai_provider` (intake LLM selection) and `channel_whatsapp` (channel factory).
+
+**Sanctioned exceptions:** `bot/db.py` reads `ZENFLOW_DB_PATH` itself because the test harness
+must redirect the database before any project import; `startup/launch.py` parses `.env` by hand
+because it runs before dependencies are installed.
+
+**Alternatives considered:** keep `os.getenv` and add a validator function (no single source of
+truth, easy to bypass); `dynaconf` / `environs` (another dependency for the same result;
+pydantic-settings was already installed transitively); a module of plain constants that reads
+`.env` (no typing, no validation).
+
+**Behaviour change, deliberate:** the default Google redirect URIs moved from port 8080 to 8000,
+matching the port the web app actually listens on and every document that already said 8000.
+`.env` files that set the URIs explicitly are unaffected. Also, `.env` is now loaded only from
+the project root (previously python-dotenv searched parent directories as well).
