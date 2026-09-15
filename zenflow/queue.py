@@ -93,14 +93,29 @@ class TaskQueue(ABC):
         """Atomically take up to `limit` due jobs (pending, or running with an expired lock)."""
 
     @abstractmethod
-    def complete(self, job_id: int) -> None: ...
+    def complete(self, job_id: int, *, worker_id: str | None = None) -> bool:
+        """Mark done. Only a `running` job (and, when given, only the worker holding its lock) can be
+        completed — a late finisher after a cancel or a reclaim is ignored. Returns True if applied.
+        """
 
     @abstractmethod
     def fail(
-        self, job_id: int, *, error: str, retry_at: str | None = None, dead: bool = False
-    ) -> None:
-        """Record a failure. Retries with exponential backoff until max_attempts, then dead-letters.
-        `retry_at` overrides the backoff; `dead=True` dead-letters immediately."""
+        self,
+        job_id: int,
+        *,
+        error: str,
+        retry_at: str | None = None,
+        dead: bool = False,
+        worker_id: str | None = None,
+    ) -> bool:
+        """Record a failure on a `running` job. Retries with exponential backoff until max_attempts,
+        then dead-letters; `retry_at` only overrides the delay (never the budget); `dead=True`
+        dead-letters immediately. Returns True if applied."""
+
+    @abstractmethod
+    def release(self, job_id: int, *, worker_id: str) -> bool:
+        """Give a claimed job back untouched (worker shutting down mid-flight): pending, lock
+        cleared, the unrun attempt not charged. Returns True if applied."""
 
     @abstractmethod
     def cancel(self, job_id: int) -> bool: ...
@@ -129,6 +144,7 @@ class SqliteTaskQueue(TaskQueue):
         max_attempts: int = DEFAULT_MAX_ATTEMPTS,
     ) -> int:
         conn = self._conn()
+        idempotency_key = idempotency_key or None  # "" would be a real (colliding) UNIQUE value
         if idempotency_key:
             row = conn.execute(
                 "SELECT id FROM jobs WHERE idempotency_key=?", (idempotency_key,)
@@ -164,65 +180,94 @@ class SqliteTaskQueue(TaskQueue):
         now_dt = clock.now_utc()
         now = clock.to_iso(now_dt)
         stale_before = clock.to_iso(now_dt - timedelta(seconds=LOCK_TIMEOUT_SECONDS))
-        rows = (
-            self._conn()
-            .execute(
-                """UPDATE jobs
+        conn = self._conn()
+        # A job whose worker keeps dying never reaches fail(): enforce the budget on the crash path.
+        conn.execute(
+            """UPDATE jobs SET status='dead', updated_at=?, locked_by=NULL, locked_at=NULL,
+                               last_error=COALESCE(last_error, 'lock expired after max_attempts')
+               WHERE status='running' AND locked_at < ? AND attempts >= max_attempts""",
+            (now, stale_before),
+        )
+        rows = conn.execute(
+            """UPDATE jobs
                SET status='running', locked_by=?, locked_at=?, attempts=attempts+1, updated_at=?
                WHERE id IN (
                    SELECT id FROM jobs
                    WHERE (status='pending' AND run_at <= ?)
-                      OR (status='running' AND locked_at < ?)
+                      OR (status='running' AND locked_at < ? AND attempts < max_attempts)
                    ORDER BY run_at, id
                    LIMIT ?
                )
                RETURNING *""",
-                (worker_id, now, now, now, stale_before, int(limit)),
-            )
-            .fetchall()
-        )
+            (worker_id, now, now, now, stale_before, int(limit)),
+        ).fetchall()
         return [Job.from_row(r) for r in rows]
 
     # ── outcomes ──
-    def complete(self, job_id: int) -> None:
+    @staticmethod
+    def _owner_clause(worker_id: str | None) -> tuple[str, tuple[Any, ...]]:
+        if worker_id is None:
+            return "status='running'", ()
+        return "status='running' AND locked_by=?", (worker_id,)
+
+    def complete(self, job_id: int, *, worker_id: str | None = None) -> bool:
         now = clock.iso_now()
-        self._conn().execute(
-            """UPDATE jobs SET status='done', completed_at=?, updated_at=?,
-                               locked_by=NULL, locked_at=NULL
-               WHERE id=?""",
-            (now, now, job_id),
+        clause, extra = self._owner_clause(worker_id)
+        cur = self._conn().execute(
+            f"""UPDATE jobs SET status='done', completed_at=?, updated_at=?,
+                                locked_by=NULL, locked_at=NULL
+                WHERE id=? AND {clause}""",
+            (now, now, job_id, *extra),
         )
+        return int(cur.rowcount or 0) > 0
 
     def fail(
-        self, job_id: int, *, error: str, retry_at: str | None = None, dead: bool = False
-    ) -> None:
+        self,
+        job_id: int,
+        *,
+        error: str,
+        retry_at: str | None = None,
+        dead: bool = False,
+        worker_id: str | None = None,
+    ) -> bool:
         conn = self._conn()
+        clause, extra = self._owner_clause(worker_id)
         row = conn.execute(
-            "SELECT attempts, max_attempts FROM jobs WHERE id=?", (job_id,)
+            f"SELECT attempts, max_attempts FROM jobs WHERE id=? AND {clause}", (job_id, *extra)
         ).fetchone()
         if not row:
-            return
+            return False  # not running, or another worker owns it now
         attempts, max_attempts = int(row["attempts"]), int(row["max_attempts"])
         now_dt = clock.now_utc()
         now = clock.to_iso(now_dt)
         err = (error or "")[:MAX_ERROR_LEN]
-        if dead or (retry_at is None and attempts >= max_attempts):
-            conn.execute(
-                """UPDATE jobs SET status='dead', last_error=?, updated_at=?,
-                                   locked_by=NULL, locked_at=NULL
-                   WHERE id=?""",
-                (err, now, job_id),
+        if dead or attempts >= max_attempts:  # the budget applies even with an explicit retry_at
+            cur = conn.execute(
+                f"""UPDATE jobs SET status='dead', last_error=?, updated_at=?,
+                                    locked_by=NULL, locked_at=NULL
+                    WHERE id=? AND {clause}""",
+                (err, now, job_id, *extra),
             )
-            return
+            return int(cur.rowcount or 0) > 0
         if retry_at is None:
             delay = BACKOFF_BASE_SECONDS * (2 ** max(attempts - 1, 0))
             retry_at = clock.to_iso(now_dt + timedelta(seconds=delay))
-        conn.execute(
-            """UPDATE jobs SET status='pending', run_at=?, last_error=?, updated_at=?,
-                               locked_by=NULL, locked_at=NULL
-               WHERE id=?""",
-            (clock.normalize(retry_at), err, now, job_id),
+        cur = conn.execute(
+            f"""UPDATE jobs SET status='pending', run_at=?, last_error=?, updated_at=?,
+                                locked_by=NULL, locked_at=NULL
+                WHERE id=? AND {clause}""",
+            (clock.normalize(retry_at), err, now, job_id, *extra),
         )
+        return int(cur.rowcount or 0) > 0
+
+    def release(self, job_id: int, *, worker_id: str) -> bool:
+        cur = self._conn().execute(
+            """UPDATE jobs SET status='pending', attempts=MAX(attempts - 1, 0), updated_at=?,
+                               locked_by=NULL, locked_at=NULL
+               WHERE id=? AND status='running' AND locked_by=?""",
+            (clock.iso_now(), job_id, worker_id),
+        )
+        return int(cur.rowcount or 0) > 0
 
     def cancel(self, job_id: int) -> bool:
         cur = self._conn().execute(

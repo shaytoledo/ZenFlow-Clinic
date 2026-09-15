@@ -131,8 +131,10 @@ def test_stats_counts_by_status(queue: q.SqliteTaskQueue, frozen_clock) -> None:
     queue.enqueue("c", {}, run_at=clock.hours_ahead(2))
     stats = queue.stats()
     assert stats["pending"] == 2 and stats["running"] == 1
-    queue.fail(b, error="x") if False else None
     assert set(stats) >= {"pending", "running", "done", "dead", "cancelled"}
+    assert (
+        b  # every status is exercised in test_task_queue_review.py::test_stats_counts_every_status
+    )
 
 
 # ── worker ───────────────────────────────────────────────────────────────────────────────────

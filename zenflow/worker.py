@@ -27,7 +27,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from zenflow import logging as zlog
-from zenflow.queue import Job, TaskQueue
+from zenflow.queue import LOCK_TIMEOUT_SECONDS, Job, TaskQueue
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,12 @@ class Worker:
         batch: int = 5,
         handler_timeout: float = 300.0,
     ) -> None:
+        if handler_timeout >= LOCK_TIMEOUT_SECONDS:
+            raise ValueError(
+                f"handler_timeout ({handler_timeout}s) must be shorter than "
+                f"queue.LOCK_TIMEOUT_SECONDS ({LOCK_TIMEOUT_SECONDS}s), or a still-running job "
+                "would be reclaimed and executed twice"
+            )
         self.queue = queue
         self.registry = registry if registry is not None else default_registry
         self.worker_id = worker_id or f"{socket.gethostname()}-{zlog.new_request_id()[:6]}"
@@ -109,21 +115,30 @@ class Worker:
             if handler is None:
                 msg = f"no handler registered for job {job.name!r}"
                 logger.error(msg)
-                self.queue.fail(job.id, error=msg, dead=True)
+                self.queue.fail(job.id, error=msg, dead=True, worker_id=self.worker_id)
                 return
             try:
                 with zlog.timed(logger, "job completed", attempt=job.attempts):
                     await asyncio.wait_for(handler(job.payload), timeout=self.handler_timeout)
+            except asyncio.CancelledError:
+                # Worker shutting down mid-flight: hand the job back immediately (not charged),
+                # instead of leaving it locked until LOCK_TIMEOUT expires.
+                self.queue.release(job.id, worker_id=self.worker_id)
+                logger.info("job released on worker cancellation")
+                raise
             except TimeoutError:
                 msg = f"handler timed out after {self.handler_timeout}s"
                 logger.error(msg)
-                self.queue.fail(job.id, error=msg)
+                self.queue.fail(job.id, error=msg, worker_id=self.worker_id)
                 return
             except Exception as exc:
                 logger.exception("job failed (attempt %s/%s)", job.attempts, job.max_attempts)
-                self.queue.fail(job.id, error=f"{type(exc).__name__}: {exc}")
+                self.queue.fail(
+                    job.id, error=f"{type(exc).__name__}: {exc}", worker_id=self.worker_id
+                )
                 return
-            self.queue.complete(job.id)
+            if not self.queue.complete(job.id, worker_id=self.worker_id):
+                logger.warning("job finished but was no longer ours (cancelled or reclaimed)")
 
 
 def start_in_process(
@@ -138,9 +153,11 @@ def start_in_process(
 
 def main() -> None:
     """`python -m zenflow.worker` — standalone worker process."""
+    import bot.db as dbmod
     from zenflow.queue import get_default_queue
 
     zlog.configure_logging("worker")
+    dbmod.init_db()  # this process does not import bot.config, which normally creates the schema
     asyncio.run(Worker(get_default_queue()).run_forever())
 
 

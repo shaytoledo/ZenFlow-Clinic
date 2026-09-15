@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import subprocess
 from pathlib import Path
@@ -118,6 +119,16 @@ async def _post_init(app: Application) -> None:
         logger.error(f"Could not start job worker: {e}")
 
 
+async def _post_shutdown(app: Application) -> None:
+    """Cancel our background tasks so a job in flight is released, not left locked."""
+    for key in ("_worker_task", "_followup_task"):
+        task = app.bot_data.get(key)
+        if task is not None and not task.done():
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await task
+
+
 # ── app builder ───────────────────────────────────────────────────────────────
 
 
@@ -128,6 +139,7 @@ def build_patient_app() -> Application:
         .connect_timeout(30.0)
         .read_timeout(30.0)
         .post_init(_post_init)
+        .post_shutdown(_post_shutdown)
         .build()
     )
 
