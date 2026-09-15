@@ -208,7 +208,9 @@ def get_settings() -> Settings:
     if _settings is None:
         try:
             env_file = _env_file()
-            _settings = Settings(_env_file=env_file, flags=FeatureFlags(_env_file=env_file))
+            # pydantic-settings accepts _env_file at init; its stubs do not declare it.
+            flags = FeatureFlags(_env_file=env_file)  # type: ignore[call-arg]
+            _settings = Settings(_env_file=env_file, flags=flags)  # type: ignore[call-arg]
         except ValidationError as exc:
             # Name the offending ENV VAR, not the pydantic field: ZF_QUEUE_BACKEND, not queue_backend.
             prefix = "ZF_" if exc.title == "FeatureFlags" else ""
