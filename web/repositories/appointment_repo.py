@@ -32,19 +32,24 @@ def list_all() -> list[dict[str, Any]]:
     return [_parse(r) for r in rows]
 
 
-def list_by_patient(patient_id: int) -> list[dict[str, Any]]:
-    rows = (
-        _conn()
-        .execute(
-            """SELECT a.*, i.history_json
+def get_by_id(appointment_id: int) -> dict[str, Any] | None:
+    """Fetch one appointment row by primary key (no intake join)."""
+    row = _conn().execute("SELECT * FROM appointments WHERE id=?", (appointment_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def list_by_patient(patient_id: int, therapist_id: str | None = None) -> list[dict[str, Any]]:
+    """All appointments for a patient — optionally only those owned by `therapist_id`."""
+    sql = """SELECT a.*, i.history_json
            FROM appointments a
            LEFT JOIN intake_sessions i ON i.appointment_id = a.id
-           WHERE a.patient_id=?
-           ORDER BY a.date, a.time""",
-            (patient_id,),
-        )
-        .fetchall()
-    )
+           WHERE a.patient_id=?"""
+    params: list[Any] = [patient_id]
+    if therapist_id:
+        sql += " AND a.therapist_id=?"
+        params.append(therapist_id)
+    sql += " ORDER BY a.date, a.time"
+    rows = _conn().execute(sql, params).fetchall()
     return [_parse(r) for r in rows]
 
 
@@ -63,38 +68,39 @@ def list_active_by_patient(patient_id: int) -> list[dict[str, Any]]:
 
 
 def get_by_patient_date_time(
-    patient_id: int, apt_date: str, apt_time: str
+    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
 ) -> dict[str, Any] | None:
-    """Fetch a single appointment record (apt_time accepts HH:MM or HH-MM)."""
+    """Fetch a single appointment record (apt_time accepts HH:MM or HH-MM).
+
+    With `therapist_id` the lookup is tenant-scoped: another therapist's appointment is
+    simply "not found".
+    """
     time_str = apt_time.replace("-", ":")
-    row = (
-        _conn()
-        .execute(
-            """SELECT a.*, i.history_json
+    sql = """SELECT a.*, i.history_json
            FROM appointments a
            LEFT JOIN intake_sessions i ON i.appointment_id = a.id
-           WHERE a.patient_id=? AND a.date=? AND a.time=?
-           ORDER BY a.created_at DESC LIMIT 1""",
-            (patient_id, apt_date, time_str),
-        )
-        .fetchone()
-    )
+           WHERE a.patient_id=? AND a.date=? AND a.time=?"""
+    params: list[Any] = [patient_id, apt_date, time_str]
+    if therapist_id:
+        sql += " AND a.therapist_id=?"
+        params.append(therapist_id)
+    sql += " ORDER BY a.created_at DESC LIMIT 1"
+    row = _conn().execute(sql, params).fetchone()
     return _parse(row) if row else None
 
 
-def get_id(patient_id: int, apt_date: str, apt_time: str) -> int | None:
-    """Return just the appointment id (HH:MM or HH-MM accepted)."""
+def get_id(
+    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
+) -> int | None:
+    """Return just the appointment id (HH:MM or HH-MM accepted); tenant-scoped when given."""
     time_str = apt_time.replace("-", ":")
-    row = (
-        _conn()
-        .execute(
-            """SELECT id FROM appointments
-           WHERE patient_id=? AND date=? AND time=?
-           ORDER BY created_at DESC LIMIT 1""",
-            (patient_id, apt_date, time_str),
-        )
-        .fetchone()
-    )
+    sql = "SELECT id FROM appointments WHERE patient_id=? AND date=? AND time=?"
+    params: list[Any] = [patient_id, apt_date, time_str]
+    if therapist_id:
+        sql += " AND therapist_id=?"
+        params.append(therapist_id)
+    sql += " ORDER BY created_at DESC LIMIT 1"
+    row = _conn().execute(sql, params).fetchone()
     return row[0] if row else None
 
 
@@ -155,41 +161,31 @@ def insert_manual(
     return int(cur.lastrowid), patient_id
 
 
-def search_patients(query: str, limit: int = 10) -> list[dict[str, Any]]:
+def search_patients(
+    query: str, limit: int = 10, therapist_id: str | None = None
+) -> list[dict[str, Any]]:
     """Search distinct patients by name (latest contact info per patient).
 
     Returns: [{patient_id, patient_name, patient_phone, patient_email, source, last_seen}]
+    With `therapist_id`, only patients who have an appointment with that therapist.
     """
     q = (query or "").strip()
+    where: list[str] = []
+    params: list[Any] = []
     if q:
-        rows = (
-            _conn()
-            .execute(
-                """SELECT patient_id, patient_name, patient_phone, patient_email, source,
-                      MAX(created_at) AS last_seen
-               FROM appointments
-               WHERE patient_name LIKE ?
-               GROUP BY patient_id
-               ORDER BY last_seen DESC
-               LIMIT ?""",
-                (f"%{q}%", limit),
-            )
-            .fetchall()
-        )
-    else:
-        rows = (
-            _conn()
-            .execute(
-                """SELECT patient_id, patient_name, patient_phone, patient_email, source,
-                      MAX(created_at) AS last_seen
-               FROM appointments
-               GROUP BY patient_id
-               ORDER BY last_seen DESC
-               LIMIT ?""",
-                (limit,),
-            )
-            .fetchall()
-        )
+        where.append("patient_name LIKE ?")
+        params.append(f"%{q}%")
+    if therapist_id:
+        where.append("therapist_id = ?")
+        params.append(therapist_id)
+    sql = """SELECT patient_id, patient_name, patient_phone, patient_email, source,
+                  MAX(created_at) AS last_seen
+           FROM appointments"""
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " GROUP BY patient_id ORDER BY last_seen DESC LIMIT ?"
+    params.append(limit)
+    rows = _conn().execute(sql, params).fetchall()
     return [dict(r) for r in rows]
 
 

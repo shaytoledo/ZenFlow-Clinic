@@ -207,7 +207,9 @@ async def create_slot(request: Request, slot: SlotIn):
 async def delete_slot(request: Request, event_id: str, calendarId: str = "local"):
     tid = _get_session_therapist_id(request)
     if not is_authenticated(tid):
-        await asyncio.to_thread(availability_service.remove_local, event_id)
+        removed = await asyncio.to_thread(availability_service.remove_local, event_id, tid)
+        if not removed:
+            raise HTTPException(status_code=404, detail="Slot not found")
         return JSONResponse({"ok": True})
     try:
         client = await asyncio.to_thread(GCalClient.load, tid)

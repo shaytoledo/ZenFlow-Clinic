@@ -43,13 +43,15 @@ def list_today() -> list[dict]:
     return [a for a in list_all() if a.get("date") == today and a.get("status") == "active"]
 
 
-def get_by_patient_date_time(patient_id: int, apt_date: str, apt_time: str) -> dict | None:
+def get_by_patient_date_time(
+    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
+) -> dict | None:
     """Fetch a specific appointment record (time accepts HH:MM or HH-MM)."""
-    return appointment_repo.get_by_patient_date_time(patient_id, apt_date, apt_time)
+    return appointment_repo.get_by_patient_date_time(patient_id, apt_date, apt_time, therapist_id)
 
 
-def list_by_patient(patient_id: int) -> list[dict]:
-    return appointment_repo.list_by_patient(patient_id)
+def list_by_patient(patient_id: int, therapist_id: str | None = None) -> list[dict]:
+    return appointment_repo.list_by_patient(patient_id, therapist_id)
 
 
 def aggregate_patients(appointments: list[dict]) -> list[dict]:

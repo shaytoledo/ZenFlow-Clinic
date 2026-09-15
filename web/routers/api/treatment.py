@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from web.deps import _active_therapist_or_redirect
+from web.deps import _active_therapist_or_redirect, require_appointment_access
 from web.services import telegram_service, treatment_service
 
 router = APIRouter(prefix="/api/treatment-notes")
@@ -65,9 +65,12 @@ class ManualFeedbackIn(BaseModel):
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 
-async def _resolve_apt_id(patient_id: int, apt_date: str, apt_time: str) -> int:
+async def _resolve_apt_id(
+    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
+) -> int:
+    """Resolve to THIS therapist's appointment; another tenant's is a 404 (F6)."""
     apt_id = await asyncio.to_thread(
-        treatment_service.get_appointment_id, patient_id, apt_date, apt_time
+        treatment_service.get_appointment_id, patient_id, apt_date, apt_time, therapist_id
     )
     if not apt_id:
         raise HTTPException(status_code=404, detail="Appointment not found")
@@ -86,8 +89,8 @@ def _require_auth(request: Request):
 
 @router.get("/{patient_id}/{apt_date}/{apt_time}")
 async def get_treatment_notes(patient_id: int, apt_date: str, apt_time: str, request: Request):
-    _require_auth(request)
-    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+    therapist = _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
     notes = await asyncio.to_thread(treatment_service.get_notes, apt_id)
     if not notes:
         # Also return source so the UI can show the no-Telegram alert
@@ -136,8 +139,8 @@ async def save_treatment_notes(
     body: TreatmentNotesIn,
     request: Request,
 ):
-    _require_auth(request)
-    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+    therapist = _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
     await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, body.model_dump())
     return JSONResponse({"ok": True})
 
@@ -157,7 +160,7 @@ async def complete_session(
     exactly 24 hours from now. Therapist can still hit "Send Now" to override.
     """
     therapist = _require_auth(request)
-    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
 
     import datetime as _dt
 
@@ -298,13 +301,16 @@ async def send_recommendations(
           * has neither phone nor email → 400 "no_contact"
     """
     therapist = _require_auth(request)
+    # Tenant check BEFORE any branch: the immediate-send path used to message the patient id
+    # straight from the URL without ever resolving the appointment (F6).
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
     enabled = [item for item in body.items if item.get("enabled")]
     if not enabled:
         raise HTTPException(status_code=400, detail="No recommendations selected")
 
     # ── Delayed queue: schedule_hours >= 24 without an email override → store for later
     if body.schedule_hours >= 24 and not body.email:
-        apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+        apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
         import datetime as _dt
 
         send_at = (_dt.datetime.now() + _dt.timedelta(hours=body.schedule_hours)).isoformat()
@@ -466,8 +472,8 @@ async def save_manual_feedback(
     request: Request,
 ):
     """Save therapist-entered patient feedback (fallback when no Telegram)."""
-    _require_auth(request)
-    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+    therapist = _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
     if body.rating is not None and not (1 <= body.rating <= 5):
         raise HTTPException(status_code=400, detail="Rating must be 1–5")
     from web.repositories.treatment_repo import save_manual_feedback as _save
@@ -607,9 +613,9 @@ async def rediagnose(
         .execute(
             """SELECT a.id as apt_id, a.summary
            FROM appointments a
-           WHERE a.patient_id=? AND a.date=? AND a.time=?
+           WHERE a.patient_id=? AND a.date=? AND a.time=? AND a.therapist_id=?
            ORDER BY a.created_at DESC LIMIT 1""",
-            (patient_id, apt_date, time_str),
+            (patient_id, apt_date, time_str, therapist["id"]),
         )
         .fetchone()
     )
@@ -719,7 +725,7 @@ async def generate_points(
     """
     therapist = _require_auth(request)
     lang = (therapist.get("language") or "en") if isinstance(therapist, dict) else "en"
-    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
 
     from web.repositories.treatment_repo import (
         get_by_appointment as _get,
@@ -803,7 +809,7 @@ async def regenerate_points(
     """
     therapist = _require_auth(request)
     lang = (therapist.get("language") or "en") if isinstance(therapist, dict) else "en"
-    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
 
     from web.repositories.treatment_repo import (
         append_points as _append,
@@ -912,7 +918,7 @@ async def debug_points(appointment_id: int, request: Request):
     Returns: appointment_id, points_status, ai_suggested_points (raw JSON string + parsed list),
              tcm_pattern, and updated_at so you can tell exactly what the DB contains.
     """
-    _require_auth(request)
+    require_appointment_access(request, appointment_id)  # 403 for another tenant's row (F6)
     from web.repositories.treatment_repo import get_by_appointment as _get
 
     row = await asyncio.to_thread(_get, appointment_id)

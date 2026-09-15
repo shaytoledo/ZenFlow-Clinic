@@ -403,3 +403,40 @@ pydantic-settings was already installed transitively); a module of plain constan
 matching the port the web app actually listens on and every document that already said 8000.
 `.env` files that set the URIs explicitly are unaffected. Also, `.env` is now loaded only from
 the project root (previously python-dotenv searched parent directories as well).
+
+---
+
+## ADR-17: Authorization Model — Router-Level Authentication, Object-Level Tenant Scoping
+
+**Date:** 2026-09-15 (Phase 0.5 security triage: F6, F11, SF-005…SF-007)
+
+**Decision:**
+1. **Authentication is attached at router level.** `web/app.py` includes every `/api/*` router
+   with `dependencies=[Depends(require_signed_in)]`. FastAPI resolves dependencies before it
+   validates the body, so an anonymous caller always gets `401` — never a `422` that reveals the
+   request schema — and no endpoint can forget the check. `GET /healthz` (outside `/api`) is the
+   only public endpoint and returns exactly `{"ok": true}`.
+2. **Two authentication levels.** `require_signed_in` = the session names an existing therapist
+   (used at router level, because onboarding endpoints such as `/api/my/status` must work for
+   not-yet-activated accounts). `require_active_therapist` = signed in *and* activated (used by
+   data endpoints).
+3. **Authorization is object-level and tenant-scoped.** `resolve_owned_appointment(request,
+   patient_id, date, time)` resolves the triplet **filtered by the session therapist** and
+   answers `404` otherwise (no existence leak). `require_appointment_access(request,
+   appointment_id)` loads by row id and answers `403` when the row belongs to someone else
+   (the id path is already enumerable, so hiding existence buys nothing). Repository read
+   functions gained an optional `therapist_id` filter; list endpoints filter on it.
+4. **Relay conversations are owned by the therapist recorded in the active session key**
+   (`zenflow:relay:active:{patient_id}`). Without an active session, a conversation is
+   reachable only by a therapist who has an appointment with that patient.
+5. **Session cookie:** `Secure` outside dev/test, `SameSite=lax`, explicit `max_age` (30 d),
+   `HttpOnly` (always set by the middleware).
+
+**Alternatives considered:** a global middleware keyed on the path prefix (works, but hides the
+requirement from the route table and bypasses FastAPI's dependency graph); per-endpoint
+decorators only (what existed — and what SF-005 proved is forgotten); moving scoping into SQL
+views per tenant (right for Postgres row-level security in Phase 12, premature for SQLite).
+
+**Consequences:** every future `/api` router must be included with `_API_AUTH`; every
+appointment-bound endpoint must resolve through the two helpers. Phase 9.1 adds the route/authz
+table with a CI test that fails on any new route lacking an entry.

@@ -7,7 +7,7 @@ All HTML page routes for the ZenFlow therapist web app.
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from web.deps import _active_therapist_or_redirect, templates
+from web.deps import _active_therapist_or_redirect, resolve_owned_appointment, templates
 from web.i18n import get_t
 from web.services.cache_service import prefetch_calendar
 
@@ -71,6 +71,10 @@ async def sessions_history_page(request: Request):
 
 @router.get("/treatment/{patient_id}/{apt_date}/{apt_time}", response_class=HTMLResponse)
 async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_time: str):
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        return RedirectResponse(redirect)
+    resolve_owned_appointment(request, patient_id, apt_date, apt_time)  # 404 unless it is theirs
     return _page(request, "treatment.html", "patients")
 
 

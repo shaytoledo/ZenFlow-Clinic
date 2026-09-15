@@ -35,10 +35,11 @@ def _parse_json_cols(d: dict[str, Any]) -> dict[str, Any]:
     return d
 
 
-def get_full_history(patient_id: int) -> dict[str, Any] | None:
+def get_full_history(patient_id: int, therapist_id: str | None = None) -> dict[str, Any] | None:
     """Return patient summary + all appointments with treatment and intake data.
 
-    Returns None if the patient_id does not exist.
+    Returns None if the patient_id does not exist — or, when `therapist_id` is given, has no
+    appointment with that therapist (tenant scoping, F6).
     """
     rows = (
         _conn()
@@ -78,8 +79,10 @@ def get_full_history(patient_id: int) -> dict[str, Any] | None:
            LEFT JOIN intake_sessions i ON i.appointment_id = a.id
            WHERE a.patient_id = ?
              AND a.status = 'active'
-           ORDER BY a.date DESC, a.time DESC""",
-            (patient_id,),
+           """
+            + (" AND a.therapist_id = ? " if therapist_id else "")
+            + " ORDER BY a.date DESC, a.time DESC",
+            (patient_id, therapist_id) if therapist_id else (patient_id,),
         )
         .fetchall()
     )

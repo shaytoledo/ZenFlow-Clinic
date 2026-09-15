@@ -126,6 +126,37 @@ async def authenticated_client(client: httpx.AsyncClient, make_therapist) -> htt
     return client
 
 
+@pytest.fixture
+async def login_as():
+    """Factory: a brand-new client (own cookie jar) signed in as the given therapist dict.
+
+    The therapist must have been created with `make_therapist(email=..., password=...)`.
+    Used by multi-tenant tests that need two sessions side by side.
+    """
+    from web.app import app
+
+    clients: list[httpx.AsyncClient] = []
+
+    async def _login(therapist: dict[str, Any]) -> httpx.AsyncClient:
+        c = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://testserver",
+            follow_redirects=False,
+        )
+        clients.append(c)
+        resp = await c.post(
+            "/register/signin",
+            data={"email": therapist["email"], "password": therapist["password"]},
+        )
+        assert resp.status_code in (302, 303, 307), f"sign-in failed: {resp.status_code}"
+        assert "zf_session" in c.cookies
+        return c
+
+    yield _login
+    for c in clients:
+        await c.aclose()
+
+
 # ── 5. Clock ─────────────────────────────────────────────────────────────────────────────────
 FROZEN_AT = "2026-03-01T12:00:00"
 
@@ -157,6 +188,19 @@ class FakeTelegram:
         )
         self._next_id += 1
         return {"ok": True, "result": {"message_id": self._next_id, "chat": {"id": chat_id}}}
+
+
+@pytest.fixture(autouse=True)
+def block_real_telegram(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test may reach api.telegram.org. Request `fake_telegram` to record sends instead."""
+    import web.services.telegram_service as ts
+
+    async def _blocked(token: str, chat_id: int, text: str, parse_mode: str) -> dict[str, Any]:
+        raise RuntimeError(
+            "real Telegram send attempted in a test — use the `fake_telegram` fixture"
+        )
+
+    monkeypatch.setattr(ts, "_send", _blocked)
 
 
 @pytest.fixture

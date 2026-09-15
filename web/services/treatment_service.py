@@ -12,9 +12,11 @@ from web.repositories import appointment_repo, treatment_repo
 logger = logging.getLogger(__name__)
 
 
-def get_appointment_id(patient_id: int, apt_date: str, apt_time: str) -> int | None:
-    """Resolve an appointment row ID from patient/date/time."""
-    return appointment_repo.get_id(patient_id, apt_date, apt_time)
+def get_appointment_id(
+    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
+) -> int | None:
+    """Resolve an appointment row ID from patient/date/time (tenant-scoped when given)."""
+    return appointment_repo.get_id(patient_id, apt_date, apt_time, therapist_id)
 
 
 def get_notes(appointment_id: int) -> dict | None:

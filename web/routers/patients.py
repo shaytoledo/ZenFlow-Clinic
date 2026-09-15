@@ -26,7 +26,9 @@ async def patient_profile(request: Request, patient_id: int):
 
     from web.repositories import patient_repo
 
-    history = await asyncio.to_thread(patient_repo.get_full_history, patient_id)
+    history = await asyncio.to_thread(
+        patient_repo.get_full_history, patient_id, therapist["id"] if therapist else None
+    )
     if not history:
         return RedirectResponse("/patients")
 
@@ -51,7 +53,9 @@ async def session_archive(request: Request, patient_id: int, appointment_id: int
 
     from web.repositories import patient_repo
 
-    history = await asyncio.to_thread(patient_repo.get_full_history, patient_id)
+    history = await asyncio.to_thread(
+        patient_repo.get_full_history, patient_id, therapist["id"] if therapist else None
+    )
     if not history:
         return RedirectResponse("/patients")
 
