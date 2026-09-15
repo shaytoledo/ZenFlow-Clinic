@@ -22,11 +22,11 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| F6 | Multi-tenant IDOR — `require_appointment_access` on all routes | [ ] | | | **highest severity** — also close SF-005 (13 routes need *any* auth first; strict xfails in `test_smoke_web.py`) |
-| F7 | SESSION_SECRET fail-fast + separate TOKEN_ENCRYPTION_KEY | [~] | 2026-09-15 | 7fb2490 | settings + rotation command done in 0.4; 0.5 verifies the boot-refusal end to end and sets the key on the running install |
+| F6 | Multi-tenant IDOR — `require_appointment_access` on all routes | [x] | 2026-09-15 | 61835ff | `web/deps.py` authz helpers + tenant filters in repos/services; every appointment/patient/relay/slot path scoped; SF-005/006/007 closed; `tests/security/test_tenant_isolation.py` |
+| F7 | SESSION_SECRET fail-fast + separate TOKEN_ENCRYPTION_KEY | [x] | 2026-09-15 | 7fb2490 | settings + rotation in 0.4; boot refusal verified in a real subprocess (`test_app_refuses_to_boot_with_default_secret_in_prod`). Owner still to set `TOKEN_ENCRYPTION_KEY` on the running install (runbook in ARCHITECTURE.md) |
 | F8 | Committed Redis snapshots — untrack + content review | [x] | 2026-09-14 | 941e8c9 | Untracked, reviewed (SF-003: fake test data, no tokens — confirmed by owner), purged from history — [PR #1](https://github.com/shaytoledo/ZenFlow-Clinic/pull/1) |
-| F11 | `/api/status` requires auth; add public `/healthz` | [ ] | | | also `/api/smtp-status` |
-| — | Session cookie flags (https_only / same_site / max_age) | [ ] | | | |
+| F11 | `/api/status` requires auth; add public `/healthz` | [x] | 2026-09-15 | 61835ff | router-level auth covers `/api/status` and `/api/smtp-status`; `GET /healthz` → `{"ok": true}` only |
+| — | Session cookie flags (https_only / same_site / max_age) | [x] | 2026-09-15 | 61835ff | `web/app.py::session_cookie_kwargs`: Secure outside dev, SameSite=lax, max_age 30 d, HttpOnly |
 
 ## Phase 1 — Time, jobs & durable scheduling
 | # | Task | Status | Date | Commit | Notes |

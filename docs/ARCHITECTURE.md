@@ -335,6 +335,13 @@ The schedule page (`/schedule`) is the only page that loads JavaScript. The mono
 
 ## Web Dashboard Routes
 
+**Authentication (ADR-17):** every `/api/*` router is mounted with a router-level session
+dependency (`require_signed_in`), so anonymous requests get `401` before body validation.
+Appointment-bound endpoints additionally resolve the appointment **scoped to the session
+therapist** (`resolve_owned_appointment` → 404, `require_appointment_access` → 403). The only
+public endpoint is `GET /healthz` → `{"ok": true}`.
+
+
 ### Pages
 
 | Route | Auth | Description |

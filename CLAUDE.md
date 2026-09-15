@@ -168,6 +168,7 @@ Any message / /start → SELECTING (main menu)
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
 - Read configuration through `zenflow.settings.get_settings()` — never `os.getenv` (exceptions: `bot/db.py`, `startup/launch.py`). New flags go in `FeatureFlags` with both paths tested.
+- Authz (ADR-17): every `/api` router is included in `web/app.py` with `dependencies=_API_AUTH`; any endpoint that touches an appointment resolves it via `resolve_owned_appointment` (404) or `require_appointment_access` (403) from `web/deps.py` — never by patient/date/time alone. Repository reads take a `therapist_id` filter.
 - `availability.py` may import `appointments.py` — not the other way around (circular import risk).
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
 
@@ -207,9 +208,10 @@ Any message / /start → SELECTING (main menu)
 - Session history page (`/sessions`): all sessions sortable by name/date/last access
 - "Complete Session" button sets `completed_at` timestamp
 - Live relay chat visible and sendable from web messages page (`/messages`)
-- System health API (`/api/status`) covering Redis, Ollama, bots, Google Calendar
+- System health API (`/api/status`, auth required) covering Redis, Ollama, bots, Google Calendar; public liveness probe `GET /healthz`
 - "Change Therapist" button in main menu (appears after therapist is selected)
 - Test harness (`tests/`): per-test SQLite, fakeredis, ASGI client, fake Telegram/LLM, factories; `python tasks.py test`
+- Multi-tenant isolation: every API/page route scoped to the session therapist; attack suite in `tests/security/`
 
 ## Planned
 - `PicklePersistence` to survive bot restarts without losing in-flight booking state
