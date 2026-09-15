@@ -290,3 +290,83 @@ def list_completed_for_followup(window_start_iso: str, window_end_iso: str) -> l
         .fetchall()
     )
     return [dict(r) for r in rows]
+
+
+def get_followup_candidate(appointment_id: int) -> dict[str, Any] | None:
+    """The completed session behind a follow-up job, or None if it is gone or cancelled."""
+    row = (
+        _conn()
+        .execute(
+            """SELECT t.appointment_id, t.patient_id, a.patient_name, a.therapist_id, a.source,
+                  t.completed_at, t.followup_sent_at, t.followup_conversation, t.followup_rating
+           FROM treatment_notes t
+           JOIN appointments a ON a.id = t.appointment_id
+           WHERE t.appointment_id = ? AND a.status = 'active'""",
+            (appointment_id,),
+        )
+        .fetchone()
+    )
+    return dict(row) if row else None
+
+
+def _decode_pending(d: dict[str, Any]) -> dict[str, Any]:
+    try:
+        d["pending_recommendations"] = json.loads(d["pending_recommendations"])
+    except Exception:
+        d["pending_recommendations"] = []
+    return d
+
+
+def get_pending_recommendation(appointment_id: int) -> dict[str, Any] | None:
+    """Queued recommendations for one appointment (any send time), or None if nothing is queued."""
+    row = (
+        _conn()
+        .execute(
+            """SELECT t.appointment_id, t.patient_id, t.pending_recommendations,
+                  t.pending_rec_send_at, a.patient_name, a.patient_phone, a.patient_email,
+                  a.source, a.therapist_id
+           FROM treatment_notes t
+           JOIN appointments a ON a.id = t.appointment_id
+           WHERE t.appointment_id = ? AND t.pending_recommendations IS NOT NULL
+             AND a.status = 'active'""",
+            (appointment_id,),
+        )
+        .fetchone()
+    )
+    return _decode_pending(dict(row)) if row else None
+
+
+def list_recent_completions_without_followup(since_iso: str) -> list[dict[str, Any]]:
+    """Completed since `since_iso` (canonical UTC) and not yet followed up — reconciliation."""
+    rows = (
+        _conn()
+        .execute(
+            """SELECT t.appointment_id, t.completed_at
+           FROM treatment_notes t
+           JOIN appointments a ON a.id = t.appointment_id
+           WHERE t.completed_at IS NOT NULL AND t.completed_at >= ?
+             AND t.followup_sent_at IS NULL
+             AND t.followup_conversation IS NULL
+             AND (t.followup_rating IS NULL OR t.followup_rating = 0)
+             AND a.status = 'active'""",
+            (since_iso,),
+        )
+        .fetchall()
+    )
+    return [dict(r) for r in rows]
+
+
+def list_all_pending_recommendations() -> list[dict[str, Any]]:
+    """Every queued recommendation entry (any send time) — reconciliation."""
+    rows = (
+        _conn()
+        .execute(
+            """SELECT t.appointment_id, t.pending_rec_send_at
+           FROM treatment_notes t
+           JOIN appointments a ON a.id = t.appointment_id
+           WHERE t.pending_recommendations IS NOT NULL AND t.pending_rec_send_at IS NOT NULL
+             AND a.status = 'active'""",
+        )
+        .fetchall()
+    )
+    return [dict(r) for r in rows]

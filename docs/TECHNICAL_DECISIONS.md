@@ -552,3 +552,42 @@ must survive eviction and restarts. SQLite already holds every clinical record a
 (one indexed query). Exactly-once is achieved as at-least-once + idempotent handlers + the
 idempotency key — handlers must be safe to re-run. Phase 1.3 registers the follow-up and
 recommendation handlers and replaces the 30-minute poll; Phase 3.1 moves the intake pipeline.
+
+---
+
+## ADR-21: Follow-ups and Recommendations Are Enqueued at Completion, Not Polled
+
+**Date:** 2026-09-15 (Phase 1.3; fixes F1)
+
+**Before.** `followup_scheduler` polled every 30 minutes inside the bot process and did two
+unrelated jobs: sessions completed 22–26 h ago got step 1, and due queued recommendations were
+sent. A restart across the window lost the follow-up; the only "already sent" guard was a Redis
+key; a Telegram failure was logged and dropped; the email fallback called
+`send_email(to, subject, body)` against the signature `send_email(therapist_id, to, subject,
+body)`, so it always raised `TypeError`, was swallowed, and surfaced as a generic failure alert
+(F1).
+
+**Decision.**
+1. `POST …/complete` enqueues `followup.send_step1` at `completed_at + 24h`
+   (key `followup:{appointment_id}`); queuing recommendations enqueues
+   `recommendations.dispatch` at `pending_rec_send_at` (key
+   `recommendations:{appointment_id}:{send_at}`), from both the auto-queue at completion and the
+   explicit "schedule ≥ 24h" path. Enqueue failures never fail the request (`safe_enqueue`).
+2. Handlers are idempotent against the database. The follow-up checks `followup_sent_at`, the
+   conversation and the rating; a delivery failure now raises so the job retries with backoff.
+   A follow-up that would fire more than 48 h after completion is dropped (a "yesterday" message
+   two days late is worse than none). Patients with no messaging channel are skipped (Phase 6.4
+   raises a therapist alert). Recommendations skip when the queue entry was cleared or its send
+   time changed, so rescheduling needs no job cancellation.
+3. F1: the email fallback passes the therapist id first. When Gmail is not connected the
+   therapist gets one "send failed" alert and the queue entry is kept for "Send Now" — retrying
+   cannot help until they connect Google (Phase 5.4 adds retry-after-reconnect). Other failures
+   retry; the therapist is alerted only on the final attempt (`zenflow.worker.is_last_attempt()`),
+   not on every retry.
+4. The 30-minute loop survives only as `reconcile()`: a safety net that enqueues jobs for rows
+   written before this change or whose enqueue failed.
+
+**Consequences.** Delivery is at-least-once. A crash between the Telegram send and the database
+stamp can repeat a message once; the ordering keeps that window to milliseconds. Timestamps must
+be canonical for the reconciliation query (run `python -m zenflow.migrate_timestamps` once on an
+existing database).

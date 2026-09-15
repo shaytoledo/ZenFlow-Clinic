@@ -24,6 +24,7 @@ import asyncio
 import logging
 import socket
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from typing import Any
 
 from zenflow import logging as zlog
@@ -55,6 +56,29 @@ class HandlerRegistry:
 
 
 default_registry = HandlerRegistry()
+
+#: The job currently being handled (None outside a handler). Lets a handler decide, for example,
+#: to alert a human only on its final attempt instead of on every retry.
+_current_job: ContextVar[Job | None] = ContextVar("zenflow_current_job", default=None)
+
+#: Modules whose import registers handlers on `default_registry`.
+DEFAULT_HANDLER_MODULES: tuple[str, ...] = ("bot.services.followup_jobs",)
+
+
+def current_job() -> Job | None:
+    return _current_job.get()
+
+
+def is_last_attempt() -> bool:
+    job = _current_job.get()
+    return job is not None and job.attempts >= job.max_attempts
+
+
+def load_default_handlers() -> None:
+    import importlib
+
+    for module in DEFAULT_HANDLER_MODULES:
+        importlib.import_module(module)
 
 
 class Worker:
@@ -110,6 +134,13 @@ class Worker:
             "appointment_id": job.payload.get("appointment_id"),
             "patient_id": job.payload.get("patient_id"),
         }
+        token = _current_job.set(job)
+        try:
+            await self._run_handler(job, fields)
+        finally:
+            _current_job.reset(token)
+
+    async def _run_handler(self, job: Job, fields: dict[str, Any]) -> None:
         with zlog.log_context(**fields):
             handler = self.registry.get(job.name)
             if handler is None:
@@ -147,6 +178,8 @@ def start_in_process(
     """Run the worker as an asyncio task inside the current process (local dev / single box)."""
     from zenflow.queue import get_default_queue
 
+    if registry is None:
+        load_default_handlers()
     worker = Worker(queue or get_default_queue(), registry, **kw)
     return asyncio.create_task(worker.run_forever(), name="zenflow-worker")
 
@@ -158,6 +191,7 @@ def main() -> None:
 
     zlog.configure_logging("worker")
     dbmod.init_db()  # this process does not import bot.config, which normally creates the schema
+    load_default_handlers()
     asyncio.run(Worker(get_default_queue()).run_forever())
 
 

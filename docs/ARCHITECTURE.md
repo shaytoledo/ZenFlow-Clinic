@@ -350,7 +350,19 @@ per-job log context and timeout; it is started inside the bot process at `post_i
 `python -m zenflow.worker`. Guarantees tested in `tests/unit/test_task_queue.py`: a job 24 h out
 is not claimed early; duplicate idempotency keys are rejected; failures retry with exponential
 backoff then dead-letter; a job whose worker died is reclaimed after the lock timeout and
-completes exactly once. Phase 1.3 moves the follow-up and recommendation schedulers onto it.
+completes exactly once.
+
+**Registered jobs (Phase 1.3, ADR-21)** — `bot/services/followup_jobs.py`:
+
+| Job | Enqueued by | Runs at | Idempotency key | Skips when |
+|---|---|---|---|---|
+| `followup.send_step1` | `POST …/complete` | `completed_at + 24h` | `followup:{appointment_id}` | session gone/cancelled, already followed up (`followup_sent_at`, conversation or rating), fired > 48 h after completion, patient has no messaging channel |
+| `recommendations.dispatch` | `POST …/complete` (auto-queue) and `POST …/send-recommendations` with `schedule_hours >= 24` | queued `pending_rec_send_at` | `recommendations:{appointment_id}:{send_at}` | nothing queued any more, or the queue entry was rescheduled |
+
+`followup_scheduler.reconcile()` runs every 30 min as a safety net: it enqueues jobs for sessions
+completed in the last 26 h without a follow-up and for every queued recommendation (rows written
+before Phase 1.3, or an enqueue that failed); the keys make it safe to repeat. Delivery is
+at-least-once, so handlers check the database before sending.
 
 ## Logging (Phase 0.5, ADR-18)
 
