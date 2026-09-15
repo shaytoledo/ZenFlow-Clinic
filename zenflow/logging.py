@@ -126,7 +126,7 @@ def new_request_id() -> str:
 
 
 # ── Record factory: context + first-pass redaction ───────────────────────────────────────────
-_CONTEXT_ATTRS: frozenset[str] = frozenset((*CONTEXT_KEYS, "duration_ms", "service"))
+_CONTEXT_ATTRS: frozenset[str] = frozenset((*CONTEXT_KEYS, "duration_ms", "service", "job"))
 
 
 class ZenLogRecord(logging.LogRecord):

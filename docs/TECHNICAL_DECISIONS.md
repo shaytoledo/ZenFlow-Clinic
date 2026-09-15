@@ -514,3 +514,41 @@ normalising on read (leaves SQL-side comparisons broken).
 slot strings from FullCalendar remain naive wall-clock strings by design. The freezegun quirk that
 `tz_offset` also shifts `datetime.now(UTC)` means tests vary `CLINIC_TZ`, not the host offset;
 host offset cannot influence the code any more by construction.
+
+---
+
+## ADR-20: Durable Job Queue — SQLite `jobs` Table Behind a `TaskQueue` Interface
+
+**Date:** 2026-09-15 (Phase 1.2; the plan asked for a researched decision, not an assumption)
+
+**Context.** One small clinic; SQLite + Redis today, AWS later; jobs measured in minutes to
+hours (24 h follow-up, N-hour recommendation delivery, the intake → diagnosis → points chain).
+Today the follow-up scheduler polls every 30 min inside the bot process and the intake pipeline
+is `asyncio.ensure_future` fire-and-forget: a restart loses both, nothing retries, and "already
+sent" lives only in a Redis key that a flush erases.
+
+**Options compared for THIS system**
+
+| Option | Durability across restart | Idempotency / retry | New infra | Fit for 24 h delays | Verdict |
+|---|---|---|---|---|---|
+| (a) in-process asyncio + DB `jobs` table | yes (rows) | built here, tested | none | native (`run_at`) | **chosen now** |
+| (b) APScheduler + SQLAlchemy jobstore | yes | weak (no attempts/dead-letter model; misfire handling only) | SQLAlchemy dep | ok | adds a dep for less than (a) |
+| (c) Celery + Redis broker | broker-dependent; Redis is not durable here (`allkeys-lru`) | retries yes; long ETAs are unreliable (visibility timeout re-delivery) | worker process + broker semantics | poor for 24 h | Phase 12 option |
+| (d) Temporal | excellent (workflow history) | excellent (`sleep(24h)` with retries) | server or Temporal Cloud + SDK | ideal | heavyweight for one clinic; keep as the upgrade path |
+| (e) EventBridge Scheduler + SQS + Lambda/ECS | excellent | at-least-once + DLQ | AWS only | native | Phase 12 target when on AWS |
+
+**Decision.** Implement (a): `zenflow/queue.py` (`TaskQueue` ABC + `SqliteTaskQueue`) and
+`zenflow/worker.py`. Claim is a single atomic `UPDATE … RETURNING`; `idempotency_key` is
+`UNIQUE`; retries back off 60 s × 2^(n−1) up to `max_attempts` then `dead`; a `running` job whose
+lock is older than 10 min is reclaimable (crashed worker). The worker runs inside the bot process
+when `ZF_QUEUE_BACKEND=inprocess` and standalone via `python -m zenflow.worker`. (c)/(d)/(e) plug
+in as further `TaskQueue` implementations in Phase 12; `get_default_queue()` raises
+`NotImplementedError` naming that phase for the other flag values, and both paths are tested.
+
+**Why not Redis for the queue:** the Redis here is a cache with `allkeys-lru` eviction; a job store
+must survive eviction and restarts. SQLite already holds every clinical record and is backed up.
+
+**Consequences.** One more table in the same database; the worker polls every 5 s when idle
+(one indexed query). Exactly-once is achieved as at-least-once + idempotent handlers + the
+idempotency key — handlers must be safe to re-run. Phase 1.3 registers the follow-up and
+recommendation handlers and replaces the 30-minute poll; Phase 3.1 moves the intake pipeline.

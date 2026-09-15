@@ -78,6 +78,15 @@ def db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     dbmod.close_db()
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _structured_logging_installed() -> None:
+    """Install zenflow's log-record factory once, so record context fields (request_id, job, …)
+    exist in every test regardless of which module imported web.app first."""
+    from zenflow import logging as zlog
+
+    zlog.configure_logging("test", fmt="console", install_file_handler=False)
+
+
 @pytest.fixture(autouse=True)
 def _fresh_settings_after_each_test() -> Iterator[None]:
     """A test that monkeypatches env + reset_settings() must not leak its Settings into the next."""

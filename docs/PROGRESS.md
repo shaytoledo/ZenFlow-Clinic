@@ -37,6 +37,13 @@ date-only strings were shifted a day by the migration (now classified `date` and
 `recommendations_sent_at` validated + canonicalised, 400 otherwise); rolling calendar window stamped clinic days as UTC
 midnight (`clock.day_bounds_utc`).
 
+**Review log — PR #5 (Phase 1.2), 2026-09-15.** 8 findings, all fixed before merge (`tests/unit/test_task_queue_review.py`):
+complete/fail now require `status='running'` + owning worker (no resurrecting cancelled/reclaimed jobs); crash path
+enforces the attempt budget (expired-lock jobs at the budget dead-letter); explicit `retry_at` no longer bypasses the
+budget; empty idempotency key = none; standalone worker runs `init_db()`; `handler_timeout` must be shorter than the
+lock timeout; a cancelled worker releases its job (attempt not charged) and the bot cancels background tasks in
+`post_shutdown`; stats test covers every status.
+
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
@@ -50,7 +57,7 @@ midnight (`clock.day_bounds_utc`).
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
 | 1.1 | `zenflow/clock.py` + timestamp audit + data migration (F2) | [x] | 2026-09-15 | d3e0cfa | canonical `…Z` strings; `SQL_NOW`; explicit created_at on every INSERT; `clock.today()` = CLINIC_TZ date; ruff DTZ; `python -m zenflow.migrate_timestamps`; window test at 23h/2h/48h across three clinic zones. ADR-19 — [PR #4](https://github.com/shaytoledo/ZenFlow-Clinic/pull/4) |
-| 1.2 | ADR: queue backend → `TaskQueue` + `jobs` table + worker | [ ] | | | |
+| 1.2 | ADR: queue backend → `TaskQueue` + `jobs` table + worker | [x] | 2026-09-15 | a5264f4 | ADR-20 (5 options compared, (a) chosen); `zenflow/queue.py` + `zenflow/worker.py`; jobs table; in-process worker at bot post_init; conformance suite: not-early, idempotent, backoff→dead-letter, crash recovery exactly-once, both flag paths — [PR #5](https://github.com/shaytoledo/ZenFlow-Clinic/pull/5) |
 | 1.3 | Migrate follow-up + recommendation schedulers to jobs (F1) | [ ] | | | |
 
 ## Phase 2 — Bot audit & repair (item 6)

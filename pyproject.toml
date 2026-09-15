@@ -138,7 +138,7 @@ omit = ["*/__init__.py"]
 
 [tool.coverage.report]
 # Measured baselines: 0 % after Phase 0.2 (tooling tests only), 30 % after Phase 0.3 (harness +
-# smoke tests), 33 % after Phase 0.4, 38 % after Phase 0.5 (security triage), 40 % after task 0.5 (logging), 42 % after the Phase 0 review, 45 % after Phase 1.1. Rule: ratchet +5 per phase; never lower it.
-fail_under = 45
+# smoke tests), 33 % after Phase 0.4, 38 % after Phase 0.5 (security triage), 40 % after task 0.5 (logging), 42 % after the Phase 0 review, 45 % after Phase 1.1, 46 % after Phase 1.2. Rule: ratchet +5 per phase; never lower it.
+fail_under = 46
 show_missing = true
 skip_covered = true
