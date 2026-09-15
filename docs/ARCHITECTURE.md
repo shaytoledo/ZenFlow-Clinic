@@ -284,9 +284,9 @@ app refuse to start with a non-local `http://` URL when `ENV != dev`.
 | `TOKEN_ENCRYPTION_KEY` | — | Fernet material for `google_tokens`. Required outside dev, must differ from `SESSION_SECRET` (F7). Unset ⇒ legacy derivation from `SESSION_SECRET` |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
-| `GOOGLE_REDIRECT_URI` | `http://localhost:8000/auth/callback` | Calendar OAuth redirect |
-| `GOOGLE_REG_REDIRECT_URI` | `http://localhost:8000/register/google/callback` | Registration OAuth redirect |
-| `GOOGLE_GMAIL_REDIRECT_URI` | `http://localhost:8000/auth/gmail/callback` | Gmail OAuth redirect |
+| `GOOGLE_REDIRECT_URI` | `http://localhost:8080/auth/callback` | Calendar OAuth redirect |
+| `GOOGLE_REG_REDIRECT_URI` | `http://localhost:8080/register/google/callback` | Registration OAuth redirect |
+| `GOOGLE_GMAIL_REDIRECT_URI` | `http://localhost:8080/auth/gmail/callback` | Gmail OAuth redirect |
 | `ZF_CLOUD` | `0` | Feature flag — running on AWS (Phase 12) |
 | `ZF_STORAGE_S3` | `0` | Feature flag — S3 storage backend (Phase 4.3 / 12) |
 | `ZF_QUEUE_BACKEND` | `inprocess` | Feature flag — `inprocess` / `celery` / `temporal` / `aws` (Phase 1.2 / 12) |

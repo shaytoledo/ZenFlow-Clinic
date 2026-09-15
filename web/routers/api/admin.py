@@ -5,10 +5,10 @@ Operator endpoints. Phase 0.4: `GET /api/admin/flags` — current feature-flag s
 Auth required (any signed-in, active therapist). Never returns secrets.
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from web.deps import _active_therapist_or_redirect
+from web.deps import require_active_therapist
 from zenflow.settings import get_settings
 
 router = APIRouter(prefix="/api/admin")
@@ -16,9 +16,7 @@ router = APIRouter(prefix="/api/admin")
 
 @router.get("/flags")
 async def get_flags(request: Request) -> JSONResponse:
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    require_active_therapist(request)
     s = get_settings()
     return JSONResponse(
         {

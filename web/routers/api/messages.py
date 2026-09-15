@@ -4,6 +4,7 @@ web/routers/api/messages.py
 Messaging endpoints: unread count, conversation list, send reply via Telegram.
 """
 
+import asyncio
 import json
 import logging
 
@@ -34,18 +35,22 @@ async def _assert_conversation_owner(therapist: dict, patient_id: int) -> None:
     no session and the patient never had an appointment with this therapist."""
     from bot.redis_client import get_async_redis
 
-    raw = await get_async_redis().get(f"zenflow:relay:active:{patient_id}")
-    if raw:
-        try:
-            data = json.loads(raw)
-        except Exception:
-            data = {}
-        if isinstance(data, dict) and data.get("therapist_id") == therapist["id"]:
+    data: dict | None = None
+    try:
+        raw = await get_async_redis().get(f"zenflow:relay:active:{patient_id}")
+        parsed = json.loads(raw) if raw else None
+        data = parsed if isinstance(parsed, dict) else None
+    except Exception as e:  # Redis down / corrupt blob: treat as "no live session", never 500
+        logger.warning(f"relay session lookup failed for patient {patient_id}: {e}")
+        data = None
+    if data is not None:
+        if data.get("therapist_id") == therapist["id"]:
             return
         raise HTTPException(status_code=403, detail="Conversation belongs to another therapist")
     from web.repositories import appointment_repo
 
-    if appointment_repo.list_by_patient(patient_id, therapist_id=therapist["id"]):
+    owned = await asyncio.to_thread(appointment_repo.list_by_patient, patient_id, therapist["id"])
+    if owned:
         return
     raise HTTPException(status_code=404, detail="Conversation not found")
 

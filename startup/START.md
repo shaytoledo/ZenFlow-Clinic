@@ -58,8 +58,8 @@ SESSION_SECRET=<any long random string, e.g. 64 random hex chars>
 # ── Google Calendar (optional) ──────────────────────────────
 GOOGLE_CLIENT_ID=<from Google Cloud Console>
 GOOGLE_CLIENT_SECRET=<from Google Cloud Console>
-GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback
-GOOGLE_REG_REDIRECT_URI=http://localhost:8000/register/google/callback
+GOOGLE_REDIRECT_URI=http://localhost:8080/auth/callback
+GOOGLE_REG_REDIRECT_URI=http://localhost:8080/register/google/callback
 ```
 
 **Getting the tokens:**
@@ -90,7 +90,7 @@ python launch.py
 This starts:
 - Patient Telegram bot (booking, cancelling, AI intake)
 - Therapist Telegram bot (relay, registration)
-- Web dashboard at `http://localhost:8000`
+- Web dashboard at `http://localhost:8080`
 
 Press **Ctrl+C** to stop everything cleanly.
 
@@ -107,19 +107,19 @@ python startup/run_web.py    # Web dashboard only
 
 ## 5. Register as a therapist
 
-1. Open `http://localhost:8000` → you will be redirected to `/register`
+1. Open `http://localhost:8080` → you will be redirected to `/register`
 2. Click **Register** — fill in name, email, password (or **Continue with Google**)
 3. You receive an 8-character activation code (e.g. `ABCD1234`)
 4. Send that code as a message to the **therapist bot** on Telegram
 5. The bot confirms activation — you can now access the dashboard
 
-To sign in later: visit `http://localhost:8000` → **Sign In** tab.
+To sign in later: visit `http://localhost:8080` → **Sign In** tab.
 
 ---
 
 ## 6. Set up availability
 
-Open `http://localhost:8000/schedule` → drag on the calendar to create availability slots.
+Open `http://localhost:8080/schedule` → drag on the calendar to create availability slots.
 
 The patient bot reads these slots automatically.
 

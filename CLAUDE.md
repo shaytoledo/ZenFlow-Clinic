@@ -13,7 +13,7 @@ python startup/launch.py
 
 # Individual services (development)
 python startup/run_bots.py          # Telegram bots only (patient + therapist)
-python startup/run_web.py           # Web dashboard only  →  http://localhost:8000
+python startup/run_web.py           # Web dashboard only  →  http://localhost:8080
 
 # Pull the required AI model (first time only)
 ollama pull gemma3:latest
@@ -196,8 +196,8 @@ Any message / /start → SELECTING (main menu)
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
-| `GOOGLE_REDIRECT_URI` | `http://localhost:8000/auth/callback` | Calendar OAuth redirect |
-| `GOOGLE_REG_REDIRECT_URI` | `http://localhost:8000/register/google/callback` | Registration OAuth redirect |
+| `GOOGLE_REDIRECT_URI` | `http://localhost:8080/auth/callback` | Calendar OAuth redirect |
+| `GOOGLE_REG_REDIRECT_URI` | `http://localhost:8080/register/google/callback` | Registration OAuth redirect |
 
 ## What works
 - Appointment booking: therapist select → week → day → hour → optional AI intake → saved to SQLite

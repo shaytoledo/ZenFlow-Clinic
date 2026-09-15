@@ -74,8 +74,16 @@ REDACTION_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 
+_MAYBE_SECRET = re.compile(
+    r"(?i)\d{8,10}:|GOCSPX|ya29\.|1//0|AIza|sk-ant|gAAAA|bearer|eyJ|token|secret|password|"
+    r"passwd|api_?key|authorization"
+)
+
+
 def redact(text: str) -> str:
     """Scrub every known secret shape from `text`. Idempotent; safe on any string."""
+    if not _MAYBE_SECRET.search(text):  # common case: one scan instead of eleven
+        return text
     for pattern, replacement in REDACTION_PATTERNS:
         text = pattern.sub(replacement, text)
     return text

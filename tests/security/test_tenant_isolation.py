@@ -90,7 +90,9 @@ async def test_treatment_page_is_scoped(two_tenants) -> None:
     t = two_tenants
     apt = t["apt_b"]
     url = f"/treatment/{apt['patient_id']}/{apt['date']}/{apt['time'].replace(':', '-')}"
-    assert (await t["ca"].get(url)).status_code in REFUSED
+    resp_a = await t["ca"].get(url)
+    assert resp_a.status_code in (302, 303, 307, 403, 404)  # HTML route: bounced, never rendered
+    assert "private notes" not in resp_a.text
     assert (await t["cb"].get(url)).status_code == 200
 
 

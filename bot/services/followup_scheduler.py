@@ -450,7 +450,7 @@ async def _scheduler_loop() -> None:
                     logger.info(f"{len(due)} appointment(s) due for 24h follow-up")
                 for appt in due:
                     with zlog.log_context(
-                        appointment_id=appt.get("id"), patient_id=appt.get("patient_id")
+                        appointment_id=appt.get("appointment_id"), patient_id=appt.get("patient_id")
                     ):
                         await _send_followup(appt)
                 # Also dispatch any queued lifestyle recommendations

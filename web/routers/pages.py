@@ -4,7 +4,7 @@ web/routers/pages.py
 All HTML page routes for the ZenFlow therapist web app.
 """
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from web.deps import _active_therapist_or_redirect, resolve_owned_appointment, templates
@@ -74,7 +74,10 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
     therapist, redirect = _active_therapist_or_redirect(request)
     if redirect:
         return RedirectResponse(redirect)
-    resolve_owned_appointment(request, patient_id, apt_date, apt_time)  # 404 unless it is theirs
+    try:
+        resolve_owned_appointment(request, patient_id, apt_date, apt_time)
+    except HTTPException:  # not found / not this therapist's → back to the list, like other pages
+        return RedirectResponse("/patients")
     return _page(request, "treatment.html", "patients")
 
 

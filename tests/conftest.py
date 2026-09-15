@@ -28,6 +28,7 @@ from typing import Any
 _SESSION_TMP = Path(tempfile.mkdtemp(prefix="zenflow-tests-"))
 _TEST_ENV = {
     "ENV": "test",
+    "ZENFLOW_DOTENV": "0",  # never read the developer's real .env in tests
     "ZENFLOW_DB_PATH": str(_SESSION_TMP / "bootstrap.db"),
     "SESSION_SECRET": "test-only-session-secret-0123456789abcdef0123456789abcdef",
     "TELEGRAM_TOKEN": "1000000000:TEST-PATIENT-BOT-TOKEN-xxxxxxxxxxxxxxx",
@@ -163,7 +164,9 @@ FROZEN_AT = "2026-03-01T12:00:00"
 
 @pytest.fixture
 def frozen_clock() -> Iterator[Any]:
-    with freeze_time(FROZEN_AT) as freezer:
+    # itsdangerous keeps real time so session cookies signed before/after freezing stay valid
+    # regardless of fixture order.
+    with freeze_time(FROZEN_AT, ignore=["itsdangerous"]) as freezer:
         yield freezer
 
 

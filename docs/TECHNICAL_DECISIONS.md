@@ -399,10 +399,15 @@ truth, easy to bypass); `dynaconf` / `environs` (another dependency for the same
 pydantic-settings was already installed transitively); a module of plain constants that reads
 `.env` (no typing, no validation).
 
-**Behaviour change, deliberate:** the default Google redirect URIs moved from port 8080 to 8000,
-matching the port the web app actually listens on and every document that already said 8000.
-`.env` files that set the URIs explicitly are unaffected. Also, `.env` is now loaded only from
-the project root (previously python-dotenv searched parent directories as well).
+**Correction (review of PR #3):** an earlier version of this ADR moved the default Google
+redirect URIs to port 8000 "to match the web app". That was wrong — `startup/run_web.py` and
+`startup/launch.py` serve the dev dashboard on **8080** (the `Procfile` uses `$PORT`, default
+8000, only in production where the URIs are set explicitly). The defaults are back on 8080 and
+the docs that said 8000 for local dev were corrected. Also: `.env` is loaded only from the
+project root (python-dotenv used to search parent directories), and `ZENFLOW_DOTENV=0` disables
+the file entirely (the test harness sets it so a developer's real `.env` never leaks into tests).
+`bot/db.py` reads `ZENFLOW_DB_PATH` from the environment first and from settings second, since
+pydantic-settings never exports `.env` values into `os.environ`.
 
 ---
 

@@ -25,8 +25,18 @@ def db_path() -> Path:
     Read on every call (not cached at import) so the test harness can point each test at a
     throw-away file even though bot.config opens the database at import time.
     """
-    override = os.environ.get("ZENFLOW_DB_PATH")
+    override = os.environ.get("ZENFLOW_DB_PATH") or _settings_db_path()
     return Path(override) if override else _DEFAULT_DB_PATH
+
+
+def _settings_db_path() -> str | None:
+    """`.env`-sourced value (pydantic-settings never exports to os.environ — review fix)."""
+    try:
+        from zenflow.settings import get_settings
+
+        return get_settings().zenflow_db_path or None
+    except Exception:
+        return None
 
 
 def close_db() -> None:
