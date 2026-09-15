@@ -41,7 +41,7 @@ optional `therapist_id=None` fail-open defaults on repository reads (→ 9.1: ma
 ## Phase 1 — Time, jobs & durable scheduling
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 1.1 | `zenflow/clock.py` + timestamp audit + data migration (F2) | [ ] | | | |
+| 1.1 | `zenflow/clock.py` + timestamp audit + data migration (F2) | [x] | 2026-09-15 | (see git log) | canonical `…Z` strings; `SQL_NOW`; explicit created_at on every INSERT; `clock.today()` = CLINIC_TZ date; ruff DTZ; `python -m zenflow.migrate_timestamps`; window test at 23h/2h/48h across three clinic zones. ADR-19 |
 | 1.2 | ADR: queue backend → `TaskQueue` + `jobs` table + worker | [ ] | | | |
 | 1.3 | Migrate follow-up + recommendation schedulers to jobs (F1) | [ ] | | | |
 

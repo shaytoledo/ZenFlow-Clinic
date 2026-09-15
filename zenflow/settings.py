@@ -90,6 +90,7 @@ class Settings(BaseSettings):
     zenflow_db_path: str | None = None  # mirrored for documentation; bot/db.py reads it itself
     log_format: Literal["auto", "console", "json"] = "auto"  # auto = console in dev, json otherwise
     log_level: str = "INFO"
+    clinic_tz: str = "Asia/Jerusalem"  # IANA zone; the clinic's wall clock for "today" (ADR-19)
 
     # ── telegram ──
     telegram_token: str = ""
@@ -139,6 +140,17 @@ class Settings(BaseSettings):
         return self.token_encryption_key or self.session_secret
 
     # ── validation ──
+    @field_validator("clinic_tz")
+    @classmethod
+    def _valid_zone(cls, value: str) -> str:
+        from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(f"CLINIC_TZ={value!r} is not a known IANA timezone") from exc
+        return value
+
     @model_validator(mode="after")
     def _validate(self) -> Settings:
         if self.flags.ai_provider is None:

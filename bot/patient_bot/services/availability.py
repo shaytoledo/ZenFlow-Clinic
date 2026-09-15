@@ -20,6 +20,8 @@ import logging
 import uuid
 from datetime import UTC, date, datetime, timedelta
 
+from zenflow.clock import today as clinic_today
+
 logger = logging.getLogger(__name__)
 
 _AVAILABILITY_CAL_NAME = "ZenFlow Availability"
@@ -83,7 +85,7 @@ def _find_availability_cal(service, cal_name: str = _AVAILABILITY_CAL_NAME) -> s
 
 
 def _week_range(week_offset: int) -> tuple[date, date]:
-    today = date.today()
+    today = clinic_today()
     this_monday = today - timedelta(days=today.weekday())
     week_monday = this_monday + timedelta(weeks=week_offset)
     week_sunday = week_monday + timedelta(days=6)
@@ -94,7 +96,7 @@ def _week_range(week_offset: int) -> tuple[date, date]:
 def _slot_dt(day: date, time_slot: str) -> datetime:
     """Naive local datetime for a given day + HH:MM slot."""
     h, m = map(int, time_slot.split(":"))
-    return datetime(day.year, day.month, day.day, h, m)
+    return datetime(day.year, day.month, day.day, h, m)  # noqa: DTZ001 — clinic wall-clock
 
 
 def _hhmm_min(hhmm: str) -> int:

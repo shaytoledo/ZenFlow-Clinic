@@ -272,6 +272,7 @@ app refuse to start with a non-local `http://` URL when `ENV != dev`.
 | `ZENFLOW_DB_PATH` | `data/zenflow.db` | SQLite file location. The test harness points it at a temp file per test; never set it to the real file in tests |
 | `LOG_FORMAT` | `auto` | `console` (human-readable) / `json` (one object per line) / `auto` = console in dev, JSON otherwise |
 | `LOG_LEVEL` | `INFO` | Root log level |
+| `CLINIC_TZ` | `Asia/Jerusalem` | IANA zone of the clinic; `zenflow.clock.today()` is this zone's date. Stored instants are always UTC |
 | `TELEGRAM_TOKEN` | — | Patient bot token (@BotFather) |
 | `THERAPIST_BOT_TOKEN` | — | Therapist bot token (separate bot) |
 | `OLLAMA_MODEL` | `gemma3:latest` | Local LLM model |
@@ -316,6 +317,28 @@ harness) and `startup/launch.py` (runs before dependencies are installed).
 5. Rotating again later: pass the previous key with `--old-material '<old key>'`.
 
 ---
+
+## Time (Phase 1.1, ADR-19)
+
+One clock: `zenflow/clock.py`. Every stored instant is the canonical string
+`YYYY-MM-DDTHH:MM:SSZ` (UTC, seconds, `Z`), which compares correctly as a plain string in SQL and
+Python. Writes use `clock.iso_now()` / `clock.hours_ahead(n)` from Python and `clock.SQL_NOW`
+(`strftime('%Y-%m-%dT%H:%M:%SZ','now')`) from SQL — never `datetime('now')`, never
+`datetime.now()` (ruff `DTZ` rules fail the build). INSERTs stamp `created_at` explicitly so the
+old table DEFAULTs (space-separated) are never used. Reads accept every legacy shape via
+`clock.parse_iso()`. Calendar values (`appointments.date`/`time`, availability `start_dt`/`end_dt`)
+are clinic wall-clock values and stay as they are; `clock.today()` is the clinic-local date.
+
+### Runbook: normalise legacy timestamps (once per existing database)
+
+1. `python -m zenflow.migrate_timestamps --dry-run` — counts values per shape
+   (`naive-local` = written by the old Python code in the host's local time; `sqlite-utc` =
+   `datetime('now')`; `aware`), lists anything unparseable, writes nothing.
+2. `python -m zenflow.migrate_timestamps --local-tz <zone the old process ran in>` — takes a
+   backup (`data/zenflow.db.bak-timestamps-<stamp>`) and rewrites. Idempotent; exit 1 lists
+   unparseable rows to fix by hand.
+3. The 24h follow-up window and the recommendation dispatcher compare canonical strings from
+   now on; before this migration they could be off by the host's UTC offset (F2).
 
 ## Logging (Phase 0.5, ADR-18)
 

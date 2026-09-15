@@ -22,10 +22,10 @@ import asyncio
 import contextlib
 import json
 import logging
-from datetime import UTC, datetime, timedelta
 
 from bot.db import get_db
 from bot.redis_client import get_async_redis
+from zenflow import clock
 
 logger = logging.getLogger(__name__)
 
@@ -140,9 +140,9 @@ def _tmpl(therapist_id: str) -> dict:
 
 
 def _find_due_followups() -> list[dict]:
-    now = datetime.now(UTC)
-    cutoff_max = (now - timedelta(hours=WINDOW_HOURS_MIN)).isoformat()
-    cutoff_min = (now - timedelta(hours=WINDOW_HOURS_MAX)).isoformat()
+    # Canonical UTC strings compare correctly against canonical completed_at values (F2 fix).
+    cutoff_max = clock.hours_ago(WINDOW_HOURS_MIN)
+    cutoff_min = clock.hours_ago(WINDOW_HOURS_MAX)
     rows = (
         get_db()
         .execute(
@@ -162,7 +162,7 @@ def _find_due_followups() -> list[dict]:
 
 def _stamp_sent(appointment_id: int) -> None:
     get_db().execute(
-        "UPDATE treatment_notes SET followup_sent_at=datetime('now'), updated_at=datetime('now') "
+        "UPDATE treatment_notes SET followup_sent_at=strftime('%Y-%m-%dT%H:%M:%SZ','now'), updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') "
         "WHERE appointment_id=?",
         (appointment_id,),
     )
@@ -276,9 +276,7 @@ async def _dispatch_pending_recommendations() -> None:
 
     Each outcome creates a notification for the therapist.
     """
-    from datetime import datetime
-
-    now_iso = datetime.now(UTC).isoformat()
+    now_iso = clock.iso_now()
     try:
         from web.repositories.treatment_repo import (
             clear_pending_recommendations,
@@ -494,7 +492,7 @@ async def consume_followup_conversation(patient_id: int, text: str) -> tuple[boo
 
                         await asyncio.to_thread(
                             lambda: get_db().execute(
-                                "UPDATE treatment_notes SET followup_rating=?, updated_at=datetime('now') WHERE appointment_id=?",
+                                "UPDATE treatment_notes SET followup_rating=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
                                 (n, apt_id),
                             )
                         )
@@ -574,7 +572,7 @@ async def consume_followup_conversation(patient_id: int, text: str) -> tuple[boo
 
                         await asyncio.to_thread(
                             lambda: get_db().execute(
-                                "UPDATE treatment_notes SET followup_rating=?, updated_at=datetime('now') WHERE appointment_id=?",
+                                "UPDATE treatment_notes SET followup_rating=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
                                 (state["improvement_rating"], apt_id),
                             )
                         )

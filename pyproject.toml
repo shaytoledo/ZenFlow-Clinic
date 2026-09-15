@@ -19,7 +19,7 @@ target-version = "py312"
 extend-exclude = [".venv", ".claude", "data", "logs"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "C4", "SIM"]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "C4", "SIM", "DTZ"]
 ignore = [
   "E501",   # line length is owned by black
   # -- Phase 0.2 baseline ratchet -------------------------------------------------
@@ -41,7 +41,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106", "S108"]
+"tests/**" = ["S101", "S105", "S106", "S108", "DTZ"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["bot", "web", "startup", "zenflow", "tests"]
@@ -138,7 +138,7 @@ omit = ["*/__init__.py"]
 
 [tool.coverage.report]
 # Measured baselines: 0 % after Phase 0.2 (tooling tests only), 30 % after Phase 0.3 (harness +
-# smoke tests), 33 % after Phase 0.4, 38 % after Phase 0.5 (security triage), 40 % after task 0.5 (logging), 42 % after the Phase 0 review. Rule: ratchet +5 per phase; never lower it.
-fail_under = 42
+# smoke tests), 33 % after Phase 0.4, 38 % after Phase 0.5 (security triage), 40 % after task 0.5 (logging), 42 % after the Phase 0 review, 45 % after Phase 1.1. Rule: ratchet +5 per phase; never lower it.
+fail_under = 45
 show_missing = true
 skip_covered = true

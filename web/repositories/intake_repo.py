@@ -10,6 +10,8 @@ import json
 import sqlite3
 from typing import Any
 
+from zenflow.clock import SQL_NOW
+
 
 def _conn() -> sqlite3.Connection:
     from bot.db import get_db
@@ -43,8 +45,8 @@ def insert(
     appointment_id: int, patient_id: int, therapist_id: str, history: list[dict[str, Any]]
 ) -> None:
     _conn().execute(
-        """INSERT INTO intake_sessions
-           (appointment_id, patient_id, therapist_id, history_json)
-           VALUES (?, ?, ?, ?)""",
+        f"""INSERT INTO intake_sessions
+           (appointment_id, patient_id, therapist_id, history_json, created_at)
+           VALUES (?, ?, ?, ?, {SQL_NOW})""",
         (appointment_id, patient_id, therapist_id, json.dumps(history, ensure_ascii=False)),
     )

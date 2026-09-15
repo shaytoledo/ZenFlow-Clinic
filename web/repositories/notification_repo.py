@@ -10,6 +10,8 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
+from zenflow.clock import SQL_NOW
+
 
 def _conn() -> sqlite3.Connection:
     from bot.db import get_db
@@ -30,10 +32,10 @@ def create(
 ) -> int:
     """Insert a new notification. Returns the new id."""
     cur = _conn().execute(
-        """INSERT INTO notifications
+        f"""INSERT INTO notifications
            (therapist_id, kind, severity, title, body, appointment_id, patient_id,
-            patient_name, persistent)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            patient_name, persistent, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, {SQL_NOW})""",
         (
             therapist_id,
             kind,
@@ -87,12 +89,12 @@ def mark_read(therapist_id: str, notification_id: int | None = None) -> None:
     """Mark one (by id) or all notifications as read for the given therapist."""
     if notification_id is None:
         _conn().execute(
-            "UPDATE notifications SET read_at=datetime('now') WHERE therapist_id=? AND read_at IS NULL",
+            "UPDATE notifications SET read_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE therapist_id=? AND read_at IS NULL",
             (therapist_id,),
         )
     else:
         _conn().execute(
-            "UPDATE notifications SET read_at=datetime('now') WHERE id=? AND therapist_id=?",
+            "UPDATE notifications SET read_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id=? AND therapist_id=?",
             (notification_id, therapist_id),
         )
 
@@ -100,7 +102,7 @@ def mark_read(therapist_id: str, notification_id: int | None = None) -> None:
 def resolve(therapist_id: str, notification_id: int) -> None:
     """Mark a persistent notification as resolved (no longer requires action)."""
     _conn().execute(
-        "UPDATE notifications SET resolved_at=datetime('now'), read_at=COALESCE(read_at, datetime('now')) WHERE id=? AND therapist_id=?",
+        "UPDATE notifications SET resolved_at=strftime('%Y-%m-%dT%H:%M:%SZ','now'), read_at=COALESCE(read_at, strftime('%Y-%m-%dT%H:%M:%SZ','now')) WHERE id=? AND therapist_id=?",
         (notification_id, therapist_id),
     )
 

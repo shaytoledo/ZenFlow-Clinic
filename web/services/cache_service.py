@@ -15,7 +15,9 @@ Key schema (mirroring docs/DATA_LAYER.md):
 import asyncio
 import json
 import logging
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
+
+from zenflow import clock
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,7 @@ def _rolling_key(therapist_id: str) -> str:
 
 def _rolling_window() -> tuple[str, str]:
     """Return the (start, end) ISO-Z strings for the current rolling-14d window."""
-    today = date.today()
+    today = clock.today()
     start = today.isoformat() + "T00:00:00Z"
     end = (today + timedelta(days=ROLLING_DAYS)).isoformat() + "T23:59:59Z"
     return start, end

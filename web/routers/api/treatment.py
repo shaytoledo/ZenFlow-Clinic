@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from web.deps import require_active_therapist, require_appointment_access
 from web.services import telegram_service, treatment_service
+from zenflow import clock
 
 router = APIRouter(prefix="/api/treatment-notes")
 logger = logging.getLogger(__name__)
@@ -159,10 +160,8 @@ async def complete_session(
     therapist = _require_auth(request)
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
 
-    import datetime as _dt
-
     notes = body.model_dump()
-    notes["completed_at"] = _dt.datetime.now().isoformat()
+    notes["completed_at"] = clock.iso_now()
     await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, notes)
 
     # Auto-queue: if AI recommendations exist + not yet sent + not already queued, schedule them
@@ -196,7 +195,7 @@ async def complete_session(
                                 "enabled": True,
                             }
                         )
-                send_at = (_dt.datetime.now() + _dt.timedelta(hours=24)).isoformat()
+                send_at = clock.hours_ahead(24)
                 await asyncio.to_thread(save_pending_recommendations, apt_id, items, send_at)
 
                 # Look up patient name + check contact info for the alert
@@ -308,9 +307,7 @@ async def send_recommendations(
     # ── Delayed queue: schedule_hours >= 24 without an email override → store for later
     if body.schedule_hours >= 24 and not body.email:
         apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
-        import datetime as _dt
-
-        send_at = (_dt.datetime.now() + _dt.timedelta(hours=body.schedule_hours)).isoformat()
+        send_at = clock.hours_ahead(body.schedule_hours)
         from web.repositories.treatment_repo import save_pending_recommendations as _save_pending
 
         await asyncio.to_thread(_save_pending, apt_id, enabled, send_at)
@@ -432,14 +429,13 @@ async def send_recommendations(
         sent_to = str(patient_id)
 
     # Stamp delivery time on the treatment row (best-effort)
-    import datetime as _dt
 
     with contextlib.suppress(Exception):
         await asyncio.to_thread(
             treatment_service.save_notes,
             apt_id,
             patient_id,
-            {"recommendations_sent_at": _dt.datetime.now().isoformat()},
+            {"recommendations_sent_at": clock.iso_now()},
         )
 
     # Record a success notification
@@ -834,7 +830,7 @@ async def regenerate_points(
 
     await asyncio.to_thread(
         lambda: get_db().execute(
-            "UPDATE treatment_notes SET ai_suggested_points=NULL, points_status=?, updated_at=datetime('now') WHERE appointment_id=?",
+            "UPDATE treatment_notes SET ai_suggested_points=NULL, points_status=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
             ("GENERATING_STAGE_2A", apt_id),
         )
     )
