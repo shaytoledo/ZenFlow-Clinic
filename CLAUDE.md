@@ -55,6 +55,8 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/AVAILABILITY.md` | Google Calendar vs local SQLite availability |
 | `docs/DATA_LAYER.md` | **Living doc** — full data inventory, TTL logic, known breaking points, operational runbook |
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
+| `docs/BOT_AUDIT.md` | Phase 2.1 handler-by-handler bot audit, ranked defects B1–B17 |
+| `docs/HOSTING_AND_MONITORING.md` | Hosting options and free log-monitoring research |
 
 > Start guide: `startup/START.md`
 
