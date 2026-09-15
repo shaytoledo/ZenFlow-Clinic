@@ -73,8 +73,8 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
             diagnosis_certainty, ai_suggested_points, ai_recommendations,
             tongue_observation, pulse_observation, session_notes, used_points,
             recommendations_sent_at, completed_at,
-            therapist_diagnosis, therapist_notes, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+            therapist_diagnosis, therapist_notes, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%SZ','now'),strftime('%Y-%m-%dT%H:%M:%SZ','now'))
            ON CONFLICT(appointment_id) DO UPDATE SET
              tcm_pattern=COALESCE(excluded.tcm_pattern, tcm_pattern),
              treatment_principles=COALESCE(excluded.treatment_principles, treatment_principles),

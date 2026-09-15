@@ -32,8 +32,8 @@ def _rolling_key(therapist_id: str) -> str:
 def _rolling_window() -> tuple[str, str]:
     """Return the (start, end) ISO-Z strings for the current rolling-14d window."""
     today = clock.today()
-    start = today.isoformat() + "T00:00:00Z"
-    end = (today + timedelta(days=ROLLING_DAYS)).isoformat() + "T23:59:59Z"
+    start, _ = clock.day_bounds_utc(today)
+    _, end = clock.day_bounds_utc(today + timedelta(days=ROLLING_DAYS))
     return start, end
 
 

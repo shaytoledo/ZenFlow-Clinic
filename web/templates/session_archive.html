@@ -211,7 +211,7 @@
       <span class="ehr-section-icon" style="background:#F0FDF4;">🌿</span>
       <span class="ehr-section-title">{{ t['archive_lifestyle'] if t else 'AI Lifestyle Recommendations' }}</span>
       {% if session.recommendations_sent_at %}
-      <span style="margin-inline-start:auto;font-size:11px;color:#6B7280;">{{ t['archive_sent'] if t else 'Sent' }} {{ session.recommendations_sent_at[:10] }}</span>
+      <span style="margin-inline-start:auto;font-size:11px;color:#6B7280;">{{ t['archive_sent'] if t else 'Sent' }} {{ session.recommendations_sent_at | clinic_date }}</span>
       {% endif %}
     </div>
     {% set recs = session.ai_recommendations %}
@@ -239,7 +239,7 @@
       <span class="ehr-section-icon" style="background:#FEE2E2;">💌</span>
       <span class="ehr-section-title">{{ t['archive_followup'] if t else 'Follow-up Response' }}</span>
       {% if session.followup_sent_at %}
-      <span style="margin-inline-start:auto;font-size:11px;color:#6B7280;">{{ session.followup_sent_at[:10] }}</span>
+      <span style="margin-inline-start:auto;font-size:11px;color:#6B7280;">{{ session.followup_sent_at | clinic_date }}</span>
       {% endif %}
     </div>
     {% if fc is mapping %}

@@ -47,6 +47,7 @@ class MigrationReport:
     converted: int = 0
     already_canonical: int = 0
     empty: int = 0
+    skipped_date_only: int = 0
     unparseable: list[tuple[str, str, int, str]] = field(default_factory=list)
     by_shape: dict[str, int] = field(default_factory=dict)
     backup_path: str | None = None
@@ -59,6 +60,7 @@ class MigrationReport:
             f"  already canonical:  {self.already_canonical}",
             f"  converted:          {self.converted}  {dict(sorted(self.by_shape.items()))}",
             f"  empty:              {self.empty}",
+            f"  date-only (kept):   {self.skipped_date_only}",
             f"  unparseable:        {len(self.unparseable)}",
         ]
         for table, col, rowid, value in self.unparseable[:20]:
@@ -91,6 +93,8 @@ def migrate(*, local_tz: str, dry_run: bool, backup: bool = True) -> MigrationRe
                     report.empty += 1
                 elif shape == "canonical":
                     report.already_canonical += 1
+                elif shape == "date":
+                    report.skipped_date_only += 1  # a date is not an instant; leave it
                 elif shape == "unparseable":
                     report.unparseable.append((table, col, rowid, str(value)))
                 else:

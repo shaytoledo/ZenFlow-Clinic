@@ -29,6 +29,14 @@ frozen-clock ordering, default-deny route test. Deferred with tickets: relay own
 2.4), cross-tenant `list_all` cache + Python filtering (→ 7.2/9.1), `availability_service` raw SQL vs repo (→ 9.1),
 optional `therapist_id=None` fail-open defaults on repository reads (→ 9.1: make required).
 
+**Review log — PR #4 (Phase 1.1), 2026-09-15.** Correctness review found 6 issues, all fixed before merge with
+regressions in `tests/unit/test_clock_review.py`: notification time 'ZZ' → Invalid Date; archive page sliced a UTC
+instant as the clinic date (new `clinic_date` / `clinic_datetime` template filters); two therapist INSERTs and both
+treatment_notes upserts still used the legacy `created_at` DEFAULT (static test now enforces explicit `created_at`);
+date-only strings were shifted a day by the migration (now classified `date` and kept; client-supplied
+`recommendations_sent_at` validated + canonicalised, 400 otherwise); rolling calendar window stamped clinic days as UTC
+midnight (`clock.day_bounds_utc`).
+
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|

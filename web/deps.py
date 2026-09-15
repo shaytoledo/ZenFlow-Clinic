@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
+# Stored instants are UTC (ADR-19); templates render them in the clinic's zone.
+from zenflow import clock as _clock  # noqa: E402
+
+templates.env.filters["clinic_date"] = _clock.format_clinic
+templates.env.filters["clinic_datetime"] = lambda v: _clock.format_clinic(v, "%Y-%m-%d %H:%M")
+
 # ── Auth / session helpers ─────────────────────────────────────────────────────
 
 _web_reg_lock = threading.Lock()

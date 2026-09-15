@@ -10,6 +10,7 @@ from bot.config import TELEGRAM_TOKEN, THERAPIST_MAP
 from bot.patient_bot.services.relay import append_history
 from bot.therapist_bot.services.relay import get_current_patient, get_patient_for_msg
 from web.i18n import translate as _t
+from zenflow.clock import SQL_NOW
 
 _END_KB = InlineKeyboardMarkup(
     [[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]]
@@ -228,9 +229,9 @@ def _register_therapist_to_db(
                 n += 1
             new_id = f"t{n}"
             conn.execute(
-                """INSERT INTO therapists
-                   (id, name, telegram_id, email, google_id, calendar_name, active)
-                   VALUES (?, ?, ?, ?, ?, 'ZenFlow Availability', 1)""",
+                f"""INSERT INTO therapists
+                   (id, name, telegram_id, email, google_id, calendar_name, active, created_at)
+                   VALUES (?, ?, ?, ?, ?, 'ZenFlow Availability', 1, {SQL_NOW})""",
                 (new_id, name, telegram_id, email or None, google_id or None),
             )
             conn.commit()

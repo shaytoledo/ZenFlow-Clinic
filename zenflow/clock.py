@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 CANONICAL_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 CANONICAL_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+DATE_ONLY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 #: SQL expression producing the canonical form for "now" (SQLite's clock is UTC).
 SQL_NOW = "strftime('%Y-%m-%dT%H:%M:%SZ','now')"
@@ -54,6 +55,25 @@ def now_local() -> datetime:
 def today() -> date:
     """The clinic's calendar date right now (NOT the host's local date, NOT the UTC date)."""
     return now_local().date()
+
+
+def day_bounds_utc(day: date) -> tuple[str, str]:
+    """Canonical UTC strings for the clinic-local day `day` (00:00:00 .. 23:59:59 in CLINIC_TZ)."""
+    tz = clinic_tz()
+    start = datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=tz)
+    end = datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=tz)
+    return to_iso(start), to_iso(end)
+
+
+def format_clinic(value: str | None, fmt: str = "%Y-%m-%d") -> str:
+    """Render a stored instant in the clinic's zone for templates. Never raises: empty → "",
+    unparseable → the raw value (so a bad row is visible, not a 500)."""
+    if not value:
+        return ""
+    try:
+        return parse_iso(str(value)).astimezone(clinic_tz()).strftime(fmt)
+    except (ValueError, TypeError):
+        return str(value)
 
 
 # ── formatting / parsing ─────────────────────────────────────────────────────────────────────
@@ -102,12 +122,14 @@ def hours_ahead(hours: float) -> str:
 
 # ── legacy classification (used by the migration and by tests) ───────────────────────────────
 def classify(value: str | None) -> str:
-    """'canonical' | 'aware' | 'sqlite-utc' | 'naive-local' | 'empty' | 'unparseable'."""
+    """'canonical' | 'aware' | 'sqlite-utc' | 'naive-local' | 'date' | 'empty' | 'unparseable'."""
     if value is None or not str(value).strip():
         return "empty"
     s = str(value).strip()
     if CANONICAL_RE.match(s):
         return "canonical"
+    if DATE_ONLY_RE.match(s):
+        return "date"  # a calendar date, not an instant — never shifted by a timezone
     try:
         datetime.fromisoformat(s[:-1] + "+00:00" if s.endswith("Z") else s)
     except ValueError:

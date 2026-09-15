@@ -139,7 +139,15 @@ async def save_treatment_notes(
 ):
     therapist = _require_auth(request)
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
-    await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, body.model_dump())
+    notes = body.model_dump()
+    if notes.get("recommendations_sent_at"):
+        try:  # client-supplied instant → canonical UTC (ADR-19); reject anything else
+            notes["recommendations_sent_at"] = clock.normalize(notes["recommendations_sent_at"])
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=400, detail="recommendations_sent_at must be an ISO-8601 timestamp"
+            )
+    await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, notes)
     return JSONResponse({"ok": True})
 
 
