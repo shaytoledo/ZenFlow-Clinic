@@ -272,3 +272,134 @@ _cfg.THERAPIST_BY_ID[new_therapist["id"]] = new_therapist
 - All files still share the browser global scope (no true encapsulation without a bundler)
 - `mainCal` is declared in `main-calendar.js` but referenced in earlier files — safe because those references only execute after `DOMContentLoaded`, when `mainCal` has already been assigned
 - The legacy `web/static/app.js` remains on disk but is no longer loaded anywhere
+
+---
+
+## ADR-13: Code-Quality Toolchain and the Baseline-Ratchet Policy
+
+**Date:** 2026-09-14 (Phase 0.2 of `docs/MASTER_PLAN_EN.md`)
+
+**Decision:** `black` (100 cols, py312) is the single formatter; `ruff` lints
+(`E,F,W,I,B,UP,S,ASYNC,C4,SIM`); `mypy` runs everywhere but is **strict only** for
+`bot/interfaces` and `web/repositories`; `pytest` with `asyncio_mode=auto`; coverage gate via
+`fail_under`. Everything is configured in one `pyproject.toml`, enforced by `.pre-commit-config.yaml`
+(pre-commit-hooks, black, ruff, gitleaks, local pytest) and exposed as `make` / `tasks.py` targets.
+
+**Baseline-ratchet policy.** On 2026-09-14 the code had 283 ruff findings, 533 mypy errors and 0 %
+test coverage. Instead of fixing everything in one risky sweep (clinical code with no test suite
+yet) the tooling encodes the measured baseline explicitly:
+- `[tool.ruff.lint] ignore` lists the pre-existing rule codes with the phase that removes each;
+- `[[tool.mypy.overrides]] ignore_errors = true` lists the 38 modules with pre-existing type errors;
+- `[tool.coverage.report] fail_under = 0`.
+Each is a debt list: a phase that touches a module removes it from the list and fixes it; the
+coverage floor rises +5 per phase. **Adding to any of these lists is forbidden.**
+
+**Alternatives considered:**
+- `ruff format` instead of / in addition to black — rejected: the two disagree on method chains
+  around multi-line SQL strings (seen in `web/repositories/appointment_repo.py`); two formatters
+  that fight make the gate impossible. The plan named black; black stays.
+- Fix all findings up front — rejected: ~800 mechanical edits with no tests to catch regressions.
+- `uv` for locking — deferred; `pip-tools` needs no new binary and the launcher already uses pip.
+
+**Lockfile policy:** `requirements.in` / `requirements-dev.in` are the human-edited inputs;
+`requirements.txt` / `requirements-dev.txt` are compiled by pip-tools and **constrained to the
+versions the venv was verified with** (so locking did not silently upgrade transitive packages).
+`cryptography` (imported by `web/gcal.py`) and `langchain-anthropic` (lazily imported) were missing
+and are now pinned. The index URL is written explicitly as `https://pypi.org/simple`.
+
+**Consequences:** `make all` is green today by construction; real quality comes from shrinking the
+baselines phase by phase, which `docs/PROGRESS.md` tracks.
+
+---
+
+## ADR-14: HTTPS-Only for Every Non-Local URL
+
+**Date:** 2026-09-14 (owner decision during Phase 0.2)
+
+**Decision:** any configured URL that does not point at `localhost` / `127.0.0.1` must use
+`https://` (`rediss://` for Redis, `wss://` for websockets). Plain `http://` is permitted for local
+development only. This applies to `OLLAMA_HOST`, `REDIS_URL`, all `GOOGLE_*_REDIRECT_URI` values,
+the package index URL, and any future webhook / CDN / S3 endpoint.
+
+**Enforcement path:** documented now in `.env.example`, `docs/ARCHITECTURE.md` and the plan
+(Phase 0.4 settings validation rejects non-local `http://` when `ENV != dev`; Phase 0.5 makes the
+session cookie `https_only` outside dev; Phase 9.4 adds HSTS). `tests/unit/test_tooling.py` already
+fails if `.env.example` or the lockfiles contain a non-local `http://`.
+
+**Reasons:** the system carries medical records, OAuth tokens and bot tokens; an OAuth redirect or a
+Redis connection over plain HTTP exposes them on the wire.
+
+---
+
+## ADR-15: Test Harness Design — Path-Injectable SQLite, In-Process Fakes
+
+**Date:** 2026-09-14 (Phase 0.3)
+
+**Problem:** `bot/config.py` reads every env var and calls `init_db()` at import time, and
+`bot/db.py` hard-coded `data/zenflow.db`. Any test that imported project code would have written to
+the production database.
+
+**Decision:**
+- `bot/db.py` resolves the file from `ZENFLOW_DB_PATH` on every `get_db()` call and reconnects a
+  thread whose cached connection points elsewhere. This is the smallest change that makes the DB
+  injectable without restructuring `bot/config.py` (Phase 0.4 does that).
+- `tests/conftest.py` sets the whole environment at module top, before any project import, and
+  asserts the resolved path is never the real file.
+- Redis is `fakeredis` (one `FakeServer` shared by the sync and async clients) patched into the
+  `bot.redis_client` singletons — no Redis process in CI.
+- The web app is exercised through `httpx.ASGITransport`; the authenticated client signs in through
+  the real `/register/signin` form so the session cookie path is covered, not bypassed.
+- Telegram and the LLM are replaced at the narrowest seam: `telegram_service._send` and the three
+  module-level chat models in `ai_intake` (plus an in-memory chat history), so the parsing and
+  fallback logic around them still runs.
+- Factories write through the repositories, not raw SQL, so schema drift surfaces in the factories.
+
+**Alternatives considered:** a `create_app()` factory with dependency injection (right long-term,
+too invasive for Phase 0); an in-memory `:memory:` SQLite (breaks the thread-local / WAL model the
+app relies on); a real Redis container (slower, and fakeredis covers every command used).
+
+**Consequences:** importing `ai_intake` still performs a 3-second-timeout Ollama health probe at
+import time (pointed at a closed port in tests, so it fails instantly). Phase 0.4 centralised the
+environment reads; the import-time `init_db()` / therapist-registry load in `bot/config.py` stays
+until Phase 12.2.4 removes the mutable module globals.
+
+---
+
+## ADR-16: One Settings Module, Fail-Fast Validation, Typed Feature Flags
+
+**Date:** 2026-09-15 (Phase 0.4)
+
+**Decision:** `zenflow/settings.py` (pydantic-settings) is the only place environment variables
+are read. `bot/config.py` keeps its module-level constant names (about twenty importers) but
+sources every value from `get_settings()`. Validation runs at construction, so a bad environment
+stops the process before it serves a request:
+- outside `dev`/`test`: `SESSION_SECRET` must be set, non-default and ≥ 32 chars;
+  `TOKEN_ENCRYPTION_KEY` must be set, ≥ 32 chars and different from `SESSION_SECRET` (F7);
+  every non-localhost URL must be `https://` (`rediss://` for Redis) (ADR-14);
+- feature flags are a typed `FeatureFlags` model with the `ZF_` prefix; unknown values are
+  rejected; `GET /api/admin/flags` (auth required) shows the live state and never secrets.
+
+**Key separation (F7):** `web/gcal.py` now derives the Fernet key from `TOKEN_ENCRYPTION_KEY`
+when set and from `SESSION_SECRET` otherwise, so pre-0.4 rows keep decrypting.
+`python -m zenflow.rotate_token_key` re-encrypts `google_tokens` from the old material to the
+new one: dry-run mode, consistent SQLite backup (via the backup API, so WAL content is included),
+idempotent, and rows that decrypt with neither key are reported and left untouched.
+
+**Rule for flags:** every flag has BOTH values exercised in tests (`tests/unit/test_settings.py`
+parametrises all eight). A flag that is never exercised is a lie. Consumers arrive with their
+phases (queue backend 1.2, SSE 3.4, images 4.3, WhatsApp 7.4, cloud 12); until then the only
+runtime consumers are `ai_provider` (intake LLM selection) and `channel_whatsapp` (channel factory).
+
+**Sanctioned exceptions:** `bot/db.py` reads `ZENFLOW_DB_PATH` itself because the test harness
+must redirect the database before any project import; `startup/launch.py` parses `.env` by hand
+because it runs before dependencies are installed.
+
+**Alternatives considered:** keep `os.getenv` and add a validator function (no single source of
+truth, easy to bypass); `dynaconf` / `environs` (another dependency for the same result;
+pydantic-settings was already installed transitively); a module of plain constants that reads
+`.env` (no typing, no validation).
+
+**Behaviour change, deliberate:** the default Google redirect URIs moved from port 8080 to 8000,
+matching the port the web app actually listens on and every document that already said 8000.
+`.env` files that set the URIs explicitly are unaffected. Also, `.env` is now loaded only from
+the project root (previously python-dotenv searched parent directories as well).

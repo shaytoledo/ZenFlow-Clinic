@@ -1,0 +1,144 @@
+# ZenFlow Clinic — code-quality tooling (Phase 0.2 of docs/MASTER_PLAN_EN.md)
+# This project is not packaged; this file only configures black / ruff / mypy / pytest / coverage.
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = '''
+/(
+    \.venv
+  | \.claude
+  | data
+  | logs
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv", ".claude", "data", "logs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "C4", "SIM"]
+ignore = [
+  "E501",   # line length is owned by black
+  # -- Phase 0.2 baseline ratchet -------------------------------------------------
+  # Pre-existing findings measured on 2026-09-14. Each entry is a debt item that a
+  # later phase removes from this list (together with the fixes). Never add to it.
+  "S110",     # try/except/pass         -> Phase 2 (bots) / Phase 9 (web)
+  "S112",     # try/except/continue     -> Phase 2 / Phase 9
+  "B904",     # raise without `from`    -> Phase 9.7
+  "B023",     # closure over loop var   -> Phase 2
+  "S603",     # subprocess call         -> Phase 9.7 (startup/ launcher)
+  "S606",     # subprocess no shell     -> Phase 9.7 (startup/ launcher)
+  "S607",     # partial exe path        -> Phase 9.7 (startup/ launcher)
+  "S310",     # urlopen / URL scheme    -> Phase 9.7 (SSRF review)
+  "S104",     # bind 0.0.0.0            -> Phase 9.2 (startup/ launcher)
+  "S608",     # SQL built from strings  -> Phase 9.7
+  "ASYNC220", # subprocess in async fn  -> Phase 2
+  "E402",     # import not at top       -> Phase 0.3 (config import side effect)
+  "E701",     # multiple statements     -> Phase 0.3
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S108"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bot", "web", "startup", "zenflow", "tests"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["bot", "web", "startup", "zenflow", "tests"]
+exclude = ['\.venv/', '\.claude/', 'data/', 'logs/']
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "."
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+show_error_codes = true
+# Permissive baseline; strictness is ratcheted upward per phase.
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["bot.interfaces.*", "web.repositories.*", "zenflow.*"]
+strict = true
+
+# Tests: pytest fixtures are duck-typed by design; keep them checked but not strict.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_any_generics = false
+warn_return_any = false
+
+# -- Phase 0.2 baseline ratchet: modules with pre-existing type errors (measured 2026-09-14).
+# Each phase that touches one of these modules removes it from this list and fixes its errors.
+# Never add a module here.
+[[tool.mypy.overrides]]
+module = [
+  "bot.config",
+  "bot.locales",
+  "bot.main",
+  "bot.patient_bot.cancel",
+  "bot.patient_bot.schedule",
+  "bot.patient_bot.services.ai_intake",
+  "bot.patient_bot.services.appointments",
+  "bot.patient_bot.services.availability",
+  "bot.patient_bot.services.relay",
+  "bot.patient_bot.start",
+  "bot.patient_bot.therapist",
+  "bot.redis_client",
+  "bot.services.followup_scheduler",
+  "bot.therapist_bot.handlers",
+  "bot.therapist_bot.main",
+  "bot.therapist_bot.services.relay",
+  "startup.launch",
+  "web.app",
+  "web.deps",
+  "web.gcal",
+  "web.i18n",
+  "web.routers.api.appointments",
+  "web.routers.api.availability",
+  "web.routers.api.messages",
+  "web.routers.api.notifications",
+  "web.routers.api.system",
+  "web.routers.api.treatment",
+  "web.routers.auth",
+  "web.routers.pages",
+  "web.routers.patients",
+  "web.services.appointment_service",
+  "web.services.availability_service",
+  "web.services.cache_service",
+  "web.services.email_service",
+  "web.services.notification_service",
+  "web.services.telegram_service",
+  "web.services.therapist_service",
+  "web.services.treatment_service",
+]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q --strict-markers"
+markers = [
+  "slow: long-running tests, excluded from the pre-commit hook (pytest -m 'not slow')",
+  "integration: real SQLite + fakeredis + fake LLM/Telegram/Google",
+  "e2e: end-to-end journeys against a live app",
+  "security: attack-scenario tests (tests/security/)",
+]
+
+[tool.coverage.run]
+source = ["bot", "web", "startup", "zenflow"]
+branch = true
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+# Measured baselines: 0 % after Phase 0.2 (tooling tests only), 30 % after Phase 0.3 (harness +
+# smoke tests), 33 % after Phase 0.4. Rule: ratchet +5 per phase; never lower it.
+fail_under = 33
+show_missing = true
+skip_covered = true

@@ -3,6 +3,7 @@ web/services/appointment_service.py
 ─────────────────────────────────────
 Domain logic for appointments. SQL access goes through repositories.
 """
+
 import asyncio
 import json
 import logging
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 # ── Read operations ────────────────────────────────────────────────────────────
 
+
 def list_all() -> list[dict]:
     """Load all appointments with intake history from SQLite."""
     return appointment_repo.list_all()
@@ -24,6 +26,7 @@ async def list_all_cached() -> list[dict]:
     """Return all appointments, Redis-cached for 30 seconds."""
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         cached = await r.get("zenflow:apts:all")
         if cached:
@@ -37,10 +40,7 @@ async def list_all_cached() -> list[dict]:
 
 def list_today() -> list[dict]:
     today = date.today().isoformat()
-    return [
-        a for a in list_all()
-        if a.get("date") == today and a.get("status") == "active"
-    ]
+    return [a for a in list_all() if a.get("date") == today and a.get("status") == "active"]
 
 
 def get_by_patient_date_time(patient_id: int, apt_date: str, apt_time: str) -> dict | None:
@@ -80,12 +80,14 @@ def aggregate_patients(appointments: list[dict]) -> list[dict]:
         if not p["last_appointment"] or apt_date > p["last_appointment"]:
             p["last_appointment"] = apt_date
             p["last_time"] = apt.get("time", "")
-        p["recent"].append({
-            "date": apt.get("date"),
-            "time": apt.get("time"),
-            "summary": (apt.get("summary") or "")[:120],
-            "intake_history": apt.get("intake_history", []),
-        })
+        p["recent"].append(
+            {
+                "date": apt.get("date"),
+                "time": apt.get("time"),
+                "summary": (apt.get("summary") or "")[:120],
+                "intake_history": apt.get("intake_history", []),
+            }
+        )
     for p in patients.values():
         p["recent"].sort(key=lambda x: x.get("date", ""))
         p["recent"] = p["recent"][-5:]

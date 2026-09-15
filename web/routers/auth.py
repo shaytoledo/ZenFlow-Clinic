@@ -3,6 +3,7 @@ web/routers/auth.py
 ────────────────────
 Authentication routes: Google OAuth, register/sign-in, logout.
 """
+
 import asyncio
 import json
 import logging
@@ -14,8 +15,6 @@ from bot.config import GOOGLE_CLIENT_ID
 from web.deps import (
     _active_therapist_or_redirect,
     _find_by_email,
-    _find_by_google_id,
-    _generate_reg_code,
     _get_patient_bot_username,
     _get_session_therapist,
     _get_therapist_bot_username,
@@ -31,7 +30,6 @@ from web.gcal import (
     delete_token_db,
     exchange_code,
     get_auth_url,
-    is_authenticated,
 )
 from web.services.cache_service import prefetch_calendar, purge_calendar
 
@@ -40,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── Google Calendar OAuth ──────────────────────────────────────────────────────
+
 
 @router.get("/auth/login")
 async def auth_login():
@@ -82,6 +81,7 @@ async def auth_callback(request: Request, code: str = "", error: str = ""):
 
 # ── Registration ───────────────────────────────────────────────────────────────
 
+
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(
     request: Request,
@@ -93,17 +93,21 @@ async def register_page(
     tid = request.session.get("therapist_id")
     if tid:
         from bot.config import THERAPISTS as _T
+
         t = next((x for x in _T if x.get("id") == tid), None)
         if t and t.get("active"):
             return RedirectResponse("/")
-    return templates.TemplateResponse("register.html", {
-        "request": request,
-        "tab": tab,
-        "google_enabled": bool(GOOGLE_CLIENT_ID),
-        "error": error,
-        "name": name,
-        "email": email,
-    })
+    return templates.TemplateResponse(
+        "register.html",
+        {
+            "request": request,
+            "tab": tab,
+            "google_enabled": bool(GOOGLE_CLIENT_ID),
+            "error": error,
+            "name": name,
+            "email": email,
+        },
+    )
 
 
 @router.post("/register/signup", response_class=HTMLResponse)
@@ -114,11 +118,17 @@ async def register_signup(request: Request):
     password = (form.get("password") or "").strip()
 
     def _err(msg: str):
-        return templates.TemplateResponse("register.html", {
-            "request": request, "tab": "register",
-            "google_enabled": bool(GOOGLE_CLIENT_ID),
-            "error": msg, "name": name, "email": email,
-        })
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "tab": "register",
+                "google_enabled": bool(GOOGLE_CLIENT_ID),
+                "error": msg,
+                "name": name,
+                "email": email,
+            },
+        )
 
     if not name:
         return _err("Name is required.")
@@ -141,11 +151,17 @@ async def register_signin(request: Request):
     password = (form.get("password") or "").strip()
 
     def _err(msg: str):
-        return templates.TemplateResponse("register.html", {
-            "request": request, "tab": "signin",
-            "google_enabled": bool(GOOGLE_CLIENT_ID),
-            "error": msg, "name": "", "email": email,
-        })
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "tab": "signin",
+                "google_enabled": bool(GOOGLE_CLIENT_ID),
+                "error": msg,
+                "name": "",
+                "email": email,
+            },
+        )
 
     if not email or not password:
         return _err("Email and password are required.")
@@ -153,7 +169,9 @@ async def register_signin(request: Request):
     if not therapist:
         return _err("Invalid email or password.")
     if not therapist.get("password_hash"):
-        return _err("This account uses Google sign-in. Please click 'Continue with Google' instead.")
+        return _err(
+            "This account uses Google sign-in. Please click 'Continue with Google' instead."
+        )
     if not _verify_password(password, therapist["password_hash"]):
         return _err("Invalid email or password.")
 
@@ -176,12 +194,17 @@ async def register_activate(request: Request):
     if therapist.get("active"):
         return RedirectResponse("/")
     therapist_username = await _get_therapist_bot_username()
-    return templates.TemplateResponse("register_activate.html", {
-        "request": request,
-        "therapist": therapist,
-        "therapist_bot_username": therapist_username,
-        "therapist_bot_link": f"https://t.me/{therapist_username}" if therapist_username else "",
-    })
+    return templates.TemplateResponse(
+        "register_activate.html",
+        {
+            "request": request,
+            "therapist": therapist,
+            "therapist_bot_username": therapist_username,
+            "therapist_bot_link": (
+                f"https://t.me/{therapist_username}" if therapist_username else ""
+            ),
+        },
+    )
 
 
 @router.get("/register/google")
@@ -202,36 +225,54 @@ async def register_google_callback(request: Request, code: str = "", error: str 
 @router.get("/register/done", response_class=HTMLResponse)
 async def register_done(request: Request, code: str = ""):
     import re
+
     _REG_CODE_RE = re.compile(r"^[A-Z0-9]{8}$")
     from bot.redis_client import get_async_redis
+
     if not code or not _REG_CODE_RE.match(code):
-        return templates.TemplateResponse("register_done.html", {
-            "request": request, "error": "Invalid or missing registration code.",
-            "code": "", "name": "",
-        })
+        return templates.TemplateResponse(
+            "register_done.html",
+            {
+                "request": request,
+                "error": "Invalid or missing registration code.",
+                "code": "",
+                "name": "",
+            },
+        )
     r = get_async_redis()
     raw = await r.get(f"zenflow:reg:{code}")
     if not raw:
-        return templates.TemplateResponse("register_done.html", {
-            "request": request, "error": "This code has expired or was already used.",
-            "code": "", "name": "",
-        })
+        return templates.TemplateResponse(
+            "register_done.html",
+            {
+                "request": request,
+                "error": "This code has expired or was already used.",
+                "code": "",
+                "name": "",
+            },
+        )
     info = json.loads(raw)
     therapist_username = await _get_therapist_bot_username()
     patient_username = await _get_patient_bot_username()
-    return templates.TemplateResponse("register_done.html", {
-        "request": request,
-        "error": "",
-        "code": code,
-        "name": info.get("name", "Therapist"),
-        "therapist_bot_username": therapist_username,
-        "therapist_bot_link": f"https://t.me/{therapist_username}" if therapist_username else "",
-        "patient_bot_username": patient_username,
-        "patient_bot_link": f"https://t.me/{patient_username}" if patient_username else "",
-    })
+    return templates.TemplateResponse(
+        "register_done.html",
+        {
+            "request": request,
+            "error": "",
+            "code": code,
+            "name": info.get("name", "Therapist"),
+            "therapist_bot_username": therapist_username,
+            "therapist_bot_link": (
+                f"https://t.me/{therapist_username}" if therapist_username else ""
+            ),
+            "patient_bot_username": patient_username,
+            "patient_bot_link": f"https://t.me/{patient_username}" if patient_username else "",
+        },
+    )
 
 
 # ── Logout ─────────────────────────────────────────────────────────────────────
+
 
 @router.get("/logout")
 async def logout(request: Request):

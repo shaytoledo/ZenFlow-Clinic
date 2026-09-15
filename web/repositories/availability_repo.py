@@ -4,21 +4,29 @@ web/repositories/availability_repo.py
 All SQL access for the local-mode `availability` table (used when a therapist
 has not connected Google Calendar).
 """
+
 from __future__ import annotations
 
 import secrets
+import sqlite3
+from typing import Any
 
 
-def _conn():
+def _conn() -> sqlite3.Connection:
     from bot.db import get_db
+
     return get_db()
 
 
-def list_for_therapist(therapist_id: str) -> list[dict]:
-    rows = _conn().execute(
-        "SELECT * FROM availability WHERE therapist_id=? ORDER BY start_dt",
-        (therapist_id,),
-    ).fetchall()
+def list_for_therapist(therapist_id: str) -> list[dict[str, Any]]:
+    rows = (
+        _conn()
+        .execute(
+            "SELECT * FROM availability WHERE therapist_id=? ORDER BY start_dt",
+            (therapist_id,),
+        )
+        .fetchall()
+    )
     return [dict(r) for r in rows]
 
 

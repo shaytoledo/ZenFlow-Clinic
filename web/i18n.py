@@ -12,12 +12,12 @@ Usage in Python code (bot, services):
     from web.i18n import translate
     msg = translate("bot_greeting", "he", name="Maya")
 """
+
 from __future__ import annotations
 
 import json
 import logging
 from pathlib import Path
-from string import Formatter
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ def get_t(lang: str | None = None) -> _TranslationProxy:
     if resolved == _DEFAULT:
         return _TranslationProxy(en)
     target = _load(resolved)
-    merged = {**en, **target}   # target overrides English fallback
+    merged = {**en, **target}  # target overrides English fallback
     return _TranslationProxy(merged)
 
 

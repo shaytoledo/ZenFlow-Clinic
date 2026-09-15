@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 from datetime import date
@@ -6,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── public API ───────────────────────────────────────────────────────────────
+
 
 def save_appointment(
     patient_id: int,
@@ -19,6 +21,7 @@ def save_appointment(
 ) -> int:
     """Save appointment to SQLite. Returns the appointment row ID."""
     from bot.db import get_db
+
     conn = get_db()
     conn.execute("BEGIN")
     try:
@@ -26,16 +29,27 @@ def save_appointment(
             """INSERT INTO appointments
                (patient_id, patient_name, therapist_id, date, time, status, gcal_apt_event_id, summary)
                VALUES (?, ?, ?, ?, ?, 'active', ?, ?)""",
-            (patient_id, patient_name, therapist_id, day.isoformat(), time_slot,
-             gcal_apt_event_id, summary),
+            (
+                patient_id,
+                patient_name,
+                therapist_id,
+                day.isoformat(),
+                time_slot,
+                gcal_apt_event_id,
+                summary,
+            ),
         )
         appointment_id = cur.lastrowid
         conn.execute(
             """INSERT INTO intake_sessions
                (appointment_id, patient_id, therapist_id, history_json)
                VALUES (?, ?, ?, ?)""",
-            (appointment_id, patient_id, therapist_id,
-             json.dumps(intake_history, ensure_ascii=False)),
+            (
+                appointment_id,
+                patient_id,
+                therapist_id,
+                json.dumps(intake_history, ensure_ascii=False),
+            ),
         )
         conn.execute("COMMIT")
     except Exception:
@@ -46,6 +60,7 @@ def save_appointment(
     # Invalidate cached appointment list
     try:
         from bot.redis_client import get_sync_redis
+
         get_sync_redis().delete("zenflow:apts:all")
     except Exception:
         pass
@@ -56,6 +71,7 @@ def save_appointment(
 def update_appointment_summary(appointment_id: int, summary: str, history: list[dict]) -> None:
     """Update the summary and intake history after background AI processing completes."""
     from bot.db import get_db
+
     conn = get_db()
     conn.execute(
         "UPDATE appointments SET summary=? WHERE id=?",
@@ -70,6 +86,7 @@ def update_appointment_summary(appointment_id: int, summary: str, history: list[
 def get_patient_appointments(patient_id: int) -> list[dict]:
     """Return all active appointments for a patient, sorted by date/time."""
     from bot.db import get_db
+
     conn = get_db()
     rows = conn.execute(
         """SELECT * FROM appointments
@@ -85,6 +102,7 @@ def get_patient_appointments(patient_id: int) -> list[dict]:
 def cancel_appointment(appointment_id: int) -> bool:
     """Mark an appointment as cancelled (record preserved for clinical history)."""
     from bot.db import get_db
+
     try:
         conn = get_db()
         conn.execute(
@@ -96,6 +114,7 @@ def cancel_appointment(appointment_id: int) -> bool:
         # Invalidate cached appointment list
         try:
             from bot.redis_client import get_sync_redis
+
             get_sync_redis().delete("zenflow:apts:all")
         except Exception:
             pass
@@ -112,6 +131,7 @@ def get_booked_slots(day: date) -> set[str]:
     # Try sync Redis cache
     try:
         from bot.redis_client import get_sync_redis
+
         r = get_sync_redis()
         key = f"zenflow:slots:{day.isoformat()}"
         cached = r.get(key)
@@ -122,6 +142,7 @@ def get_booked_slots(day: date) -> set[str]:
         key = None
 
     from bot.db import get_db
+
     conn = get_db()
     rows = conn.execute(
         "SELECT time FROM appointments WHERE date=? AND status='active'",
@@ -131,10 +152,8 @@ def get_booked_slots(day: date) -> set[str]:
     logger.debug(f"Booked slots on {day}: {booked}")
 
     if r and key is not None:
-        try:
+        with contextlib.suppress(Exception):
             r.set(key, _json.dumps(list(booked)), ex=300)
-        except Exception:
-            pass
 
     return booked
 
@@ -142,7 +161,9 @@ def get_booked_slots(day: date) -> set[str]:
 def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> None:
     """Upsert treatment notes for an appointment."""
     import json as _json
+
     from bot.db import get_db
+
     conn = get_db()
     conn.execute(
         """INSERT INTO treatment_notes
@@ -164,23 +185,46 @@ def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> N
              recommendations_sent_at=COALESCE(excluded.recommendations_sent_at, recommendations_sent_at),
              completed_at=COALESCE(excluded.completed_at, completed_at),
              updated_at=datetime('now')""",
-        (appointment_id, patient_id,
-         notes.get("tcm_pattern"), notes.get("treatment_principles"),
-         int(notes.get("diagnosis_certainty") or 0) if notes.get("diagnosis_certainty") is not None else None,
-         _json.dumps(notes.get("ai_suggested_points"), ensure_ascii=False) if notes.get("ai_suggested_points") is not None else None,
-         _json.dumps(notes.get("ai_recommendations"), ensure_ascii=False) if notes.get("ai_recommendations") is not None else None,
-         notes.get("tongue_observation"), notes.get("pulse_observation"),
-         notes.get("session_notes"),
-         _json.dumps(notes.get("used_points"), ensure_ascii=False) if notes.get("used_points") is not None else None,
-         notes.get("recommendations_sent_at"),
-         notes.get("completed_at")),
+        (
+            appointment_id,
+            patient_id,
+            notes.get("tcm_pattern"),
+            notes.get("treatment_principles"),
+            (
+                int(notes.get("diagnosis_certainty") or 0)
+                if notes.get("diagnosis_certainty") is not None
+                else None
+            ),
+            (
+                _json.dumps(notes.get("ai_suggested_points"), ensure_ascii=False)
+                if notes.get("ai_suggested_points") is not None
+                else None
+            ),
+            (
+                _json.dumps(notes.get("ai_recommendations"), ensure_ascii=False)
+                if notes.get("ai_recommendations") is not None
+                else None
+            ),
+            notes.get("tongue_observation"),
+            notes.get("pulse_observation"),
+            notes.get("session_notes"),
+            (
+                _json.dumps(notes.get("used_points"), ensure_ascii=False)
+                if notes.get("used_points") is not None
+                else None
+            ),
+            notes.get("recommendations_sent_at"),
+            notes.get("completed_at"),
+        ),
     )
 
 
 def get_treatment_notes(appointment_id: int) -> dict | None:
     """Load treatment notes for an appointment, or None if not found."""
     import json as _json
+
     from bot.db import get_db
+
     conn = get_db()
     row = conn.execute(
         "SELECT * FROM treatment_notes WHERE appointment_id=?", (appointment_id,)

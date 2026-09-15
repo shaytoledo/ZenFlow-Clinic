@@ -4,11 +4,16 @@ web/repositories/notification_repo.py
 SQL access for the `notifications` table — therapist-scoped alerts shown in the
 bell-icon dropdown on the topbar.
 """
+
 from __future__ import annotations
 
+import sqlite3
+from typing import Any
 
-def _conn():
+
+def _conn() -> sqlite3.Connection:
     from bot.db import get_db
+
     return get_db()
 
 
@@ -29,33 +34,52 @@ def create(
            (therapist_id, kind, severity, title, body, appointment_id, patient_id,
             patient_name, persistent)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (therapist_id, kind, severity, title, body, appointment_id, patient_id,
-         patient_name, 1 if persistent else 0),
+        (
+            therapist_id,
+            kind,
+            severity,
+            title,
+            body,
+            appointment_id,
+            patient_id,
+            patient_name,
+            1 if persistent else 0,
+        ),
     )
+    if cur.lastrowid is None:  # pragma: no cover - sqlite always sets it after INSERT
+        raise RuntimeError("INSERT did not return a rowid")
     return int(cur.lastrowid)
 
 
-def list_for_therapist(therapist_id: str, limit: int = 50) -> list[dict]:
+def list_for_therapist(therapist_id: str, limit: int = 50) -> list[dict[str, Any]]:
     """Newest notifications first. Persistent unresolved alerts always rank first."""
-    rows = _conn().execute(
-        """SELECT * FROM notifications
+    rows = (
+        _conn()
+        .execute(
+            """SELECT * FROM notifications
            WHERE therapist_id=?
            ORDER BY (CASE WHEN persistent=1 AND resolved_at IS NULL THEN 0 ELSE 1 END),
                     created_at DESC
            LIMIT ?""",
-        (therapist_id, limit),
-    ).fetchall()
+            (therapist_id, limit),
+        )
+        .fetchall()
+    )
     return [dict(r) for r in rows]
 
 
 def unread_count(therapist_id: str) -> int:
-    row = _conn().execute(
-        """SELECT COUNT(*) AS n FROM notifications
+    row = (
+        _conn()
+        .execute(
+            """SELECT COUNT(*) AS n FROM notifications
            WHERE therapist_id=?
              AND read_at IS NULL
              AND (persistent=0 OR resolved_at IS NULL)""",
-        (therapist_id,),
-    ).fetchone()
+            (therapist_id,),
+        )
+        .fetchone()
+    )
     return int(row["n"]) if row else 0
 
 
@@ -81,17 +105,21 @@ def resolve(therapist_id: str, notification_id: int) -> None:
     )
 
 
-def find_active_missing_contact(therapist_id: str, appointment_id: int) -> dict | None:
+def find_active_missing_contact(therapist_id: str, appointment_id: int) -> dict[str, Any] | None:
     """Return an unresolved missing-contact notification for this appointment, if any.
 
     Used to avoid creating duplicates when the therapist completes a session
     multiple times in a row without fixing the patient's contact details.
     """
-    row = _conn().execute(
-        """SELECT * FROM notifications
+    row = (
+        _conn()
+        .execute(
+            """SELECT * FROM notifications
            WHERE therapist_id=? AND appointment_id=? AND kind='missing_contact'
              AND resolved_at IS NULL
            ORDER BY created_at DESC LIMIT 1""",
-        (therapist_id, appointment_id),
-    ).fetchone()
+            (therapist_id, appointment_id),
+        )
+        .fetchone()
+    )
     return dict(row) if row else None

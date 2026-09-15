@@ -21,6 +21,7 @@ Usage
         body_text="...",
     )
 """
+
 from __future__ import annotations
 
 import base64
@@ -40,6 +41,7 @@ class EmailSendError(RuntimeError):
 
 # ── Core send ─────────────────────────────────────────────────────────────────
 
+
 def send_email(
     therapist_id: str,
     to: str,
@@ -55,7 +57,7 @@ def send_email(
     EmailNotConfigured  — therapist has never connected Google
     EmailSendError      — Gmail API rejected the request (token revoked etc.)
     """
-    from web.gcal import is_gmail_authenticated, get_gmail_service
+    from web.gcal import get_gmail_service, is_gmail_authenticated
 
     if not is_gmail_authenticated(therapist_id):
         raise EmailNotConfigured(
@@ -72,7 +74,7 @@ def send_email(
         ) from e
 
     mime = MIMEText(body_text, "plain", "utf-8")
-    mime["To"]      = to
+    mime["To"] = to
     mime["Subject"] = subject
     raw = base64.urlsafe_b64encode(mime.as_bytes()).decode("utf-8")
 
@@ -81,17 +83,21 @@ def send_email(
         logger.info(f"Email sent (Gmail API) to {to!r} — {subject!r}")
     except Exception as e:
         err_str = str(e).lower()
-        if any(k in err_str for k in ("invalid_grant", "token", "revoked", "expired", "unauthorized")):
+        if any(
+            k in err_str for k in ("invalid_grant", "token", "revoked", "expired", "unauthorized")
+        ):
             _notify_reconnect(therapist_id)
         raise EmailSendError(f"Gmail API send failed: {e}") from e
 
 
 # ── Notification helper ───────────────────────────────────────────────────────
 
+
 def _notify_reconnect(therapist_id: str) -> None:
     """Create a persistent alert asking the therapist to reconnect Google."""
     try:
         from web.repositories import notification_repo
+
         notification_repo.create(
             therapist_id=therapist_id,
             kind="gmail_token_expired",
@@ -111,6 +117,7 @@ def _notify_reconnect(therapist_id: str) -> None:
 
 
 # ── Legacy SMTP check (kept so old callers get a clean error) ─────────────────
+
 
 def is_configured() -> bool:
     """Always False — SMTP is no longer used."""

@@ -3,17 +3,21 @@ web/repositories/patient_repo.py
 ──────────────────────────────────
 Full patient history: appointments JOIN treatment_notes JOIN intake_sessions.
 """
+
 from __future__ import annotations
 
 import json
+import sqlite3
+from typing import Any
 
 
-def _conn():
+def _conn() -> sqlite3.Connection:
     from bot.db import get_db
+
     return get_db()
 
 
-def _parse_json_cols(d: dict) -> dict:
+def _parse_json_cols(d: dict[str, Any]) -> dict[str, Any]:
     for key in ("ai_suggested_points", "used_points"):
         val = d.get(key)
         if isinstance(val, str):
@@ -31,13 +35,15 @@ def _parse_json_cols(d: dict) -> dict:
     return d
 
 
-def get_full_history(patient_id: int) -> dict | None:
+def get_full_history(patient_id: int) -> dict[str, Any] | None:
     """Return patient summary + all appointments with treatment and intake data.
 
     Returns None if the patient_id does not exist.
     """
-    rows = _conn().execute(
-        """SELECT a.id            AS appointment_id,
+    rows = (
+        _conn()
+        .execute(
+            """SELECT a.id            AS appointment_id,
                   a.patient_id,
                   a.patient_name,
                   a.therapist_id,
@@ -73,8 +79,10 @@ def get_full_history(patient_id: int) -> dict | None:
            WHERE a.patient_id = ?
              AND a.status = 'active'
            ORDER BY a.date DESC, a.time DESC""",
-        (patient_id,),
-    ).fetchall()
+            (patient_id,),
+        )
+        .fetchall()
+    )
 
     if not rows:
         return None
@@ -96,7 +104,7 @@ def get_full_history(patient_id: int) -> dict | None:
     }
 
 
-def get_single_appointment(patient_id: int, appointment_id: int) -> dict | None:
+def get_single_appointment(patient_id: int, appointment_id: int) -> dict[str, Any] | None:
     """Fetch one appointment's full record for a patient."""
     history = get_full_history(patient_id)
     if not history:

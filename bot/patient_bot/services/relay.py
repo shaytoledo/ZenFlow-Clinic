@@ -9,6 +9,7 @@ Storage: Redis
   zenflow:relay:history:{patient_id}    →  JSON list[{role, text, ts}]            TTL 30 min
   zenflow:relay:current:{therapist_id}  →  patient_id (str)                       TTL 24h
 """
+
 import json
 import logging
 import time
@@ -21,6 +22,7 @@ _HISTORY_MAX = 100
 
 def _redis():
     from bot.redis_client import get_sync_redis
+
     return get_sync_redis()
 
 
@@ -47,13 +49,15 @@ def save_relay_mapping(
             session = {}
     else:
         session = {}
-    session.update({
-        "patient_id": patient_id,
-        "patient_name": patient_name or session.get("patient_name", ""),
-        "therapist_id": therapist_id or session.get("therapist_id", ""),
-        "started_at": session.get("started_at") or time.time(),
-        "last_msg_id": forwarded_msg_id,
-    })
+    session.update(
+        {
+            "patient_id": patient_id,
+            "patient_name": patient_name or session.get("patient_name", ""),
+            "therapist_id": therapist_id or session.get("therapist_id", ""),
+            "started_at": session.get("started_at") or time.time(),
+            "last_msg_id": forwarded_msg_id,
+        }
+    )
     r.set(active_key, json.dumps(session), ex=86400)
 
     if therapist_id:

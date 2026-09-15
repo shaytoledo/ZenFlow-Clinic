@@ -10,7 +10,9 @@ from bot.utils import get_main_keyboard
 
 logger = logging.getLogger(__name__)
 
-_END_KB = InlineKeyboardMarkup([[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]])
+_END_KB = InlineKeyboardMarkup(
+    [[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]]
+)
 
 # Therapist bot instance used to forward patient messages
 _therapist_bot: Bot | None = Bot(token=THERAPIST_BOT_TOKEN) if THERAPIST_BOT_TOKEN else None
@@ -40,20 +42,21 @@ async def show_therapist_for_contact(update: Update, context: ContextTypes.DEFAU
 
     if len(active) == 1:
         context.user_data["selected_therapist"] = active[0]["id"]
-        await query.edit_message_text("What would you like to say to the therapist?\n\nType your message below:")
+        await query.edit_message_text(
+            "What would you like to say to the therapist?\n\nType your message below:"
+        )
         return THERAPIST_INPUT
 
     # Already chose a therapist this session — skip re-selection
     existing = context.user_data.get("selected_therapist")
     if existing and any(t["id"] == existing for t in active):
-        await query.edit_message_text("What would you like to say to the therapist?\n\nType your message below:")
+        await query.edit_message_text(
+            "What would you like to say to the therapist?\n\nType your message below:"
+        )
         return THERAPIST_INPUT
 
     context.user_data["therapist_flow"] = "contact"
-    keyboard = [
-        [InlineKeyboardButton(t["name"], callback_data=f"sel_t_{t['id']}")]
-        for t in active
-    ]
+    keyboard = [[InlineKeyboardButton(t["name"], callback_data=f"sel_t_{t['id']}")] for t in active]
     keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_main")])
     await query.edit_message_text(
         "Choose your therapist:",
@@ -97,7 +100,9 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         )
         save_relay_mapping(sent.message_id, user.id, therapist["id"], patient_name)
         append_history(user.id, "patient", update.message.text)
-        logger.info(f"[{user.id}] relay opened via therapist bot, msg_id={sent.message_id}, therapist={therapist['id']}")
+        logger.info(
+            f"[{user.id}] relay opened via therapist bot, msg_id={sent.message_id}, therapist={therapist['id']}"
+        )
     except Exception as e:
         logger.error(f"[{user.id}] failed to forward to therapist bot: {e}")
         await update.message.reply_text(
@@ -138,7 +143,9 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("✅ Sent.", reply_markup=_END_KB)
     except Exception as e:
         logger.error(f"[{user.id}] relay failed: {e}")
-        await update.message.reply_text("⚠️ Could not forward your message. Please try again.", reply_markup=_END_KB)
+        await update.message.reply_text(
+            "⚠️ Could not forward your message. Please try again.", reply_markup=_END_KB
+        )
     return THERAPIST_RELAY
 
 

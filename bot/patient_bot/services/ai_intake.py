@@ -10,18 +10,19 @@ Speed optimisations applied:
 - ConversationSummaryBuffer: rolls up old messages into a summary to keep context short
 - In-process history cache: RedisChatMessageHistory object reused per user (avoids LRANGE on every call)
 """
+
 import asyncio
 import json
 import logging
-import os
 import re
 
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, REDIS_URL
+from zenflow.settings import get_settings
 
-USE_AI = os.getenv("USE_AI", "ollama")
+USE_AI = get_settings().ai_provider
 
 logger = logging.getLogger(__name__)
 
@@ -291,15 +292,23 @@ def get_fallback_questions(lang: str = "en") -> list[str]:
 def get_system_prompt(lang: str = "en") -> str:
     return SYSTEM_PROMPT_HE if lang == "he" else SYSTEM_PROMPT
 
+
 # ── LLM singleton — selected by USE_AI env var ────────────────────────────────
 if USE_AI == "anthropic":
     try:
         from langchain_anthropic import ChatAnthropic
-        _ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-        _LLM        = ChatAnthropic(model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=150)
-        _LLM_LONG   = ChatAnthropic(model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=800)
+
+        _ANTHROPIC_KEY = get_settings().anthropic_api_key
+        _LLM = ChatAnthropic(
+            model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=150
+        )
+        _LLM_LONG = ChatAnthropic(
+            model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=800
+        )
         # Point selection needs more tokens for 6-10 point objects with rationale
-        _LLM_POINTS = ChatAnthropic(model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=1800)
+        _LLM_POINTS = ChatAnthropic(
+            model="claude-haiku-4-5-20251001", api_key=_ANTHROPIC_KEY, max_tokens=1800
+        )
         logger.info("AI backend: Anthropic Claude (claude-haiku-4-5-20251001)")
     except ImportError:
         logger.warning("langchain-anthropic not installed — falling back to Ollama")
@@ -308,22 +317,29 @@ if USE_AI == "anthropic":
 if USE_AI != "anthropic":
     try:
         from langchain_ollama import ChatOllama
-        _LLM        = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=100,  num_ctx=512)
-        _LLM_LONG   = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=800,  num_ctx=2048)
+
+        _LLM = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=100, num_ctx=512)
+        _LLM_LONG = ChatOllama(
+            model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=800, num_ctx=2048
+        )
         # Dedicated high-context instance for point selection:
         # num_ctx=4096 gives room for prompt (~400 tok) + 10 detailed points (~1500 tok output)
-        _LLM_POINTS = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=1800, num_ctx=4096)
+        _LLM_POINTS = ChatOllama(
+            model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_predict=1800, num_ctx=4096
+        )
         logger.info(f"AI backend: Ollama ({OLLAMA_MODEL} @ {OLLAMA_HOST})")
     except ImportError:
         logger.warning("langchain-ollama not installed — intake will use fallback questions only")
-        _LLM        = None
-        _LLM_LONG   = None
+        _LLM = None
+        _LLM_LONG = None
         _LLM_POINTS = None
 
 # ── Ollama health check at startup (only in ollama mode) ──────────────────────
 if USE_AI != "anthropic":
+
     def _check_ollama_health() -> None:
         import urllib.request
+
         try:
             urllib.request.urlopen(f"{OLLAMA_HOST}/api/tags", timeout=3)
             logger.info(f"Ollama reachable at {OLLAMA_HOST}, model: {OLLAMA_MODEL}")
@@ -333,6 +349,7 @@ if USE_AI != "anthropic":
                 f"  → Intake will use fallback questions.\n"
                 f"  → Set USE_AI=anthropic + ANTHROPIC_API_KEY for cloud AI."
             )
+
     _check_ollama_health()
 
 # ── in-process history cache — avoids Redis LRANGE on every call ─────────────
@@ -345,7 +362,7 @@ _rolling_summaries: dict[int, str] = {}
 # Max intake is 5 questions = 10 messages — set buffer above that so compression
 # never fires mid-intake (it would add an extra Ollama round-trip).
 _BUFFER_KEEP = 4
-_BUFFER_MAX  = 12
+_BUFFER_MAX = 12
 
 
 def _get_history(user_id: int) -> RedisChatMessageHistory:
@@ -368,8 +385,8 @@ async def _maybe_compress(user_id: int) -> None:
         return
 
     # Messages to compress: everything except the most recent _BUFFER_KEEP
-    to_compress = msgs[:len(msgs) - _BUFFER_KEEP]
-    recent      = msgs[len(msgs) - _BUFFER_KEEP:]
+    to_compress = msgs[: len(msgs) - _BUFFER_KEEP]
+    recent = msgs[len(msgs) - _BUFFER_KEEP :]
 
     # Build a short textual transcript for the summariser
     transcript_parts = []
@@ -410,6 +427,7 @@ async def _maybe_compress(user_id: int) -> None:
 
 # ── public API ────────────────────────────────────────────────────────────────
 
+
 def initialize_intake(user_id: int, opening_question: str) -> None:
     """Start a fresh intake: clear old history and record the opening question."""
     _history_cache.pop(user_id, None)  # drop stale cache entry first
@@ -448,7 +466,7 @@ async def get_next_question(user_id: int, user_answer: str, lang: str = "en") ->
             hist.add_ai_message(question)
             logger.info(f"[{user_id}] next question generated via LangChain ({USE_AI})")
             return question
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"[{user_id}] AI timeout — using fallback question")
         except Exception as e:
             logger.warning(f"[{user_id}] LangChain error: {e} — using fallback question")
@@ -486,7 +504,7 @@ async def generate_summary(user_id: int, final_answer: str) -> str:
             resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=OLLAMA_TIMEOUT)
             logger.info(f"[{user_id}] clinical summary generated via LangChain ({USE_AI})")
             return resp.content.strip()
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"[{user_id}] AI timeout on summary")
         except Exception as e:
             logger.warning(f"[{user_id}] LangChain error on summary: {e}")
@@ -513,7 +531,9 @@ def _normalise_points(raw_points: list) -> list[dict]:
         if isinstance(pt, dict):
             code = str(pt.get("code") or pt.get("point") or "").upper().strip()
             if code:
-                out.append({"code": code, "rationale": str(pt.get("rationale") or pt.get("why") or "")})
+                out.append(
+                    {"code": code, "rationale": str(pt.get("rationale") or pt.get("why") or "")}
+                )
         elif isinstance(pt, str) and pt.strip():
             out.append({"code": pt.strip().upper(), "rationale": ""})
     return out
@@ -539,7 +559,9 @@ def _parse_points_response(raw: str, log_tag: str) -> list[dict]:
         )
         matches = object_pattern.findall(stripped)
         if matches:
-            logger.warning(f"[{log_tag}] Partial JSON recovery: extracted {len(matches)} point(s) via regex")
+            logger.warning(
+                f"[{log_tag}] Partial JSON recovery: extracted {len(matches)} point(s) via regex"
+            )
             recovered = []
             for m in object_pattern.finditer(stripped):
                 try:
@@ -550,7 +572,9 @@ def _parse_points_response(raw: str, log_tag: str) -> list[dict]:
                     recovered.append({"code": m.group(1), "rationale": m.group(2)})
             parsed = recovered
         else:
-            logger.warning(f"[{log_tag}] Point selection JSON fully unparseable — raw: {raw[:300]!r}")
+            logger.warning(
+                f"[{log_tag}] Point selection JSON fully unparseable — raw: {raw[:300]!r}"
+            )
             return []
 
     # Unwrap object envelope if model ignored instructions
@@ -575,14 +599,25 @@ def _parse_points_response(raw: str, log_tag: str) -> list[dict]:
             code = str(pt.get("code") or pt.get("point") or "").strip().upper()
             if not code:
                 continue
-            out.append({
-                "code":             code,
-                "rationale":        str(pt.get("rationale")        or pt.get("why")            or ""),
-                "location":         str(pt.get("location")         or pt.get("anatomical_location") or ""),
-                "needle_technique": str(pt.get("needle_technique") or pt.get("technique")      or ""),
-            })
+            out.append(
+                {
+                    "code": code,
+                    "rationale": str(pt.get("rationale") or pt.get("why") or ""),
+                    "location": str(pt.get("location") or pt.get("anatomical_location") or ""),
+                    "needle_technique": str(
+                        pt.get("needle_technique") or pt.get("technique") or ""
+                    ),
+                }
+            )
         elif isinstance(pt, str) and pt.strip():
-            out.append({"code": pt.strip().upper(), "rationale": "", "location": "", "needle_technique": ""})
+            out.append(
+                {
+                    "code": pt.strip().upper(),
+                    "rationale": "",
+                    "location": "",
+                    "needle_technique": "",
+                }
+            )
 
     logger.info(f"[{log_tag}] Parsed {len(out)} valid points from AI response")
     return out
@@ -627,7 +662,9 @@ async def select_points_for_diagnosis(
             treatment_principles=treatment_principles or "Restore balance",
             intake_context=(intake_context or "No prior intake on file.")[:1000],
         )
-    logger.info(f"[{log_tag}] Stage 2 batch {batch_number} start — pattern='{tcm_pattern}' attempt={_retry + 1}/2")
+    logger.info(
+        f"[{log_tag}] Stage 2 batch {batch_number} start — pattern='{tcm_pattern}' attempt={_retry + 1}/2"
+    )
 
     try:
         resp = await asyncio.wait_for(
@@ -638,23 +675,39 @@ async def select_points_for_diagnosis(
 
         # Retry once if the model returned nothing (parse failed or empty array)
         if not points and _retry == 0:
-            logger.warning(f"[{log_tag}] Stage 2 batch {batch_number} returned 0 points on attempt 1 — retrying")
+            logger.warning(
+                f"[{log_tag}] Stage 2 batch {batch_number} returned 0 points on attempt 1 — retrying"
+            )
             return await select_points_for_diagnosis(
-                tcm_pattern, treatment_principles, intake_context,
-                log_tag=log_tag, _retry=1,
-                batch_number=batch_number, existing_codes=existing_codes, lang=lang,
+                tcm_pattern,
+                treatment_principles,
+                intake_context,
+                log_tag=log_tag,
+                _retry=1,
+                batch_number=batch_number,
+                existing_codes=existing_codes,
+                lang=lang,
             )
 
-        logger.info(f"[{log_tag}] Stage 2 batch {batch_number} complete — {len(points)} points selected")
+        logger.info(
+            f"[{log_tag}] Stage 2 batch {batch_number} complete — {len(points)} points selected"
+        )
         return points
 
-    except asyncio.TimeoutError:
-        logger.warning(f"[{log_tag}] Ollama timeout on point selection batch {batch_number} (attempt {_retry + 1})")
+    except TimeoutError:
+        logger.warning(
+            f"[{log_tag}] Ollama timeout on point selection batch {batch_number} (attempt {_retry + 1})"
+        )
         if _retry == 0:
             return await select_points_for_diagnosis(
-                tcm_pattern, treatment_principles, intake_context,
-                log_tag=log_tag, _retry=1,
-                batch_number=batch_number, existing_codes=existing_codes, lang=lang,
+                tcm_pattern,
+                treatment_principles,
+                intake_context,
+                log_tag=log_tag,
+                _retry=1,
+                batch_number=batch_number,
+                existing_codes=existing_codes,
+                lang=lang,
             )
     except Exception as e:
         logger.error(f"[{log_tag}] Point selection unexpected error: {e}", exc_info=True)
@@ -689,20 +742,24 @@ async def generate_diagnosis_only(
         parsed = json.loads(raw)
         raw_certainty = parsed.get("diagnosis_certainty", 0)
         result: dict = {
-            "tcm_pattern":          str(parsed.get("tcm_pattern", "")),
+            "tcm_pattern": str(parsed.get("tcm_pattern", "")),
             "treatment_principles": str(parsed.get("treatment_principles", "")),
-            "diagnosis_certainty":  int(raw_certainty) if isinstance(raw_certainty, (int, float)) else 0,
-            "suggested_points":     [],
+            "diagnosis_certainty": (
+                int(raw_certainty) if isinstance(raw_certainty, int | float) else 0
+            ),
+            "suggested_points": [],
             "recommendations": {
-                "diet":     str(parsed.get("recommendations", {}).get("diet", "")),
-                "sleep":    str(parsed.get("recommendations", {}).get("sleep", "")),
+                "diet": str(parsed.get("recommendations", {}).get("diet", "")),
+                "sleep": str(parsed.get("recommendations", {}).get("sleep", "")),
                 "exercise": str(parsed.get("recommendations", {}).get("exercise", "")),
-                "stress":   str(parsed.get("recommendations", {}).get("stress", "")),
+                "stress": str(parsed.get("recommendations", {}).get("stress", "")),
             },
         }
-        logger.info(f"[{log_tag}] Stage-1 diagnosis: {result['tcm_pattern']} ({result['diagnosis_certainty']}%)")
+        logger.info(
+            f"[{log_tag}] Stage-1 diagnosis: {result['tcm_pattern']} ({result['diagnosis_certainty']}%)"
+        )
         return result
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(f"[{log_tag}] Ollama timeout — diagnosis stage 1")
     except json.JSONDecodeError as e:
         logger.warning(f"[{log_tag}] Diagnosis stage 1 JSON parse error: {e}")
@@ -732,7 +789,9 @@ async def generate_tcm_diagnosis(user_id: int, clinical_summary: str) -> dict:
     if summary:
         context_parts.append(SystemMessage(content=f"[Earlier conversation summary: {summary}]"))
     context_parts.extend(hist.messages)
-    context_parts.append(HumanMessage(content=f"Clinical summary:\n{clinical_summary}\n\n{TCM_DIAGNOSIS_PROMPT}"))
+    context_parts.append(
+        HumanMessage(content=f"Clinical summary:\n{clinical_summary}\n\n{TCM_DIAGNOSIS_PROMPT}")
+    )
 
     fallback: dict = {
         "tcm_pattern": "",
@@ -754,18 +813,22 @@ async def generate_tcm_diagnosis(user_id: int, clinical_summary: str) -> dict:
         result: dict = {
             "tcm_pattern": str(parsed.get("tcm_pattern", "")),
             "treatment_principles": str(parsed.get("treatment_principles", "")),
-            "diagnosis_certainty": int(raw_certainty) if isinstance(raw_certainty, (int, float)) else 0,
+            "diagnosis_certainty": (
+                int(raw_certainty) if isinstance(raw_certainty, int | float) else 0
+            ),
             "suggested_points": [],
             "recommendations": {
-                "diet":     str(parsed.get("recommendations", {}).get("diet", "")),
-                "sleep":    str(parsed.get("recommendations", {}).get("sleep", "")),
+                "diet": str(parsed.get("recommendations", {}).get("diet", "")),
+                "sleep": str(parsed.get("recommendations", {}).get("sleep", "")),
                 "exercise": str(parsed.get("recommendations", {}).get("exercise", "")),
-                "stress":   str(parsed.get("recommendations", {}).get("stress", "")),
+                "stress": str(parsed.get("recommendations", {}).get("stress", "")),
             },
         }
-        logger.info(f"[{user_id}] TCM diagnosis: {result['tcm_pattern']} ({result['diagnosis_certainty']}%)")
+        logger.info(
+            f"[{user_id}] TCM diagnosis: {result['tcm_pattern']} ({result['diagnosis_certainty']}%)"
+        )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(f"[{user_id}] Ollama timeout on TCM diagnosis (step 1)")
         return fallback
     except json.JSONDecodeError as e:

@@ -9,6 +9,7 @@ Usage:
     lang = get_lang(therapist_id)          # "en" or "he" from DB
     msg  = t("bot_welcome", lang, name="שרה")
 """
+
 from __future__ import annotations
 
 
@@ -22,9 +23,12 @@ def get_lang(therapist_id: str | None) -> str:
         return "en"
     try:
         from bot.db import get_db
-        row = get_db().execute(
-            "SELECT language FROM therapists WHERE id=?", (therapist_id,)
-        ).fetchone()
+
+        row = (
+            get_db()
+            .execute("SELECT language FROM therapists WHERE id=?", (therapist_id,))
+            .fetchone()
+        )
         return (dict(row).get("language") if row else None) or "en"
     except Exception:
         return "en"
@@ -33,4 +37,5 @@ def get_lang(therapist_id: str | None) -> str:
 def t(key: str, lang: str = "en", **kwargs) -> str:
     """Translate *key* to *lang*, interpolating any keyword arguments."""
     from web.i18n import translate
+
     return translate(key, lang, **kwargs)

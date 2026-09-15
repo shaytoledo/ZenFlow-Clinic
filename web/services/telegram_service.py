@@ -9,6 +9,7 @@ Supports:
 - Reading active relay conversations from Redis
 - Fetching recent Telegram updates (for live chat view)
 """
+
 import json
 import logging
 from typing import Any
@@ -35,12 +36,14 @@ async def _send(token: str, chat_id: int, text: str, parse_mode: str) -> dict:
 async def send_to_patient(patient_id: int, text: str, parse_mode: str = "Markdown") -> dict:
     """Send a message to a patient via the patient bot token."""
     from bot.config import TELEGRAM_TOKEN
+
     return await _send(TELEGRAM_TOKEN, patient_id, text, parse_mode)
 
 
 async def send_via_therapist_bot(patient_id: int, text: str, parse_mode: str = "Markdown") -> dict:
     """Send a message to a patient via the therapist bot (relay channel)."""
     from bot.config import THERAPIST_BOT_TOKEN
+
     if not THERAPIST_BOT_TOKEN:
         raise RuntimeError("THERAPIST_BOT_TOKEN not configured")
     return await _send(THERAPIST_BOT_TOKEN, patient_id, text, parse_mode)
@@ -60,6 +63,7 @@ async def echo_to_therapist_chat(
     (errors are logged but never raised — echoing is best-effort).
     """
     from bot.config import THERAPIST_BOT_TOKEN
+
     if not THERAPIST_BOT_TOKEN or not therapist_telegram_id:
         return None
     payload: dict[str, Any] = {
@@ -109,6 +113,7 @@ async def get_active_relay_conversations() -> list[dict]:
     """
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         keys = await r.keys("zenflow:relay:active:*")
         sessions = []
@@ -129,8 +134,10 @@ async def get_active_relay_conversations() -> list[dict]:
                             try:
                                 msgs = json.loads(hist_raw)
                                 unread = sum(
-                                    1 for m in msgs
-                                    if m.get("role") == "patient" and float(m.get("ts", 0)) > lastseen
+                                    1
+                                    for m in msgs
+                                    if m.get("role") == "patient"
+                                    and float(m.get("ts", 0)) > lastseen
                                 )
                             except Exception:
                                 pass
@@ -159,6 +166,7 @@ async def get_relay_messages(patient_id: int) -> list[dict]:
     """
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         raw = await r.get(f"zenflow:relay:history:{patient_id}")
         if raw:
@@ -171,8 +179,10 @@ async def get_relay_messages(patient_id: int) -> list[dict]:
 async def append_relay_message(patient_id: int, role: str, text: str) -> None:
     """Append a message to the relay history and keep last 100 entries (24h TTL)."""
     import time
+
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         key = f"zenflow:relay:history:{patient_id}"
         raw = await r.get(key)
@@ -193,6 +203,7 @@ async def get_total_unread_count() -> int:
     """
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         history_keys = await r.keys("zenflow:relay:history:*")
         total = 0
@@ -208,7 +219,8 @@ async def get_total_unread_count() -> int:
             lastseen_raw = await r.get(f"zenflow:relay:lastseen:{patient_id}")
             lastseen = float(lastseen_raw) if lastseen_raw else 0.0
             total += sum(
-                1 for m in messages
+                1
+                for m in messages
                 if m.get("role") == "patient" and float(m.get("ts", 0)) > lastseen
             )
         return total
@@ -220,8 +232,10 @@ async def get_total_unread_count() -> int:
 async def mark_conversation_read(patient_id: int) -> None:
     """Reset the unread counter for one patient by stamping last-seen=now."""
     import time
+
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         await r.set(f"zenflow:relay:lastseen:{patient_id}", str(time.time()), ex=86400)
     except Exception as e:
@@ -232,6 +246,7 @@ async def mark_conversation_unread(patient_id: int) -> None:
     """Force unread state for one patient by deleting the last-seen marker."""
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         await r.delete(f"zenflow:relay:lastseen:{patient_id}")
     except Exception as e:
@@ -256,6 +271,7 @@ async def delete_conversation(patient_id: int) -> int:
     ]
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         return int(await r.delete(*keys))
     except Exception as e:

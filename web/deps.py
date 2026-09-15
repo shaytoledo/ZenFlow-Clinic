@@ -1,4 +1,5 @@
 """Shared dependencies for web routes: templates, session helpers, data helpers."""
+
 import asyncio
 import hashlib
 import json
@@ -45,6 +46,7 @@ def _get_session_therapist_id(request: Request) -> str | None:
 def _load_therapists_fresh() -> list[dict]:
     """Read therapists from SQLite so bot-process writes are visible immediately."""
     from bot.db import get_db
+
     conn = get_db()
     rows = conn.execute("SELECT * FROM therapists").fetchall()
     result = [dict(row) for row in rows]
@@ -79,12 +81,13 @@ def _set_session(request: Request, therapist_id: str) -> None:
 
 def _find_by_email(email: str) -> dict | None:
     from bot.db import get_db
+
     email_lower = (email or "").lower().strip()
     if not email_lower:
         return None
-    row = get_db().execute(
-        "SELECT * FROM therapists WHERE lower(email)=?", (email_lower,)
-    ).fetchone()
+    row = (
+        get_db().execute("SELECT * FROM therapists WHERE lower(email)=?", (email_lower,)).fetchone()
+    )
     if row:
         t = dict(row)
         t["active"] = bool(t.get("active"))
@@ -94,11 +97,10 @@ def _find_by_email(email: str) -> dict | None:
 
 def _find_by_google_id(google_id: str) -> dict | None:
     from bot.db import get_db
+
     if not google_id:
         return None
-    row = get_db().execute(
-        "SELECT * FROM therapists WHERE google_id=?", (google_id,)
-    ).fetchone()
+    row = get_db().execute("SELECT * FROM therapists WHERE google_id=?", (google_id,)).fetchone()
     if row:
         t = dict(row)
         t["active"] = bool(t.get("active"))
@@ -145,15 +147,15 @@ def _register_web_therapist(name: str, email: str, password: str = "", google_id
 
 # ── Data helpers ───────────────────────────────────────────────────────────────
 
+
 def _load_all_appointments() -> list[dict]:
     """Load all appointments from SQLite (joins intake_sessions for history)."""
     from bot.db import get_db
+
     conn = get_db()
-    rows = conn.execute(
-        """SELECT a.*, i.history_json
+    rows = conn.execute("""SELECT a.*, i.history_json
            FROM appointments a
-           LEFT JOIN intake_sessions i ON i.appointment_id = a.id"""
-    ).fetchall()
+           LEFT JOIN intake_sessions i ON i.appointment_id = a.id""").fetchall()
     results = []
     for row in rows:
         d = dict(row)
@@ -167,6 +169,7 @@ async def _load_all_appointments_cached() -> list[dict]:
     """Return all appointments, cached in Redis for 30 seconds."""
     try:
         from bot.redis_client import get_async_redis
+
         r = get_async_redis()
         cached = await r.get("zenflow:apts:all")
         if cached:
@@ -203,12 +206,14 @@ def _aggregate_patients(appointments: list[dict]) -> list[dict]:
         if not p["last_appointment"] or apt_date > p["last_appointment"]:
             p["last_appointment"] = apt_date
             p["last_time"] = apt.get("time", "")
-        p["recent"].append({
-            "date": apt.get("date"),
-            "time": apt.get("time"),
-            "summary": (apt.get("summary") or "")[:120],
-            "intake_history": apt.get("intake_history", []),
-        })
+        p["recent"].append(
+            {
+                "date": apt.get("date"),
+                "time": apt.get("time"),
+                "summary": (apt.get("summary") or "")[:120],
+                "intake_history": apt.get("intake_history", []),
+            }
+        )
     for p in patients.values():
         p["recent"].sort(key=lambda x: x.get("date", ""))
         p["recent"] = p["recent"][-5:]
@@ -217,9 +222,11 @@ def _aggregate_patients(appointments: list[dict]) -> list[dict]:
 
 # ── Local availability helpers ─────────────────────────────────────────────────
 
+
 def _load_local_avail(therapist_id: str | None) -> list[dict]:
     """Read local availability slots for a therapist from SQLite."""
     from bot.db import get_db
+
     conn = get_db()
     rows = conn.execute(
         "SELECT id, start_dt AS start, end_dt AS end FROM availability WHERE therapist_id=?",
@@ -268,7 +275,9 @@ async def _get_therapist_bot_username() -> str:
         return _therapist_bot_username
     try:
         import httpx
+
         from bot.config import THERAPIST_BOT_TOKEN
+
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(f"https://api.telegram.org/bot{THERAPIST_BOT_TOKEN}/getMe")
             data = resp.json()
@@ -285,7 +294,9 @@ async def _get_patient_bot_username() -> str:
         return _patient_bot_username
     try:
         import httpx
+
         from bot.config import TELEGRAM_TOKEN
+
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getMe")
             data = resp.json()
@@ -299,7 +310,9 @@ async def _get_patient_bot_username() -> str:
 def _make_reg_flow():
     """Build a Google OAuth flow for sign-in/registration."""
     from google_auth_oauthlib.flow import Flow
+
     from bot.config import GOOGLE_REDIRECT_URI as _REDIR
+
     config = {
         "web": {
             "client_id": GOOGLE_CLIENT_ID,
@@ -315,16 +328,20 @@ def _make_reg_flow():
 async def _handle_reg_google(request: Request, code: str, error: str = ""):
     """Handle Google OAuth callback for registration/sign-in."""
     from fastapi.responses import RedirectResponse
+
     if error or not code:
         return RedirectResponse("/register?error=Google+sign-in+was+cancelled")
     try:
         from googleapiclient.discovery import build as _build
+
         flow = _make_reg_flow()
         await asyncio.to_thread(flow.fetch_token, code=code)
         creds = flow.credentials
         user_info = await asyncio.to_thread(
             lambda: _build("oauth2", "v2", credentials=creds, cache_discovery=False)
-                        .userinfo().get().execute()
+            .userinfo()
+            .get()
+            .execute()
         )
         name = user_info.get("name") or user_info.get("given_name") or "Unknown"
         email = (user_info.get("email") or "").lower()
@@ -334,6 +351,7 @@ async def _handle_reg_google(request: Request, code: str, error: str = ""):
         if existing:
             _set_session(request, existing["id"])
             from web.services.cache_service import prefetch_calendar
+
             asyncio.create_task(prefetch_calendar(existing["id"]))
             return RedirectResponse("/", status_code=303)
 

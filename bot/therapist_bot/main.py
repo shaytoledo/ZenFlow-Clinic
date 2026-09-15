@@ -25,9 +25,7 @@ def build_therapist_app() -> Application | None:
     app.add_handler(CommandHandler("start", start_therapist))
     # Single dynamic handler — routing is done at call time so newly registered
     # therapists are activated immediately without a bot restart.
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_therapist_message)
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_therapist_message))
 
     active = [t for t in THERAPISTS if t.get("active")]
     logger.info(

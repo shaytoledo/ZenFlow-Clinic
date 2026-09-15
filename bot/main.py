@@ -34,7 +34,6 @@ from bot.patient_bot.therapist import (
     show_therapist_for_contact,
     start_relay,
 )
-from bot.therapist_bot.main import build_therapist_app
 from bot.states import (
     CANCEL_SELECT,
     INTAKE,
@@ -47,12 +46,14 @@ from bot.states import (
     THERAPIST_RELAY,
     THERAPIST_SELECT,
 )
-
+from bot.therapist_bot.main import build_therapist_app
 
 # ── logging ──────────────────────────────────────────────────────────────────
 
+
 class _SingleLineFormatter(logging.Formatter):
     """Collapses every log record — including exceptions — to exactly one line."""
+
     def format(self, record: logging.LogRecord) -> str:
         if record.exc_info:
             record.exc_text = repr(record.exc_info[1])
@@ -83,6 +84,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── Ollama startup ────────────────────────────────────────────────────────────
+
 
 async def _ensure_ollama(app: Application) -> None:
     logger.info("Checking Ollama...")
@@ -118,6 +120,7 @@ async def _post_init(app: Application) -> None:
     await _ensure_ollama(app)
     try:
         from bot.services.followup_scheduler import start_followup_scheduler
+
         # Stash the task on the app so it shares the application's lifecycle —
         # the asyncio event loop tears it down when the app stops.
         app.bot_data["_followup_task"] = start_followup_scheduler()
@@ -126,6 +129,7 @@ async def _post_init(app: Application) -> None:
 
 
 # ── app builder ───────────────────────────────────────────────────────────────
+
 
 def build_patient_app() -> Application:
     app = (
@@ -144,38 +148,38 @@ def build_patient_app() -> Application:
         ],
         states={
             SELECTING: [
-                CallbackQueryHandler(show_therapist_choice,      pattern="^schedule$"),
-                CallbackQueryHandler(show_appointments,          pattern="^cancel$"),
+                CallbackQueryHandler(show_therapist_choice, pattern="^schedule$"),
+                CallbackQueryHandler(show_appointments, pattern="^cancel$"),
                 CallbackQueryHandler(show_therapist_for_contact, pattern="^therapist$"),
-                CallbackQueryHandler(change_therapist,           pattern="^change_therapist$"),
+                CallbackQueryHandler(change_therapist, pattern="^change_therapist$"),
             ],
             THERAPIST_SELECT: [
                 CallbackQueryHandler(select_therapist_and_continue, pattern="^sel_t_"),
                 CallbackQueryHandler(back_to_main, pattern="^back_main$"),
             ],
             SCHEDULE_WEEK: [
-                CallbackQueryHandler(show_days,        pattern="^week_"),
+                CallbackQueryHandler(show_days, pattern="^week_"),
                 CallbackQueryHandler(show_week_choice, pattern="^back_week$"),
-                CallbackQueryHandler(back_to_main,     pattern="^back_main$"),
+                CallbackQueryHandler(back_to_main, pattern="^back_main$"),
             ],
             SCHEDULE_DAY: [
-                CallbackQueryHandler(show_hours,      pattern="^day_"),
+                CallbackQueryHandler(show_hours, pattern="^day_"),
                 CallbackQueryHandler(show_week_choice, pattern="^back_week$"),
             ],
             SCHEDULE_HOUR: [
                 CallbackQueryHandler(confirm_appointment, pattern="^hour_"),
-                CallbackQueryHandler(show_days,           pattern="^back_days$"),
+                CallbackQueryHandler(show_days, pattern="^back_days$"),
             ],
             INTAKE_CONFIRM: [
                 CallbackQueryHandler(start_intake, pattern="^intake_yes$"),
-                CallbackQueryHandler(skip_intake,  pattern="^intake_no$"),
+                CallbackQueryHandler(skip_intake, pattern="^intake_no$"),
             ],
             INTAKE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_intake_answer),
             ],
             CANCEL_SELECT: [
                 CallbackQueryHandler(confirm_cancel, pattern="^cancel_apt_"),
-                CallbackQueryHandler(back_to_main,   pattern="^back_main$"),
+                CallbackQueryHandler(back_to_main, pattern="^back_main$"),
             ],
             THERAPIST_INPUT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, start_relay),

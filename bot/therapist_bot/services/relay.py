@@ -4,6 +4,7 @@ Relay session manager — therapist-bot side.
 Reads from the same Redis keys written by patient_bot/services/relay.py.
   zenflow:relay:msg:{forwarded_msg_id}  →  JSON {"patient_id": int, "therapist_id": str}
 """
+
 import json
 import logging
 
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def _redis():
     from bot.redis_client import get_sync_redis
+
     return get_sync_redis()
 
 

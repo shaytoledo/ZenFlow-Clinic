@@ -19,8 +19,10 @@ Requires Redis to be running:
     redis-server          (Windows: start Redis service or use WSL)
     redis-cli ping        → should return PONG
 """
+
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import uvicorn

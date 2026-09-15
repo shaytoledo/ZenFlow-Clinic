@@ -3,6 +3,7 @@ web/routers/api/notifications.py
 ────────────────────────────────
 REST endpoints for the topbar notification bell.
 """
+
 import asyncio
 
 from fastapi import APIRouter, HTTPException, Request

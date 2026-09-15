@@ -137,7 +137,7 @@ When `python startup/launch.py` is run:
 ```
 1. Python 3.11+ check
 2. Create / activate .venv
-3. pip install -r requirements.txt
+3. pip install -r requirements.txt   (pinned lockfile; dev tools: requirements-dev.txt)
 4. Validate .env (TELEGRAM_TOKEN required)
 5. Start Redis  (Windows service → binary → error)
 6. Start Ollama (ollama serve → pull model if missing)
@@ -147,6 +147,14 @@ When `python startup/launch.py` is run:
 ```
 
 ---
+
+## Hosting note: Vercel is disabled
+
+A Vercel project (`zen-flow-clinic`) is connected to this GitHub repository and used to try to
+deploy every commit, failing each time — this is a long-running FastAPI + Telegram-bot service
+(see `Procfile` / `railway.toml`), not a serverless site. `vercel.json` sets
+`git.deploymentEnabled: false` so Vercel no longer creates (failing) deployments or red checks.
+To stop the integration entirely, disconnect the Git repository in the Vercel project settings.
 
 ## Runtime Startup Order (within each process)
 
@@ -252,19 +260,58 @@ uvicorn starts FastAPI app
 
 ## Environment Variables
 
+Template: [`.env.example`](../.env.example) (committed, no values). Copy it to `.env`.
+
+**URL rule (security, ADR-14):** every URL that is not `localhost` / `127.0.0.1` MUST use `https://`
+(and `rediss://` for Redis). Plain `http://` is only for local development. Phase 0.4 makes the
+app refuse to start with a non-local `http://` URL when `ENV != dev`.
+
 | Variable | Default | Purpose |
 |---|---|---|
+| `ENV` | `dev` | `dev` / `staging` / `prod` — controls fail-fast checks and cookie flags |
+| `ZENFLOW_DB_PATH` | `data/zenflow.db` | SQLite file location. The test harness points it at a temp file per test; never set it to the real file in tests |
 | `TELEGRAM_TOKEN` | — | Patient bot token (@BotFather) |
 | `THERAPIST_BOT_TOKEN` | — | Therapist bot token (separate bot) |
 | `OLLAMA_MODEL` | `gemma3:latest` | Local LLM model |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
-| `USE_AI` | `ollama` | `ollama` or `anthropic` (future) |
+| `USE_AI` | `ollama` | `ollama` or `anthropic` |
+| `ANTHROPIC_API_KEY` | — | Only when `USE_AI=anthropic` |
+| `MESSAGING_CHANNEL` | `telegram` | Outbound channel adapter (`bot/interfaces/`) |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
-| `SESSION_SECRET` | — | Signs `zf_session` cookie (web) |
+| `SESSION_SECRET` | — | Signs `zf_session` cookie (web). ≥ 32 chars; the default value is refused outside dev |
+| `TOKEN_ENCRYPTION_KEY` | — | Fernet material for `google_tokens`. Required outside dev, must differ from `SESSION_SECRET` (F7). Unset ⇒ legacy derivation from `SESSION_SECRET` |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
 | `GOOGLE_REDIRECT_URI` | `http://localhost:8000/auth/callback` | Calendar OAuth redirect |
 | `GOOGLE_REG_REDIRECT_URI` | `http://localhost:8000/register/google/callback` | Registration OAuth redirect |
+| `GOOGLE_GMAIL_REDIRECT_URI` | `http://localhost:8000/auth/gmail/callback` | Gmail OAuth redirect |
+| `ZF_CLOUD` | `0` | Feature flag — running on AWS (Phase 12) |
+| `ZF_STORAGE_S3` | `0` | Feature flag — S3 storage backend (Phase 4.3 / 12) |
+| `ZF_QUEUE_BACKEND` | `inprocess` | Feature flag — `inprocess` / `celery` / `temporal` / `aws` (Phase 1.2 / 12) |
+| `ZF_CHANNEL_WHATSAPP` | `0` | Feature flag — WhatsApp adapter (Phase 7.4) |
+| `ZF_AI_PROVIDER` | — | Feature flag — `ollama` / `anthropic`; empty ⇒ `USE_AI` |
+| `ZF_WEBHOOK_MODE` | `0` | Feature flag — bot webhooks instead of polling (Phase 12.2.5) |
+| `ZF_SSE_UPDATES` | `0` | Feature flag — SSE instead of polling (Phase 3.4) |
+| `ZF_POINT_IMAGES` | `0` | Feature flag — acupoint images (Phase 4.3) |
+
+All variables are read in exactly one place: `zenflow/settings.py` (`get_settings()`), which
+validates the environment at startup and refuses to boot outside dev on a default/short secret, a
+missing `TOKEN_ENCRYPTION_KEY`, or a non-local `http://` URL (ADR-16). `GET /api/admin/flags`
+(auth required) shows the live flag state. Two sanctioned exceptions read the environment
+directly: `bot/db.py` (`ZENFLOW_DB_PATH`, needed before settings can be imported by the test
+harness) and `startup/launch.py` (runs before dependencies are installed).
+
+### Runbook: introduce / rotate `TOKEN_ENCRYPTION_KEY`
+
+1. Generate a key: `python -c "import secrets; print(secrets.token_hex(32))"` and put it in `.env`
+   as `TOKEN_ENCRYPTION_KEY`. Keep `SESSION_SECRET` unchanged for now.
+2. Preview: `python -m zenflow.rotate_token_key --dry-run` — reports rotated / already-current /
+   failed rows, writes nothing.
+3. Apply: `python -m zenflow.rotate_token_key` — takes a consistent backup
+   (`data/zenflow.db.bak-<timestamp>`) and re-encrypts every `google_tokens` row. Idempotent.
+4. Restart the web process. Rows that could not be decrypted with either key are listed; those
+   therapists must reconnect Google from Settings.
+5. Rotating again later: pass the previous key with `--old-material '<old key>'`.
 
 ---
 

@@ -10,24 +10,26 @@ Architecture:
   web/deps.py     — shared session helpers and data helpers (backward compat)
   web/app.py      — FastAPI app factory: middleware + router registration
 """
+
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from bot.config import SESSION_SECRET
-from starlette.middleware.sessions import SessionMiddleware
+from web.routers.api.admin import router as admin_router
+from web.routers.api.appointments import router as apts_router
+from web.routers.api.availability import router as avail_router
+from web.routers.api.messages import router as messages_router
+from web.routers.api.notifications import router as notifications_router
+from web.routers.api.system import router as system_router
+from web.routers.api.treatment import router as treatment_router
+from web.routers.auth import router as auth_router
 
 # ── Routers────────────────────────────────────────────────────────────────────
 from web.routers.pages import router as pages_router
-from web.routers.auth import router as auth_router
 from web.routers.patients import router as patients_router
-from web.routers.api.appointments import router as apts_router
-from web.routers.api.treatment import router as treatment_router
-from web.routers.api.availability import router as avail_router
-from web.routers.api.messages import router as messages_router
-from web.routers.api.system import router as system_router
-from web.routers.api.notifications import router as notifications_router
 
 app = FastAPI(title="ZenFlow Therapist")
 
@@ -63,3 +65,4 @@ app.include_router(avail_router)
 app.include_router(messages_router)
 app.include_router(system_router)
 app.include_router(notifications_router)
+app.include_router(admin_router)

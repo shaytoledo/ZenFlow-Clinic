@@ -4,6 +4,7 @@ web/services/therapist_service.py
 CRUD abstraction for the `therapists` table.
 All direct SQLite access for therapist data goes through here.
 """
+
 import hashlib
 import logging
 import secrets
@@ -15,6 +16,7 @@ _web_reg_lock = threading.Lock()
 
 
 # ── Password helpers ───────────────────────────────────────────────────────────
+
 
 def hash_password(plain: str) -> str:
     salt = secrets.token_hex(16)
@@ -33,6 +35,7 @@ def verify_password(plain: str, stored: str) -> bool:
 
 # ── Query helpers ──────────────────────────────────────────────────────────────
 
+
 def _row_to_dict(row) -> dict:
     if row is None:
         return None
@@ -44,15 +47,15 @@ def _row_to_dict(row) -> dict:
 def list_all() -> list[dict]:
     """Return all therapists from SQLite."""
     from bot.db import get_db
+
     rows = get_db().execute("SELECT * FROM therapists").fetchall()
     return [_row_to_dict(r) for r in rows]
 
 
 def find_by_id(therapist_id: str) -> dict | None:
     from bot.db import get_db
-    row = get_db().execute(
-        "SELECT * FROM therapists WHERE id=?", (therapist_id,)
-    ).fetchone()
+
+    row = get_db().execute("SELECT * FROM therapists WHERE id=?", (therapist_id,)).fetchone()
     return _row_to_dict(row)
 
 
@@ -61,9 +64,10 @@ def find_by_email(email: str) -> dict | None:
     if not email_lower:
         return None
     from bot.db import get_db
-    row = get_db().execute(
-        "SELECT * FROM therapists WHERE lower(email)=?", (email_lower,)
-    ).fetchone()
+
+    row = (
+        get_db().execute("SELECT * FROM therapists WHERE lower(email)=?", (email_lower,)).fetchone()
+    )
     return _row_to_dict(row)
 
 
@@ -71,9 +75,8 @@ def find_by_google_id(google_id: str) -> dict | None:
     if not google_id:
         return None
     from bot.db import get_db
-    row = get_db().execute(
-        "SELECT * FROM therapists WHERE google_id=?", (google_id,)
-    ).fetchone()
+
+    row = get_db().execute("SELECT * FROM therapists WHERE google_id=?", (google_id,)).fetchone()
     return _row_to_dict(row)
 
 
@@ -116,6 +119,7 @@ def register(name: str, email: str, password: str = "", google_id: str = "") -> 
 
 def set_active(therapist_id: str, active: bool) -> None:
     from bot.db import get_db
+
     conn = get_db()
     conn.execute(
         "UPDATE therapists SET active=? WHERE id=?",
