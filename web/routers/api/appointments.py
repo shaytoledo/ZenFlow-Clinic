@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from web.deps import _active_therapist_or_redirect, require_active_therapist
+from web.deps import require_active_therapist
 from web.repositories import appointment_repo
 from web.services import appointment_service
 
@@ -86,9 +86,7 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
     with real Telegram user IDs. Source is marked 'manual' so we know to skip
     intake-history lookups when rendering the treatment screen for it.
     """
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    therapist = require_active_therapist(request)
 
     name = (body.patient_name or "").strip()
     if not name:
@@ -98,7 +96,7 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
     if not re.fullmatch(r"\d{2}:\d{2}", body.time):
         raise HTTPException(status_code=400, detail="Time must be HH:MM")
 
-    therapist_id = (therapist or {}).get("id") or "t1"
+    therapist_id = therapist["id"]
     try:
         appt_id, patient_id = await asyncio.to_thread(
             appointment_repo.insert_manual,
@@ -204,22 +202,8 @@ async def get_patient_detail(patient_id: int, request: Request):
         if d.get("patient_name") and name == f"Patient {patient_id}":
             name = d["patient_name"]
 
-        # Look up treatment notes for this appointment
-        apt_id = d.get("id") or await asyncio.to_thread(
-            lambda: (
-                (
-                    get_db()
-                    .execute(
-                        "SELECT id FROM appointments WHERE patient_id=? AND date=? AND time=? ORDER BY created_at DESC LIMIT 1",
-                        (patient_id, d.get("date"), d.get("time")),
-                    )
-                    .fetchone()
-                    or {}
-                ).get("id")
-                if True
-                else None
-            )
-        )
+        # Rows come from the tenant-scoped list_by_patient and always carry the row id.
+        apt_id = d.get("id")
 
         notes = {}
         if apt_id:

@@ -399,10 +399,15 @@ truth, easy to bypass); `dynaconf` / `environs` (another dependency for the same
 pydantic-settings was already installed transitively); a module of plain constants that reads
 `.env` (no typing, no validation).
 
-**Behaviour change, deliberate:** the default Google redirect URIs moved from port 8080 to 8000,
-matching the port the web app actually listens on and every document that already said 8000.
-`.env` files that set the URIs explicitly are unaffected. Also, `.env` is now loaded only from
-the project root (previously python-dotenv searched parent directories as well).
+**Correction (review of PR #3):** an earlier version of this ADR moved the default Google
+redirect URIs to port 8000 "to match the web app". That was wrong — `startup/run_web.py` and
+`startup/launch.py` serve the dev dashboard on **8080** (the `Procfile` uses `$PORT`, default
+8000, only in production where the URIs are set explicitly). The defaults are back on 8080 and
+the docs that said 8000 for local dev were corrected. Also: `.env` is loaded only from the
+project root (python-dotenv used to search parent directories), and `ZENFLOW_DOTENV=0` disables
+the file entirely (the test harness sets it so a developer's real `.env` never leaks into tests).
+`bot/db.py` reads `ZENFLOW_DB_PATH` from the environment first and from settings second, since
+pydantic-settings never exports `.env` values into `os.environ`.
 
 ---
 
@@ -440,3 +445,35 @@ views per tenant (right for Postgres row-level security in Phase 12, premature f
 **Consequences:** every future `/api` router must be included with `_API_AUTH`; every
 appointment-bound endpoint must resolve through the two helpers. Phase 9.1 adds the route/authz
 table with a CI test that fails on any new route lacking an entry.
+
+---
+
+## ADR-18: Structured Logging with a Log-Record Factory, Not structlog
+
+**Date:** 2026-09-15 (Phase 0 task 0.5)
+
+**Decision:** stdlib `logging` plus one module, `zenflow/logging.py`. Context (request id,
+therapist, patient, appointment, service) lives in a `ContextVar` and is attached to every record
+by a **log-record factory** (`ZenLogRecord`, resolving the fields lazily through `__getattr__`).
+Two formatters — `ConsoleFormatter` (dev) and `JsonFormatter` (one object per line) — chosen by
+`LOG_FORMAT` (`auto` = by `ENV`). Redaction of every known secret shape runs in the factory
+(message + args) and again in the formatters (final text, tracebacks). A Starlette middleware
+binds the request id and echoes `X-Request-ID`; the scheduler binds a job id per sweep.
+
+**Why a record factory and not a handler filter:** filters attach to handlers or to the logger
+that *created* the record, so any handler we do not own (uvicorn's, pytest's `caplog`, a future
+CloudWatch handler) would see records without context. The factory runs for every record in the
+process. The lazy `__getattr__` exists because `logging.Logger.makeRecord` refuses `extra=` keys
+that already exist on the record — pre-setting `duration_ms` would have broken `timed()`.
+
+**Why not structlog:** it would be a new dependency and a second logging API for every module to
+learn; the plan allows a stdlib JSON formatter; uvicorn / python-telegram-bot / langchain all log
+through stdlib anyway, and the factory approach covers them for free. If we ever want structlog's
+processor pipeline (Phase 8 metrics/tracing) the context and redaction functions plug straight
+into it.
+
+**Consequences:** `bot/main.py`'s ad-hoc single-line formatter is gone. `logs/botLogs.text` is
+still truncated per start and `logs/webLogs.text` appended, as before. The uvicorn access log is
+kept; the app adds its own `web.access` line with `request_id`, `therapist_id`, `duration_ms`.
+Redaction is pattern-based — a brand-new secret shape needs a new pattern *and* a test in
+`tests/unit/test_logging.py`.

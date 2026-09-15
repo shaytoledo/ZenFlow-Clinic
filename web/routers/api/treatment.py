@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from web.deps import _active_therapist_or_redirect, require_appointment_access
+from web.deps import require_active_therapist, require_appointment_access
 from web.services import telegram_service, treatment_service
 
 router = APIRouter(prefix="/api/treatment-notes")
@@ -77,11 +77,8 @@ async def _resolve_apt_id(
     return apt_id
 
 
-def _require_auth(request: Request):
-    therapist, redirect = _active_therapist_or_redirect(request)
-    if redirect:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return therapist
+# Single auth helper for the whole codebase (review fix): see web/deps.py.
+_require_auth = require_active_therapist
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
@@ -355,9 +352,9 @@ async def send_recommendations(
         .execute(
             """SELECT id, patient_name, patient_phone, source
                FROM appointments
-               WHERE patient_id=? AND date=? AND time=?
+               WHERE patient_id=? AND date=? AND time=? AND therapist_id=?
                ORDER BY created_at DESC LIMIT 1""",
-            (patient_id, apt_date, time_str),
+            (patient_id, apt_date, time_str, therapist["id"]),
         )
         .fetchone()
     )

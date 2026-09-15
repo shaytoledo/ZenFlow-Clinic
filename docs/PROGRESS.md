@@ -17,7 +17,17 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 | 0.2 | pyproject, black, ruff, mypy, pre-commit, Makefile | [x] | 2026-09-14 | 3a43bc2 | + black 4abcc89, strict-island types a428572, ruff fixes e3c02fb/6033fb9. Baselines: ruff ignore list, mypy 38 modules ignored, coverage 0% (fail_under=0), bandit 5 medium / 51 low. ADR-13/14. HTTPS rule added to plan 0.4 (owner request) — [PR #1](https://github.com/shaytoledo/ZenFlow-Clinic/pull/1) |
 | 0.3 | `tests/` harness + conftest fixtures + 10 smoke tests | [x] | 2026-09-14 | a8a2a09 | conftest: per-test SQLite (`ZENFLOW_DB_PATH`), fakeredis, ASGI client + real sign-in, freezegun, fake Telegram, fake LLM, 5 factories. Smoke test found **SF-005**: 13 API routes open without a session (strict xfail until 0.5) — [PR #1](https://github.com/shaytoledo/ZenFlow-Clinic/pull/1) |
 | 0.4 | `zenflow/settings.py` + feature-flag registry | [x] | 2026-09-15 | 7fb2490 | pydantic-settings; fail-fast on default secret / missing TOKEN_ENCRYPTION_KEY / non-local http (ADR-14); 8 typed ZF_* flags both paths tested; `/api/admin/flags`; `python -m zenflow.rotate_token_key`. ADR-16 — [PR #1](https://github.com/shaytoledo/ZenFlow-Clinic/pull/1) |
-| 0.5 | Structured logging + redaction + request-id | [ ] | | | |
+| 0.5 | Structured logging + redaction + request-id | [x] | 2026-09-15 | 1b5f224 | `zenflow/logging.py` (stdlib, ADR-18): context via ContextVar + record factory, console/JSON by `LOG_FORMAT`, secret redaction (11 shapes tested), `X-Request-ID` middleware + access log, scheduler job ids — [PR #3](https://github.com/shaytoledo/ZenFlow-Clinic/pull/3) |
+
+**Review log — Phase 0 (PRs #1–#3), 2026-09-15.** Eight-angle review over the combined diff; 27 candidates,
+13 acted on before merge: `.env.example` comment-as-value (SF-009), unscoped re-query in send-recommendations
+(SF-010), legacy Google-token decrypt fallback, `ZENFLOW_DB_PATH` from `.env` ignored, Google redirect defaults
+back to the real dev port 8080, scheduler `appointment_id` log key, Redis outage / corrupt blob on message
+endpoints, JSON 404 on the HTML treatment page, one auth helper instead of four copies, keyed therapist lookup
+instead of a full-table scan per auth check, redaction fast path, developer `.env` leaking into tests, fragile
+frozen-clock ordering, default-deny route test. Deferred with tickets: relay ownership by patient only (SF-008 →
+2.4), cross-tenant `list_all` cache + Python filtering (→ 7.2/9.1), `availability_service` raw SQL vs repo (→ 9.1),
+optional `therapist_id=None` fail-open defaults on repository reads (→ 9.1: make required).
 
 ## Phase 0.5 — Critical security triage
 | # | Task | Status | Date | Commit | Notes |

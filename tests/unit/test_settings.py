@@ -48,7 +48,7 @@ def test_defaults_are_dev_and_local(env) -> None:
     assert s.is_dev is True
     assert s.ollama_host == "http://localhost:11434"
     assert s.redis_url == "redis://localhost:6379/0"
-    assert s.google_redirect_uri.startswith("http://localhost:8000/")
+    assert s.google_redirect_uri.startswith("http://localhost:8080/")  # dev server port
     assert s.session_secret == S.DEFAULT_SESSION_SECRET
     assert s.token_encryption_key is None
     assert s.flags.queue_backend == "inprocess"

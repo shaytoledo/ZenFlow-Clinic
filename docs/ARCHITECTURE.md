@@ -270,6 +270,8 @@ app refuse to start with a non-local `http://` URL when `ENV != dev`.
 |---|---|---|
 | `ENV` | `dev` | `dev` / `staging` / `prod` — controls fail-fast checks and cookie flags |
 | `ZENFLOW_DB_PATH` | `data/zenflow.db` | SQLite file location. The test harness points it at a temp file per test; never set it to the real file in tests |
+| `LOG_FORMAT` | `auto` | `console` (human-readable) / `json` (one object per line) / `auto` = console in dev, JSON otherwise |
+| `LOG_LEVEL` | `INFO` | Root log level |
 | `TELEGRAM_TOKEN` | — | Patient bot token (@BotFather) |
 | `THERAPIST_BOT_TOKEN` | — | Therapist bot token (separate bot) |
 | `OLLAMA_MODEL` | `gemma3:latest` | Local LLM model |
@@ -282,9 +284,9 @@ app refuse to start with a non-local `http://` URL when `ENV != dev`.
 | `TOKEN_ENCRYPTION_KEY` | — | Fernet material for `google_tokens`. Required outside dev, must differ from `SESSION_SECRET` (F7). Unset ⇒ legacy derivation from `SESSION_SECRET` |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
-| `GOOGLE_REDIRECT_URI` | `http://localhost:8000/auth/callback` | Calendar OAuth redirect |
-| `GOOGLE_REG_REDIRECT_URI` | `http://localhost:8000/register/google/callback` | Registration OAuth redirect |
-| `GOOGLE_GMAIL_REDIRECT_URI` | `http://localhost:8000/auth/gmail/callback` | Gmail OAuth redirect |
+| `GOOGLE_REDIRECT_URI` | `http://localhost:8080/auth/callback` | Calendar OAuth redirect |
+| `GOOGLE_REG_REDIRECT_URI` | `http://localhost:8080/register/google/callback` | Registration OAuth redirect |
+| `GOOGLE_GMAIL_REDIRECT_URI` | `http://localhost:8080/auth/gmail/callback` | Gmail OAuth redirect |
 | `ZF_CLOUD` | `0` | Feature flag — running on AWS (Phase 12) |
 | `ZF_STORAGE_S3` | `0` | Feature flag — S3 storage backend (Phase 4.3 / 12) |
 | `ZF_QUEUE_BACKEND` | `inprocess` | Feature flag — `inprocess` / `celery` / `temporal` / `aws` (Phase 1.2 / 12) |
@@ -314,6 +316,26 @@ harness) and `startup/launch.py` (runs before dependencies are installed).
 5. Rotating again later: pass the previous key with `--old-material '<old key>'`.
 
 ---
+
+## Logging (Phase 0.5, ADR-18)
+
+`zenflow/logging.py` configures the root logger once per process (`configure_logging("web")`
+in `web/app.py`, `configure_logging("bots")` in `bot/main.py`). Every record carries
+`ts`, `level`, `logger`, `event`, `request_id`, `therapist_id`, `patient_id`, `appointment_id`,
+`duration_ms` (+ `service`, and `method`/`path`/`status_code` on access lines).
+
+- **Context**: `bind(**fields)` / `with log_context(**fields):` store fields in a `ContextVar`;
+  they follow the request through `asyncio.to_thread`, `create_task` and background tasks.
+  The web middleware binds `request_id` (from `X-Request-ID` or generated) and `therapist_id`
+  per request and echoes `X-Request-ID` on the response; the follow-up scheduler binds a fresh
+  `job-…` id per sweep and `appointment_id`/`patient_id` per item.
+- **Redaction**: Telegram bot tokens, Google client secrets / access / refresh tokens / API keys,
+  Anthropic keys, Fernet blobs, Bearer/JWT strings and `key=value` / `"key": "value"` secrets are
+  scrubbed in the record factory (message + args) and again in the formatters (final text,
+  tracebacks). `logs/` leaked bot tokens once — this is the guard.
+- **Format**: `LOG_FORMAT=auto` → console in dev/test, JSON in staging/prod. Files:
+  `logs/webLogs.text` (append) and `logs/botLogs.text` (truncated per start) — not in test.
+- **Timing**: `with timed(logger, "ollama call", appointment_id=…):` logs `duration_ms`.
 
 ## Runtime Data Files
 

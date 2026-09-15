@@ -55,12 +55,27 @@ def _load_therapists_fresh() -> list[dict]:
     return result
 
 
+def _load_therapist(request: Request, tid: str) -> dict | None:
+    """One keyed read per request: cached on request.state (review fix — was a full-table scan
+    repeated by every auth helper on every request)."""
+    cached = getattr(request.state, "therapist", None)
+    if isinstance(cached, dict) and cached.get("id") == tid:
+        return cached
+    from web.repositories import therapist_repo
+
+    therapist = therapist_repo.get_by_id(tid)
+    if therapist:
+        therapist["active"] = bool(therapist.get("active"))
+        request.state.therapist = therapist
+    return therapist
+
+
 def _active_therapist_or_redirect(request: Request):
     """Return (therapist, None) if signed-in + active, or (None, redirect_url)."""
     tid = request.session.get("therapist_id")
     if not tid:
         return None, "/register"
-    therapist = next((t for t in _load_therapists_fresh() if t.get("id") == tid), None)
+    therapist = _load_therapist(request, tid)
     if not therapist:
         return None, "/register"
     if not therapist.get("active"):
@@ -72,7 +87,7 @@ def _get_session_therapist(request: Request) -> dict | None:
     tid = _get_session_therapist_id(request)
     if not tid:
         return None
-    return next((t for t in _load_therapists_fresh() if t.get("id") == tid), None)
+    return _load_therapist(request, tid)
 
 
 def _set_session(request: Request, therapist_id: str) -> None:

@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, ValidationError, model_validator
+from pydantic import Field, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -69,6 +69,12 @@ class FeatureFlags(BaseSettings):
     sse_updates: bool = False  # ZF_SSE_UPDATES — server-sent events instead of polling (3.4)
     point_images: bool = False  # ZF_POINT_IMAGES — acupoint image store (4.3)
 
+    @field_validator("ai_provider", mode="before")
+    @classmethod
+    def _empty_is_none(cls, value: object) -> object:
+        # `.env` templates ship `ZF_AI_PROVIDER=` (empty) meaning "use USE_AI".
+        return None if isinstance(value, str) and not value.strip() else value
+
     def snapshot(self) -> dict[str, bool | str]:
         """Flag state for /api/admin/flags — never contains secrets."""
         return {name: getattr(self, name.lower()) for name in FLAG_NAMES}
@@ -82,6 +88,8 @@ class Settings(BaseSettings):
     # ── runtime ──
     env: Env = "dev"
     zenflow_db_path: str | None = None  # mirrored for documentation; bot/db.py reads it itself
+    log_format: Literal["auto", "console", "json"] = "auto"  # auto = console in dev, json otherwise
+    log_level: str = "INFO"
 
     # ── telegram ──
     telegram_token: str = ""
@@ -104,9 +112,10 @@ class Settings(BaseSettings):
     # ── google oauth ──
     google_client_id: str = ""
     google_client_secret: str = ""
-    google_redirect_uri: str = "http://localhost:8000/auth/callback"
-    google_reg_redirect_uri: str = "http://localhost:8000/register/google/callback"
-    google_gmail_redirect_uri: str = "http://localhost:8000/auth/gmail/callback"
+    # Defaults match the dev server port (startup/run_web.py listens on 8080).
+    google_redirect_uri: str = "http://localhost:8080/auth/callback"
+    google_reg_redirect_uri: str = "http://localhost:8080/register/google/callback"
+    google_gmail_redirect_uri: str = "http://localhost:8080/auth/gmail/callback"
 
     # ── feature flags (ZF_*) ──
     flags: FeatureFlags = Field(default_factory=FeatureFlags)
@@ -181,12 +190,27 @@ ALL_ENV_VARS: tuple[str, ...] = tuple(
 _settings: Settings | None = None
 
 
+def _env_file() -> Path | None:
+    """Which .env to read: ZENFLOW_DOTENV=0 disables it (tests), a path overrides ROOT/.env."""
+    import os
+
+    raw = os.environ.get("ZENFLOW_DOTENV")
+    if raw is None:
+        return ENV_FILE
+    if raw.strip().lower() in ("", "0", "false", "no", "off"):
+        return None
+    return Path(raw)
+
+
 def get_settings() -> Settings:
     """Process-wide settings, built once. Raises SettingsError on an invalid environment."""
     global _settings
     if _settings is None:
         try:
-            _settings = Settings()
+            env_file = _env_file()
+            # pydantic-settings accepts _env_file at init; its stubs do not declare it.
+            flags = FeatureFlags(_env_file=env_file)  # type: ignore[call-arg]
+            _settings = Settings(_env_file=env_file, flags=flags)  # type: ignore[call-arg]
         except ValidationError as exc:
             # Name the offending ENV VAR, not the pydantic field: ZF_QUEUE_BACKEND, not queue_backend.
             prefix = "ZF_" if exc.title == "FeatureFlags" else ""

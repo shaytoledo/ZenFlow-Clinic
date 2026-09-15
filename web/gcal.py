@@ -80,7 +80,27 @@ def _encrypt(plaintext: str) -> str:
 
 
 def _decrypt(ciphertext: str) -> str:
-    return _fernet().decrypt(ciphertext.encode("utf-8")).decode("utf-8")
+    """Decrypt with TOKEN_ENCRYPTION_KEY; fall back to the pre-0.4 SESSION_SECRET key.
+
+    An upgraded install that set TOKEN_ENCRYPTION_KEY but has not yet run
+    `python -m zenflow.rotate_token_key` keeps working (with a warning) instead of every
+    therapist silently appearing "not connected".
+    """
+    from cryptography.fernet import InvalidToken
+
+    blob = ciphertext.encode("utf-8")
+    s = get_settings()
+    try:
+        return _fernet().decrypt(blob).decode("utf-8")
+    except InvalidToken:
+        if not s.token_encryption_key:
+            raise
+        plaintext = fernet_for(s.session_secret).decrypt(blob).decode("utf-8")
+        logger.warning(
+            "google token still encrypted with the legacy SESSION_SECRET key — run "
+            "`python -m zenflow.rotate_token_key` to re-encrypt with TOKEN_ENCRYPTION_KEY"
+        )
+        return plaintext
 
 
 # ── DB token CRUD ─────────────────────────────────────────────────────────────
