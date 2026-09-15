@@ -340,6 +340,18 @@ are clinic wall-clock values and stay as they are; `clock.today()` is the clinic
 3. The 24h follow-up window and the recommendation dispatcher compare canonical strings from
    now on; before this migration they could be off by the host's UTC offset (F2).
 
+## Background jobs (Phase 1.2, ADR-20)
+
+`zenflow/queue.py` defines the `TaskQueue` contract (`enqueue` / `claim` / `complete` / `fail` /
+`cancel`) and `SqliteTaskQueue`, the only implementation until Phase 12 (`jobs` table, see
+DATABASE.md). `zenflow/worker.py` runs handlers registered by name (`default_registry`) with a
+per-job log context and timeout; it is started inside the bot process at `post_init` when
+`ZF_QUEUE_BACKEND=inprocess` (the default) and can also run standalone with
+`python -m zenflow.worker`. Guarantees tested in `tests/unit/test_task_queue.py`: a job 24 h out
+is not claimed early; duplicate idempotency keys are rejected; failures retry with exponential
+backoff then dead-letter; a job whose worker died is reclaimed after the lock timeout and
+completes exactly once. Phase 1.3 moves the follow-up and recommendation schedulers onto it.
+
 ## Logging (Phase 0.5, ADR-18)
 
 `zenflow/logging.py` configures the root logger once per process (`configure_logging("web")`

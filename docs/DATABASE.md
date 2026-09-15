@@ -295,3 +295,23 @@ falling back to `data/zenflow.db`. It is read on every `get_db()` call, and a th
 connection points at a different file reconnects — this is what lets the test harness give every
 test a fresh database even though `bot/config.py` opens the DB at import time. `close_db()` closes
 the current thread's connection. Tests assert they never touch the real file.
+
+---
+
+## `jobs` — durable task queue (Phase 1.2, ADR-20)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | job id |
+| `name` | TEXT | handler name, e.g. `followup.send_step1` |
+| `payload_json` | TEXT | JSON object handed to the handler |
+| `run_at` | TEXT | canonical UTC; claimable when `run_at <= now` |
+| `status` | TEXT | `pending` → `running` → `done` \| `dead` \| `cancelled` |
+| `attempts` / `max_attempts` | INTEGER | attempt counter (incremented on claim) / retry budget (default 5) |
+| `last_error` | TEXT | last failure message (truncated) |
+| `idempotency_key` | TEXT UNIQUE | enqueueing the same key again returns the existing job |
+| `locked_by` / `locked_at` | TEXT | claiming worker + time; a `running` job whose lock is older than 10 min is reclaimable (worker died) |
+| `created_at` / `updated_at` / `completed_at` | TEXT | canonical UTC |
+
+Claim is one atomic `UPDATE … WHERE id IN (SELECT … LIMIT n) RETURNING *`, so two workers never
+take the same job. Backoff: 60 s × 2^(attempt−1). Access only through `zenflow/queue.py`.

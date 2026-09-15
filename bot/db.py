@@ -193,6 +193,25 @@ def init_db() -> None:
         "CREATE INDEX IF NOT EXISTS idx_notif_therapist_unread ON notifications(therapist_id, read_at)"
     )
     conn.commit()
+    # Durable task queue (Phase 1.2, ADR-20) — zenflow/queue.py. Timestamps are canonical UTC.
+    conn.execute("""CREATE TABLE IF NOT EXISTS jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        payload_json TEXT NOT NULL DEFAULT '{}',
+        run_at TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        attempts INTEGER NOT NULL DEFAULT 0,
+        max_attempts INTEGER NOT NULL DEFAULT 5,
+        last_error TEXT,
+        idempotency_key TEXT UNIQUE,
+        locked_by TEXT,
+        locked_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        completed_at TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, run_at)")
+    conn.commit()
     for migration in _migrations:
         try:
             conn.execute(migration)

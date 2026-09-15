@@ -118,3 +118,27 @@ Every appointment has at most one intake session record. If the patient skipped 
 ### `therapists` ↔ `availability` (1:many)
 
 Each therapist has their own set of availability slots. The `therapist_id` column in `availability` uses `"default"` as a fallback when no specific therapist is identified (legacy, rarely used).
+
+## Addendum — `jobs` (Phase 1.2)
+
+```mermaid
+erDiagram
+    jobs {
+        INTEGER id PK
+        TEXT name
+        TEXT payload_json
+        TEXT run_at
+        TEXT status
+        INTEGER attempts
+        INTEGER max_attempts
+        TEXT last_error
+        TEXT idempotency_key UK
+        TEXT locked_by
+        TEXT locked_at
+        TEXT created_at
+        TEXT updated_at
+        TEXT completed_at
+    }
+```
+`jobs` has no foreign keys by design: payloads carry ids (`appointment_id`, `patient_id`) so a
+job outlives a soft-deleted row and the table can move to a different store (Phase 12).

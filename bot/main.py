@@ -107,6 +107,15 @@ async def _post_init(app: Application) -> None:
         app.bot_data["_followup_task"] = start_followup_scheduler()
     except Exception as e:
         logger.error(f"Could not start follow-up scheduler: {e}")
+    try:
+        from zenflow.settings import get_settings
+        from zenflow.worker import start_in_process
+
+        if get_settings().flags.queue_backend == "inprocess":
+            # Durable job worker (Phase 1.2) shares the bot process on a single box.
+            app.bot_data["_worker_task"] = start_in_process()
+    except Exception as e:
+        logger.error(f"Could not start job worker: {e}")
 
 
 # ── app builder ───────────────────────────────────────────────────────────────
