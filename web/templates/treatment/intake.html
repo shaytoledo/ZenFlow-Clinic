@@ -1,16 +1,16 @@
       <!-- AI Intake Summary — redesigned -->
       <div class="zf-card" id="intake-card">
         <div class="zf-card-title">
-          <div class="zf-card-icon" style="background:#F3E8FF;color:#9333EA;">
+          <div class="zf-card-icon tp-icon-purple">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.84A2.5 2.5 0 0 1 9.5 2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.84A2.5 2.5 0 0 0 14.5 2"/></svg>
           </div>
           <span>{{ t['treatment_ai_intake_summary'] if t else 'AI Intake Summary' }}</span>
-          <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#F3E8FF;color:#9333EA;padding:2px 8px;border-radius:999px;" id="intake-source-badge">{{ t['treatment_from_telegram'] if t else 'From Telegram Bot' }}</span>
-          <button data-action="toggle-intake" id="intake-toggle" style="margin-inline-start:8px;background:none;border:none;cursor:pointer;color:#9CA3AF;">
+          <span class="tp-pill-purple" id="intake-source-badge">{{ t['treatment_from_telegram'] if t else 'From Telegram Bot' }}</span>
+          <button data-action="toggle-intake" id="intake-toggle" class="tp-intake-toggle">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" id="intake-chevron"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
         </div>
-        <div id="intake-body" style="margin-top:16px;">
-          <p style="font-size:13px;color:#9CA3AF;">Loading intake data…</p>
+        <div id="intake-body" class="tp-mt-16">
+          <p class="tp-muted">Loading intake data…</p>
         </div>
       </div>

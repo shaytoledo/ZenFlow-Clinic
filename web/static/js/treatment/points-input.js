@@ -20,9 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
       el.addEventListener('change', scheduleAutoSave);
     }
   });
-  const style = document.createElement('style');
-  style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
-  document.head.appendChild(style);
 });
 
 function addPoint() {
@@ -54,7 +51,7 @@ function removePoint(p) { usedPoints = usedPoints.filter(x => x !== p); renderPo
 
 function renderPoints() {
   document.getElementById('points-tags').innerHTML = usedPoints.map(p =>
-    `<span class="zf-point-tag">${escHtml(p)}<button data-action="remove-point" data-code="${escHtml(p)}" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.7);padding:0 0 0 4px;line-height:1;">&times;</button></span>`
+    `<span class="zf-point-tag">${escHtml(p)}<button data-action="remove-point" data-code="${escHtml(p)}" class="tp-tag-remove">&times;</button></span>`
   ).join('');
   document.getElementById('point-count').textContent = `${usedPoints.length} point${usedPoints.length !== 1 ? 's' : ''} selected · Press Enter to add, Backspace to remove last`;
 }
@@ -67,9 +64,9 @@ function openPointPanel(code) {
   document.getElementById('panel-code').textContent = code;
   let html = '';
   if (rationale) {
-    html += `<div style="background:#CCFBF1;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:0.6px;margin-bottom:5px;">${isHe ? 'נימוק AI לטיפול זה' : 'AI Rationale for This Session'}</div>
-      <p style="font-size:13px;color:#065F46;line-height:1.6;margin:0;">${escHtml(rationale)}</p>
+    html += `<div class="tp-panel-note">
+      <div class="tp-panel-note-label">${isHe ? 'נימוק AI לטיפול זה' : 'AI Rationale for This Session'}</div>
+      <p class="tp-note-text">${escHtml(rationale)}</p>
     </div>`;
   }
   if (info && info.name) {
@@ -77,18 +74,18 @@ function openPointPanel(code) {
     const locationLabel = isHe ? 'מיקום' : 'Location';
     const actionsLabel = isHe ? 'פעולות' : 'Actions';
     html += `
-      <div style="margin-bottom:10px;"><span class="zf-badge zf-badge-teal">${info.channel}${isHe ? '' : ' ' + channelLabel}</span></div>
-      <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:8px;">${info.name}</div>
-      <div style="margin-bottom:12px;">
-        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">${locationLabel}</span>
-        <p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.location}</p>
+      <div class="tp-mb-10"><span class="zf-badge zf-badge-teal">${info.channel}${isHe ? '' : ' ' + channelLabel}</span></div>
+      <div class="tp-panel-name">${info.name}</div>
+      <div class="tp-mb-12">
+        <span class="tp-panel-label">${locationLabel}</span>
+        <p class="tp-panel-text">${info.location}</p>
       </div>
       <div>
-        <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:#9CA3AF;letter-spacing:0.5px;">${actionsLabel}</span>
-        <p style="font-size:13px;color:#374151;margin-top:4px;line-height:1.6;">${info.actions}</p>
+        <span class="tp-panel-label">${actionsLabel}</span>
+        <p class="tp-panel-text">${info.actions}</p>
       </div>`;
   } else {
-    html += `<p style="font-size:13px;color:#9CA3AF;">${isHe ? 'אין נתוני עזר עבור' : 'No reference data for'} <strong>${escHtml(code)}</strong>.</p>`;
+    html += `<p class="tp-muted">${isHe ? 'אין נתוני עזר עבור' : 'No reference data for'} <strong>${escHtml(code)}</strong>.</p>`;
   }
   document.getElementById('panel-body').innerHTML = html;
   panel.classList.remove('hidden');

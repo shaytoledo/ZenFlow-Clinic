@@ -25,7 +25,7 @@ function _startPointsProgress(label) {
   ];
   stages.forEach(({ pct, delay, text }) => {
     setTimeout(() => {
-      if (wrap.style.display === 'none') return;  // already done
+      if (wrap.style.display !== 'block') return;  // already done
       bar.style.width = pct + '%';
       lbl.textContent = text;
     }, delay);
@@ -44,7 +44,7 @@ function _finishPointsProgress(success) {
       wrap.style.display = 'none';
       bar.style.width = '0%';
       bar.style.background = 'linear-gradient(90deg,#2563EB,#0D9488)';
-      if (badge) badge.style.display = '';
+      if (badge) badge.style.display = 'inline';  // hidden by .tp-pill-blue until a run completes
     }, 600);
   } else {
     bar.style.background = '#DC2626';
@@ -61,7 +61,7 @@ function _finishPointsProgress(success) {
 // Safe to call even if the bar is not visible (no-op in that case).
 function _updateProgress(pct, label) {
   const wrap = document.getElementById('points-progress');
-  if (!wrap || wrap.style.display === 'none') return;
+  if (!wrap || wrap.style.display !== 'block') return;
   const bar = document.getElementById('points-progress-bar');
   const lbl = document.getElementById('points-progress-label');
   if (bar) bar.style.width = pct + '%';
@@ -156,10 +156,9 @@ function _showGenerateButton(opts) {
         ? 'No AI diagnosis or points yet.'
         : 'No intake on file — add tongue and pulse findings, then generate.');
   div.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 0;">
-      <span style="font-size:12px;color:#9CA3AF;">${msg}</span>
-      <button data-action="generate" class="zf-btn zf-btn-outline"
-        style="font-size:12px;padding:6px 16px;color:#0D9488;border-color:#0D9488;">
+    <div class="tp-generate-prompt">
+      <span class="tp-muted-small">${msg}</span>
+      <button data-action="generate" class="zf-btn zf-btn-outline tp-btn-teal">
         ✨ Generate diagnosis &amp; points
       </button>
     </div>`;
@@ -174,7 +173,7 @@ async function triggerRediagnosis(force) {
   const pulse  = document.getElementById('pulse-input').value.trim();
 
   const btn     = document.getElementById('rediag-btn');
-  const ICON_SPIN = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+  const ICON_SPIN = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="tp-spin"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
   const ICON_IDLE = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
 
   // Stop any DB poll that may be running for the bot pipeline
@@ -459,7 +458,7 @@ async function regeneratePoints() {
   const originalHtml = btn.innerHTML;
   const restore = () => { btn.innerHTML = originalHtml; btn.style.borderColor = ''; btn.style.color = ''; btn.disabled = false; };
   btn.disabled = true;
-  btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Working…';
+  btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="tp-spin"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Working…';
 
   try {
     // The server answers 202 at once and queues the work (plan 3.3). The page renders only what
@@ -526,10 +525,9 @@ function _showRetryButton(force) {
     ? 'Still no result from the AI after 15 minutes.'
     : 'Point generation did not complete.';
   div.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 0;">
-      <span style="font-size:12px;color:#9CA3AF;">${msg}</span>
-      <button data-action="rediagnose" data-force="${force ? 'true' : 'false'}" class="zf-btn zf-btn-outline"
-        style="font-size:12px;padding:6px 16px;color:#0D9488;border-color:#0D9488;">
+    <div class="tp-generate-prompt">
+      <span class="tp-muted-small">${msg}</span>
+      <button data-action="rediagnose" data-force="${force ? 'true' : 'false'}" class="zf-btn zf-btn-outline tp-btn-teal">
         ↺ Retry Point Generation
       </button>
     </div>`;

@@ -1,27 +1,27 @@
       <!-- Clinical Summary — fully redesigned -->
       <div class="zf-card">
         <div class="zf-card-title">
-          <div class="zf-card-icon" style="background:#CCFBF1;color:#0D9488;">
+          <div class="zf-card-icon tp-icon-teal">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           </div>
           <span>{{ t['treatment_clinical_summary'] if t else 'Clinical Summary' }}</span>
-          <span id="diag-confidence-badge" style="margin-inline-start:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;display:none;"></span>
+          <span id="diag-confidence-badge" class="tp-confidence-badge"></span>
         </div>
-        <div id="summary-body" style="margin-top:14px;">
-          <p style="font-size:13px;color:#9CA3AF;">Loading summary…</p>
+        <div id="summary-body" class="tp-mt-14">
+          <p class="tp-muted">Loading summary…</p>
         </div>
       </div>
 
       <!-- Tongue & Pulse -->
       <div class="zf-card">
         <div class="zf-card-title">
-          <div class="zf-card-icon" style="background:#FEE2E2;color:#DC2626;">
+          <div class="zf-card-icon tp-icon-red">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
           <span>{{ t['treatment_tongue_pulse'] if t else 'Tongue &amp; Pulse Findings' }}</span>
-          <span style="margin-inline-start:auto;font-size:11px;color:#9CA3AF;">{{ t['treatment_press_enter_update'] if t else 'Press Enter to update diagnosis' }}</span>
+          <span class="tp-title-aside">{{ t['treatment_press_enter_update'] if t else 'Press Enter to update diagnosis' }}</span>
         </div>
-        <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px;">
+        <div class="tp-stack-16">
           <div>
             <label class="zf-field-label">{{ t['treatment_tongue_label'] if t else 'Tongue Observation' }}</label>
             <input type="text" class="zf-input" id="tongue-input" placeholder="{{ t['treatment_tongue_placeholder'] if t else 'e.g. Red body, thin yellow coating, slight cracks…' }}" />
@@ -30,7 +30,7 @@
             <label class="zf-field-label">{{ t['treatment_pulse_label'] if t else 'Pulse Observation' }}</label>
             <input type="text" class="zf-input" id="pulse-input" placeholder="{{ t['treatment_pulse_placeholder'] if t else 'e.g. Wiry, slightly rapid, thin on right guan…' }}" />
           </div>
-          <button id="rediag-btn" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 14px;" data-action="rediagnose">
+          <button id="rediag-btn" class="zf-btn zf-btn-outline tp-btn-small" data-action="rediagnose">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             {{ t['treatment_update_diagnosis'] if t else 'Update Diagnosis' }}
           </button>
@@ -40,13 +40,13 @@
       <!-- Therapist Diagnosis -->
       <div class="zf-card">
         <div class="zf-card-title">
-          <div class="zf-card-icon" style="background:#FEF3C7;color:#B45309;">
+          <div class="zf-card-icon tp-icon-amber-dark">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L4 5v7c0 5 3.5 9 8 10 4.5-1 8-5 8-10V5l-8-3z"/><path d="M9 12l2 2 4-4"/></svg>
           </div>
           <span>{{ t['treatment_therapist_diagnosis'] if t else 'Therapist Diagnosis' }}</span>
-          <span style="margin-inline-start:auto;font-size:11px;color:#9CA3AF;" id="td-status">—</span>
+          <span class="tp-title-aside" id="td-status">—</span>
         </div>
-        <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px;">
+        <div class="tp-stack-14">
           <div>
             <label class="zf-field-label">{{ t['treatment_your_diagnosis'] if t else 'Your Diagnosis' }}</label>
             <textarea id="therapist-diagnosis" class="zf-textarea" rows="3"
@@ -59,6 +59,6 @@
               placeholder="{{ t['treatment_clinical_notes_placeholder'] if t else 'Differential diagnosis, things you ruled out, plan for next sessions…' }}"
               data-input-action="therapist-change"></textarea>
           </div>
-          <p style="font-size:11px;color:#9CA3AF;margin:0;">{{ t['treatment_autosaves'] if t else 'Auto-saves as you type. Your record — separate from the AI\'s diagnosis.' }}</p>
+          <p class="tp-footnote">{{ t['treatment_autosaves'] if t else 'Auto-saves as you type. Your record — separate from the AI\'s diagnosis.' }}</p>
         </div>
       </div>

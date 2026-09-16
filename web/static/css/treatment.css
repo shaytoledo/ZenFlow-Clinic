@@ -68,3 +68,217 @@
   box-shadow: 0 4px 16px rgba(0,0,0,.10);
 }
 .zf-pt-card:active { transform: translateY(0); }
+
+/* ══ Page-scoped classes (Phase 4.1c) ═══════════════════════════════════════
+   Every style that used to sit in a style="…" attribute on this page lives here, so a strict
+   CSP (no 'unsafe-inline', Phase 9) can apply. `.tp` marks the page roots: #treatment-root,
+   #point-panel, the email overlay and the back link. `.tp .x` (0,2,0) outranks the shared
+   zf-* component rules and their :hover states, as the inline styles did; this file loads
+   after style.css, so ties go to these rules. Values that depend on data use variables:
+   tp-ch-* (acupuncture channel colours) and tp-tone-* (status colours). */
+
+/* ── Page layout ───────────────────────────────────────────────────────────── */
+.tp.tp-page { padding: 28px; }
+.tp .tp-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+.tp .tp-column { display: flex; flex-direction: column; gap: 16px; }
+.tp.tp-back-link { font-size: 12px; padding: 6px 12px; }
+
+/* ── Shared helpers ────────────────────────────────────────────────────────── */
+.tp .tp-mt-6 { margin-top: 6px; }
+.tp .tp-mt-8 { margin-top: 8px; }
+.tp .tp-mt-12 { margin-top: 12px; }
+.tp .tp-mt-14 { margin-top: 14px; }
+.tp .tp-mt-16 { margin-top: 16px; }
+.tp .tp-mb-10 { margin-bottom: 10px; }
+.tp .tp-mb-12 { margin-bottom: 12px; }
+.tp .tp-mb-14 { margin-bottom: 14px; }
+.tp .tp-hidden { display: none; }
+.tp .tp-strong { font-weight: 600; }
+.tp .tp-muted { font-size: 13px; color: #9CA3AF; }
+.tp .tp-muted-small { font-size: 12px; color: #9CA3AF; }
+.tp .tp-spin { animation: spin 1s linear infinite; }
+.tp .tp-spin-slow { animation: spin 1.2s linear infinite; flex-shrink: 0; }
+.tp .tp-stack-16 { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.tp .tp-stack-14 { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Card headers: icons, pills, titles ────────────────────────────────────── */
+.tp .tp-icon-amber { background: #FEF3C7; color: #D97706; }
+.tp .tp-icon-amber-dark { background: #FEF3C7; color: #B45309; }
+.tp .tp-icon-red { background: #FEE2E2; color: #DC2626; }
+.tp .tp-icon-teal { background: #CCFBF1; color: #0D9488; }
+.tp .tp-icon-teal-gradient { background: linear-gradient(135deg,#CCFBF1,#A7F3D0); color: #0D9488; }
+.tp .tp-icon-pink { background: #FDF2F8; color: #9D174D; }
+.tp .tp-icon-green { background: #ECFDF5; color: #059669; }
+.tp .tp-icon-purple { background: #F3E8FF; color: #9333EA; }
+.tp .tp-icon-indigo { background: #EEF2FF; color: #4F46E5; }
+.tp .tp-icon-blue { background: #DBEAFE; color: #2563EB; }
+.tp .tp-pill-green { margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #DCFCE7; color: #16A34A; padding: 2px 8px; border-radius: 999px; }
+.tp .tp-pill-teal { margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #CCFBF1; color: #0D9488; padding: 3px 10px; border-radius: 999px; }
+.tp .tp-pill-emerald { margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #ECFDF5; color: #059669; padding: 2px 8px; border-radius: 999px; }
+.tp .tp-pill-purple { margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #F3E8FF; color: #9333EA; padding: 2px 8px; border-radius: 999px; }
+.tp .tp-pill-blue { display: none; margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #DBEAFE; color: #2563EB; padding: 2px 8px; border-radius: 999px; }
+.tp .tp-title-aside { margin-inline-start: auto; font-size: 11px; color: #9CA3AF; }
+.tp .tp-card-flush { padding: 0; overflow: hidden; }
+.tp .tp-card-title-ruled { padding: 16px 20px 12px; border-bottom: 1px solid #F3F4F6; }
+.tp .tp-section-title { font-size: 14px; font-weight: 700; color: #111827; }
+.tp .tp-section-count { font-size: 11px; color: #9CA3AF; margin-inline-start: 8px; }
+.tp .tp-card-intro { font-size: 12px; color: #9CA3AF; margin-top: 6px; margin-bottom: 12px; }
+.tp .tp-footnote { font-size: 11px; color: #9CA3AF; margin: 0; }
+.tp .tp-btn-small { font-size: 12px; padding: 6px 14px; }
+
+/* ── Header and Telegram banner ────────────────────────────────────────────── */
+.tp .tp-telegram-banner { display: none; background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; align-items: center; gap: 10px; }
+.tp .tp-banner-title { font-size: 13px; font-weight: 600; color: #92400E; }
+.tp .tp-banner-text { font-size: 12px; color: #B45309; margin-left: 6px; }
+.tp .tp-avatar { width: 44px; height: 44px; font-size: 14px; }
+.tp .tp-header-actions { margin-inline-start: auto; display: flex; gap: 10px; align-items: center; }
+.tp .tp-patient-link { color: inherit; text-decoration: none; }
+
+/* ── AI-suggested point cards ──────────────────────────────────────────────── */
+.tp .tp-ai-section { display: none; margin-top: 20px; }
+.tp .tp-ai-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 0; }
+.tp .tp-pt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tp .tp-pt-add { width: 28px; height: 28px; flex-shrink: 0; border-radius: 8px; border: 1.5px solid #E5E7EB; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #9CA3AF; transition: all .14s; }
+.tp .tp-pt-name { font-size: 13px; font-weight: 700; color: #111827; }
+.tp .tp-pt-line { display: flex; gap: 5px; align-items: flex-start; }
+.tp .tp-pt-line-icon { flex-shrink: 0; margin-top: 2px; }
+.tp .tp-pt-location { font-size: 11px; color: #6B7280; line-height: 1.5; }
+.tp .tp-pt-actions { font-size: 11px; color: #374151; line-height: 1.5; }
+.tp .tp-pt-technique { font-size: 10px; color: #0D9488; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.tp .tp-pt-rationale { background: linear-gradient(135deg,#F0FDFA,#ECFDF5); border-radius: 8px; padding: 9px 11px; border-left: 2.5px solid #0D9488; margin-top: 2px; }
+.tp .tp-pt-rationale-label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #0D9488; letter-spacing: .7px; margin-bottom: 3px; }
+.tp .tp-pt-rationale-text { font-size: 11px; color: #065F46; line-height: 1.55; margin: 0; }
+
+/* ── Intake and clinical summary ───────────────────────────────────────────── */
+.tp .tp-intake-toggle { margin-inline-start: 8px; background: none; border: none; cursor: pointer; color: #9CA3AF; }
+.tp .tp-intake-footer { font-size: 11px; color: #9CA3AF; margin-top: 14px; padding-top: 10px; border-top: 1px solid #F3F4F6; display: flex; align-items: center; gap: 6px; }
+.tp .tp-empty { text-align: center; padding: 24px 0; }
+.tp .tp-empty-title { font-size: 13px; color: #9CA3AF; margin: 0; }
+.tp .tp-empty-hint { font-size: 11px; color: #D1D5DB; margin: 4px 0 0; }
+.tp .tp-confidence-badge { margin-inline-start: auto; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; display: none; }
+.tp .tp-pattern { background: linear-gradient(135deg,#CCFBF1 0%,#ECFDF5 100%); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #A7F3D0; }
+.tp .tp-pattern-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #0D9488; letter-spacing: 0.8px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.tp .tp-pattern-name { font-size: 16px; font-weight: 700; color: #111827; line-height: 1.35; }
+.tp .tp-pattern-principles { font-size: 12px; color: #065F46; margin-top: 8px; line-height: 1.55; border-top: 1px dashed #A7F3D0; padding-top: 8px; }
+.tp .tp-confidence-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; }
+.tp .tp-confidence-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #6B7280; letter-spacing: 0.5px; }
+.tp .tp-confidence-track { background: #F3F4F6; border-radius: 999px; height: 8px; overflow: hidden; }
+.tp .tp-summary { border-top: 1px solid #E5E7EB; padding-top: 14px; margin-top: 4px; }
+.tp .tp-summary-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #6B7280; letter-spacing: 0.7px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.tp .tp-kv-list { display: flex; flex-direction: column; gap: 6px; }
+.tp .tp-kv-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; background: #FAFAFA; border-radius: 8px; padding: 8px 10px; border: 1px solid #F0F0F0; }
+.tp .tp-kv-key { font-size: 11px; font-weight: 700; color: #6B7280; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+.tp .tp-kv-icon { font-size: 13px; }
+.tp .tp-kv-value { font-size: 13px; color: #111827; line-height: 1.5; }
+.tp .tp-bullet { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 5px; }
+.tp .tp-bullet-dot { color: #0D9488; font-size: 13px; flex-shrink: 0; margin-top: 2px; }
+.tp .tp-bullet-text { font-size: 13px; color: #374151; line-height: 1.6; margin: 0; }
+
+/* ── Points card: generation progress, chips, tags ─────────────────────────── */
+.tp .tp-regen-btn { margin-left: 10px; font-size: 13px; padding: 8px 16px; gap: 7px; font-weight: 600; border-color: #0D9488; color: #0D9488; }
+.tp .tp-progress { display: none; margin-top: 12px; }
+.tp .tp-progress-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tp .tp-progress-label { font-size: 12px; color: #2563EB; font-weight: 500; }
+.tp .tp-cancel-btn { margin-left: auto; font-size: 11px; padding: 2px 10px; color: #6B7280; border-color: #D1D5DB; }
+.tp .tp-progress-track { background: #DBEAFE; border-radius: 999px; height: 6px; overflow: hidden; }
+.tp .tp-progress-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#2563EB,#0D9488); width: 0%; transition: width .5s ease; }
+.tp .tp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; min-height: 32px; }
+.tp .tp-chips-intro { font-size: 11px; color: #9CA3AF; width: 100%; display: block; margin-bottom: 6px; }
+.tp .tp-chip-plus { opacity: .6; font-size: 14px; }
+.tp .tp-chips-empty { font-size: 12px; color: #9CA3AF; padding: 8px 0; display: block; }
+.tp .tp-input-hint { font-size: 11px; color: #9CA3AF; margin-top: 6px; }
+.tp .tp-tag-remove { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.7); padding: 0 0 0 4px; line-height: 1; }
+.tp .tp-generate-prompt { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0; }
+.tp .tp-btn-teal { font-size: 12px; padding: 6px 16px; color: #0D9488; border-color: #0D9488; }
+
+/* ── Point info panel ──────────────────────────────────────────────────────── */
+.tp .tp-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.tp .tp-panel-code { font-size: 20px; font-weight: 700; color: #0D9488; }
+.tp .tp-icon-btn { background: none; border: none; cursor: pointer; color: #9CA3AF; }
+.tp .tp-panel-note { background: #CCFBF1; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+.tp .tp-panel-note-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #0D9488; letter-spacing: 0.6px; margin-bottom: 5px; }
+.tp .tp-note-text { font-size: 13px; color: #065F46; line-height: 1.6; margin: 0; }
+.tp .tp-panel-name { font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 8px; }
+.tp .tp-panel-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #9CA3AF; letter-spacing: 0.5px; }
+.tp .tp-panel-text { font-size: 13px; color: #374151; margin-top: 4px; line-height: 1.6; }
+
+/* ── Lifestyle advice, email fallback dialog, Complete button ──────────────── */
+.tp .tp-advice-hint { font-size: 12px; color: #9CA3AF; margin-top: 8px; }
+.tp .tp-advice-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.tp .tp-advice-icon { font-size: 18px; }
+.tp .tp-advice-body { flex: 1; min-width: 0; }
+.tp .tp-advice-category { font-size: 13px; font-weight: 600; color: #111827; }
+.tp .tp-advice-text { font-size: 12px; color: #6B7280; line-height: 1.5; margin-top: 2px; outline: none; border-radius: 4px; padding: 2px 4px; cursor: text; }
+.tp .tp-advice-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.tp .tp-btn-grow { flex: 1; justify-content: center; }
+.tp .tp-send-later-status { display: none; font-size: 12px; color: #16A34A; margin-top: 6px; text-align: center; }
+.tp .tp-dialog { background: #fff; border-radius: 16px; width: 100%; max-width: 460px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.tp .tp-dialog-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.tp .tp-dialog-icon-red { width: 34px; height: 34px; background: #FEE2E2; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #DC2626; flex-shrink: 0; }
+.tp .tp-dialog-icon-amber { width: 34px; height: 34px; background: #FEF3C7; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #B45309; flex-shrink: 0; }
+.tp .tp-dialog-title { font-size: 16px; font-weight: 700; color: #111827; }
+.tp .tp-dialog-text { font-size: 13px; color: #374151; line-height: 1.6; margin-bottom: 16px; }
+.tp .tp-dialog-note { font-size: 13px; color: #6B7280; margin-bottom: 12px; }
+.tp .tp-dialog-error { display: none; color: #DC2626; font-size: 12px; margin-top: 8px; }
+.tp .tp-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.tp .tp-dialog-actions-tight { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.tp .tp-dialog-btn { padding: 9px 16px; }
+.tp .tp-dialog-btn-main { padding: 9px 18px; }
+.tp .tp-copy-text { width: 100%; height: 180px; font-size: 12px; font-family: monospace; border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px; resize: vertical; color: #374151; background: #F9FAFB; box-sizing: border-box; }
+.tp .tp-complete-btn { width: 100%; justify-content: center; padding: 14px; font-size: 15px; border-radius: 14px; gap: 8px; }
+
+/* ── Follow-up ─────────────────────────────────────────────────────────────── */
+.tp .tp-stars { display: flex; gap: 6px; margin-top: 6px; }
+.tp .tp-rating-label { font-size: 11px; color: #9CA3AF; margin-top: 4px; }
+.tp .tp-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.tp .tp-metric-hint { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.tp .tp-followup-notes { background: #F0FDF4; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.tp .tp-followup-notes-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 0.6px; margin-bottom: 4px; }
+.tp .tp-conversation-toggle { cursor: pointer; font-size: 12px; font-weight: 600; color: #6B7280; padding: 4px 0; user-select: none; }
+.tp .tp-conversation { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+
+/* ── Hover and focus (were JS handlers) ────────────────────────────────── */
+.tp .tp-patient-link:hover { color: #0D9488; }
+.tp .tp-pt-card:hover { background: #FAFAFA; }
+.tp .tp-pt-add:hover { border-color: #0D9488; color: #0D9488; background: #F0FDFA; }
+.tp .tp-advice-text:focus { background: #F9FAFB; }
+
+/* ── Email fallback overlay (appended to <body>, so it is its own .tp root) ── */
+.tp.tp-overlay { position: fixed; inset: 0; background: rgba(17,24,39,.55); z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+/* ── Status tones: --tone for text, --tone-fade (60% alpha) for a gradient's far end ── */
+.tp-tone-red { --tone: #DC2626; --tone-fade: #DC262699; }
+.tp-tone-orange { --tone: #EA580C; --tone-fade: #EA580C99; }
+.tp-tone-amber { --tone: #D97706; --tone-fade: #D9770699; }
+.tp-tone-green { --tone: #16A34A; --tone-fade: #16A34A99; }
+.tp-tone-teal { --tone: #0D9488; --tone-fade: #0D948899; }
+.tp-tone-grey { --tone: #6B7280; --tone-fade: #6B728099; }
+.tp .tp-confidence-level { color: var(--tone); font-weight: 600; }
+.tp .tp-confidence-value { font-size: 17px; font-weight: 800; color: var(--tone); }
+.tp .tp-confidence-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--tone) 0%, var(--tone-fade) 100%); transition: width .7s ease; }  /* width: set from the data by render-diagnosis.js */
+.tp .tp-metric-value { color: var(--tone); }
+
+/* ── Channel themes: a tp-ch-* class on a point card or chip sets its colours ── */
+.tp-ch-stomach { --ch-bg: linear-gradient(135deg,#FEF3C7 0%,#FFFBEB 100%); --ch-border: #FDE68A; --ch-code: #B45309; --ch-icon: #D97706; }
+.tp-ch-large-intestine { --ch-bg: linear-gradient(135deg,#E0F2FE 0%,#F0F9FF 100%); --ch-border: #BAE6FD; --ch-code: #0369A1; --ch-icon: #0284C7; }
+.tp-ch-pericardium { --ch-bg: linear-gradient(135deg,#FCE7F3 0%,#FDF2F8 100%); --ch-border: #F9A8D4; --ch-code: #BE185D; --ch-icon: #DB2777; }
+.tp-ch-liver { --ch-bg: linear-gradient(135deg,#DCFCE7 0%,#F0FDF4 100%); --ch-border: #BBF7D0; --ch-code: #15803D; --ch-icon: #16A34A; }
+.tp-ch-spleen { --ch-bg: linear-gradient(135deg,#FEF9C3 0%,#FEFCE8 100%); --ch-border: #FDE047; --ch-code: #A16207; --ch-icon: #CA8A04; }
+.tp-ch-governing-vessel { --ch-bg: linear-gradient(135deg,#EDE9FE 0%,#F5F3FF 100%); --ch-border: #C4B5FD; --ch-code: #6D28D9; --ch-icon: #7C3AED; }
+.tp-ch-heart { --ch-bg: linear-gradient(135deg,#FEE2E2 0%,#FFF5F5 100%); --ch-border: #FECACA; --ch-code: #B91C1C; --ch-icon: #DC2626; }
+.tp-ch-kidney { --ch-bg: linear-gradient(135deg,#DBEAFE 0%,#EFF6FF 100%); --ch-border: #BFDBFE; --ch-code: #1D4ED8; --ch-icon: #2563EB; }
+.tp-ch-gallbladder { --ch-bg: linear-gradient(135deg,#D1FAE5 0%,#ECFDF5 100%); --ch-border: #A7F3D0; --ch-code: #065F46; --ch-icon: #059669; }
+.tp-ch-triple-energizer { --ch-bg: linear-gradient(135deg,#CFFAFE 0%,#ECFEFF 100%); --ch-border: #A5F3FC; --ch-code: #0E7490; --ch-icon: #0891B2; }
+.tp-ch-bladder { --ch-bg: linear-gradient(135deg,#E0F2FE 0%,#F0F9FF 100%); --ch-border: #7DD3FC; --ch-code: #0C4A6E; --ch-icon: #0369A1; }
+.tp-ch-conception-vessel { --ch-bg: linear-gradient(135deg,#F3E8FF 0%,#FAF5FF 100%); --ch-border: #E9D5FF; --ch-code: #7E22CE; --ch-icon: #9333EA; }
+.tp-ch-lung { --ch-bg: linear-gradient(135deg,#FEF2F2 0%,#FFF5F5 100%); --ch-border: #FECACA; --ch-code: #991B1B; --ch-icon: #DC2626; }
+.tp-ch-extra-point { --ch-bg: linear-gradient(135deg,#CCFBF1 0%,#F0FDFA 100%); --ch-border: #99F6E4; --ch-code: #0F766E; --ch-icon: #0D9488; }
+.tp-ch-default { --ch-bg: linear-gradient(135deg,#F3F4F6 0%,#FAFAFA 100%); --ch-border: #E5E7EB; --ch-code: #374151; --ch-icon: #6B7280; }
+.tp .tp-pt-card { padding: 18px 16px; border-bottom: 1px solid #F3F4F6; border-right: 1px solid #F3F4F6; display: flex; flex-direction: column; gap: 8px; transition: background .12s; }
+.tp .tp-pt-code-badge { background: var(--ch-bg); border: 1.5px solid var(--ch-border); border-radius: 10px; padding: 5px 12px; display: inline-flex; align-items: center; gap: 7px; }
+.tp .tp-pt-needle { color: var(--ch-icon); opacity: .75; }
+.tp .tp-pt-code { font-size: 18px; font-weight: 800; color: var(--ch-code); letter-spacing: .3px; }
+.tp .tp-pt-channel { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; background: var(--ch-bg); border: 1px solid var(--ch-border); border-radius: 6px; padding: 2px 8px; }
+.tp .tp-pt-channel-icon { color: var(--ch-icon); flex-shrink: 0; }
+.tp .tp-pt-channel-name { font-size: 10px; font-weight: 600; color: var(--ch-code); }
+.tp .tp-chip { border-color: var(--ch-border); color: var(--ch-code); background: var(--ch-bg); }

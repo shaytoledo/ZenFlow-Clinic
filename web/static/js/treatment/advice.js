@@ -6,11 +6,10 @@
 function renderAdvice() {
   document.getElementById('advice-list').innerHTML = advice.map((item) => `
     <div class="zf-advice-item ${item.enabled ? 'on' : 'off'}">
-      <span style="font-size:18px;">${escHtml(item.icon)}</span>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:#111827;">${escHtml(item.category)}</div>
-        <p class="advice-text-${escHtml(item.id)}" contenteditable="true"
-           style="font-size:12px;color:#6B7280;line-height:1.5;margin-top:2px;outline:none;border-radius:4px;padding:2px 4px;cursor:text;"
+      <span class="tp-advice-icon">${escHtml(item.icon)}</span>
+      <div class="tp-advice-body">
+        <div class="tp-advice-category">${escHtml(item.category)}</div>
+        <p class="advice-text-${escHtml(item.id)} tp-advice-text" contenteditable="true"
            data-advice-edit="${escHtml(item.id)}"
            >${escHtml(item.text)}</p>
       </div>
@@ -21,7 +20,7 @@ function renderAdvice() {
 
 function updateAdviceText(id, newText) {
   const item = advice.find(a => a.id === id);
-  if (item) { item.text = newText.trim(); document.querySelectorAll('[contenteditable]').forEach(el => el.style.background = ''); }
+  if (item) item.text = newText.trim();
 }
 
 function toggleAdvice(id) {
@@ -36,7 +35,7 @@ async function sendAdvice(emailOverride) {
   const btn = document.getElementById('send-advice-btn');
   const origText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = emailOverride ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Sending…' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Sending…';
+  btn.innerHTML = emailOverride ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="tp-spin"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Sending…' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="tp-spin"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Sending…';
 
   try {
     const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/send-recommendations`, {
@@ -69,7 +68,7 @@ async function sendAdviceLater() {
   const btn = document.getElementById('send-later-btn');
   const origText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Scheduling…';
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="tp-spin"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Scheduling…';
 
   try {
     const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/send-recommendations`, {
@@ -103,23 +102,23 @@ function openEmailFallback(phone, message, patientName) {
   closeEmailFallback();
   const overlay = document.createElement('div');
   overlay.id = 'zf-email-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.className = 'tp tp-overlay';  // outside #treatment-root, so it carries the page scope itself
   overlay.onclick = (e) => { if (e.target === overlay) closeEmailFallback(); };
   overlay.innerHTML = `
-    <div style="background:#fff;border-radius:16px;width:100%;max-width:460px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <div style="width:34px;height:34px;background:#FEE2E2;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#DC2626;flex-shrink:0;">
+    <div class="tp-dialog">
+      <div class="tp-dialog-head">
+        <div class="tp-dialog-icon-red">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         </div>
-        <h3 style="font-size:16px;font-weight:700;color:#111827;">No Telegram account found</h3>
+        <h3 class="tp-dialog-title">No Telegram account found</h3>
       </div>
-      <p style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:16px;">${escHtml(message || `No Telegram account is linked to ${phone}.`)}</p>
+      <p class="tp-dialog-text">${escHtml(message || `No Telegram account is linked to ${phone}.`)}</p>
       <label class="zf-field-label">Patient email address</label>
       <input id="zf-email-input" type="email" class="zf-input" placeholder="patient@example.com" />
-      <div id="zf-email-error" style="display:none;color:#DC2626;font-size:12px;margin-top:8px;"></div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
-        <button class="zf-btn zf-btn-outline" data-action="close-email-fallback" style="padding:9px 16px;">Cancel</button>
-        <button id="zf-email-send" class="zf-btn zf-btn-primary" data-action="submit-email-fallback" style="padding:9px 18px;">Send by Email</button>
+      <div id="zf-email-error" class="tp-dialog-error"></div>
+      <div class="tp-dialog-actions">
+        <button class="zf-btn zf-btn-outline tp-dialog-btn" data-action="close-email-fallback">Cancel</button>
+        <button id="zf-email-send" class="zf-btn zf-btn-primary tp-dialog-btn-main" data-action="submit-email-fallback">Send by Email</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -168,17 +167,17 @@ function showSmtpCopyFallback(text, notice) {
   const overlay = document.getElementById('zf-email-overlay');
   if (!overlay) return;
   overlay.querySelector('div').innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <div style="width:34px;height:34px;background:#FEF3C7;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#B45309;flex-shrink:0;">
+    <div class="tp-dialog-head">
+      <div class="tp-dialog-icon-amber">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
       </div>
-      <h3 style="font-size:16px;font-weight:700;color:#111827;">Copy &amp; send manually</h3>
+      <h3 class="tp-dialog-title">Copy &amp; send manually</h3>
     </div>
-    <p style="font-size:13px;color:#6B7280;margin-bottom:12px;">${escHtml(notice || 'Email service not configured. Copy the text below and send it yourself.')}</p>
-    <textarea id="zf-copy-text" readonly style="width:100%;height:180px;font-size:12px;font-family:monospace;border:1px solid #E5E7EB;border-radius:8px;padding:10px;resize:vertical;color:#374151;background:#F9FAFB;box-sizing:border-box;">${escHtml(text || '')}</textarea>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
-      <button class="zf-btn zf-btn-outline" data-action="close-email-fallback" style="padding:9px 16px;">Close</button>
-      <button class="zf-btn zf-btn-primary" data-action="copy-smtp-text" style="padding:9px 18px;" id="zf-copy-btn">Copy Text</button>
+    <p class="tp-dialog-note">${escHtml(notice || 'Email service not configured. Copy the text below and send it yourself.')}</p>
+    <textarea id="zf-copy-text" readonly class="tp-copy-text">${escHtml(text || '')}</textarea>
+    <div class="tp-dialog-actions-tight">
+      <button class="zf-btn zf-btn-outline tp-dialog-btn" data-action="close-email-fallback">Close</button>
+      <button class="zf-btn zf-btn-primary tp-dialog-btn-main" data-action="copy-smtp-text" id="zf-copy-btn">Copy Text</button>
     </div>`;
 }
 

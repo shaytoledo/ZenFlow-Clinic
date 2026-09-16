@@ -21,25 +21,28 @@ const CHANNEL_ICONS = {
   'Extra Point':       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
 };
 
-// Channel-based gradient theme
-const CHANNEL_COLORS = {
-  'Stomach':           { bg: 'linear-gradient(135deg,#FEF3C7 0%,#FFFBEB 100%)', border: '#FDE68A', code: '#B45309', icon: '#D97706' },
-  'Large Intestine':   { bg: 'linear-gradient(135deg,#E0F2FE 0%,#F0F9FF 100%)', border: '#BAE6FD', code: '#0369A1', icon: '#0284C7' },
-  'Pericardium':       { bg: 'linear-gradient(135deg,#FCE7F3 0%,#FDF2F8 100%)', border: '#F9A8D4', code: '#BE185D', icon: '#DB2777' },
-  'Liver':             { bg: 'linear-gradient(135deg,#DCFCE7 0%,#F0FDF4 100%)', border: '#BBF7D0', code: '#15803D', icon: '#16A34A' },
-  'Spleen':            { bg: 'linear-gradient(135deg,#FEF9C3 0%,#FEFCE8 100%)', border: '#FDE047', code: '#A16207', icon: '#CA8A04' },
-  'Governing Vessel':  { bg: 'linear-gradient(135deg,#EDE9FE 0%,#F5F3FF 100%)', border: '#C4B5FD', code: '#6D28D9', icon: '#7C3AED' },
-  'Heart':             { bg: 'linear-gradient(135deg,#FEE2E2 0%,#FFF5F5 100%)', border: '#FECACA', code: '#B91C1C', icon: '#DC2626' },
-  'Kidney':            { bg: 'linear-gradient(135deg,#DBEAFE 0%,#EFF6FF 100%)', border: '#BFDBFE', code: '#1D4ED8', icon: '#2563EB' },
-  'Gallbladder':       { bg: 'linear-gradient(135deg,#D1FAE5 0%,#ECFDF5 100%)', border: '#A7F3D0', code: '#065F46', icon: '#059669' },
-  'Triple Energizer':  { bg: 'linear-gradient(135deg,#CFFAFE 0%,#ECFEFF 100%)', border: '#A5F3FC', code: '#0E7490', icon: '#0891B2' },
-  'Bladder':           { bg: 'linear-gradient(135deg,#E0F2FE 0%,#F0F9FF 100%)', border: '#7DD3FC', code: '#0C4A6E', icon: '#0369A1' },
-  'Conception Vessel': { bg: 'linear-gradient(135deg,#F3E8FF 0%,#FAF5FF 100%)', border: '#E9D5FF', code: '#7E22CE', icon: '#9333EA' },
-  'Lung':              { bg: 'linear-gradient(135deg,#FEF2F2 0%,#FFF5F5 100%)', border: '#FECACA', code: '#991B1B', icon: '#DC2626' },
-  'Extra Point':       { bg: 'linear-gradient(135deg,#CCFBF1 0%,#F0FDFA 100%)', border: '#99F6E4', code: '#0F766E', icon: '#0D9488' },
+// Channel colour theme: a `tp-ch-*` class on a card or chip sets the --ch-bg / --ch-border /
+// --ch-code / --ch-icon variables its children use (static/css/treatment.css).
+const CHANNEL_THEMES = {
+  'Stomach': 'stomach',
+  'Large Intestine': 'large-intestine',
+  'Pericardium': 'pericardium',
+  'Liver': 'liver',
+  'Spleen': 'spleen',
+  'Governing Vessel': 'governing-vessel',
+  'Heart': 'heart',
+  'Kidney': 'kidney',
+  'Gallbladder': 'gallbladder',
+  'Triple Energizer': 'triple-energizer',
+  'Bladder': 'bladder',
+  'Conception Vessel': 'conception-vessel',
+  'Lung': 'lung',
+  'Extra Point': 'extra-point',
 };
 
-const DEFAULT_COLOR = { bg: 'linear-gradient(135deg,#F3F4F6 0%,#FAFAFA 100%)', border: '#E5E7EB', code: '#374151', icon: '#6B7280' };
+function channelThemeClass(channel) {
+  return 'tp-ch-' + (CHANNEL_THEMES[channel] || 'default');
+}
 
 function renderSuggestedPoints(notes, rawSummary) {
   const div = document.getElementById('suggested-points');
@@ -63,7 +66,7 @@ function renderSuggestedPoints(notes, rawSummary) {
 
   if (pointObjects.length === 0) {
     if (section) section.style.display = 'none';
-    div.innerHTML = `<span style="font-size:12px;color:#9CA3AF;padding:8px 0;display:block;">No specific points detected — add manually below.</span>`;
+    div.innerHTML = `<span class="tp-chips-empty">No specific points detected — add manually below.</span>`;
     return;
   }
 
@@ -84,77 +87,70 @@ function renderSuggestedPoints(notes, rawSummary) {
       const needleTechnique = (typeof pt === 'object' && pt.needle_technique) || '';
 
       const info   = getPointInfo(code);
-      const theme  = CHANNEL_COLORS[info.channel] || DEFAULT_COLOR;
+      const themeClass = channelThemeClass(info.channel);
       const icon   = CHANNEL_ICONS[info.channel]  || CHANNEL_ICONS['Extra Point'];
       const name   = info.name     || code;
       const ch     = info.channel  || '';
       const loc    = aiLocation    || info.location || '';
       const action = info.actions  || '';
 
-      // Border: right border between cards except last in each row (handled by gap + auto-fill)
-      const borderBottom = '1px solid #F3F4F6';
-
-      return `<div style="padding:18px 16px;border-bottom:${borderBottom};border-right:1px solid #F3F4F6;display:flex;flex-direction:column;gap:8px;transition:background .12s;"
-                   data-hover="card-row">
+      return `<div class="tp-pt-card ${themeClass}">
 
         <!-- Code badge + quick-add -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <div style="background:${theme.bg};border:1.5px solid ${theme.border};border-radius:10px;padding:5px 12px;display:inline-flex;align-items:center;gap:7px;">
-            <span style="color:${theme.icon};opacity:.75;">${needleSVG}</span>
-            <span style="font-size:18px;font-weight:800;color:${theme.code};letter-spacing:.3px;">${escHtml(code)}</span>
+        <div class="tp-pt-head">
+          <div class="tp-pt-code-badge">
+            <span class="tp-pt-needle">${needleSVG}</span>
+            <span class="tp-pt-code">${escHtml(code)}</span>
           </div>
           <button data-action="quick-add-point" data-code="${escHtml(code)}" title="Add ${escHtml(code)} to used points"
-            style="width:28px;height:28px;flex-shrink:0;border-radius:8px;border:1.5px solid #E5E7EB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#9CA3AF;transition:all .14s;"
-            data-hover="add-point-btn">
+            class="tp-pt-add">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
         </div>
 
         <!-- Name + channel badge -->
         <div>
-          <div style="font-size:13px;font-weight:700;color:#111827;">${escHtml(name)}</div>
-          ${ch ? `<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;background:${theme.bg};border:1px solid ${theme.border};border-radius:6px;padding:2px 8px;">
-            <span style="color:${theme.icon};flex-shrink:0;">${icon}</span>
-            <span style="font-size:10px;font-weight:600;color:${theme.code};">${escHtml(ch)}</span>
+          <div class="tp-pt-name">${escHtml(name)}</div>
+          ${ch ? `<div class="tp-pt-channel">
+            <span class="tp-pt-channel-icon">${icon}</span>
+            <span class="tp-pt-channel-name">${escHtml(ch)}</span>
           </div>` : ''}
         </div>
 
         <!-- Location -->
-        ${loc ? `<div style="display:flex;gap:5px;align-items:flex-start;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;margin-top:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span style="font-size:11px;color:#6B7280;line-height:1.5;">${escHtml(loc)}</span>
+        ${loc ? `<div class="tp-pt-line">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" class="tp-pt-line-icon"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span class="tp-pt-location">${escHtml(loc)}</span>
         </div>` : ''}
 
         <!-- Actions -->
-        ${action ? `<div style="display:flex;gap:5px;align-items:flex-start;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;margin-top:2px;"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span style="font-size:11px;color:#374151;line-height:1.5;">${escHtml(action)}</span>
+        ${action ? `<div class="tp-pt-line">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" class="tp-pt-line-icon"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span class="tp-pt-actions">${escHtml(action)}</span>
         </div>` : ''}
 
-        ${needleTechnique ? `<div style="font-size:10px;color:#0D9488;font-weight:500;display:flex;align-items:center;gap:4px;">
+        ${needleTechnique ? `<div class="tp-pt-technique">
           <span>🪡</span><span>${escHtml(needleTechnique)}</span>
         </div>` : ''}
 
         <!-- AI rationale for this patient -->
-        ${rationale ? `<div style="background:linear-gradient(135deg,#F0FDFA,#ECFDF5);border-radius:8px;padding:9px 11px;border-left:2.5px solid #0D9488;margin-top:2px;">
-          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#0D9488;letter-spacing:.7px;margin-bottom:3px;">${_ZF_LANG === 'he' ? 'עבור מטופל זה' : 'For this patient'}</div>
-          <p style="font-size:11px;color:#065F46;line-height:1.55;margin:0;">${escHtml(rationale)}</p>
+        ${rationale ? `<div class="tp-pt-rationale">
+          <div class="tp-pt-rationale-label">${_ZF_LANG === 'he' ? 'עבור מטופל זה' : 'For this patient'}</div>
+          <p class="tp-pt-rationale-text">${escHtml(rationale)}</p>
         </div>` : ''}
       </div>`;
     }).join('');
 
-    section.style.display = '';
+    section.style.display = 'block';  // hidden by .tp-ai-section until there are points
   }
 
   // ── 2. Compact chip row inside "Acupuncture Points Used" card ─────────────────
   div.innerHTML =
-    `<span style="font-size:11px;color:#9CA3AF;width:100%;display:block;margin-bottom:6px;">${_ZF_LANG === 'he' ? 'פורמולת AI — לחץ <strong>+</strong> להוספה:' : 'AI formula — click <strong>+</strong> to add:'}</span>` +
+    `<span class="tp-chips-intro">${_ZF_LANG === 'he' ? 'פורמולת AI — לחץ <strong>+</strong> להוספה:' : 'AI formula — click <strong>+</strong> to add:'}</span>` +
     pointObjects.map(pt => {
       const code = typeof pt === 'object' ? (pt.code || '') : String(pt);
       const info  = getPointInfo(code);
-      const theme = CHANNEL_COLORS[info.channel] || DEFAULT_COLOR;
-      return `<button class="zf-point-chip" data-action="quick-add-point" data-code="${escHtml(code)}"
-        style="border-color:${theme.border};color:${theme.code};background:${theme.bg};"
-        title="Add ${escHtml(code)} to used points">${escHtml(code)} <span style="opacity:.6;font-size:14px;">+</span></button>`;
+      return `<button class="zf-point-chip tp-chip ${channelThemeClass(info.channel)}" data-action="quick-add-point" data-code="${escHtml(code)}"
+        title="Add ${escHtml(code)} to used points">${escHtml(code)} <span class="tp-chip-plus">+</span></button>`;
     }).join('');
 }

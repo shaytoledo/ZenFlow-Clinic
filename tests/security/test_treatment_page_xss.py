@@ -42,23 +42,21 @@ REVIEWED = {
     "pointObjects.length",
     "usedPoints.length",
     # built from constants in the same function
-    "col",
     "lbl",
     "icon",
-    "iColor",
-    "painColor",
     "dateStr",  # Date.toLocaleDateString()
     "channel",  # 'email' | 'Telegram'
     "msg",  # one of three literal messages
     "msgs",  # joined from escHtml()-ed parts
-    "borderBottom",
     "needleSVG",
     "actionsLabel",
     "locationLabel",
-    "theme.bg",
-    "theme.border",
-    "theme.code",
-    "theme.icon",
+    # CSS class names from literal maps (Phase 4.1c; checked against treatment.css below)
+    "tone",  # _certaintyTone()
+    "painTone",
+    "improvementTone",
+    "themeClass",  # channelThemeClass()
+    "channelThemeClass(info.channel)",
     # static POINT_INFO reference data shipped with the page
     "info.actions",
     "info.channel",
