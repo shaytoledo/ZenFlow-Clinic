@@ -9,6 +9,9 @@ import contextlib
 import json
 import logging
 import re as _re
+import uuid
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -16,7 +19,7 @@ from pydantic import BaseModel
 
 from web.deps import require_active_therapist, require_appointment_access
 from web.services import telegram_service, treatment_service
-from zenflow import clock
+from zenflow import clock, leases
 
 router = APIRouter(prefix="/api/treatment-notes")
 logger = logging.getLogger(__name__)
@@ -80,6 +83,52 @@ async def _resolve_apt_id(
 
 # Single auth helper for the whole codebase (review fix): see web/deps.py.
 _require_auth = require_active_therapist
+
+
+# ── one generation at a time (Phase 3.2) ───────────────────────────────────────
+#: longest a synchronous web generation may hold the lease: regenerate-points can make four
+#: back-to-back AI calls (two batches, one inner retry each) at 180 s apiece
+WEB_GENERATION_LEASE_SECONDS = 900
+
+
+def _busy(status: str) -> JSONResponse:
+    return JSONResponse(
+        {
+            "detail": "An AI generation is already running for this session.",
+            "points_status": status,
+        },
+        status_code=409,
+    )
+
+
+async def _exclusive_generation(
+    request: Request,
+    patient_id: int,
+    apt_date: str,
+    apt_time: str,
+    force: bool,
+    run: Callable[[], Awaitable[Any]],
+) -> Any:
+    """Run a generating endpoint only when nothing else is generating for this session.
+
+    409 with the current status when `points_status` says a generation is in progress, unless
+    `force=true` — a status a crashed run left behind must not lock the therapist out. The
+    per-appointment lease the queued pipeline also holds is never overridden: while a job or
+    another request really is generating, the answer is 409 even with `force`.
+    """
+    from bot.services.pipeline_jobs import lock_name
+
+    therapist = _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
+    notes = await asyncio.to_thread(treatment_service.get_notes, apt_id)
+    status = str((notes or {}).get("points_status") or "")
+    if status.startswith("GENERATING") and not force:
+        return _busy(status)
+    holder = f"web-{uuid.uuid4().hex[:8]}"
+    with leases.held(lock_name(apt_id), holder, ttl_seconds=WEB_GENERATION_LEASE_SECONDS) as got:
+        if not got:
+            return _busy(status or "GENERATING")
+        return await run()
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
@@ -613,7 +662,26 @@ async def rediagnose(
     apt_time: str,
     body: RediagnoseIn,
     request: Request,
+    force: bool = False,
 ):
+    """Re-run the diagnosis — only on an explicit request, never alongside another run."""
+    return await _exclusive_generation(
+        request,
+        patient_id,
+        apt_date,
+        apt_time,
+        force,
+        lambda: _rediagnose(patient_id, apt_date, apt_time, body, request),
+    )
+
+
+async def _rediagnose(
+    patient_id: int,
+    apt_date: str,
+    apt_time: str,
+    body: RediagnoseIn,
+    request: Request,
+) -> JSONResponse:
     """Re-run TCM diagnosis with the full intake transcript + updated tongue/pulse.
 
     Behaviour: never raise to the user for parse errors. If the AI returns
@@ -733,7 +801,25 @@ async def generate_points(
     apt_date: str,
     apt_time: str,
     request: Request,
+    force: bool = False,
 ):
+    """Select points — only on an explicit request, never alongside another run."""
+    return await _exclusive_generation(
+        request,
+        patient_id,
+        apt_date,
+        apt_time,
+        force,
+        lambda: _generate_points(patient_id, apt_date, apt_time, request),
+    )
+
+
+async def _generate_points(
+    patient_id: int,
+    apt_date: str,
+    apt_time: str,
+    request: Request,
+) -> JSONResponse:
     """Stage 2: select acupuncture points for an already-diagnosed appointment.
 
     Called directly by the frontend immediately after /rediagnose returns Stage 1.
@@ -818,7 +904,25 @@ async def regenerate_points(
     apt_date: str,
     apt_time: str,
     request: Request,
+    force: bool = False,
 ):
+    """Regenerate points — only on an explicit request, never alongside another run."""
+    return await _exclusive_generation(
+        request,
+        patient_id,
+        apt_date,
+        apt_time,
+        force,
+        lambda: _regenerate_points(patient_id, apt_date, apt_time, request),
+    )
+
+
+async def _regenerate_points(
+    patient_id: int,
+    apt_date: str,
+    apt_time: str,
+    request: Request,
+) -> JSONResponse:
     """Re-run Stage 2A + 2B point selection from scratch using the saved diagnosis.
 
     Clears existing ai_suggested_points, then runs both batches with the same
