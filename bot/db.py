@@ -218,3 +218,34 @@ def init_db() -> None:
             conn.commit()
         except Exception:
             pass  # Column already exists — safe to ignore
+    _create_active_slot_index(conn)
+
+
+def _create_active_slot_index(conn: sqlite3.Connection) -> None:
+    """One active appointment per therapist/date/time (BOT_AUDIT B4).
+
+    A partial unique index, so cancelled rows (soft-deleted, kept for clinical history) do not
+    hold a slot. If a database already contains a double booking the index cannot be created —
+    that is logged with the offending slots rather than crashing the bot at startup, because the
+    application-level check in `save_appointment()` still prevents new ones.
+    """
+    try:
+        conn.execute("""CREATE UNIQUE INDEX IF NOT EXISTS ux_appointments_active_slot
+               ON appointments(therapist_id, date, time) WHERE status='active'""")
+        conn.commit()
+    except sqlite3.IntegrityError:
+        dupes = conn.execute(
+            """SELECT therapist_id, date, time, COUNT(*) AS n, GROUP_CONCAT(id) AS ids
+               FROM appointments WHERE status='active'
+               GROUP BY therapist_id, date, time HAVING n > 1"""
+        ).fetchall()
+        for row in dupes:
+            logger.error(
+                "Double booking in the database: therapist=%s %s %s has %d active appointments "
+                "(ids %s). Cancel the extras, then restart to create ux_appointments_active_slot.",
+                row["therapist_id"],
+                row["date"],
+                row["time"],
+                row["n"],
+                row["ids"],
+            )

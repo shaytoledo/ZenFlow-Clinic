@@ -7,6 +7,7 @@ REST endpoints for appointments and patient data.
 import asyncio
 import logging
 import re
+import sqlite3
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -151,6 +152,16 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
                 "treatment_url": f"/treatment/{patient_id}/{body.date}/{body.time.replace(':','-')}",
             }
         )
+    except sqlite3.IntegrityError as e:
+        # ux_appointments_active_slot: the therapist already has an active appointment then
+        # (BOT_AUDIT B4). The bot may have taken it a second ago.
+        logger.info(
+            f"create_manual_appointment refused, slot taken: {therapist_id} {body.date} {body.time}"
+        )
+        raise HTTPException(
+            status_code=409,
+            detail="That time is already booked for you. Pick another time.",
+        ) from e
     except Exception as e:
         logger.error(f"create_manual_appointment failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))

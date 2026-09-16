@@ -52,32 +52,9 @@ async def change_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point — welcome message, then ask which therapist (if >1 active)."""
+    # Follow-up answers never reach here: `bot.patient_bot.followup.handle_followup_reply` runs in
+    # an earlier handler group and stops them, in whatever state the patient happens to be (B3).
     user = update.effective_user
-
-    # Handle in-flight 24h follow-up conversation before falling to the normal menu
-    if update.message and update.message.text:
-        from bot.services.followup_scheduler import consume_followup_conversation
-
-        consumed, reply = await consume_followup_conversation(user.id, update.message.text)
-        if consumed:
-            # Determine lang from follow-up state if possible
-            _fu_lang = "en"
-            try:
-                from bot.services.followup_scheduler import _get_conv_state
-
-                state = await _get_conv_state(user.id)
-                if state:
-                    _fu_lang = get_lang(state.get("therapist_id"))
-            except Exception:
-                pass
-            if reply:
-                await update.message.reply_text(reply, parse_mode="Markdown")
-            else:
-                await update.message.reply_text(
-                    t("bot_feedback_received", _fu_lang),
-                    reply_markup=get_main_keyboard(_fu_lang),
-                )
-            return SELECTING
 
     active = [th for th in THERAPISTS if th.get("active")]
     existing_therapist_id = context.user_data.get("selected_therapist")

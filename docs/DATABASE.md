@@ -39,7 +39,7 @@ Python's default `isolation_level=""` auto-issues a `BEGIN` before every `INSERT
 
 Setting `isolation_level=None` eliminates all implicit `BEGIN` statements. Every statement auto-commits instantly. `conn.commit()` calls throughout the codebase become harmless no-ops.
 
-The **only exception** is `save_appointment()`, which uses an explicit `BEGIN`/`COMMIT`/`ROLLBACK` block to keep the `appointments` + `intake_sessions` inserts atomic.
+The **only exception** is `save_appointment()`, which uses an explicit `BEGIN IMMEDIATE`/`COMMIT`/`ROLLBACK` block to keep the `appointments` + `intake_sessions` inserts atomic. `IMMEDIATE` takes the write lock up front, so the "is this hour still free?" check and the insert cannot be interleaved with another booking (BOT_AUDIT B4).
 
 ### WAL Mode
 
@@ -115,9 +115,26 @@ CREATE TABLE IF NOT EXISTS appointments (
 | `gcal_apt_event_id` | Google Calendar event ID if Google Calendar is connected. Starts with `"local_"` if using local SQLite availability. `NULL` if booking failed |
 | `summary` | AI-generated clinical summary from the intake questionnaire. Falls back to `"Patient opted to skip the intake questionnaire."` or `"Intake completed — see conversation history for details."` |
 
+**Indexes:**
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS ux_appointments_active_slot
+    ON appointments(therapist_id, date, time) WHERE status='active';
+```
+
+One active appointment per therapist per hour (BOT_AUDIT B4). It is *partial* on purpose:
+cancelled rows are kept for clinical history and must not keep holding their slot. If an existing
+database already contains a double booking the index cannot be created — `init_db()` logs each
+offending slot with its appointment ids and carries on; cancel the extras and restart to get the
+index. Until then only the bot is protected — `save_appointment()` re-checks the hour itself — while
+the dashboard's manual booking, which relies on the index alone, could still create a clash.
+
 **Write operations:**
-- `save_appointment()` → `INSERT` (inside explicit `BEGIN`/`COMMIT` with `intake_sessions`)
-- `cancel_appointment(id: int)` → `UPDATE SET status='cancelled'`
+- `save_appointment()` → `INSERT` (inside explicit `BEGIN IMMEDIATE`/`COMMIT` with
+  `intake_sessions`; raises `SlotTaken` when the hour is already booked)
+- `set_gcal_event_id(id, event_id)` → `UPDATE` after the calendar work, which happens *after* the
+  row exists so a booking is never lost to a calendar failure
+- `cancel_appointment(id: int)` → `UPDATE SET status='cancelled'` (frees the slot for the index)
 
 **Soft delete rationale:** Cancelled appointments are preserved so the web dashboard can show complete patient history. Clinical records must never be destroyed.
 

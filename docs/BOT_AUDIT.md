@@ -1,6 +1,7 @@
 # Bot Audit — Phase 2.1 (2026-09-15)
 
-> Status: findings B1, B2, B5, B7 (interim) and B12 were fixed in Phase 2.2a — see §1a.
+> Status: B1, B2, B5, B7 (interim) and B12 were fixed in Phase 2.2a (§1a); B3, B4 and B9 in
+> Phase 2.2b (§1b).
 
 Scope: every handler in `bot/patient_bot/` and `bot/therapist_bot/`, read on `master` @ `140a50f`.
 Method: for each handler — reachable states, return value, `user_data` read/written — and its
@@ -63,6 +64,22 @@ mostly harmless because the state has already moved on — the second click land
 | B12 | `_get_therapist()` no longer substitutes the first active therapist. The patient's chosen therapist is used when they are still active; otherwise the choice is cleared and the patient is asked to choose again. The implicit fallback now applies only when the patient chose nobody **and** the clinic has exactly one active therapist. | patient_bot/therapist.py | deactivated-therapist test |
 
 Still open from the list above: B3, B4, B6, B8–B11, B14 (Phase 2.2b), B13 (Phase 3.1), B15–B17.
+
+
+## 1b. Fixed in Phase 2.2b (bookings and follow-ups)
+
+| # | What changed | Where | Test |
+|---|---|---|---|
+| B3 | The follow-up now has its own handler in **group -1**, which runs before the ConversationHandler in every state, answers the message and raises `ApplicationHandlerStop`. The patient's conversation state is left exactly as it was, so a pain score typed during an intake no longer feeds the intake LLM and one typed in a therapist chat is no longer forwarded to the therapist. `start()` no longer owns the follow-up. | patient_bot/followup.py (new) · main.py · patient_bot/start.py | `tests/bot/test_followup_routing.py` (6 tests) |
+| B4 | The appointment row is now written **before** the calendar work, inside `BEGIN IMMEDIATE`, after re-checking the hour; a clash raises `SlotTaken` and the patient is told the time was just taken and asked to pick another (`bot_slot_taken`, both languages). A partial unique index `ux_appointments_active_slot` backs it for every writer, and the dashboard's manual booking answers **409** instead of 500. Because the row is saved first, a booking is no longer lost when Google Calendar fails — and the hour is no longer released for a booking that never happened. | services/appointments.py · db.py · schedule.py · web/routers/api/appointments.py | `tests/bot/test_double_booking.py` (8 tests) |
+| B9 | A Redis failure after the therapist has already received the message is logged, not reported to the patient as "Could not reach the therapist"; only a real send failure says that. Clearing the intake cache is best-effort too, so a Redis outage cannot swallow a booking confirmation. | patient_bot/therapist.py · schedule.py | `tests/bot/test_relay_failures.py` (2 tests) |
+
+Coverage note: this task also added the first tests for the booking and cancel flows
+(`tests/bot/test_booking_flow.py`, `tests/bot/test_cancel_flow.py`). Importing those modules in
+tests grew the measured codebase from 4,782 to 5,677 statements — roughly 900 statements of
+already-untested code that coverage simply could not see before.
+
+Still open from the list above: B6, B8, B10, B11, B14 (Phase 2.2c), B13 (Phase 3.1), B15-B17.
 
 ---
 
