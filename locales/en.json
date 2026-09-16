@@ -313,6 +313,11 @@
   "bot_intake_start": "Great! A few quick questions to help your acupuncturist prepare. 🌿",
   "bot_booked": "✅ *Appointment confirmed!*\n📅 *{day}* at *{time}*\n\nWe look forward to seeing you at ZenFlow Clinic 🌿\n\nWhat else can I help you with?",
   "bot_slot_taken": "⚠️ *That time was just booked by someone else.*\n📅 *{day}* at *{time}* is no longer free — nothing was booked for you.\n\nPlease choose another time.",
+  "bot_error": "⚠️ Something went wrong on my side. Nothing was lost — please try again.",
+  "bot_button_expired": "That button is no longer active. Here's the menu again:",
+  "bot_cancelled_flow": "Okay — I've stopped what we were doing. Nothing was booked.\n\nWhat would you like to do?",
+  "bot_booking_dropped": "Your unfinished booking was not saved.",
+  "bot_help": "*ZenFlow Clinic bot*\n\n/start — main menu (this also cancels anything unfinished)\n/cancel — stop what we're doing and go back to the menu\n/help — this message\n\nFrom the menu you can book an appointment, cancel one, or message your therapist.",
   "bot_select_to_cancel": "Select an appointment to cancel:",
   "bot_cancelled_msg": "✅ Appointment on *{day}* at *{time}* has been cancelled.\n\nWhat else can I help you with?"
 }

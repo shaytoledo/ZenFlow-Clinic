@@ -3,6 +3,7 @@ import logging
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from bot.config import THERAPIST_BOT_TOKEN, THERAPISTS
+from bot.errors import on_error
 from bot.therapist_bot.handlers import (
     handle_therapist_media,
     handle_therapist_message,
@@ -32,6 +33,8 @@ def build_therapist_app() -> Application | None:
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_therapist_message))
     # Anything that is not text gets a clear answer instead of silence (BOT_AUDIT B7).
     app.add_handler(MessageHandler(~filters.TEXT & ~filters.COMMAND, handle_therapist_media))
+
+    app.add_error_handler(on_error)
 
     active = [t for t in THERAPISTS if t.get("active")]
     logger.info(

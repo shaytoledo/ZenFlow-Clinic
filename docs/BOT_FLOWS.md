@@ -33,6 +33,13 @@ Two handler groups are registered on the patient application:
 | **-1** | `handle_followup_reply` (text, non-command) | The 24h follow-up arrives on its own schedule. This gate answers it wherever the patient is and raises `ApplicationHandlerStop`, so the message never reaches the conversation and the patient's state is left untouched (BOT_AUDIT B3). Anything that is not an open follow-up falls through. |
 | **0** | the `ConversationHandler` | Everything else: the booking, cancel and therapist-chat flows below. |
 
+The application also has an **error handler** (`bot/errors.py:on_error`): any exception a
+handler raises is logged with its traceback, the pending callback query is answered so the
+button stops spinning, and the person gets an apology and a working menu (BOT_AUDIT B8).
+
+Commands available in every state: `/start` (menu, and a clean reset of anything unfinished),
+`/cancel` (stop the current flow), `/help`.
+
 ## Full State Machine Diagram
 
 ```
