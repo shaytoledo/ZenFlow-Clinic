@@ -126,7 +126,8 @@ One active appointment per therapist per hour (BOT_AUDIT B4). It is *partial* on
 cancelled rows are kept for clinical history and must not keep holding their slot. If an existing
 database already contains a double booking the index cannot be created — `init_db()` logs each
 offending slot with its appointment ids and carries on; cancel the extras and restart to get the
-index. Until then the application-level check in `save_appointment()` still blocks new ones.
+index. Until then only the bot is protected — `save_appointment()` re-checks the hour itself — while
+the dashboard's manual booking, which relies on the index alone, could still create a clash.
 
 **Write operations:**
 - `save_appointment()` → `INSERT` (inside explicit `BEGIN IMMEDIATE`/`COMMIT` with
