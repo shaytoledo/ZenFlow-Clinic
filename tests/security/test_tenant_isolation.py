@@ -138,7 +138,7 @@ async def test_relay_conversations_are_scoped(two_tenants, fake_redis, fake_tele
         f"zenflow:relay:active:{pid}", json.dumps({"patient_id": pid, "therapist_id": t["b"]["id"]})
     )
     await fake_redis.async_.set(
-        f"zenflow:relay:history:{pid}",
+        f"zenflow:relay:history:{t['b']['id']}:{pid}",
         json.dumps([{"role": "patient", "text": "private to B", "ts": 1.0}]),
     )
     ca, cb = t["ca"], t["cb"]
@@ -155,9 +155,11 @@ async def test_relay_conversations_are_scoped(two_tenants, fake_redis, fake_tele
     sent = await ca.post("/api/messages/send", json={"patient_id": pid, "text": "hi from A"})
     assert sent.status_code in REFUSED
     assert fake_telegram.calls == [], "no Telegram message may leave on a refused request"
-    assert await fake_redis.async_.get(f"zenflow:relay:history:{pid}") is not None
+    assert await fake_redis.async_.get(f"zenflow:relay:history:{t['b']['id']}:{pid}") is not None
 
-    assert (await cb.get(f"/api/messages/history/{pid}")).status_code == 200
+    own = await cb.get(f"/api/messages/history/{pid}")
+    assert own.status_code == 200
+    assert [m["text"] for m in own.json()["messages"]] == ["private to B"]
 
 
 async def test_availability_slots_are_scoped(two_tenants) -> None:

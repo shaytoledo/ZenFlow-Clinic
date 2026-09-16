@@ -110,7 +110,7 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
     therapist_name = msg.from_user.full_name or "Therapist"
 
     if msg.reply_to_message:
-        info = get_patient_for_msg(msg.reply_to_message.message_id)
+        info = get_patient_for_msg(msg.reply_to_message.message_id, therapist_id)
         if info is None:
             # BOT_AUDIT B1: never fall back to "whoever wrote last" — that delivered clinical
             # text to the wrong patient once the 24h mapping expired.
@@ -171,7 +171,7 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
             text=f"👨‍⚕️ {therapist_name}:\n{msg.text}",
             reply_markup=_END_KB,
         )
-        append_history(patient_id, "therapist", msg.text)
+        append_history(patient_id, "therapist", msg.text, therapist_id)
         delivered_msg = "✅ Delivered." if lang == "en" else "✅ נמסר למטופל."
         await msg.reply_text(delivered_msg)
         logger.info(f"Therapist reply delivered to patient {patient_id}")

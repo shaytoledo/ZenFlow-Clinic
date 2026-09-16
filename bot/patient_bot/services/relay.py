@@ -3,11 +3,17 @@ Relay session manager — tracks which patient is behind each forwarded message,
 so therapist replies can be routed back to the right patient.
 
 Storage: Redis
-  zenflow:relay:msg:{forwarded_msg_id}  →  JSON {"patient_id", "therapist_id"}    TTL 24h
-  zenflow:relay:active:{patient_id}     →  JSON {"patient_id", "patient_name",
-                                                   "therapist_id", "started_at"}  TTL 24h
-  zenflow:relay:history:{patient_id}    →  JSON list[{role, text, ts}]            TTL 30 min
-  zenflow:relay:current:{therapist_id}  →  patient_id (str)                       TTL 24h
+  zenflow:relay:msg:{therapist_id}:{msg_id}        →  JSON {"patient_id", "therapist_id"}  TTL 24h
+  zenflow:relay:active:{patient_id}                →  JSON {"patient_id", "patient_name",
+                                                       "therapist_id", "started_at",
+                                                       "last_msg_id"}                     TTL 24h
+  zenflow:relay:history:{therapist_id}:{patient_id}  →  JSON list[{role, text, ts}]       TTL 24h
+  zenflow:relay:lastseen:{therapist_id}:{patient_id} →  unix time (str), web unread marker TTL 24h
+  zenflow:relay:current:{therapist_id}             →  patient_id (str), informational     TTL 24h
+
+Everything a therapist can read or reply to is keyed by that therapist (Phase 2.4, SF-008):
+Telegram numbers messages per chat, so a message id is only unique within one therapist's chat,
+and a patient who moves between therapists must not carry one conversation into the other.
 """
 
 import contextlib
@@ -25,6 +31,21 @@ def _redis():
     from bot.redis_client import get_sync_redis
 
     return get_sync_redis()
+
+
+def msg_key(therapist_id: str, forwarded_msg_id: int) -> str:
+    """Routing key for one message in one therapist's chat."""
+    return f"zenflow:relay:msg:{therapist_id}:{forwarded_msg_id}"
+
+
+def history_key(therapist_id: str, patient_id: int) -> str:
+    """The conversation between one therapist and one patient."""
+    return f"zenflow:relay:history:{therapist_id}:{patient_id}"
+
+
+def lastseen_key(therapist_id: str, patient_id: int) -> str:
+    """When this therapist last read this conversation on the dashboard."""
+    return f"zenflow:relay:lastseen:{therapist_id}:{patient_id}"
 
 
 def _load_session(raw: str | bytes | None) -> dict:
@@ -47,7 +68,7 @@ def save_relay_mapping(
     """Record that `forwarded_msg_id` (in therapist chat) came from `patient_id`."""
     r = _redis()
     r.set(
-        f"zenflow:relay:msg:{forwarded_msg_id}",
+        msg_key(therapist_id, forwarded_msg_id),
         json.dumps({"patient_id": patient_id, "therapist_id": therapist_id}),
         ex=86400,
     )
@@ -72,10 +93,10 @@ def save_relay_mapping(
     )
 
 
-def append_history(patient_id: int, role: str, text: str) -> None:
-    """Append a message to relay history so the web Messages tab can render it."""
+def append_history(patient_id: int, role: str, text: str, therapist_id: str) -> None:
+    """Append a message to this therapist's conversation with the patient (web Messages tab)."""
     r = _redis()
-    key = f"zenflow:relay:history:{patient_id}"
+    key = history_key(therapist_id, patient_id)
     raw = r.get(key)
     try:
         messages = json.loads(raw) if raw else []
@@ -86,9 +107,9 @@ def append_history(patient_id: int, role: str, text: str) -> None:
     r.set(key, json.dumps(messages), ex=_HISTORY_TTL)
 
 
-def get_patient_for_msg(forwarded_msg_id: int) -> dict | None:
-    """Return {"patient_id": int, "therapist_id": str} for a therapist message ID, or None."""
-    raw = _redis().get(f"zenflow:relay:msg:{forwarded_msg_id}")
+def get_patient_for_msg(forwarded_msg_id: int, therapist_id: str) -> dict | None:
+    """{"patient_id", "therapist_id"} for a message in this therapist's chat, or None."""
+    raw = _redis().get(msg_key(therapist_id, forwarded_msg_id))
     return json.loads(raw) if raw else None
 
 

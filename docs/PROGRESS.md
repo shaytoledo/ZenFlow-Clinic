@@ -75,7 +75,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | 2.2c | B6 /start reset, B8 error handler, B11 stale callbacks, /cancel + /help | [x] | 2026-09-16 | c91854f | 13 tests in `tests/bot/test_robustness.py`; `allow_reentry=False` pinned. See `docs/BOT_AUDIT.md` §1c — [PR #10](https://github.com/shaytoledo/ZenFlow-Clinic/pull/10) |
 | 2.2d | B10 conversation timeout, B14 shared Bot lifecycle | [x] | 2026-09-16 | e056aba | `ZF_CONV_TIMEOUT_MINUTES` (default 30, 0 = off); `wire_bots()`; `python-telegram-bot[job-queue]` locked. See `docs/BOT_AUDIT.md` §1d — [PR #11](https://github.com/shaytoledo/ZenFlow-Clinic/pull/11) |
 | 2.3 | State persistence across restarts | [x] | 2026-09-16 | a2a2f7a | `bot/persistence.py::SqlitePersistence` (JSON rows in `bot_persistence`, not pickle); whitelisted scheduling keys only; flows idle past the timeout are not resumed; acceptance test drives a real `Application` offline through book → restart → finish. ADR-22 — [PR #12](https://github.com/shaytoledo/ZenFlow-Clinic/pull/12) |
-| 2.4 | Multi-therapist relay isolation tests | [ ] | | | |
+| 2.4 | Multi-therapist relay isolation tests | [x] | 2026-09-16 | | 7 tests in `tests/security/test_relay_isolation.py`. **SF-008 closed**: relay history/unread keyed per therapist–patient, routing per therapist–message (Telegram ids are per chat — a real collision); appointment heuristic removed; dashboard replies sent as plain text |
 
 ## Phase 3 — Pipeline ownership (items 4, 5)
 | # | Task | Status | Date | Commit | Notes |

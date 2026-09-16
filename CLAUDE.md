@@ -159,7 +159,7 @@ Any message / /start → SELECTING (main menu)
 - **Patient bot** (`TELEGRAM_TOKEN`): patient-facing; forwards messages via `Bot(THERAPIST_BOT_TOKEN)`
 - **Therapist bot** (`THERAPIST_BOT_TOKEN`): shared by all therapists; routes replies back via `Bot(TELEGRAM_TOKEN)`
 - Both bots run concurrently in the same process via `asyncio.run(_run(patient_app, therapist_app))`
-- Routing key: Redis `zenflow:relay:msg:{msg_id}` stores `{patient_id, therapist_id}`
+- Routing key: Redis `zenflow:relay:msg:{therapist_id}:{msg_id}` stores `{patient_id, therapist_id}`
 
 ## Tests (Phase 0.3)
 - `tests/conftest.py` pins the environment *before* any project import (`bot/config.py` opens the DB at import time).

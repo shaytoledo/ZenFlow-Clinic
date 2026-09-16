@@ -31,7 +31,7 @@ PATIENT                    PATIENT BOT                   THERAPIST BOT          
    │                                │     fwd_msg_id = 92          │───── "Patient says: My back hurts" ──►│
    │                                │                              │                    │
    │                    save_relay_mapping(92, patient_id, "t1")   │                    │
-   │                    Redis: zenflow:relay:msg:92 = {patient, t1}│                    │
+   │                    Redis: zenflow:relay:msg:t1:92 = {patient, t1}│                    │
    │                    Redis: zenflow:relay:active:{patient} = ... │                    │
    │                                │                              │                    │
    │◄── "Sent. [End Chat]" ─────────│                              │                    │
@@ -50,6 +50,22 @@ PATIENT                    PATIENT BOT                   THERAPIST BOT          
 ```
 
 ---
+
+## Isolation between therapists (Phase 2.4)
+
+Everything a therapist can read or reply to is keyed by that therapist:
+
+- **Message routing** is `zenflow:relay:msg:{therapist_id}:{msg_id}`. Telegram numbers messages
+  *per chat*, so the therapist bot's message 50 to Dr A and its message 50 to Dr B are different
+  messages; with the old global key the second mapping overwrote the first.
+- **History and unread markers** are per therapist–patient pair. A patient who moves from Dr A to
+  Dr B starts a new conversation in Dr B's view; Dr A's stays with Dr A.
+- **The dashboard** lets a therapist into a conversation only when the live session is theirs or
+  they have stored history of their own. There is no "has an appointment with this patient" rule
+  any more (SF-008), and when Redis is unreachable access is refused, never guessed.
+
+`tests/security/test_relay_isolation.py` pins each path: reply-to, free typing, a stale
+`current:{therapist}` key, a reused message id, and the dashboard after a chat has ended.
 
 ## Routing rules (Phase 2.2a)
 
@@ -84,10 +100,10 @@ question Q6 in `docs/BOT_AUDIT.md`.
 
 ## Redis Keys Used by Relay
 
-### `zenflow:relay:msg:{therapist_bot_msg_id}`
+### `zenflow:relay:msg:{therapist_id}:{therapist_bot_msg_id}`
 
 ```
-Key:     zenflow:relay:msg:92
+Key:     zenflow:relay:msg:t1:92
 Value:   {"patient_id": 918187404, "therapist_id": "t1"}
 TTL:     86400 s (24 hours)
 ```
@@ -121,10 +137,10 @@ TTL:     86400 s (24h), refreshed on every patient message
 
 ---
 
-### `zenflow:relay:history:{patient_id}`
+### `zenflow:relay:history:{therapist_id}:{patient_id}`
 
 ```
-Key:     zenflow:relay:history:918187404
+Key:     zenflow:relay:history:t1:918187404
 Value:   [{"role": "patient", "text": "My back hurts", "ts": "2026-03-09T19:44:15"},
           {"role": "therapist", "text": "Let's discuss...", "ts": "2026-03-09T19:44:35"}]
 TTL:     1800 s (30 minutes)

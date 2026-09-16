@@ -49,7 +49,7 @@ def _record_relay(
     except Exception as e:
         logger.error(f"[{patient_id}] relay delivered but the mapping was not saved: {e}")
     try:
-        append_history(patient_id, "patient", text)
+        append_history(patient_id, "patient", text, therapist_id)
     except Exception as e:
         logger.error(f"[{patient_id}] relay delivered but the history was not saved: {e}")
 

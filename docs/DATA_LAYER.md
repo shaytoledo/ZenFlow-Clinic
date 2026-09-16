@@ -52,10 +52,10 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | Key pattern | What it holds | TTL | Written by | Eviction trigger |
 |---|---|---|---|---|
 | `zenflow:intake:{patient_id}:{therapist_id}` | AI intake conversation history (LangChain list) | 1800 s | `ai_intake.py` | Explicit `clear_intake()` after booking, or TTL on abandon |
-| `zenflow:relay:msg:{msg_id}` | `{patient_id, therapist_id}` routing for a forwarded message | 86400 s | `patient_bot/services/relay.py` | TTL only |
+| `zenflow:relay:msg:{therapist_id}:{msg_id}` | `{patient_id, therapist_id}` routing for a forwarded message | 86400 s | `patient_bot/services/relay.py` | TTL only |
 | `zenflow:relay:active:{patient_id}` | Active relay session presence | **None** | `patient_bot/services/relay.py` | Explicit `end_relay()` only — **no TTL** |
-| `zenflow:relay:history:{patient_id}` | Full relay chat log for web messages page | 86400 s | `web/services/telegram_service.py` (`append_relay_message`) | TTL only |
-| `zenflow:relay:lastseen:{patient_id}` | Therapist's last-seen timestamp for a conversation (drives unread badge) | 86400 s | `web/services/telegram_service.py` (`mark_conversation_read`) | TTL only — refreshed every read |
+| `zenflow:relay:history:{therapist_id}:{patient_id}` | Full relay chat log for web messages page | 86400 s | `web/services/telegram_service.py` (`append_relay_message`) | TTL only |
+| `zenflow:relay:lastseen:{therapist_id}:{patient_id}` | Therapist's last-seen timestamp for a conversation (drives unread badge) | 86400 s | `web/services/telegram_service.py` (`mark_conversation_read`) | TTL only — refreshed every read |
 | `zenflow:followup:sent:{appointment_id}` | Idempotency lock — 24h follow-up was sent for this appointment | 7 d | `bot/services/followup_scheduler.py` | TTL only |
 | `zenflow:followup:awaiting:{patient_id}` | Patient `pid` has an outstanding follow-up; next 1–5 reply is captured as the rating. Value = appointment_id | 24 h | `bot/services/followup_scheduler.py` (set on send, deleted on reply) | TTL only or explicit delete |
 | `zenflow:slots:{date}` | Booked time slots for a date (`["09:00", "11:00"]`) | 300 s | `availability.py` | `book_slot()` / `restore_slot()` / TTL |
@@ -88,10 +88,10 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | `zenflow:gcal:rolling14d:{tid}` | **10 min** | Single blob covering the whole [today, today+14d] window. One Google Calendar fetch (300–800 ms) serves every FullCalendar sub-range request for the next 10 minutes. Pre-warmed at login → schedule page is instant on first open |
 | `zenflow:gcal:events:{tid}:{...}` | **10 min** | Legacy per-range fallback for windows outside the rolling 14-day cache (e.g. browsing 3 weeks ahead) |
 | `zenflow:intake:{pid}:{tid}` | **30 min** | Intake sessions last ~5 min. 30 min covers slow patients and network delays. Abandoned sessions auto-clean |
-| `zenflow:relay:msg:{msg_id}` | **24 h** | Therapist may reply hours after receiving the forwarded message. 24 h covers any realistic reply window |
+| `zenflow:relay:msg:{therapist_id}:{msg_id}` | **24 h** | Therapist may reply hours after receiving the forwarded message. 24 h covers any realistic reply window |
 | `zenflow:relay:active:{pid}` | **None** | Must survive indefinitely until the session is explicitly ended. No TTL by design |
-| `zenflow:relay:history:{pid}` | **24 h** | Chat history shown on the web messages page. 24 h covers a full clinic working day |
-| `zenflow:relay:lastseen:{pid}` | **24 h** | Therapist last-seen timestamp; refreshed every time the conversation is opened or a reply is sent |
+| `zenflow:relay:history:{therapist_id}:{pid}` | **24 h** | Chat history shown on the web messages page. 24 h covers a full clinic working day |
+| `zenflow:relay:lastseen:{therapist_id}:{pid}` | **24 h** | Therapist last-seen timestamp; refreshed every time the conversation is opened or a reply is sent |
 | `zenflow:followup:sent:{apt_id}` | **7 d** | Idempotency lock so the 24h follow-up scheduler never sends twice for one appointment |
 | `zenflow:followup:awaiting:{pid}` | **24 h** | Patient has 24 h to reply with a 1–5 rating; after that the prompt expires silently and the start handler stops intercepting numbers |
 | `zenflow:reg:{CODE}` | **10 min** | Activation codes must be short-lived for security. Therapist must complete bot activation promptly |
@@ -115,7 +115,7 @@ This means a `zenflow:relay:active:{pid}` key (no TTL) can be evicted under memo
 | `zenflow:avail:*` | Cache miss — Google Calendar or SQLite read | Automatic |
 | `zenflow:gcal:events:*` | Cache miss — Google API call (slow) | Automatic but adds latency |
 | `zenflow:intake:*` | **Intake history lost mid-session** — patient sees fallback questions | Partial recovery: session continues with fallback questions; history lost |
-| `zenflow:relay:msg:*` | Therapist reply-to routing fails — falls back to active session lookup | Graceful: routes to active patient if one exists |
+| `zenflow:relay:msg:*` | Therapist reply-to routing fails | The therapist is asked to reply to a newer message; nothing is delivered on a guess (BOT_AUDIT B1) |
 | `zenflow:relay:active:*` | **Relay session orphaned** — patient cannot end chat cleanly | Manual: `redis-cli del zenflow:relay:active:{patient_id}` |
 | `zenflow:relay:history:*` | Chat history missing from web messages page | TTL rebuild on next message |
 | `zenflow:reg:*` | Therapist code expires early | Generate new code via `/api/my/activation-code` |
@@ -324,14 +324,14 @@ Shows exactly what gets written where at each step:
 
 2. Patient sends message
    └─ Bot(THERAPIST_BOT_TOKEN).forward_message() → msg_id
-   └─ WRITES: zenflow:relay:msg:{msg_id}      (24h TTL)
-              zenflow:relay:history:{pid}      (30 min TTL, append)
+   └─ WRITES: zenflow:relay:msg:{therapist_id}:{msg_id}      (24h TTL)
+              zenflow:relay:history:{therapist_id}:{pid}      (24h TTL, append)
 
 3. Therapist replies-to forwarded message
-   └─ READS:  zenflow:relay:msg:{msg_id}  → {patient_id, therapist_id}
+   └─ READS:  zenflow:relay:msg:{therapist_id}:{msg_id}  → {patient_id, therapist_id}
               (security check: reply therapist_id must match stored therapist_id)
    └─ Bot(TELEGRAM_TOKEN).send_message(patient_id, ...)
-   └─ WRITES: zenflow:relay:history:{pid}  (append)
+   └─ WRITES: zenflow:relay:history:{therapist_id}:{pid}  (append)
 
 4. Either side ends chat
    └─ DELETES: zenflow:relay:active:{pid}  (explicit delete)

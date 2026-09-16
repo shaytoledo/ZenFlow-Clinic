@@ -206,9 +206,9 @@ Cache and messaging layer. `maxmemory=1gb`, `allkeys-lru` eviction.
 | `zenflow:avail:hours:{tid}:{date}` | 5 min | Available hours per therapist/day |
 | `zenflow:gcal:events:{tid}:{start}:{end}` | 10 min | Google Calendar events cache |
 | `zenflow:intake:{patient_id}:{therapist_id}` | 30 min | AI intake conversation history |
-| `zenflow:relay:msg:{msg_id}` | session | Maps forwarded message → patient/therapist |
+| `zenflow:relay:msg:{therapist_id}:{msg_id}` | session | Maps forwarded message → patient/therapist |
 | `zenflow:relay:active:{patient_id}` | session | Active relay session metadata |
-| `zenflow:relay:history:{patient_id}` | 30 min | Relay chat history |
+| `zenflow:relay:history:{therapist_id}:{patient_id}` | 24 h | Relay chat history, one per therapist–patient pair |
 | `zenflow:reg:{CODE}` | 10 min | Therapist registration activation codes |
 
 **Check Redis:**

@@ -46,7 +46,7 @@ Both connect to `REDIS_URL` from `.env` (default `redis://localhost:6379/0`).
 
 ### Relay — Message Routing
 
-| Key pattern | `zenflow:relay:msg:{msg_id}` |
+| Key pattern | `zenflow:relay:msg:{therapist_id}:{msg_id}` |
 |---|---|
 | **Type** | String (JSON) |
 | **TTL** | 86400 seconds (24 hours) |
@@ -74,7 +74,7 @@ Both connect to `REDIS_URL` from `.env` (default `redis://localhost:6379/0`).
 
 ### Relay — Chat History
 
-| Key pattern | `zenflow:relay:history:{patient_id}` |
+| Key pattern | `zenflow:relay:history:{therapist_id}:{patient_id}` |
 |---|---|
 | **Type** | String (JSON) |
 | **TTL** | 1800 seconds (30 minutes) |

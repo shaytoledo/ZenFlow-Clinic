@@ -123,20 +123,36 @@ async def test_conversation_endpoints_survive_redis_outage(
 
     monkeypatch.setattr(rc, "_async_client", _Down())
     resp = await client_a.get(f"/api/messages/history/{apt['patient_id']}")
-    assert resp.status_code == 200  # falls back to the appointment-ownership rule
-    assert resp.json()["messages"] == []
+    # Ownership cannot be verified without Redis, so access is refused — never granted on a
+    # guess (Phase 2.4 removed the appointment fallback, SF-008) and never a 500.
+    assert resp.status_code == 404
 
 
-# ── a corrupt relay blob must not be read as "owned by someone else" ──
-async def test_corrupt_relay_blob_falls_back_to_appointment_ownership(
+# ── a corrupt relay blob must not be read as "owned by someone else", nor crash ──
+# (Phase 2.4 replaced the appointment fallback with per-therapist history, SF-008.)
+async def test_corrupt_relay_blob_does_not_hide_the_therapists_own_conversation(
     make_therapist, make_appointment, login_as, fake_redis
 ) -> None:
+    from bot.patient_bot.services.relay import append_history
+
     a = make_therapist(email="a4@example.com", password="pw-Test-123")
     apt = make_appointment(therapist=a)
+    append_history(apt["patient_id"], "patient", "hello", a["id"])
     await fake_redis.async_.set(f"zenflow:relay:active:{apt['patient_id']}", "not json {")
     client_a = await login_as(a)
     resp = await client_a.get(f"/api/messages/history/{apt['patient_id']}")
     assert resp.status_code == 200
+
+
+async def test_corrupt_relay_blob_without_a_conversation_is_not_found(
+    make_therapist, make_appointment, login_as, fake_redis
+) -> None:
+    a = make_therapist(email="a5@example.com", password="pw-Test-123")
+    apt = make_appointment(therapist=a)
+    await fake_redis.async_.set(f"zenflow:relay:active:{apt['patient_id']}", "not json {")
+    client_a = await login_as(a)
+    resp = await client_a.get(f"/api/messages/history/{apt['patient_id']}")
+    assert resp.status_code == 404
 
 
 # ── Google tokens encrypted before Phase 0.4 keep decrypting after TOKEN_ENCRYPTION_KEY is set ──
