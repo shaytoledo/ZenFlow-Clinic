@@ -118,7 +118,7 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
                 "⚠️ That conversation has expired, so I can't tell which patient this reply "
                 "belongs to. Ask them to send a new message, then reply to that one."
                 if lang == "en"
-                else "⚠️ השיחה הזו פגה, ולכן לא ניתן לדעת לאיזה מטופל השייכת התשובה. "
+                else "⚠️ השיחה הזו פגה, ולכן לא ניתן לדעת לאיזה מטופל שייכת התשובה. "
                 "בקש/י ממנו לשלוח הודעה חדשה, והשב/י עליה."
             )
             await msg.reply_text(expired_msg)

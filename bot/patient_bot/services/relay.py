@@ -98,9 +98,12 @@ def list_active_patients(therapist_id: str) -> list[int]:
     out: list[int] = []
     for key in r.scan_iter("zenflow:relay:active:*"):
         data = _load_session(r.get(key))
-        if data.get("therapist_id") == therapist_id:
-            with contextlib.suppress(TypeError, ValueError):
-                out.append(int(data.get("patient_id")))  # type: ignore[arg-type]
+        if data.get("therapist_id") != therapist_id:
+            continue
+        pid = data.get("patient_id")
+        if isinstance(pid, int | str):
+            with contextlib.suppress(ValueError):
+                out.append(int(pid))
     return sorted(out)
 
 
@@ -108,8 +111,9 @@ def end_relay(patient_id: int) -> None:
     """Mark patient as no longer in active relay.
 
     Also releases the therapist's "current patient" pointer, but only when it still points at
-    this patient (compare-and-delete): a newer chat with someone else must not be clobbered
-    (BOT_AUDIT B1).
+    this patient: a newer chat with someone else must not be clobbered (BOT_AUDIT B1). The read
+    and the delete are not atomic, which is safe because that key is informational only — routing
+    reads `list_active_patients()`.
     """
     r = _redis()
     active_key = f"zenflow:relay:active:{patient_id}"
