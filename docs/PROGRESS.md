@@ -70,7 +70,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
 | 2.1 | `docs/BOT_AUDIT.md` — full handler sweep, ranked findings | [x] | 2026-09-16 | a993baf | 17 ranked findings B1–B17 (F3/F4/F5 confirmed; new: wrong-patient relay routing, Markdown breaks relay, double booking, stale therapist registry, silent booking loss). **Awaiting owner scope agreement + Q6/Q8/Q9 before 2.2** — [PR #7](https://github.com/shaytoledo/ZenFlow-Clinic/pull/7) |
-| 2.2a | Relay safety: B1 wrong-patient routing, B2 Markdown, B5 stale registry, B7 media (interim), B12 therapist substitution | [x] | 2026-09-16 | | 13 tests in `tests/bot/test_relay_safety.py`; no "last patient who wrote" fallback; relay bodies sent as plain text; media refused, never dropped. See `docs/BOT_AUDIT.md` §1a |
+| 2.2a | Relay safety: B1 wrong-patient routing, B2 Markdown, B5 stale registry, B7 media (interim), B12 therapist substitution | [x] | 2026-09-16 | ed80de1 | 13 tests in `tests/bot/test_relay_safety.py`; no "last patient who wrote" fallback; relay bodies sent as plain text; media refused, never dropped. See `docs/BOT_AUDIT.md` §1a — [PR #8](https://github.com/shaytoledo/ZenFlow-Clinic/pull/8) |
 | 2.2b | Remaining audit fixes: B3 (F3), B4 double booking, B6 /start reset, B8 error handler, B9, B10 timeout, B11 stale callbacks, B14 Bot lifecycle, /cancel + /help | [ ] | | | needs Q6 / Q8b / Q9 |
 | 2.3 | State persistence across restarts | [ ] | | | |
 | 2.4 | Multi-therapist relay isolation tests | [ ] | | | |
