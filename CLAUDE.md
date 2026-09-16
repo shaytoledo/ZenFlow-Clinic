@@ -172,6 +172,7 @@ Any message / /start → SELECTING (main menu)
 - All Telegram handlers are `async def (update, context) -> int` returning the next state constant.
 - `context.user_data` holds in-flight booking state (`selected_therapist`, `selected_day`, `selected_time`, `intake_count`). Cleared on completion, skip, or cancellation.
 - `allow_reentry=False` is critical — setting it True breaks INTAKE and THERAPIST_INPUT states.
+- The patient conversation is persistent (`name="patient"`). A new `user_data` key is NOT persisted unless added to `PERSISTED_USER_KEYS` in `bot/persistence.py` — only add scheduling data, never clinical free text.
 - Cancelled appointments are **soft-deleted** (`status='cancelled'`). Records preserved for clinical history.
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
@@ -226,9 +227,9 @@ Any message / /start → SELECTING (main menu)
 - Live relay chat visible and sendable from web messages page (`/messages`)
 - System health API (`/api/status`, auth required) covering Redis, Ollama, bots, Google Calendar; public liveness probe `GET /healthz`
 - "Change Therapist" button in main menu (appears after therapist is selected)
+- In-flight flows survive a bot restart (`bot/persistence.py`, table `bot_persistence`; scheduling keys only, never clinical text)
 - Test harness (`tests/`): per-test SQLite, fakeredis, ASGI client, fake Telegram/LLM, factories; `python tasks.py test`
 - Multi-tenant isolation: every API/page route scoped to the session therapist; attack suite in `tests/security/`
 
 ## Planned
-- `PicklePersistence` to survive bot restarts without losing in-flight booking state
 - Switch `USE_AI=anthropic` for production Claude API

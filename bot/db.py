@@ -212,6 +212,17 @@ def init_db() -> None:
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, run_at)")
     conn.commit()
+    # Bot persistence (Phase 2.3) — bot/persistence.py. Conversation states and whitelisted
+    # scheduling keys only; never clinical free text.
+    conn.execute("""CREATE TABLE IF NOT EXISTS bot_persistence (
+        kind TEXT NOT NULL,
+        name TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (kind, name, key)
+    )""")
+    conn.commit()
     for migration in _migrations:
         try:
             conn.execute(migration)

@@ -14,6 +14,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram.request import BaseRequest
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, TELEGRAM_TOKEN
 from bot.errors import on_error, stale_button
@@ -40,6 +41,7 @@ from bot.patient_bot.therapist import (
     start_relay,
 )
 from bot.patient_bot.timeout import on_conversation_timeout
+from bot.persistence import SqlitePersistence
 from bot.states import (
     CANCEL_SELECT,
     INTAKE,
@@ -159,16 +161,24 @@ def wire_bots(patient_bot: object, therapist_bot: object) -> None:
     logger.info("Relay wired to the running applications' bot clients")
 
 
-def build_patient_app() -> Application:
-    app = (
+def build_patient_app(*, request: BaseRequest | None = None) -> Application:
+    """The patient-facing application.
+
+    `request` replaces the HTTP layer (tests drive a real Application offline with it).
+    """
+    builder = (
         Application.builder()
         .token(TELEGRAM_TOKEN)
-        .connect_timeout(30.0)
-        .read_timeout(30.0)
         .post_init(_post_init)
         .post_shutdown(_post_shutdown)
-        .build()
+        # In-flight flows survive a restart (plan 2.3); flows idle past the timeout are not resumed.
+        .persistence(SqlitePersistence(stale_after_seconds=(_timeout_minutes() * 60) or None))
     )
+    if request is None:
+        builder = builder.connect_timeout(30.0).read_timeout(30.0)
+    else:
+        builder = builder.request(request).get_updates_request(request)
+    app = builder.build()
 
     conv = ConversationHandler(
         entry_points=[
@@ -238,6 +248,8 @@ def build_patient_app() -> Application:
             MessageHandler(filters.ALL, start),
         ],
         allow_reentry=False,
+        name="patient",
+        persistent=True,
         # 0 minutes = never expire, the clinic's call (ZF_CONV_TIMEOUT_MINUTES).
         conversation_timeout=(_timeout_minutes() * 60) or None,
     )
