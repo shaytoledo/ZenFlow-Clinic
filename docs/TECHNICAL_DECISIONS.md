@@ -672,3 +672,8 @@ the same local model (which serialises them anyway); a second `python -m zenflow
 process adds throughput safely because of the lease. The web endpoints that generate synchronously (`rediagnose`,
 `generate-points`, `regenerate-points`) do not take the lease yet — Phase 3.2 adds the 409 guard
 and Phase 3.3 moves them onto the same jobs.
+
+**Amendment (Phase 3.2, 2026-09-16).** The three web endpoints now take the same lease and
+return 409 with `points_status` while a generation is in progress. `force=true` skips only the
+status check — for a status a crashed run left behind — never the lease. The treatment page no
+longer generates on load; it offers an explicit button.
