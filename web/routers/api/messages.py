@@ -4,7 +4,6 @@ web/routers/api/messages.py
 Messaging endpoints: unread count, conversation list, send reply via Telegram.
 """
 
-import asyncio
 import json
 import logging
 
@@ -30,28 +29,36 @@ async def _own_sessions(therapist: dict) -> list[dict]:
     return [s for s in sessions if s.get("therapist_id") == therapist["id"]]
 
 
-async def _assert_conversation_owner(therapist: dict, patient_id: int) -> None:
-    """403 if the patient's active relay session belongs to another therapist; 404 if there is
-    no session and the patient never had an appointment with this therapist."""
+async def _live_session(patient_id: int) -> dict | None:
+    """The patient's live relay session, or None (missing, corrupt, or Redis down)."""
     from bot.redis_client import get_async_redis
 
-    data: dict | None = None
     try:
         raw = await get_async_redis().get(f"zenflow:relay:active:{patient_id}")
         parsed = json.loads(raw) if raw else None
-        data = parsed if isinstance(parsed, dict) else None
-    except Exception as e:  # Redis down / corrupt blob: treat as "no live session", never 500
+    except Exception as e:  # Redis down / corrupt blob: "no live session" — never 500
         logger.warning(f"relay session lookup failed for patient {patient_id}: {e}")
-        data = None
-    if data is not None:
-        if data.get("therapist_id") == therapist["id"]:
-            return
-        raise HTTPException(status_code=403, detail="Conversation belongs to another therapist")
-    from web.repositories import appointment_repo
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
-    owned = await asyncio.to_thread(appointment_repo.list_by_patient, patient_id, therapist["id"])
-    if owned:
+
+async def _assert_conversation_owner(therapist: dict, patient_id: int) -> None:
+    """Allow a therapist into their own conversation with the patient, and nobody else's.
+
+    Ownership is structural (Phase 2.4, SF-008): history is stored per therapist, so "mine" means
+    a live session owned by this therapist or a stored conversation under their own key. There is
+    no longer any "has an appointment with this patient" rule — that let a therapist who treated
+    the patient read another therapist's chat once the live session had ended.
+    403 when the live session belongs to someone else and this therapist has no conversation of
+    their own; 404 otherwise.
+    """
+    session = await _live_session(patient_id)
+    if session is not None and session.get("therapist_id") == therapist["id"]:
         return
+    if await telegram_service.has_relay_history(therapist["id"], patient_id):
+        return
+    if session is not None:
+        raise HTTPException(status_code=403, detail="Conversation belongs to another therapist")
     raise HTTPException(status_code=404, detail="Conversation not found")
 
 
@@ -77,8 +84,8 @@ async def get_message_history(patient_id: int, request: Request):
     therapist = require_active_therapist(request)
     await _assert_conversation_owner(therapist, patient_id)
 
-    messages = await telegram_service.get_relay_messages(patient_id)
-    await telegram_service.mark_conversation_read(patient_id)
+    messages = await telegram_service.get_relay_messages(therapist["id"], patient_id)
+    await telegram_service.mark_conversation_read(therapist["id"], patient_id)
     return JSONResponse({"patient_id": patient_id, "messages": messages})
 
 
@@ -87,7 +94,7 @@ async def mark_unread(patient_id: int, request: Request):
     """Mark a conversation as unread (removes the last-seen timestamp)."""
     therapist = require_active_therapist(request)
     await _assert_conversation_owner(therapist, patient_id)
-    await telegram_service.mark_conversation_unread(patient_id)
+    await telegram_service.mark_conversation_unread(therapist["id"], patient_id)
     return JSONResponse({"ok": True, "patient_id": patient_id})
 
 
@@ -96,7 +103,7 @@ async def delete_message_history(patient_id: int, request: Request):
     """Delete a relay conversation from Redis (history + presence + unread)."""
     therapist = require_active_therapist(request)
     await _assert_conversation_owner(therapist, patient_id)
-    removed = await telegram_service.delete_conversation(patient_id)
+    removed = await telegram_service.delete_conversation(therapist["id"], patient_id)
     return JSONResponse({"ok": True, "patient_id": patient_id, "removed_keys": removed})
 
 
@@ -111,38 +118,41 @@ async def send_message(body: SendMessageIn, request: Request):
 
     therapist_name = (therapist or {}).get("name", "Therapist")
     try:
+        # Plain text, like the bot relay: a reply containing _ or * must not fail to send (B2).
         await telegram_service.send_to_patient(
             body.patient_id,
-            f"👨‍⚕️ *{therapist_name}:*\n{body.text}",
-            parse_mode="Markdown",
+            f"👨‍⚕️ {therapist_name}:\n{body.text}",
+            parse_mode=None,
         )
     except Exception as e:
         logger.error(f"send_message → patient delivery failed: {e}")
         raise HTTPException(status_code=500, detail=f"Delivery to patient failed: {e}")
 
-    await telegram_service.append_relay_message(body.patient_id, "therapist", body.text)
-    await telegram_service.mark_conversation_read(body.patient_id)
+    await telegram_service.append_relay_message(
+        therapist["id"], body.patient_id, "therapist", body.text
+    )
+    await telegram_service.mark_conversation_read(therapist["id"], body.patient_id)
 
     therapist_tg_id = (therapist or {}).get("telegram_id")
-    last_msg_id = await _last_forwarded_msg_id(body.patient_id)
+    last_msg_id = await _last_forwarded_msg_id(therapist["id"], body.patient_id)
     await telegram_service.echo_to_therapist_chat(
         therapist_telegram_id=therapist_tg_id,
-        text=f"💬 *Sent via web:*\n{body.text}",
+        text=f"💬 Sent via web:\n{body.text}",
         reply_to_msg_id=last_msg_id,
+        parse_mode=None,
     )
 
     return JSONResponse({"ok": True})
 
 
-async def _last_forwarded_msg_id(patient_id: int) -> int | None:
-    """Look up the most recent therapist-bot message_id forwarded for this patient."""
-    try:
-        from bot.redis_client import get_async_redis
+async def _last_forwarded_msg_id(therapist_id: str, patient_id: int) -> int | None:
+    """The last message forwarded into *this* therapist's chat for the patient, if live.
 
-        r = get_async_redis()
-        raw = await r.get(f"zenflow:relay:active:{patient_id}")
-        if not raw:
-            return None
-        return json.loads(raw).get("last_msg_id")
-    except Exception:
+    Message ids are per chat; another therapist's id would thread the echo onto an unrelated
+    message.
+    """
+    session = await _live_session(patient_id)
+    if session is None or session.get("therapist_id") != therapist_id:
         return None
+    msg_id = session.get("last_msg_id")
+    return msg_id if isinstance(msg_id, int) else None

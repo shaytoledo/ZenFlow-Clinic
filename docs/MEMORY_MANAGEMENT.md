@@ -226,9 +226,9 @@ See `docs/REDIS.md` for the complete key schema and TTL table.
 Key created                         Key destroyed
 ──────────────────────────────────────────────────────────────────────
 zenflow:intake:{pid}:{tid}          clear_intake() OR 30-min TTL expiry
-zenflow:relay:msg:{msg_id}          24h TTL (auto) — no explicit delete
+zenflow:relay:msg:{therapist_id}:{msg_id}          24h TTL (auto) — no explicit delete
 zenflow:relay:active:{pid}          end_relay() explicit delete
-zenflow:relay:history:{pid}         30-min TTL (auto)
+zenflow:relay:history:{therapist_id}:{pid}  24h TTL (auto)
 zenflow:slots:{date}                book_slot() OR restore_slot() explicit delete
                                     OR 5-min TTL expiry
 zenflow:avail:days:{tid}:{week}     book_slot() pattern-scan delete
