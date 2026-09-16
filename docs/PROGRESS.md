@@ -70,7 +70,8 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
 | 2.1 | `docs/BOT_AUDIT.md` — full handler sweep, ranked findings | [x] | 2026-09-16 | a993baf | 17 ranked findings B1–B17 (F3/F4/F5 confirmed; new: wrong-patient relay routing, Markdown breaks relay, double booking, stale therapist registry, silent booking loss). **Awaiting owner scope agreement + Q6/Q8/Q9 before 2.2** — [PR #7](https://github.com/shaytoledo/ZenFlow-Clinic/pull/7) |
-| 2.2 | Known fixes F3, F4, F5 + error handler + /cancel + timeout | [ ] | | | |
+| 2.2a | Relay safety: B1 wrong-patient routing, B2 Markdown, B5 stale registry, B7 media (interim), B12 therapist substitution | [x] | 2026-09-16 | | 13 tests in `tests/bot/test_relay_safety.py`; no "last patient who wrote" fallback; relay bodies sent as plain text; media refused, never dropped. See `docs/BOT_AUDIT.md` §1a |
+| 2.2b | Remaining audit fixes: B3 (F3), B4 double booking, B6 /start reset, B8 error handler, B9, B10 timeout, B11 stale callbacks, B14 Bot lifecycle, /cancel + /help | [ ] | | | needs Q6 / Q8b / Q9 |
 | 2.3 | State persistence across restarts | [ ] | | | |
 | 2.4 | Multi-therapist relay isolation tests | [ ] | | | |
 
@@ -184,6 +185,11 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 
 ---
 
+## Known tooling defects
+| # | Defect | Impact | Plan |
+|---|---|---|---|
+| T1 | `python tasks.py all` can never exit 0: `bandit -q` exits 1 on the 66 pre-existing Low/Medium findings (try/except/pass, `f"…{SQL_NOW}"` in SQL strings, …), so the run stops before `pytest tests/security`. Discovered 2026-09-16 on task 2.2a; present on `master` too. | The gate must be read, not trusted — lint/type/test/security were run separately for 2.2a (all green: 285 + 33 tests). | Phase 0.2 follow-up: adopt a bandit baseline file that only ever shrinks (same ratchet rule as ADR-13) and let the step fail on *new* findings only. |
+
 ## Open questions awaiting the human / שאלות פתוחות
 | # | Question | Blocks | Answer |
 |---|---|---|---|
@@ -192,8 +198,8 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | Q3 | AWS budget/region; Ollama stays or move to Bedrock/Anthropic? | Phase 12 | |
 | Q4 | Point-image source + licence approval | 4.3 | |
 | Q5 | GDPR / Israeli privacy law posture for patient data | 9.9 | |
-| Q6 | Media relay policy (photos/voice may be PHI) | 2.2 | |
+| Q6 | Media relay policy (photos/voice may be PHI) | 2.2b | Still open. 2.2a's interim behaviour forwards and stores nothing — it refuses politely and keeps the patient in the chat — so any answer is still available |
 | Q7 | Follow-up for sessions never explicitly "completed"? | 6.1 | |
-| Q8b | Relay: may therapists free-type without replying, when >1 patient chat is active? (BOT_AUDIT B1) | 2.2 | |
+| Q8b | Relay: may therapists free-type without replying, when >1 patient chat is active? (BOT_AUDIT B1) | 2.2 | 2.2a ships the proposed rule: free typing delivered only while exactly one chat is open, otherwise the therapist is asked to reply to the patient's message. Say the word to change it |
 | Q9 | Conversation timeout: proposed 30 min booking/intake, 24 h therapist chat (BOT_AUDIT B10) | 2.2 | |
 | Q8 | Rewrite git history to purge leaked tokens/logs/rdb (public repo, 0 forks)? Delete orphan `origin/main`? | 0.1 / F8 | 2026-09-14: approved + done. Keep current bot tokens (owner decision). Backup: `ZenFlow_Clinic-pre-rewrite-2026-09-14.bundle` next to the repo |

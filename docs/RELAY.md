@@ -51,6 +51,37 @@ PATIENT                    PATIENT BOT                   THERAPIST BOT          
 
 ---
 
+## Routing rules (Phase 2.2a)
+
+A therapist message is delivered only when the intended patient is unambiguous:
+
+| Therapist action | Mapping | Delivered to |
+|---|---|---|
+| Replies to a forwarded message | found, owned by them | that message's patient |
+| Replies to a forwarded message | found, owned by **another** therapist | nobody — "not authorised" |
+| Replies to a forwarded message | **missing or expired** (24 h TTL) | nobody — asked to reply to a newer message |
+| Types freely | exactly **one** open chat | that patient |
+| Types freely | **two or more** open chats | nobody — asked to reply to the patient's message |
+| Types freely | no open chat | nobody — "no active patient chat" |
+
+There is deliberately no "last patient who wrote" fallback: it delivered clinical text to the
+wrong patient once a mapping expired or a second patient wrote in (BOT_AUDIT B1).
+
+`end_relay(patient_id)` clears `relay:active:{patient}` and releases
+`relay:current:{therapist}` **only when it still points at that patient**, so a patient leaving
+does not close a chat the therapist has since opened with someone else.
+
+Message bodies cross the relay as **plain text** (no `parse_mode`): a name or message containing
+`_ * ` [` used to make Telegram reject the whole send, and Markdown in patient text could forge
+formatting in the therapist's view (BOT_AUDIT B2).
+
+Non-text messages (photo, voice, document, sticker, location) are **not forwarded** in either
+direction. The sender is told so, and a patient stays in the chat instead of being dropped back to
+the main menu. Whether media should be relayed — and stored, since it may be PHI — is open
+question Q6 in `docs/BOT_AUDIT.md`.
+
+---
+
 ## Redis Keys Used by Relay
 
 ### `zenflow:relay:msg:{therapist_bot_msg_id}`
@@ -75,19 +106,18 @@ TTL:     86400 s (24 hours)
 
 ```
 Key:     zenflow:relay:active:918187404
-Value:   {"patient_id": 918187404, "therapist_id": "t1", "started_at": "2026-03-09T19:44:16"}
-TTL:     None (no expiry — explicit delete required)
+Value:   {"patient_id": 918187404, "patient_name": "Moshe Levi", "therapist_id": "t1",
+          "started_at": 1772134656.0, "last_msg_id": 92}
+TTL:     86400 s (24h), refreshed on every patient message
 ```
 
 **Purpose:** Presence key indicating a patient is currently in an active relay session. Also stores which therapist owns the session — used to prevent other therapists from replying to another therapist's patient.
 
-**Written by:** `patient_bot/services/relay.py` `start_relay()` — when patient initiates chat.
+**Written by:** `patient_bot/services/relay.py` `save_relay_mapping()` — on every patient message.
 
-**Read by:** `therapist_bot/handlers.py` — when therapist sends a free-text message (not a reply-to), to find their current active patient.
+**Read by:** `list_active_patients(therapist_id)` (a `SCAN` over `relay:active:*`) — this is what decides whether a therapist's free-typed message has exactly one possible recipient.
 
-**Deleted by:** `patient_bot/services/relay.py` `end_relay()` — when patient or therapist ends the chat.
-
-**Risk:** No TTL means orphaned sessions from crashes persist. Manual cleanup: `redis-cli del "zenflow:relay:active:{patient_id}"`.
+**Deleted by:** `patient_bot/services/relay.py` `end_relay()` — when the patient ends the chat; otherwise by TTL.
 
 ---
 
@@ -119,6 +149,11 @@ if message.reply_to_message:
     mapping = get_patient_for_msg(msg_id)
     # mapping = {"patient_id": ..., "therapist_id": "t1"}
 
+    if mapping is None:
+        # Mapping expired (24h) — the intended patient is unknown. Never guess (B1).
+        await message.reply_text("That conversation has expired — reply to a newer message.")
+        return
+
     if mapping["therapist_id"] != current_therapist_id:
         # Security: therapist A cannot reply to therapist B's patient
         await message.reply_text("⚠️ This message belongs to another therapist.")
@@ -126,19 +161,21 @@ if message.reply_to_message:
 
     await Bot(TELEGRAM_TOKEN).send_message(
         chat_id=mapping["patient_id"],
-        text=f"Therapist: {message.text}"
+        text=f"Therapist: {message.text}",   # plain text, no parse_mode (B2)
     )
 
 else:
-    # Free-text routing: find therapist's current active patient
-    active = get_active_relay_for_therapist(current_therapist_id)
-    if active:
-        await Bot(TELEGRAM_TOKEN).send_message(
-            chat_id=active["patient_id"],
-            text=f"Therapist: {message.text}"
-        )
-    else:
+    # Free typing: allowed only while exactly one chat is open for this therapist
+    active = list_active_patients(current_therapist_id)
+    if len(active) > 1:
+        await message.reply_text("You have several open chats — reply to the patient's message.")
+    elif not active:
         await message.reply_text("No active relay session.")
+    else:
+        await Bot(TELEGRAM_TOKEN).send_message(
+            chat_id=active[0],
+            text=f"Therapist: {message.text}",
+        )
 ```
 
 ---

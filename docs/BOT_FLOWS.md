@@ -292,6 +292,7 @@ restore_slot(day, time_slot, gcal_apt_event_id, therapist_id)
 | 2 | `select_therapist_and_continue()` | `schedule.py` | `THERAPIST_INPUT` |
 | 3 | `start_relay()` | `therapist.py` | `THERAPIST_RELAY` |
 | 4 | `relay_to_therapist()` | `therapist.py` | `THERAPIST_RELAY` (loops) |
+| 4b | `relay_unsupported_media()` | `therapist.py` | `THERAPIST_RELAY` (photo/voice/file: refused, chat kept) |
 | 5 | `end_chat()` | `therapist.py` | `SELECTING` |
 
 ### Step 1: Therapist Selection for Contact
@@ -336,6 +337,11 @@ save_relay_mapping(fwd_msg.message_id, patient_id, therapist_id)
 
 → THERAPIST_RELAY (loop continues)
 ```
+
+A non-text message (photo, voice, document, sticker, location) is handled by
+`relay_unsupported_media()`: the patient is told it was not delivered and **stays** in
+`THERAPIST_RELAY`. Before Phase 2.2a it fell through to the fallback `start()`, which silently
+ended the relay while the patient believed the file had been sent (BOT_AUDIT B7).
 
 ### Step 5: End Chat (`end_chat`)
 
@@ -425,6 +431,7 @@ ConversationHandler(
         CANCEL_SELECT:    [CallbackQueryHandler(confirm_cancel, "^cancel_")],
         THERAPIST_INPUT:  [MessageHandler(filters.TEXT & ~filters.COMMAND, start_relay)],
         THERAPIST_RELAY:  [MessageHandler(filters.TEXT & ~filters.COMMAND, relay_to_therapist),
+                           MessageHandler(~filters.TEXT & ~filters.COMMAND, relay_unsupported_media),
                            CallbackQueryHandler(end_chat, "^end_chat$")],
     },
     fallbacks=[CommandHandler("start", start)],

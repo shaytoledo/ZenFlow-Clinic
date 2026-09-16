@@ -32,6 +32,7 @@ from bot.patient_bot.start import back_to_main, change_therapist, start
 from bot.patient_bot.therapist import (
     end_chat,
     relay_to_therapist,
+    relay_unsupported_media,
     show_therapist_for_contact,
     start_relay,
 )
@@ -188,6 +189,7 @@ def build_patient_app() -> Application:
             ],
             THERAPIST_RELAY: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, relay_to_therapist),
+                MessageHandler(~filters.TEXT & ~filters.COMMAND, relay_unsupported_media),
                 CallbackQueryHandler(end_chat, pattern="^therapist_end$"),
             ],
         },

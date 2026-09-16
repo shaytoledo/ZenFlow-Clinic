@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes
 
 from bot.config import TELEGRAM_TOKEN, THERAPIST_MAP
 from bot.patient_bot.services.relay import append_history
-from bot.therapist_bot.services.relay import get_current_patient, get_patient_for_msg
+from bot.therapist_bot.services.relay import get_patient_for_msg, list_active_patients
 from web.i18n import translate as _t
 from zenflow.clock import SQL_NOW
 
@@ -78,51 +78,88 @@ async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT
         )
 
 
+async def handle_therapist_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Non-text message from a therapist: say so instead of dropping it (BOT_AUDIT B7).
+
+    Forwarding media is a clinical/PHI decision (open question Q6); until it is answered the bot
+    refuses clearly rather than silently ignoring the message.
+    """
+    user_id = update.effective_user.id
+    if user_id not in THERAPIST_MAP:
+        await update.message.reply_text(
+            "👋 You're not registered as a therapist on this bot.\n"
+            "Visit the clinic web portal to register and get your activation code."
+        )
+        return
+    lang = _therapist_lang(user_id)
+    await update.message.reply_text(
+        "📎 Photos, voice notes and files can't be delivered to patients yet — "
+        "please send your reply as text."
+        if lang == "en"
+        else "📎 לא ניתן עדיין לשלוח תמונות, הודעות קוליות או קבצים למטופלים — נא לכתוב את התשובה כטקסט."
+    )
+
+
 async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
     """Route a therapist message back to the correct patient.
 
-    If the therapist replies to a specific forwarded message, use that message's
-    relay key. Otherwise fall back to their current active patient so they can
-    type freely without having to reply to a particular message each time.
+    A reply uses the mapping of the message it replies to. Free typing is delivered only while
+    exactly one patient chat is open for this therapist. When the intended patient is not certain
+    the message is refused rather than guessed (BOT_AUDIT B1) - see docs/RELAY.md.
     """
     therapist_name = msg.from_user.full_name or "Therapist"
 
     if msg.reply_to_message:
         info = get_patient_for_msg(msg.reply_to_message.message_id)
         if info is None:
-            patient_id = get_current_patient(therapist_id)
-            if patient_id is None:
-                no_chat_msg = (
-                    "⚠️ Could not find the patient for this message. They may have ended the chat."
-                    if lang == "en"
-                    else "⚠️ לא נמצא המטופל להודעה זו. ייתכן שסיים/ה את השיחה."
-                )
-                await msg.reply_text(no_chat_msg)
-                return
-        else:
-            if info.get("therapist_id") and info["therapist_id"] != therapist_id:
-                await msg.reply_text(_t("bot_unauthorized", lang))
-                logger.warning(
-                    f"Therapist {therapist_id} tried to reply to a message owned by {info['therapist_id']}"
-                )
-                return
-            patient_id = info["patient_id"]
+            # BOT_AUDIT B1: never fall back to "whoever wrote last" — that delivered clinical
+            # text to the wrong patient once the 24h mapping expired.
+            expired_msg = (
+                "⚠️ That conversation has expired, so I can't tell which patient this reply "
+                "belongs to. Ask them to send a new message, then reply to that one."
+                if lang == "en"
+                else "⚠️ השיחה הזו פגה, ולכן לא ניתן לדעת לאיזה מטופל השייכת התשובה. "
+                "בקש/י ממנו לשלוח הודעה חדשה, והשב/י עליה."
+            )
+            await msg.reply_text(expired_msg)
+            logger.warning(f"Therapist {therapist_id} replied to an expired relay mapping")
+            return
+        if info.get("therapist_id") and info["therapist_id"] != therapist_id:
+            await msg.reply_text(_t("bot_unauthorized", lang))
+            logger.warning(
+                f"Therapist {therapist_id} tried to reply to a message owned by {info['therapist_id']}"
+            )
+            return
+        patient_id = info["patient_id"]
     else:
-        patient_id = get_current_patient(therapist_id)
+        # Free typing is only unambiguous while exactly one chat is open (BOT_AUDIT B1).
+        active = list_active_patients(therapist_id)
+        if len(active) > 1:
+            ambiguous_msg = (
+                f"⚠️ You have {len(active)} open patient chats. Reply directly to a patient's "
+                "message so it reaches the right person."
+                if lang == "en"
+                else f"⚠️ יש לך {len(active)} שיחות פתוחות. השב/י ישירות להודעה של המטופל "
+                "כדי שההודעה תגיע לאדם הנכון."
+            )
+            await msg.reply_text(ambiguous_msg)
+            return
+        patient_id = active[0] if active else None
         if patient_id is None:
             no_active_msg = (
                 "⚠️ No active patient chat. Wait for a patient to message you first."
                 if lang == "en"
                 else "⚠️ אין שיחת מטופל פעילה. המתן/י עד שמטופל ישלח הודעה."
             )
-            await msg.reply_text(no_active_msg, parse_mode="Markdown")
+            await msg.reply_text(no_active_msg)
             return
 
     try:
+        # Plain text: patient and therapist wording is user data, and Markdown parsing made
+        # Telegram reject any message containing an underscore or asterisk (BOT_AUDIT B2).
         await _patient_bot.send_message(
             chat_id=patient_id,
-            text=f"👨‍⚕️ *{therapist_name}:*\n{msg.text}",
-            parse_mode="Markdown",
+            text=f"👨‍⚕️ {therapist_name}:\n{msg.text}",
             reply_markup=_END_KB,
         )
         append_history(patient_id, "therapist", msg.text)

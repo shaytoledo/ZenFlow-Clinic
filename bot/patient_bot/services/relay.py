@@ -10,6 +10,7 @@ Storage: Redis
   zenflow:relay:current:{therapist_id}  →  patient_id (str)                       TTL 24h
 """
 
+import contextlib
 import json
 import logging
 import time
@@ -24,6 +25,17 @@ def _redis():
     from bot.redis_client import get_sync_redis
 
     return get_sync_redis()
+
+
+def _load_session(raw: str | bytes | None) -> dict:
+    """Parse a stored relay session; a missing or corrupt entry reads as no session."""
+    if not raw:
+        return {}
+    with contextlib.suppress(TypeError, ValueError):
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+    return {}
 
 
 def save_relay_mapping(
@@ -41,14 +53,7 @@ def save_relay_mapping(
     )
 
     active_key = f"zenflow:relay:active:{patient_id}"
-    existing = r.get(active_key)
-    if existing:
-        try:
-            session = json.loads(existing)
-        except Exception:
-            session = {}
-    else:
-        session = {}
+    session = _load_session(r.get(active_key))
     session.update(
         {
             "patient_id": patient_id,
@@ -87,7 +92,31 @@ def get_patient_for_msg(forwarded_msg_id: int) -> dict | None:
     return json.loads(raw) if raw else None
 
 
+def list_active_patients(therapist_id: str) -> list[int]:
+    """Patient ids with an open relay session belonging to `therapist_id`."""
+    r = _redis()
+    out: list[int] = []
+    for key in r.scan_iter("zenflow:relay:active:*"):
+        data = _load_session(r.get(key))
+        if data.get("therapist_id") == therapist_id:
+            with contextlib.suppress(TypeError, ValueError):
+                out.append(int(data.get("patient_id")))  # type: ignore[arg-type]
+    return sorted(out)
+
+
 def end_relay(patient_id: int) -> None:
-    """Mark patient as no longer in active relay."""
-    _redis().delete(f"zenflow:relay:active:{patient_id}")
-    logger.info(f"Relay ended for patient {patient_id}")
+    """Mark patient as no longer in active relay.
+
+    Also releases the therapist's "current patient" pointer, but only when it still points at
+    this patient (compare-and-delete): a newer chat with someone else must not be clobbered
+    (BOT_AUDIT B1).
+    """
+    r = _redis()
+    active_key = f"zenflow:relay:active:{patient_id}"
+    therapist_id = _load_session(r.get(active_key)).get("therapist_id", "") or ""
+    r.delete(active_key)
+    if therapist_id:
+        current_key = f"zenflow:relay:current:{therapist_id}"
+        if (r.get(current_key) or "") == str(patient_id):
+            r.delete(current_key)
+    logger.info(f"Relay ended for patient {patient_id} (therapist {therapist_id or 'unknown'})")
