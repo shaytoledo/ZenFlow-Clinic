@@ -111,8 +111,9 @@ chat is not separately configurable — a chat also closes after 30 idle minutes
 wants chats to stay open longer, raise `ZF_CONV_TIMEOUT_MINUTES` or say so and the relay can get
 its own conversation.
 
-Every finding ranked for Phase 2.2 is now closed. Still open: B7's permanent media policy (Q6),
-B13 → Phase 3.1, B15-B17.
+Every finding ranked for Phase 2.2 is now closed. Still open: B7's permanent media policy (Q6)
+and B15-B17. B13 (fire-and-forget intake pipeline) was closed by Phase 3.1 — the pipeline is now
+four durable queued jobs (ADR-23).
 
 ---
 

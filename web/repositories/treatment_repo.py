@@ -122,6 +122,23 @@ def set_points_status(appointment_id: int, status: str) -> None:
     )
 
 
+def advance_points_status(appointment_id: int, status: str, *, only_from: tuple[str, ...]) -> bool:
+    """Set the pipeline status only when the current one is empty or in `only_from`.
+
+    One statement, so a replayed or late job can never move a session backwards (for example from
+    COMPLETED back to GENERATING). Returns whether the row changed.
+    """
+    cur = _conn().execute(
+        """UPDATE treatment_notes
+           SET points_status=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
+           WHERE appointment_id=?
+             AND (points_status IS NULL OR points_status=''
+                  OR points_status IN (SELECT value FROM json_each(?)))""",
+        (status, appointment_id, json.dumps(list(only_from))),
+    )
+    return bool(cur.rowcount)
+
+
 def save_points(appointment_id: int, points: list[dict[str, Any]]) -> None:
     """Dedicated Stage-2 writer: unconditionally overwrites ai_suggested_points.
 
@@ -155,13 +172,19 @@ def save_points(appointment_id: int, points: list[dict[str, Any]]) -> None:
             raise
 
 
-def append_points(appointment_id: int, new_points: list[dict[str, Any]]) -> None:
+def append_points(
+    appointment_id: int, new_points: list[dict[str, Any]], status: str | None = None
+) -> None:
     """Append a batch of points to ai_suggested_points without overwriting existing ones.
 
     Safe against concurrent writes: reads current value, merges in Python, writes back.
     Retries up to 5 times with exponential back-off on SQLITE_LOCKED errors.
+    `status`, when given, is written in the same statement, so "batch saved" and "stage advanced"
+    can never disagree after a crash (Phase 3.1).
     """
     if not new_points:
+        if status is not None:
+            set_points_status(appointment_id, status)
         return
 
     import time
@@ -191,8 +214,10 @@ def append_points(appointment_id: int, new_points: list[dict[str, Any]]) -> None
             ]
             merged = json.dumps(existing + to_add, ensure_ascii=False)
             _conn().execute(
-                "UPDATE treatment_notes SET ai_suggested_points=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
-                (merged, appointment_id),
+                "UPDATE treatment_notes SET ai_suggested_points=?, "
+                "points_status=COALESCE(?, points_status), "
+                "updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
+                (merged, status, appointment_id),
             )
             return
         except Exception as exc:

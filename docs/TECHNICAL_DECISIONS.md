@@ -633,3 +633,39 @@ class; (c) a custom `BasePersistence` writing JSON rows to the existing SQLite d
 whitelist; this is intentional, and CLAUDE.md says so. Conversation timeouts are not persisted
 by PTB: after a restart, the idle timer restarts on the patient's next update. The acceptance
 test drives a real `Application` offline (a fake `BaseRequest`) through book → restart → finish.
+
+---
+
+## ADR-23: The Intake AI Pipeline Runs as Four Queued Jobs
+
+**Date:** 2026-09-16 (Phase 3.1; closes BOT_AUDIT B13)
+
+**Before.** The last intake answer fired `asyncio.ensure_future(_summary_and_tcm(...))`: summary,
+diagnosis and two point batches in one background coroutine. A restart lost it, nothing retried
+it, a failure anywhere marked the whole session FAILED, and it read the conversation from the
+Redis intake history (30-minute TTL, in-process caches). Opening the treatment page could start a
+second generation for the same session at the same time.
+
+**Decision.**
+1. The conversation is saved to `intake_sessions.history_json` together with the appointment,
+   inside the booking transaction. The jobs read only the database.
+2. Four jobs on the ADR-20 queue, each enqueuing the next: `intake.finalize`,
+   `diagnosis.generate`, `points.generate` (batch 1), `points.generate` (batch 2). Idempotency
+   keys are `pipeline:{stage}:{appointment}:{run}[:{batch}]`; `run` is `intake` for the automatic
+   run, so later explicit runs (Phase 3.2/3.3) get their own chain.
+3. Each handler checks the database first and skips work already done (a summary, a pattern,
+   `GENERATING_STAGE_2B`/`COMPLETED`). A batch and its status move are one `UPDATE`.
+4. A failed AI call raises `GenerationError`; the queue retries (3 attempts, 60 s/120 s backoff).
+   On the last attempt Stage 0 degrades to a placeholder summary and Stages 1-2 mark the session
+   `FAILED`; dead-letter hooks do the same for timeouts and crashes. The point selector's own
+   inner retry is disabled for jobs so one handler cannot outlast the worker's 300 s timeout.
+5. `points_status` only moves forward (`advance_points_status(..., only_from=...)`), so a replayed
+   job never drags a finished session back to GENERATING.
+6. A per-appointment lease `generation:{id}` (`zenflow/leases.py`, TTL 360 s > handler timeout)
+   keeps two generations from overlapping even across worker processes; a busy handler raises
+   `PipelineBusy` and is retried later.
+
+**Consequences.** The patient's confirmation never waits for the AI, and a restart mid-pipeline
+resumes where it stopped. The web endpoints that generate synchronously (`rediagnose`,
+`generate-points`, `regenerate-points`) do not take the lease yet — Phase 3.2 adds the 409 guard
+and Phase 3.3 moves them onto the same jobs.

@@ -212,6 +212,13 @@ def init_db() -> None:
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, run_at)")
     conn.commit()
+    # Named expiring locks (Phase 3.1) — zenflow/leases.py. One generation per appointment.
+    conn.execute("""CREATE TABLE IF NOT EXISTS leases (
+        name TEXT PRIMARY KEY,
+        holder TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+    )""")
+    conn.commit()
     # Bot persistence (Phase 2.3) — bot/persistence.py. Conversation states and whitelisted
     # scheduling keys only; never clinical free text.
     conn.execute("""CREATE TABLE IF NOT EXISTS bot_persistence (

@@ -286,34 +286,34 @@ Patient answers question 1
 
 Patient answers question 5
     └─ handle_intake_answer() → intake_count = 5
-    └─ "Thank you! Saving your details... ⏳"
-    └─ generate_summary()
-       └─ add final answer to Redis history
-       └─ LLM call → clinical summary (4–5 bullets)
-    └─ get_history_dicts()
-       └─ export Redis history as plain dicts
-    └─ book_slot()
-       └─ invalidate Redis availability/slots caches
-       └─ update calendar
-    └─ save_appointment()
-       └─ SQLite BEGIN
-          INSERT appointments (summary = clinical_summary)
-          INSERT intake_sessions (history_json = exported dicts)
+    └─ _intake_snapshot(): the whole conversation + the final answer, as plain dicts
+    └─ save_appointment()                     [claims the slot first — BOT_AUDIT B4]
+       └─ SQLite BEGIN IMMEDIATE
+          INSERT appointments (summary = '')
+          INSERT intake_sessions (history_json = the snapshot)
           COMMIT
-       └─ Redis DEL zenflow:apts:all
-    └─ asyncio.ensure_future(_tcm_and_clear(appointment_id, user_id, summary))
-       └─ [background task — patient does NOT wait for this]
-          └─ generate_tcm_diagnosis()
-             └─ LLM call → structured TCM JSON  (_LLM_LONG, 100s timeout)
-          └─ save_treatment_notes()
-             └─ SQLite UPSERT treatment_notes
-          └─ clear_intake()       [always runs via finally block]
-             └─ Redis DEL intake key
-             └─ drop in-process cache entries
-    └─ context.user_data.clear()
-    └─ send confirmation to patient (with summary snippet)
-       [sent immediately after booking — does not wait for TCM diagnosis]
+    └─ book_slot()  → remove the hour from availability, create the calendar event
+    └─ save_treatment_notes(empty row)
+    └─ start_intake_pipeline()                [Phase 3.1 — durable queued jobs]
+       └─ points_status = GENERATING_STAGE_0
+       └─ enqueue intake.finalize
+    └─ clear_intake()   → the Redis history is no longer needed
+    └─ send the booking confirmation          [the patient never waits for the AI]
+
+Worker (bot process, or `python -m zenflow.worker`) — bot/services/pipeline_jobs.py
+    intake.finalize      summary from intake_sessions.history_json → appointments.summary
+                         → GENERATING_STAGE_1 → enqueue diagnosis.generate
+    diagnosis.generate   TCM pattern / principles / certainty / advice → treatment_notes
+                         → GENERATING_STAGE_2A → enqueue points.generate(batch=1)
+    points.generate(1)   first 5-7 points, saved with GENERATING_STAGE_2B in one statement
+                         → enqueue points.generate(batch=2)
+    points.generate(2)   complementary points, saved with COMPLETED in one statement
 ```
+
+Every stage reads the database, skips work already recorded there, retries a failed AI call with
+the queue's backoff (3 attempts), and holds the lease `generation:{appointment_id}` so two
+generations for one session never overlap. When a stage gives up, the session is marked `FAILED`
+(Stage 0 alone degrades to a placeholder summary instead). ADR-23.
 
 ---
 
