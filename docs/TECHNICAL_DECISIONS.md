@@ -666,6 +666,9 @@ second generation for the same session at the same time.
    `PipelineBusy` and is retried later.
 
 **Consequences.** The patient's confirmation never waits for the AI, and a restart mid-pipeline
-resumes where it stopped. The web endpoints that generate synchronously (`rediagnose`,
+resumes where it stopped. The in-process worker runs one job at a time, so when several
+intakes finish together their generations queue behind each other rather than competing for
+the same local model (which serialises them anyway); a second `python -m zenflow.worker`
+process adds throughput safely because of the lease. The web endpoints that generate synchronously (`rediagnose`,
 `generate-points`, `regenerate-points`) do not take the lease yet — Phase 3.2 adds the 409 guard
 and Phase 3.3 moves them onto the same jobs.
