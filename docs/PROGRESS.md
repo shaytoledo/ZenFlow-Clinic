@@ -81,7 +81,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
 | 3.1 | Generation moves to enqueued jobs right after intake | [x] | 2026-09-16 | ddf519f | item 5. `bot/services/pipeline_jobs.py`: intake.finalize → diagnosis.generate → points.generate ×2; reads the conversation from the DB (saved with the booking), idempotent per stage, 3 attempts with backoff, dead letter → FAILED, per-appointment lease (`zenflow/leases.py`). Closes BOT_AUDIT B13. ADR-23 — [PR #14](https://github.com/shaytoledo/ZenFlow-Clinic/pull/14) |
-| 3.2 | Treatment page never auto-triggers generation | [x] | 2026-09-16 | | item 4. Page load only reads; no points + idle/FAILED → explicit "Generate diagnosis & points" button. `rediagnose`/`generate-points`/`regenerate-points` return 409 + `points_status` while generating (`force=true` overrides a stale status, never the per-appointment lease). Verified in the browser on a scratch DB: 0 generation requests on load, 409 followed as progress |
+| 3.2 | Treatment page never auto-triggers generation | [x] | 2026-09-16 | 7285a74 | item 4. Page load only reads; no points + idle/FAILED → explicit "Generate diagnosis & points" button. `rediagnose`/`generate-points`/`regenerate-points` return 409 + `points_status` while generating (`force=true` overrides a stale status, never the per-appointment lease). Verified in the browser on a scratch DB: 0 generation requests on load, 409 followed as progress — [PR #15](https://github.com/shaytoledo/ZenFlow-Clinic/pull/15) |
 | 3.3 | Verify + fix "Regenerate points" (202 + status stream) | [ ] | | | item 1b |
 | 3.4 | SSE updates replacing 2s polling | [ ] | | | |
 
