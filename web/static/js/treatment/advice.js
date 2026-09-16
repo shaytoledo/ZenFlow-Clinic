@@ -6,16 +6,15 @@
 function renderAdvice() {
   document.getElementById('advice-list').innerHTML = advice.map((item) => `
     <div class="zf-advice-item ${item.enabled ? 'on' : 'off'}">
-      <span style="font-size:18px;">${item.icon}</span>
+      <span style="font-size:18px;">${escHtml(item.icon)}</span>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:#111827;">${item.category}</div>
-        <p class="advice-text-${item.id}" contenteditable="true"
+        <div style="font-size:13px;font-weight:600;color:#111827;">${escHtml(item.category)}</div>
+        <p class="advice-text-${escHtml(item.id)}" contenteditable="true"
            style="font-size:12px;color:#6B7280;line-height:1.5;margin-top:2px;outline:none;border-radius:4px;padding:2px 4px;cursor:text;"
-           onblur="updateAdviceText('${item.id}', this.textContent)"
-           onfocus="this.style.background='#F9FAFB'"
-           >${item.text}</p>
+           data-advice-edit="${escHtml(item.id)}"
+           >${escHtml(item.text)}</p>
       </div>
-      <button class="zf-toggle ${item.enabled ? 'on' : ''}" onclick="toggleAdvice('${item.id}')"></button>
+      <button class="zf-toggle ${item.enabled ? 'on' : ''}" data-action="toggle-advice" data-advice-id="${escHtml(item.id)}"></button>
     </div>
   `).join('');
 }
@@ -114,13 +113,13 @@ function openEmailFallback(phone, message, patientName) {
         </div>
         <h3 style="font-size:16px;font-weight:700;color:#111827;">No Telegram account found</h3>
       </div>
-      <p style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:16px;">${message || `No Telegram account is linked to ${phone}.`}</p>
+      <p style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:16px;">${escHtml(message || `No Telegram account is linked to ${phone}.`)}</p>
       <label class="zf-field-label">Patient email address</label>
       <input id="zf-email-input" type="email" class="zf-input" placeholder="patient@example.com" />
       <div id="zf-email-error" style="display:none;color:#DC2626;font-size:12px;margin-top:8px;"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
-        <button class="zf-btn zf-btn-outline" onclick="closeEmailFallback()" style="padding:9px 16px;">Cancel</button>
-        <button id="zf-email-send" class="zf-btn zf-btn-primary" onclick="submitEmailFallback()" style="padding:9px 18px;">Send by Email</button>
+        <button class="zf-btn zf-btn-outline" data-action="close-email-fallback" style="padding:9px 16px;">Cancel</button>
+        <button id="zf-email-send" class="zf-btn zf-btn-primary" data-action="submit-email-fallback" style="padding:9px 18px;">Send by Email</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -178,8 +177,8 @@ function showSmtpCopyFallback(text, notice) {
     <p style="font-size:13px;color:#6B7280;margin-bottom:12px;">${escHtml(notice || 'Email service not configured. Copy the text below and send it yourself.')}</p>
     <textarea id="zf-copy-text" readonly style="width:100%;height:180px;font-size:12px;font-family:monospace;border:1px solid #E5E7EB;border-radius:8px;padding:10px;resize:vertical;color:#374151;background:#F9FAFB;box-sizing:border-box;">${escHtml(text || '')}</textarea>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
-      <button class="zf-btn zf-btn-outline" onclick="closeEmailFallback()" style="padding:9px 16px;">Close</button>
-      <button class="zf-btn zf-btn-primary" onclick="copySmtpText()" style="padding:9px 18px;" id="zf-copy-btn">Copy Text</button>
+      <button class="zf-btn zf-btn-outline" data-action="close-email-fallback" style="padding:9px 16px;">Close</button>
+      <button class="zf-btn zf-btn-primary" data-action="copy-smtp-text" style="padding:9px 18px;" id="zf-copy-btn">Copy Text</button>
     </div>`;
 }
 

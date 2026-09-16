@@ -95,7 +95,7 @@ function renderSuggestedPoints(notes, rawSummary) {
       const borderBottom = '1px solid #F3F4F6';
 
       return `<div style="padding:18px 16px;border-bottom:${borderBottom};border-right:1px solid #F3F4F6;display:flex;flex-direction:column;gap:8px;transition:background .12s;"
-                   onmouseenter="this.style.background='#FAFAFA'" onmouseleave="this.style.background=''">
+                   data-hover="card-row">
 
         <!-- Code badge + quick-add -->
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -103,10 +103,9 @@ function renderSuggestedPoints(notes, rawSummary) {
             <span style="color:${theme.icon};opacity:.75;">${needleSVG}</span>
             <span style="font-size:18px;font-weight:800;color:${theme.code};letter-spacing:.3px;">${escHtml(code)}</span>
           </div>
-          <button onclick="quickAddPoint('${escHtml(code)}')" title="Add ${escHtml(code)} to used points"
+          <button data-action="quick-add-point" data-code="${escHtml(code)}" title="Add ${escHtml(code)} to used points"
             style="width:28px;height:28px;flex-shrink:0;border-radius:8px;border:1.5px solid #E5E7EB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#9CA3AF;transition:all .14s;"
-            onmouseenter="this.style.borderColor='#0D9488';this.style.color='#0D9488';this.style.background='#F0FDFA'"
-            onmouseleave="this.style.borderColor='#E5E7EB';this.style.color='#9CA3AF';this.style.background='#fff'">
+            data-hover="add-point-btn">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
         </div>
@@ -154,7 +153,7 @@ function renderSuggestedPoints(notes, rawSummary) {
       const code = typeof pt === 'object' ? (pt.code || '') : String(pt);
       const info  = getPointInfo(code);
       const theme = CHANNEL_COLORS[info.channel] || DEFAULT_COLOR;
-      return `<button class="zf-point-chip" onclick="quickAddPoint('${escHtml(code)}')"
+      return `<button class="zf-point-chip" data-action="quick-add-point" data-code="${escHtml(code)}"
         style="border-color:${theme.border};color:${theme.code};background:${theme.bg};"
         title="Add ${escHtml(code)} to used points">${escHtml(code)} <span style="opacity:.6;font-size:14px;">+</span></button>`;
     }).join('');

@@ -264,6 +264,6 @@ def test_the_page_follows_the_status_only_after_the_server_accepted() -> None:
 
 def test_the_page_offers_cancel_and_handles_cancelled() -> None:
     html = treatment_source.source()
-    assert 'onclick="cancelGeneration()"' in html
+    assert 'data-action="cancel-generation"' in html
     assert "cancel-generation" in _function_body(html, "cancelGeneration")
     assert "'CANCELLED'" in _function_body(html, "_pollForPoints")

@@ -30,7 +30,7 @@
             <label class="zf-field-label">{{ t['treatment_pulse_label'] if t else 'Pulse Observation' }}</label>
             <input type="text" class="zf-input" id="pulse-input" placeholder="{{ t['treatment_pulse_placeholder'] if t else 'e.g. Wiry, slightly rapid, thin on right guan…' }}" />
           </div>
-          <button id="rediag-btn" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 14px;" onclick="triggerRediagnosis()">
+          <button id="rediag-btn" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 14px;" data-action="rediagnose">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             {{ t['treatment_update_diagnosis'] if t else 'Update Diagnosis' }}
           </button>
@@ -51,13 +51,13 @@
             <label class="zf-field-label">{{ t['treatment_your_diagnosis'] if t else 'Your Diagnosis' }}</label>
             <textarea id="therapist-diagnosis" class="zf-textarea" rows="3"
               placeholder="{{ t['treatment_diagnosis_placeholder'] if t else 'Your own clinical assessment — pattern, dominant element, channel imbalance, working hypothesis…' }}"
-              oninput="onTherapistChange()"></textarea>
+              data-input-action="therapist-change"></textarea>
           </div>
           <div>
             <label class="zf-field-label">{{ t['treatment_clinical_notes'] if t else 'Clinical Notes' }}</label>
             <textarea id="therapist-notes" class="zf-textarea" rows="3"
               placeholder="{{ t['treatment_clinical_notes_placeholder'] if t else 'Differential diagnosis, things you ruled out, plan for next sessions…' }}"
-              oninput="onTherapistChange()"></textarea>
+              data-input-action="therapist-change"></textarea>
           </div>
           <p style="font-size:11px;color:#9CA3AF;margin:0;">{{ t['treatment_autosaves'] if t else 'Auto-saves as you type. Your record — separate from the AI\'s diagnosis.' }}</p>
         </div>

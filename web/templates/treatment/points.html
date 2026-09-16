@@ -6,7 +6,7 @@
           </div>
           <span>{{ t['treatment_points_used'] if t else 'Acupuncture Points Used' }}</span>
           <span id="points-ai-badge" style="display:none;margin-inline-start:auto;font-size:11px;font-weight:500;background:#DBEAFE;color:#2563EB;padding:2px 8px;border-radius:999px;">{{ t['treatment_ai_formula'] if t else 'AI Formula' }}</span>
-          <button id="regen-points-btn" class="zf-btn zf-btn-outline" style="margin-left:10px;font-size:13px;padding:8px 16px;gap:7px;font-weight:600;border-color:#0D9488;color:#0D9488;" onclick="regeneratePoints()" title="Re-run point selection (Request 2 + 3)">
+          <button id="regen-points-btn" class="zf-btn zf-btn-outline" style="margin-left:10px;font-size:13px;padding:8px 16px;gap:7px;font-weight:600;border-color:#0D9488;color:#0D9488;" data-action="regenerate-points" title="Re-run point selection (Request 2 + 3)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             {{ t['treatment_regenerate_points'] if t else 'Regenerate Points' }}
           </button>
@@ -17,7 +17,7 @@
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1.2s linear infinite;flex-shrink:0;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             <span id="points-progress-label" style="font-size:12px;color:#2563EB;font-weight:500;">{{ t['treatment_diagnosing'] if t else 'Diagnosing…' }}</span>
-            <button id="cancel-generation-btn" type="button" onclick="cancelGeneration()"
+            <button id="cancel-generation-btn" type="button" data-action="cancel-generation"
               class="zf-btn zf-btn-outline" title="Stop this AI generation"
               style="margin-left:auto;font-size:11px;padding:2px 10px;color:#6B7280;border-color:#D1D5DB;">
               Cancel
@@ -33,7 +33,7 @@
           <div class="zf-points-input-wrap" id="points-wrap">
             <div id="points-tags" class="zf-points-tags"></div>
             <input type="text" id="point-input" class="zf-points-input" placeholder="{{ t['treatment_point_input_placeholder'] if t else 'Type point code (e.g. ST36) and press Enter…' }}" />
-            <button class="zf-points-add" onclick="addPoint()">
+            <button class="zf-points-add" data-action="add-point">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
           </div>

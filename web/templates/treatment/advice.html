@@ -12,11 +12,11 @@
 
         <!-- Send buttons row -->
         <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
-          <button id="send-advice-btn" class="zf-btn zf-btn-primary" style="flex:1;justify-content:center;" onclick="sendAdvice()">
+          <button id="send-advice-btn" class="zf-btn zf-btn-primary" style="flex:1;justify-content:center;" data-action="send-advice">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             {{ t['treatment_send_now'] if t else 'Send Now' }}
           </button>
-          <button id="send-later-btn" class="zf-btn zf-btn-outline" style="flex:1;justify-content:center;" onclick="sendAdviceLater()" title="Queued to send 24h after session completes">
+          <button id="send-later-btn" class="zf-btn zf-btn-outline" style="flex:1;justify-content:center;" data-action="send-advice-later" title="Queued to send 24h after session completes">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Send in 24h
           </button>

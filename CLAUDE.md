@@ -193,6 +193,7 @@ Any message / /start → SELECTING (main menu)
 - Booking: write the appointment row first (`save_appointment` raises `SlotTaken`), then touch the calendar (BOT_AUDIT B4).
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
 - Treatment page: no `<style>` or inline `<script>` in `templates/treatment*` (only the `#treatment-config` JSON island) — tests read the page through `tests/integration/treatment_source.py`.
+- Treatment page events: never write `on*="…"`; declare `data-action="name"` (+ `data-*` args) and add the handler to `CLICK_ACTIONS` in `static/js/treatment/events.js`. Any value that reaches `innerHTML` goes through `escHtml()` unless it is on the reviewed list in `tests/security/test_treatment_page_xss.py` (SF-011).
 
 ## data/ files
 | File | Purpose |
