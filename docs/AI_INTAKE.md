@@ -315,6 +315,12 @@ the queue's backoff (3 attempts), and holds the lease `generation:{appointment_i
 generations for one session never overlap. When a stage gives up, the session is marked `FAILED`
 (Stage 0 alone degrades to a placeholder summary instead). ADR-23.
 
+From the treatment page (Phase 3.2/3.3): opening a session never generates. "Generate
+diagnosis & points" and "Update diagnosis" call `rediagnose` + `generate-points`
+synchronously; "Regenerate points" answers 202 and queues `points.generate` (batch 1 → 2)
+with a fresh run id. All of them return 409 while another generation is running, and
+`POST …/cancel-generation` stops any of them (`points_status = CANCELLED`).
+
 ---
 
 ## Ollama Requirements

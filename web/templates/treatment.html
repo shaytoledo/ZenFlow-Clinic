@@ -166,6 +166,11 @@
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1.2s linear infinite;flex-shrink:0;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             <span id="points-progress-label" style="font-size:12px;color:#2563EB;font-weight:500;">{{ t['treatment_diagnosing'] if t else 'Diagnosing…' }}</span>
+            <button id="cancel-generation-btn" type="button" onclick="cancelGeneration()"
+              class="zf-btn zf-btn-outline" title="Stop this AI generation"
+              style="margin-left:auto;font-size:11px;padding:2px 10px;color:#6B7280;border-color:#D1D5DB;">
+              Cancel
+            </button>
           </div>
           <div style="background:#DBEAFE;border-radius:999px;height:6px;overflow:hidden;">
             <div id="points-progress-bar" style="height:100%;border-radius:999px;background:linear-gradient(90deg,#2563EB,#0D9488);width:0%;transition:width .5s ease;"></div>
@@ -584,7 +589,11 @@ async function loadTreatment() {
       _pollForPoints();
       if (!data.summary) _startSummaryPoller();
     } else if (!hasSavedPoints) {
-      _showGenerateButton({ failed: status === 'FAILED', hasInput: hasDiagnosis || hasIntake });
+      _showGenerateButton({
+        failed: status === 'FAILED',
+        cancelled: status === 'CANCELLED',
+        hasInput: hasDiagnosis || hasIntake,
+      });
     } else if (!data.summary) {
       // Points are already rendered but summary hasn't arrived from the bot yet
       _startSummaryPoller();
@@ -1129,7 +1138,10 @@ function _showGenerateButton(opts) {
   const div = document.getElementById('suggested-points');
   if (!div) return;
   const failed = opts && opts.failed;
-  const msg = failed
+  const cancelled = opts && opts.cancelled;
+  const msg = cancelled
+    ? 'AI generation was cancelled.'
+    : failed
     ? 'The last AI generation did not complete.'
     : (opts && opts.hasInput
         ? 'No AI diagnosis or points yet.'
@@ -1356,6 +1368,15 @@ async function _pollForPoints(skipProgress) {
         return;
       }
 
+      // Cancelled by the therapist: stop and offer a fresh run
+      if (status === 'CANCELLED') {
+        clearInterval(_pollHandle);
+        _pollHandle = null;
+        _finishPointsProgress(false);
+        _showGenerateButton({ cancelled: true });
+        return;
+      }
+
       // Stage 2 FAILED: stop polling and offer retry
       if (status === 'FAILED') {
         clearInterval(_pollHandle);
@@ -1403,57 +1424,66 @@ async function regeneratePoints() {
   const btn = document.getElementById('regen-points-btn');
   if (!btn) return;
   const originalHtml = btn.innerHTML;
+  const restore = () => { btn.innerHTML = originalHtml; btn.style.borderColor = ''; btn.style.color = ''; btn.disabled = false; };
   btn.disabled = true;
   btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Working…';
 
-  // Stop any existing poller and clear the points UI for visual reset
-  if (_pollHandle) { clearInterval(_pollHandle); _pollHandle = null; }
-  document.getElementById('suggested-points').innerHTML = '';
-  aiPointRationale = {};
-
-  // Show progress bar starting at "Request 2 of 3"
-  _startPointsProgress('Request 2 of 3 — selecting first batch (5–7 points)…');
-  _updateProgress(40, 'Request 2 of 3 — selecting first batch (5–7 points)…');
-
-  // Start polling immediately so the UI picks up Stage 2A's writes as they happen
-  // (the endpoint runs synchronously, but writes incrementally)
-  _pollForPoints(true);   // true = skip the initial _startPointsProgress (already started)
-
   try {
+    // The server answers 202 at once and queues the work (plan 3.3). The page renders only what
+    // the status says afterwards — never this response — so nothing can render twice.
     const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/regenerate-points`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
     });
-    if (r.status === 409) {
-      // Another run is generating: the poller started above already follows it.
-      btn.innerHTML = originalHtml;
-      btn.disabled = false;
-      _updateProgress(20, 'AI is already working on this session…');
-      return;
-    }
+    if (r.status === 409) { restore(); _followRunningGeneration(); return; }
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      throw new Error(err.detail || `Regenerate failed (${r.status})`);
+      throw new Error((typeof err.detail === 'string' && err.detail) || `Regenerate failed (${r.status})`);
     }
-    // Poller will pick up COMPLETED status and finalise the UI
+    if (_pollHandle) { clearInterval(_pollHandle); _pollHandle = null; }
+    _clearRenderedPoints();  // the server cleared them; don't keep showing the old formula
+    _startPointsProgress('Request 2 of 3 — selecting first batch (5–7 points)…');
+    _updateProgress(40, 'Request 2 of 3 — selecting first batch (5–7 points)…');
+    _pollForPoints(true);
+    setTimeout(restore, 1500);
   } catch (e) {
     console.error('regeneratePoints:', e);
-    if (_pollHandle) { clearInterval(_pollHandle); _pollHandle = null; }
-    _finishPointsProgress(false);
     btn.innerHTML = '⚠ ' + (e.message || 'Failed');
     btn.style.borderColor = '#DC2626'; btn.style.color = '#DC2626';
-    setTimeout(() => {
-      btn.innerHTML = originalHtml;
-      btn.style.borderColor = ''; btn.style.color = '';
-      btn.disabled = false;
-    }, 3500);
-    return;
+    setTimeout(restore, 3500);
   }
+}
 
-  // Restore the button (poller handles the final UI render)
-  setTimeout(() => {
-    btn.innerHTML = originalHtml;
-    btn.disabled = false;
-  }, 1500);
+// Remove every rendering of the current AI points (chips and the detailed card grid).
+function _clearRenderedPoints() {
+  const chips = document.getElementById('suggested-points');
+  if (chips) chips.innerHTML = '';
+  const grid = document.getElementById('ai-points-grid');
+  if (grid) grid.innerHTML = '';
+  const section = document.getElementById('ai-points-section');
+  if (section) section.style.display = 'none';
+  aiPointRationale = {};
+}
+
+// ── Cancel the running generation (queued runs stop; a result that lands later is discarded) ──
+
+async function cancelGeneration() {
+  const btn = document.getElementById('cancel-generation-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/cancel-generation`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+    });
+    if (r.ok) {
+      if (_pollHandle) { clearInterval(_pollHandle); _pollHandle = null; }
+      _finishPointsProgress(false);
+      _showGenerateButton({ cancelled: true, hasInput: true });
+    }
+    // 409: nothing was generating any more — the poller (if any) renders the real final state.
+  } catch (e) {
+    console.error('cancelGeneration:', e);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function _showRetryButton(force) {

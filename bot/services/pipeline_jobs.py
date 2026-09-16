@@ -53,9 +53,13 @@ STAGE_2A = "GENERATING_STAGE_2A"
 STAGE_2B = "GENERATING_STAGE_2B"
 COMPLETED = "COMPLETED"
 FAILED = "FAILED"
+CANCELLED = "CANCELLED"
 _ORDER = (STAGE_0, STAGE_1, STAGE_2A, STAGE_2B, COMPLETED)
 # statuses an earlier or unrelated run may have left behind; a new stage may replace them
 _LEGACY = ("GENERATING",)
+#: every status that means "a generation is in progress"
+IN_PROGRESS = (*_ORDER[:-1], *_LEGACY)
+_NAMES = (INTAKE_FINALIZE, DIAGNOSIS_GENERATE, POINTS_GENERATE)
 
 
 class PipelineBusy(RuntimeError):
@@ -97,6 +101,13 @@ async def _fail(appointment_id: int) -> None:
     await asyncio.to_thread(
         advance_points_status, appointment_id, FAILED, only_from=_ORDER[:-1] + _LEGACY
     )
+
+
+async def _cancelled(appointment_id: int) -> bool:
+    from web.repositories.treatment_repo import get_by_appointment
+
+    notes = await asyncio.to_thread(get_by_appointment, appointment_id)
+    return bool(notes) and (notes or {}).get("points_status") == CANCELLED
 
 
 # ── inputs ──
@@ -149,6 +160,59 @@ def start_intake_pipeline(appointment_id: int, patient_id: int, run: str = "inta
     )
 
 
+def start_points_regeneration(appointment_id: int, patient_id: int, lang: str = "en") -> str:
+    """Replace the session's points: clear them, then queue batch 1 of a fresh run (Phase 3.3).
+
+    A run id of its own keeps it apart from the intake run's idempotency keys, so the same
+    session can be regenerated any number of times.
+    """
+    from web.repositories.treatment_repo import reset_points
+
+    run = f"regen-{uuid.uuid4().hex[:12]}"
+    reset_points(appointment_id, STAGE_2A)
+    _enqueue(
+        POINTS_GENERATE,
+        {
+            "appointment_id": int(appointment_id),
+            "patient_id": int(patient_id),
+            "run": run,
+            "batch": 1,
+            "lang": lang,
+        },
+    )
+    return run
+
+
+def cancel_generation(appointment_id: int) -> tuple[bool, int]:
+    """Stop whatever is generating for the session. Returns (was_generating, jobs_cancelled).
+
+    The status flips to CANCELLED first, so a stage already inside an AI call discards its result
+    when it returns (its write expects the status it started with). Its queued successors are
+    cancelled here and never run. The SQL reaches into the SQLite `jobs` table (ADR-20).
+    """
+    from bot.db import get_db
+    from web.repositories.treatment_repo import advance_points_status
+
+    was_generating = advance_points_status(
+        appointment_id, CANCELLED, only_from=IN_PROGRESS, allow_empty=False
+    )
+    rows = (
+        get_db()
+        .execute(
+            """SELECT id FROM jobs
+           WHERE status IN ('pending', 'running')
+             AND name IN (SELECT value FROM json_each(?))
+             AND json_extract(payload_json, '$.appointment_id') = ?""",
+            (json.dumps(list(_NAMES)), int(appointment_id)),
+        )
+        .fetchall()
+    )
+    queue = get_default_queue()
+    cancelled = sum(1 for row in rows if queue.cancel(int(row["id"])))
+    logger.info("generation cancelled (was running: %s, jobs: %s)", was_generating, cancelled)
+    return was_generating, cancelled
+
+
 # ── Stage 0 ──
 @default_registry.handler(INTAKE_FINALIZE)
 async def finalize_intake(payload: dict[str, Any]) -> None:
@@ -165,6 +229,8 @@ async def finalize_intake(payload: dict[str, Any]) -> None:
         if data is None:
             logger.warning("appointment is gone; pipeline stopped")
             return
+        if data["notes"].get("points_status") == CANCELLED:
+            return
         if not data["summary"]:
             try:
                 summary = await summarize_history(data["history"], strict=True, log_tag=str(apt_id))
@@ -175,6 +241,8 @@ async def finalize_intake(payload: dict[str, Any]) -> None:
                 summary = FALLBACK_SUMMARY
             await asyncio.to_thread(update_appointment_summary, apt_id, summary, data["history"])
         await _advance(apt_id, STAGE_1)
+    if await _cancelled(apt_id):
+        return
     _enqueue(DIAGNOSIS_GENERATE, payload)
 
 
@@ -195,6 +263,8 @@ async def generate_diagnosis(payload: dict[str, Any]) -> None:
         if data is None:
             logger.warning("appointment is gone; pipeline stopped")
             return
+        if data["notes"].get("points_status") == CANCELLED:
+            return
         if not data["notes"].get("tcm_pattern"):
             transcript = format_transcript(data["history"]) or data["summary"]
             diagnosis = await generate_diagnosis_only(
@@ -209,6 +279,8 @@ async def generate_diagnosis(payload: dict[str, Any]) -> None:
                 return
             await asyncio.to_thread(save_treatment_notes, apt_id, data["patient_id"], diagnosis)
         await _advance(apt_id, STAGE_2A)
+    if await _cancelled(apt_id):
+        return
     _enqueue(POINTS_GENERATE, {**payload, "batch": 1})
 
 
@@ -236,6 +308,9 @@ async def generate_points(payload: dict[str, Any]) -> None:
             for p in (notes.get("ai_suggested_points") or [])
             if isinstance(p, dict) and p.get("code")
         ]
+        if status == CANCELLED:
+            logger.info("generation was cancelled; points batch %s not run", batch)
+            return
         if status == COMPLETED or (batch == 1 and (status == STAGE_2B or existing)):
             logger.info("points batch %s already done; skipping", batch)
         elif not notes.get("tcm_pattern"):
@@ -250,6 +325,7 @@ async def generate_points(payload: dict[str, Any]) -> None:
                 log_tag=str(apt_id),
                 batch_number=batch,
                 existing_codes=existing if batch == 2 else None,
+                lang=str(payload.get("lang") or "en"),
                 retry_once=False,
             )
             if not points and not is_last_attempt():
@@ -257,8 +333,12 @@ async def generate_points(payload: dict[str, Any]) -> None:
             # Batch 2 finishes the run: COMPLETED if the session has any points at all.
             finished = COMPLETED if (existing or points) else FAILED
             next_status = STAGE_2B if batch == 1 else finished
-            # Points and status in one statement: a crash can't leave them disagreeing.
-            await asyncio.to_thread(append_points, apt_id, points, next_status)
+            # Points and status in one statement, and only if nobody changed the status while the
+            # AI was working (Cancel): a crash or a cancel can't leave them disagreeing.
+            wrote = await asyncio.to_thread(append_points, apt_id, points, next_status, status)
+            if not wrote:
+                logger.info("status changed during batch %s (cancelled?); result discarded", batch)
+                return
             logger.info("points batch %s saved (%s points)", batch, len(points))
     if batch == 1:
         _enqueue(POINTS_GENERATE, {**payload, "batch": 2})
