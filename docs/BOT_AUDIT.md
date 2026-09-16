@@ -1,5 +1,7 @@
 # Bot Audit — Phase 2.1 (2026-09-15)
 
+> Status: findings B1, B2, B5, B7 (interim) and B12 were fixed in Phase 2.2a — see §1a.
+
 Scope: every handler in `bot/patient_bot/` and `bot/therapist_bot/`, read on `master` @ `140a50f`.
 Method: for each handler — reachable states, return value, `user_data` read/written — and its
 behaviour under (a) unexpected input type, (b) expired/stale callback, (c) Redis outage,
@@ -47,6 +49,20 @@ Runtime facts that shape the answers:
 Not a defect: (h) two devices on one Telegram account share one `user_data` and one conversation
 (PTB keys by chat+user); updates are processed sequentially, so no race. (e) duplicate clicks are
 mostly harmless because the state has already moved on — the second click lands in B11 instead.
+
+---
+
+## 1a. Fixed in Phase 2.2a (relay safety)
+
+| # | What changed | Where | Test |
+|---|---|---|---|
+| B1 | `end_relay()` now reads the session and **compare-and-deletes** `relay:current:{therapist_id}` (a newer chat with another patient is never released). A reply whose 24 h mapping expired is **refused** — the therapist is asked to reply to a newer message — instead of falling back to "whoever wrote last". Free typing is delivered only while **exactly one** patient chat is open; with two or more the bot asks the therapist to reply to the patient's message. | patient_bot/services/relay.py · therapist_bot/handlers.py | `tests/bot/test_relay_safety.py` (6 tests) |
+| B2 | Every relay body — patient → therapist and therapist → patient — is sent as **plain text**, no `parse_mode`. Names and message text can contain `_ * ` [` without the send failing, and formatting can no longer be injected into therapist-facing text. | patient_bot/therapist.py · therapist_bot/handlers.py | 2 tests with `a_b@c.com`, `5*3`, `[notes](x)` |
+| B5 | `reload_therapists()` mutates the three registry containers **in place**; it used to rebind the module globals, so every module that did `from bot.config import THERAPIST_BY_ID` kept an import-time snapshot. A therapist deactivated in the dashboard is now invisible to the bot on the next reload, without a restart. (Cross-process propagation — the web dashboard and the bots are separate processes — is still open and stays in 2.2b.) | config.py | reload-visibility test |
+| B7 | **Interim policy only, pending Q6:** media is refused politely instead of vanishing. A patient photo/voice/file in `THERAPIST_RELAY` gets an explanation and **stays in the chat** (it used to fall through to `start()`, which silently ended the relay while the patient believed the file was sent); a therapist's media gets the same answer. Nothing is forwarded or stored, so the eventual answer to Q6 is unconstrained. | patient_bot/therapist.py · therapist_bot/handlers.py · main.py wiring | 2 tests |
+| B12 | `_get_therapist()` no longer substitutes the first active therapist. The patient's chosen therapist is used when they are still active; otherwise the choice is cleared and the patient is asked to choose again. The implicit fallback now applies only when the patient chose nobody **and** the clinic has exactly one active therapist. | patient_bot/therapist.py | deactivated-therapist test |
+
+Still open from the list above: B3, B4, B6, B8–B11, B14 (Phase 2.2b), B13 (Phase 3.1), B15–B17.
 
 ---
 
@@ -100,7 +116,8 @@ B8 global error handler with a graceful message; B9 separate send vs. mapping fa
 therapist fallback; B14 shared initialised Bot client; `/cancel` and `/help`; a test pinning
 `allow_reentry=False`.
 
-**Needs a policy decision before any code:** B7 media (Q6).
+**Needs a policy decision before any code:** B7 media (Q6) — 2.2a ships the safe interim
+behaviour (refuse politely, forward nothing, store nothing); the answer to Q6 replaces it.
 
 **Deferred:** B13 → Phase 3.1; B15 → i18n pass; B16 → typing indicator in 3.x; B17 → Phase 9.5.
 

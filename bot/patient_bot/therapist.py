@@ -19,12 +19,18 @@ _therapist_bot: Bot | None = Bot(token=THERAPIST_BOT_TOKEN) if THERAPIST_BOT_TOK
 
 
 def _get_therapist(context) -> dict | None:
-    """Return the therapist dict for the patient's selected_therapist, or fall back to first active."""
+    """The therapist this patient chose, or None.
+
+    BOT_AUDIT B12: never silently fall back to a different therapist — a patient's message would
+    reach someone they did not choose. Only when the patient has chosen nobody and the clinic has
+    exactly one active therapist is the choice unambiguous.
+    """
     tid = context.user_data.get("selected_therapist")
-    if tid and tid in THERAPIST_BY_ID:
-        return THERAPIST_BY_ID[tid]
+    if tid:
+        chosen = THERAPIST_BY_ID.get(tid)
+        return chosen if chosen and chosen.get("active") else None
     active = [t for t in THERAPISTS if t.get("active")]
-    return active[0] if active else None
+    return active[0] if len(active) == 1 else None
 
 
 async def show_therapist_for_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -80,8 +86,16 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user = update.effective_user
     therapist = _get_therapist(context)
 
-    if not _therapist_bot or not therapist:
-        logger.error("Therapist bot not configured or no active therapist found")
+    if not therapist:
+        # Their therapist is inactive or was never chosen and the clinic has several.
+        context.user_data.pop("selected_therapist", None)
+        await update.message.reply_text(
+            "Your therapist is not available right now. Please choose a therapist again.",
+            reply_markup=get_main_keyboard(),
+        )
+        return SELECTING
+    if not _therapist_bot:
+        logger.error("Therapist bot not configured")
         await update.message.reply_text(
             "Sorry, the therapist connection is not configured yet.",
             reply_markup=get_main_keyboard(),
@@ -90,13 +104,11 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     patient_name = user.full_name or user.first_name or ""
     try:
+        # Plain text: a patient name or message containing _ * ` [ made Telegram reject the
+        # whole message when it was parsed as Markdown (BOT_AUDIT B2).
         sent = await _therapist_bot.send_message(
             chat_id=therapist["telegram_id"],
-            text=(
-                f"💬 *New message from {patient_name}* (ID: `{user.id}`)\n\n"
-                f"{update.message.text}"
-            ),
-            parse_mode="Markdown",
+            text=f"💬 New message from {patient_name} (ID: {user.id})\n\n{update.message.text}",
         )
         save_relay_mapping(sent.message_id, user.id, therapist["id"], patient_name)
         append_history(user.id, "patient", update.message.text)
@@ -134,8 +146,7 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         sent = await _therapist_bot.send_message(
             chat_id=therapist["telegram_id"],
-            text=f"💬 *{patient_name}:*\n{update.message.text}",
-            parse_mode="Markdown",
+            text=f"💬 {patient_name}:\n{update.message.text}",
         )
         save_relay_mapping(sent.message_id, user.id, therapist["id"], patient_name)
         append_history(user.id, "patient", update.message.text)
@@ -146,6 +157,21 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text(
             "⚠️ Could not forward your message. Please try again.", reply_markup=_END_KB
         )
+    return THERAPIST_RELAY
+
+
+async def relay_unsupported_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Patient sent a photo/voice/file during a therapist chat (BOT_AUDIT B7).
+
+    The chat stays open and the patient is told it was not delivered, instead of the message
+    silently ending the relay. Whether media should be forwarded (and stored — it may be PHI)
+    is open question Q6.
+    """
+    await update.message.reply_text(
+        "📎 I can't send photos, voice notes or files to your therapist yet — "
+        "please describe it in text, or bring it to your session.",
+        reply_markup=_END_KB,
+    )
     return THERAPIST_RELAY
 
 

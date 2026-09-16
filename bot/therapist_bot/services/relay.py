@@ -24,6 +24,18 @@ def get_patient_for_msg(forwarded_msg_id: int) -> dict | None:
 
 
 def get_current_patient(therapist_id: str) -> int | None:
-    """Return the patient_id currently in relay with this therapist, or None."""
+    """The therapist's most recent patient chat, or None.
+
+    Informational only: routing must not use it, because "most recent" is not "the patient this
+    reply is meant for" (BOT_AUDIT B1). Use `list_active_patients()` to decide where a message
+    may go.
+    """
     raw = _redis().get(f"zenflow:relay:current:{therapist_id}")
     return int(raw) if raw else None
+
+
+def list_active_patients(therapist_id: str) -> list[int]:
+    """Patient ids with an open relay session for this therapist (BOT_AUDIT B1)."""
+    from bot.patient_bot.services.relay import list_active_patients as _list
+
+    return _list(therapist_id)

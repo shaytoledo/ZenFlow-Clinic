@@ -3,7 +3,11 @@ import logging
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from bot.config import THERAPIST_BOT_TOKEN, THERAPISTS
-from bot.therapist_bot.handlers import handle_therapist_message, start_therapist
+from bot.therapist_bot.handlers import (
+    handle_therapist_media,
+    handle_therapist_message,
+    start_therapist,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +30,8 @@ def build_therapist_app() -> Application | None:
     # Single dynamic handler — routing is done at call time so newly registered
     # therapists are activated immediately without a bot restart.
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_therapist_message))
+    # Anything that is not text gets a clear answer instead of silence (BOT_AUDIT B7).
+    app.add_handler(MessageHandler(~filters.TEXT & ~filters.COMMAND, handle_therapist_media))
 
     active = [t for t in THERAPISTS if t.get("active")]
     logger.info(
