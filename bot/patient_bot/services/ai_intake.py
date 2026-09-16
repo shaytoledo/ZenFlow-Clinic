@@ -17,7 +17,7 @@ import logging
 import re
 
 from langchain_community.chat_message_histories import RedisChatMessageHistory
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, REDIS_URL
 from zenflow.settings import get_settings
@@ -27,6 +27,7 @@ USE_AI = get_settings().ai_provider
 logger = logging.getLogger(__name__)
 
 OLLAMA_TIMEOUT = 180  # seconds
+FALLBACK_SUMMARY = "Intake completed — see conversation history for details."
 
 SYSTEM_PROMPT = """\
 You are a clinical intake assistant for ZenFlow, a licensed Traditional Chinese Medicine (TCM) acupuncture clinic.
@@ -508,7 +509,73 @@ async def generate_summary(user_id: int, final_answer: str) -> str:
             logger.warning(f"[{user_id}] AI timeout on summary")
         except Exception as e:
             logger.warning(f"[{user_id}] LangChain error on summary: {e}")
-    return "Intake completed — see conversation history for details."
+    return FALLBACK_SUMMARY
+
+
+class GenerationError(RuntimeError):
+    """An AI call failed or returned nothing usable; a queued job should retry (Phase 3.1)."""
+
+
+def history_to_messages(history: list[dict]) -> list[BaseMessage]:
+    """A stored conversation (`[{role, content}]`) as LangChain messages."""
+    messages: list[BaseMessage] = []
+    for entry in history:
+        role = (entry.get("role") or "").lower()
+        content = (entry.get("content") or entry.get("text") or "").strip()
+        if not content:
+            continue
+        if role in ("user", "human", "patient"):
+            messages.append(HumanMessage(content=content))
+        else:
+            messages.append(AIMessage(content=content))
+    return messages
+
+
+def format_transcript(history: list[dict]) -> str:
+    """A stored conversation as the `Patient: … / Assistant: …` text the prompts expect."""
+    lines = []
+    for message in history_to_messages(history):
+        label = "Patient" if isinstance(message, HumanMessage) else "Assistant"
+        lines.append(f"{label}: {message.content}")
+    return "\n".join(lines)
+
+
+def diagnosis_context(summary: str, history: list[dict]) -> list[BaseMessage]:
+    """The Stage-1 prompt, built from the stored conversation rather than live Redis history."""
+    return [
+        SystemMessage(content=SYSTEM_PROMPT),
+        *history_to_messages(history),
+        HumanMessage(content=f"Clinical summary:\n{summary}\n\n{TCM_DIAGNOSIS_PROMPT}"),
+    ]
+
+
+async def summarize_history(
+    history: list[dict], *, strict: bool = False, log_tag: str = "?"
+) -> str:
+    """Stage 0 from a stored conversation. `strict` raises GenerationError instead of degrading."""
+    messages = [
+        SystemMessage(content=SYSTEM_PROMPT),
+        *history_to_messages(history),
+        HumanMessage(content=SUMMARY_INSTRUCTION),
+    ]
+    if _LLM_LONG is None:
+        if strict:
+            raise GenerationError("summary failed: no AI backend configured")
+        return FALLBACK_SUMMARY
+    try:
+        resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=OLLAMA_TIMEOUT)
+        text = str(resp.content).strip()
+        if not text:
+            raise GenerationError("summary failed: empty response")
+        logger.info(f"[{log_tag}] clinical summary generated ({USE_AI})")
+        return text
+    except Exception as e:
+        logger.warning(f"[{log_tag}] summary generation failed: {e!r}")
+        if strict:
+            if isinstance(e, GenerationError):
+                raise
+            raise GenerationError(f"summary failed: {type(e).__name__}: {e}") from e
+        return FALLBACK_SUMMARY
 
 
 def _strip_json(raw: str) -> str:
@@ -632,13 +699,16 @@ async def select_points_for_diagnosis(
     batch_number: int = 1,
     existing_codes: list[str] | None = None,
     lang: str = "en",
+    retry_once: bool = True,
 ) -> list[dict]:
     """Stage 2 — given an established diagnosis, ask the AI for acupuncture points.
 
     batch_number=1: first batch of 5-7 points.
     batch_number=2: second batch of 5-7 complementary points (pass existing_codes to avoid duplication).
     Uses a dedicated high-context LLM (_LLM_POINTS) to avoid token truncation.
-    Retries once automatically on empty result before giving up.
+    Retries once automatically on empty result before giving up, unless `retry_once=False`
+    (queued jobs: the queue retries with backoff, and two back-to-back calls could outlast the
+    worker's handler timeout).
     Returns a list of extended point dicts: {code, rationale, location, needle_technique}.
     """
     llm = _LLM_POINTS  # type: ignore[name-defined]
@@ -674,7 +744,7 @@ async def select_points_for_diagnosis(
         points = _parse_points_response(resp.content.strip(), log_tag)
 
         # Retry once if the model returned nothing (parse failed or empty array)
-        if not points and _retry == 0:
+        if not points and _retry == 0 and retry_once:
             logger.warning(
                 f"[{log_tag}] Stage 2 batch {batch_number} returned 0 points on attempt 1 — retrying"
             )
@@ -698,7 +768,7 @@ async def select_points_for_diagnosis(
         logger.warning(
             f"[{log_tag}] Ollama timeout on point selection batch {batch_number} (attempt {_retry + 1})"
         )
-        if _retry == 0:
+        if _retry == 0 and retry_once:
             return await select_points_for_diagnosis(
                 tcm_pattern,
                 treatment_principles,

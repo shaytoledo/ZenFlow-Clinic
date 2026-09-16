@@ -142,6 +142,7 @@ omit = ["*/__init__.py"]
 # Phase 2.2b: the measured codebase grew 4,782 -> 5,677 statements the first time the booking
 # modules were imported by tests (coverage cannot see a module nothing imports), so 51 % now
 # stands against a bigger, honest denominator. Raise it, never lower it.
-fail_under = 51
+# 56 % after Phase 2 (bot repair) + 3.1: measured 57.27 %.
+fail_under = 56
 show_missing = true
 skip_covered = true

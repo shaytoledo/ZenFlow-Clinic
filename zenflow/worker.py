@@ -77,7 +77,10 @@ default_registry = HandlerRegistry()
 _current_job: ContextVar[Job | None] = ContextVar("zenflow_current_job", default=None)
 
 #: Modules whose import registers handlers on `default_registry`.
-DEFAULT_HANDLER_MODULES: tuple[str, ...] = ("bot.services.followup_jobs",)
+DEFAULT_HANDLER_MODULES: tuple[str, ...] = (
+    "bot.services.followup_jobs",
+    "bot.services.pipeline_jobs",
+)
 
 
 def current_job() -> Job | None:

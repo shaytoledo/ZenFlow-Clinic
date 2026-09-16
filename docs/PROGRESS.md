@@ -80,7 +80,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 3 — Pipeline ownership (items 4, 5)
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 3.1 | Generation moves to enqueued jobs right after intake | [ ] | | | item 5 |
+| 3.1 | Generation moves to enqueued jobs right after intake | [x] | 2026-09-16 | ddf519f | item 5. `bot/services/pipeline_jobs.py`: intake.finalize → diagnosis.generate → points.generate ×2; reads the conversation from the DB (saved with the booking), idempotent per stage, 3 attempts with backoff, dead letter → FAILED, per-appointment lease (`zenflow/leases.py`). Closes BOT_AUDIT B13. ADR-23 — [PR #14](https://github.com/shaytoledo/ZenFlow-Clinic/pull/14) |
 | 3.2 | Treatment page never auto-triggers generation | [ ] | | | item 4 |
 | 3.3 | Verify + fix "Regenerate points" (202 + status stream) | [ ] | | | item 1b |
 | 3.4 | SSE updates replacing 2s polling | [ ] | | | |

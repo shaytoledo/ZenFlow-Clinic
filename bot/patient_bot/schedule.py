@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import date
 
@@ -8,22 +7,16 @@ from telegram.ext import ContextTypes
 from bot.config import THERAPISTS
 from bot.locales import get_lang, t
 from bot.patient_bot.services.ai_intake import (
-    SYSTEM_PROMPT,
-    TCM_DIAGNOSIS_PROMPT,
     clear_intake,
-    generate_diagnosis_only,
-    generate_summary,
     get_history_dicts,
     get_next_question,
     initialize_intake,
-    select_points_for_diagnosis,
 )
 from bot.patient_bot.services.appointments import (
     SlotTaken,
     save_appointment,
     save_treatment_notes,
     set_gcal_event_id,
-    update_appointment_summary,
 )
 from bot.patient_bot.services.availability import book_slot, get_available_days, get_available_hours
 from bot.states import (
@@ -352,152 +345,36 @@ async def _slot_taken(query, context, lang: str, day: date, time_slot: str) -> i
     return SELECTING
 
 
-# ── background helpers ────────────────────────────────────────────────────────
+# ── generation hand-off (Phase 3.1) ───────────────────────────────────────────
 
 
-async def _summary_and_tcm(
-    appointment_id: int,
-    user_id: int,
-    final_answer: str,
-) -> None:
-    """Three-stage background pipeline — each stage writes to the DB immediately
-    so the treatment dashboard can reflect progress as it arrives.
+def _intake_snapshot(user_id: int, final_answer: str) -> list[dict]:
+    """The whole intake conversation, final answer included, as plain dicts."""
+    try:
+        history = get_history_dicts(user_id)
+    except Exception as e:  # Redis unavailable: keep at least the answer we are holding
+        logger.error(f"[{user_id}] intake history unreadable, saving the final answer only: {e}")
+        history = []
+    return [*history, {"role": "user", "content": final_answer}]
 
-    Stage 0 — Clinical summary: update appointment text + intake session record.
-    Stage 1 — TCM diagnosis:    save pattern/principles/certainty/recommendations.
-    Stage 2 — Point selection:  save ai_suggested_points (6–15 points).
-    """
-    from langchain_core.messages import HumanMessage, SystemMessage
+
+def _start_generation(appointment_id: int, user_id: int) -> None:
+    """Queue the summary → diagnosis → points jobs. The booking stands even if this fails."""
+    from bot.services.pipeline_jobs import FAILED, start_intake_pipeline
 
     try:
-        # ── Stage 0: clinical summary ──────────────────────────────────────────
-        summary = await generate_summary(user_id, final_answer)
-        history = get_history_dicts(user_id)
-        update_appointment_summary(appointment_id, summary, history)
-        logger.info(f"[{user_id}] Stage 0 done — summary saved")
-
-        from bot.patient_bot.services.ai_intake import _get_history, _rolling_summaries
-
-        hist = _get_history(user_id)
-        rolling = _rolling_summaries.get(user_id)
-
-        context_parts = [SystemMessage(content=SYSTEM_PROMPT)]
-        if rolling:
-            context_parts.append(
-                SystemMessage(content=f"[Earlier conversation summary: {rolling}]")
-            )
-        context_parts.extend(hist.messages)
-        context_parts.append(
-            HumanMessage(content=f"Clinical summary:\n{summary}\n\n{TCM_DIAGNOSIS_PROMPT}")
-        )
-
-        intake_lines = []
-        if rolling:
-            intake_lines.append(f"[Conversation summary: {rolling}]")
-        for m in hist.messages:
-            from langchain_core.messages import AIMessage as AM
-            from langchain_core.messages import HumanMessage as HM
-
-            if isinstance(m, HM):
-                intake_lines.append(f"Patient: {m.content}")
-            elif isinstance(m, AM):
-                intake_lines.append(f"Assistant: {m.content}")
-        intake_context = "\n".join(intake_lines) or summary
-
-        # ── Stage 1: TCM diagnosis ─────────────────────────────────────────────
-        import asyncio as _asyncio_early
-
-        from web.repositories.treatment_repo import set_points_status as _set_status_early
-
-        await _asyncio_early.to_thread(_set_status_early, appointment_id, "GENERATING_STAGE_1")
-        diagnosis = await generate_diagnosis_only(
-            context_parts, intake_context, log_tag=str(user_id)
-        )
-        save_treatment_notes(appointment_id, user_id, diagnosis)
-        logger.info(f"[{user_id}] Stage 1 done — diagnosis saved: {diagnosis['tcm_pattern']}")
-
-        # ── Stage 2A: first batch of 5-7 acupuncture points ───────────────────
-        if diagnosis["tcm_pattern"]:
-            import asyncio as _asyncio
-
-            from web.repositories.treatment_repo import (
-                append_points as _append_points,
-            )
-            from web.repositories.treatment_repo import (
-                set_points_status as _set_status,
-            )
-
-            await _asyncio.to_thread(_set_status, appointment_id, "GENERATING_STAGE_2A")
-            logger.info(
-                f"[{user_id}] Stage 2A start — selecting first batch for: {diagnosis['tcm_pattern']}"
-            )
-
-            batch_a = await select_points_for_diagnosis(
-                tcm_pattern=diagnosis["tcm_pattern"],
-                treatment_principles=diagnosis["treatment_principles"],
-                intake_context=intake_context,
-                log_tag=str(user_id),
-                batch_number=1,
-            )
-
-            if batch_a:
-                await _asyncio.to_thread(_append_points, appointment_id, batch_a)
-                logger.info(f"[{user_id}] Stage 2A done — {len(batch_a)} points saved")
-            else:
-                logger.error(
-                    f"[{user_id}] Stage 2A FAILED — no points returned. Pattern: {diagnosis['tcm_pattern']!r}"
-                )
-
-            # ── Stage 2B: second batch of complementary points ─────────────────
-            await _asyncio.to_thread(_set_status, appointment_id, "GENERATING_STAGE_2B")
-            existing_codes = [p["code"] for p in batch_a if isinstance(p, dict) and p.get("code")]
-            logger.info(
-                f"[{user_id}] Stage 2B start — selecting complementary batch (avoiding {existing_codes})"
-            )
-
-            batch_b = await select_points_for_diagnosis(
-                tcm_pattern=diagnosis["tcm_pattern"],
-                treatment_principles=diagnosis["treatment_principles"],
-                intake_context=intake_context,
-                log_tag=str(user_id),
-                batch_number=2,
-                existing_codes=existing_codes,
-            )
-
-            if batch_b:
-                await _asyncio.to_thread(_append_points, appointment_id, batch_b)
-                logger.info(f"[{user_id}] Stage 2B done — {len(batch_b)} additional points saved")
-            else:
-                logger.warning(
-                    f"[{user_id}] Stage 2B returned no points — formula remains at batch A only"
-                )
-
-            total = len(batch_a) + len(batch_b)
-            final_status = "COMPLETED" if total > 0 else "FAILED"
-            await _asyncio.to_thread(_set_status, appointment_id, final_status)
-            logger.info(
-                f"[{user_id}] Stage 2 {final_status} — {total} points total committed to DB"
-            )
-        else:
-            logger.warning(f"[{user_id}] Stage 2 skipped — no tcm_pattern from Stage 1")
-            import asyncio as _asyncio_fail
-
-            from web.repositories.treatment_repo import set_points_status as _set_fail
-
-            await _asyncio_fail.to_thread(_set_fail, appointment_id, "FAILED")
-
-    except Exception as e:
-        logger.warning(f"[{user_id}] Background pipeline error: {e}")
+        start_intake_pipeline(appointment_id, user_id)
+    except Exception:
+        logger.exception(f"[{user_id}] could not queue generation for {appointment_id}")
         try:
-            import asyncio as _asyncio_fail
+            from web.repositories.treatment_repo import set_points_status
 
-            from web.repositories.treatment_repo import set_points_status as _set_fail
-
-            await _asyncio_fail.to_thread(_set_fail, appointment_id, "FAILED")
+            set_points_status(appointment_id, FAILED)
         except Exception:
-            pass
-    finally:
-        _forget_intake(user_id)
+            logger.exception("could not mark the session FAILED either")
+
+
+# ── background helpers ────────────────────────────────────────────────────────
 
 
 # ── intake answers ────────────────────────────────────────────────────────────
@@ -518,13 +395,17 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         lang = get_lang(selected_therapist)
         patient_name = user.full_name or user.first_name
 
+        # The conversation goes into the database with the booking: the generation jobs read
+        # it from there, because the Redis intake history expires and does not survive a
+        # restart (Phase 3.1).
+        history = _intake_snapshot(user_id, user_answer)
         try:
             appointment_id = save_appointment(
                 patient_id=user_id,
                 patient_name=patient_name,
                 day=day,
                 time_slot=time_slot,
-                intake_history=[],
+                intake_history=history,
                 summary="",
                 therapist_id=selected_therapist or "",
             )
@@ -549,8 +430,8 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
             appointment_id,
         )
         save_treatment_notes(appointment_id, user_id, {})
-
-        asyncio.ensure_future(_summary_and_tcm(appointment_id, user_id, user_answer))
+        _start_generation(appointment_id, user_id)
+        _forget_intake(user_id)
 
         context.user_data.clear()
         if selected_therapist:

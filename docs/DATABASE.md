@@ -90,6 +90,20 @@ CREATE TABLE IF NOT EXISTS therapists (
 
 ---
 
+### Table: `leases` (Phase 3.1)
+
+```sql
+CREATE TABLE IF NOT EXISTS leases (
+    name        TEXT PRIMARY KEY,  -- e.g. 'generation:42'
+    holder      TEXT NOT NULL,     -- e.g. 'job-17'
+    expires_at  TEXT NOT NULL      -- canonical UTC
+);
+```
+
+Named, expiring locks (`zenflow/leases.py`). Acquire is one `INSERT … ON CONFLICT DO UPDATE …
+WHERE holder matches OR expired`, so two processes cannot both win; expiry frees a lease whose
+holder crashed. Used for `generation:{appointment_id}` so two generations never overlap.
+
 ### Table: `bot_persistence` (Phase 2.3)
 
 ```sql

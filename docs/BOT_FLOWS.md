@@ -226,18 +226,11 @@ Repeat for answers 1–4:
     → INTAKE
 
 On 5th answer:
-    generate_summary(user_id, final_answer)       [awaited]
-        → LLM call (_LLM_LONG): summarise entire conversation
-        → fallback: "Intake completed — see history for details."
-
-    book_slot(...)   → invalidate Redis caches, update calendar
-    save_appointment(...)   → SQLite + Redis invalidation
-
-    asyncio.ensure_future(_tcm_and_clear(appointment_id, user_id, summary))
-        → [BACKGROUND — patient does NOT wait for this]
-        → generate_tcm_diagnosis()   LLM call (_LLM_LONG): structured TCM JSON
-        → save_treatment_notes()     SQLite UPSERT
-        → clear_intake()             clear Redis + in-process caches (in finally block)
+    snapshot the conversation (Redis history + final answer)
+    save_appointment(...)   → SQLite, with the conversation in intake_sessions   [slot first]
+    book_slot(...)          → invalidate Redis caches, update calendar
+    start_intake_pipeline(...)   → queue summary → diagnosis → points (Phase 3.1, ADR-23)
+    clear_intake()          → the Redis history is no longer needed
 
     Send confirmation immediately (does not wait for TCM diagnosis):
         "✅ Appointment successfully booked!"

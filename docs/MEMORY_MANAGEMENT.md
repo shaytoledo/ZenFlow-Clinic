@@ -402,21 +402,17 @@ if not therapist_id:
     └─ Redis DEL zenflow:apts:all   [invalidate appointment list cache]
     └─ Returns appointment_id (int)
 
-13. asyncio.ensure_future(_tcm_and_clear(appointment_id, user_id, summary))
-    └─ [BACKGROUND — steps 13-15 run after confirmation is sent to patient]
+13. start_intake_pipeline(appointment_id, user_id)   [Phase 3.1]
+    └─ points_status = GENERATING_STAGE_0; enqueue intake.finalize (SQLite `jobs` table)
+    └─ the worker runs summary → diagnosis → points from intake_sessions.history_json,
+       so nothing depends on the Redis intake history after this point
 
-    → generate_tcm_diagnosis()
-       └─ _LLM_LONG.ainvoke() [100s timeout] → TCM JSON
-
-    → save_treatment_notes(appointment_id, ...)
-       └─ SQLite UPSERT treatment_notes ON CONFLICT DO UPDATE
-
-    → clear_intake(user_id)   [always, via finally block]
+14. clear_intake(user_id)
        └─ RedisChatMessageHistory.clear()   [DEL zenflow:intake:{uid}:{tid}]
        └─ _history_cache.pop(user_id)
        └─ _rolling_summaries.pop(user_id)
 
-14. context.user_data.clear()   [immediately — does not wait for background task]
+15. context.user_data.clear()   [immediately — does not wait for the generation jobs]
     └─ selected_day, selected_time, intake_count, selected_week cleared
     └─ selected_therapist re-set for next booking
 ```
