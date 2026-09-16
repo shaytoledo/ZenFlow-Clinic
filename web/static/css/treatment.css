@@ -62,13 +62,6 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── AI-suggested point cards ─────────────────────── */
-.zf-pt-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,.10);
-}
-.zf-pt-card:active { transform: translateY(0); }
-
 /* ══ Page-scoped classes (Phase 4.1c) ═══════════════════════════════════════
    Every style that used to sit in a style="…" attribute on this page lives here, so a strict
    CSP (no 'unsafe-inline', Phase 9) can apply. `.tp` marks the page roots: #treatment-root,
@@ -81,6 +74,7 @@
 .tp.tp-page { padding: 28px; }
 .tp .tp-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
 .tp .tp-column { display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 900px) { .tp .tp-columns { grid-template-columns: 1fr; } }  /* Phase 4.2: stack the two columns */
 .tp.tp-back-link { font-size: 12px; padding: 6px 12px; }
 
 /* ── Shared helpers ────────────────────────────────────────────────────────── */
@@ -120,8 +114,8 @@
 .tp .tp-title-aside { margin-inline-start: auto; font-size: 11px; color: #9CA3AF; }
 .tp .tp-card-flush { padding: 0; overflow: hidden; }
 .tp .tp-card-title-ruled { padding: 16px 20px 12px; border-bottom: 1px solid #F3F4F6; }
-.tp .tp-section-title { font-size: 14px; font-weight: 700; color: #111827; }
-.tp .tp-section-count { font-size: 11px; color: #9CA3AF; margin-inline-start: 8px; }
+.tp .tp-section-title { display: inline; font-size: 14px; font-weight: 700; color: var(--zf-text); }
+.tp .tp-section-count { font-size: 11px; color: var(--zf-text-muted); margin-inline-start: 8px; }
 .tp .tp-card-intro { font-size: 12px; color: #9CA3AF; margin-top: 6px; margin-bottom: 12px; }
 .tp .tp-footnote { font-size: 11px; color: #9CA3AF; margin: 0; }
 .tp .tp-btn-small { font-size: 12px; padding: 6px 14px; }
@@ -136,18 +130,6 @@
 
 /* ── AI-suggested point cards ──────────────────────────────────────────────── */
 .tp .tp-ai-section { display: none; margin-top: 20px; }
-.tp .tp-ai-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 0; }
-.tp .tp-pt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.tp .tp-pt-add { width: 28px; height: 28px; flex-shrink: 0; border-radius: 8px; border: 1.5px solid #E5E7EB; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #9CA3AF; transition: all .14s; }
-.tp .tp-pt-name { font-size: 13px; font-weight: 700; color: #111827; }
-.tp .tp-pt-line { display: flex; gap: 5px; align-items: flex-start; }
-.tp .tp-pt-line-icon { flex-shrink: 0; margin-top: 2px; }
-.tp .tp-pt-location { font-size: 11px; color: #6B7280; line-height: 1.5; }
-.tp .tp-pt-actions { font-size: 11px; color: #374151; line-height: 1.5; }
-.tp .tp-pt-technique { font-size: 10px; color: #0D9488; font-weight: 500; display: flex; align-items: center; gap: 4px; }
-.tp .tp-pt-rationale { background: linear-gradient(135deg,#F0FDFA,#ECFDF5); border-radius: 8px; padding: 9px 11px; border-left: 2.5px solid #0D9488; margin-top: 2px; }
-.tp .tp-pt-rationale-label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #0D9488; letter-spacing: .7px; margin-bottom: 3px; }
-.tp .tp-pt-rationale-text { font-size: 11px; color: #065F46; line-height: 1.55; margin: 0; }
 
 /* ── Intake and clinical summary ───────────────────────────────────────────── */
 .tp .tp-intake-toggle { margin-inline-start: 8px; background: none; border: none; cursor: pointer; color: #9CA3AF; }
@@ -183,11 +165,10 @@
 .tp .tp-progress-track { background: #DBEAFE; border-radius: 999px; height: 6px; overflow: hidden; }
 .tp .tp-progress-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#2563EB,#0D9488); width: 0%; transition: width .5s ease; }
 .tp .tp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; min-height: 32px; }
-.tp .tp-chips-intro { font-size: 11px; color: #9CA3AF; width: 100%; display: block; margin-bottom: 6px; }
-.tp .tp-chip-plus { opacity: .6; font-size: 14px; }
+.tp .tp-chips-intro { font-size: 11px; color: var(--zf-text-muted); width: 100%; display: block; margin-bottom: 6px; }
 .tp .tp-chips-empty { font-size: 12px; color: #9CA3AF; padding: 8px 0; display: block; }
 .tp .tp-input-hint { font-size: 11px; color: #9CA3AF; margin-top: 6px; }
-.tp .tp-tag-remove { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.7); padding: 0 0 0 4px; line-height: 1; }
+.tp .tp-tag-remove { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.8); padding: 0; padding-inline-start: 4px; line-height: 1; border-radius: 3px; }
 .tp .tp-generate-prompt { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0; }
 .tp .tp-btn-teal { font-size: 12px; padding: 6px 16px; color: #0D9488; border-color: #0D9488; }
 
@@ -239,8 +220,6 @@
 
 /* ── Hover and focus (were JS handlers) ────────────────────────────────── */
 .tp .tp-patient-link:hover { color: #0D9488; }
-.tp .tp-pt-card:hover { background: #FAFAFA; }
-.tp .tp-pt-add:hover { border-color: #0D9488; color: #0D9488; background: #F0FDFA; }
 .tp .tp-advice-text:focus { background: #F9FAFB; }
 
 /* ── Email fallback overlay (appended to <body>, so it is its own .tp root) ── */
@@ -258,27 +237,263 @@
 .tp .tp-confidence-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--tone) 0%, var(--tone-fade) 100%); transition: width .7s ease; }  /* width: set from the data by render-diagnosis.js */
 .tp .tp-metric-value { color: var(--tone); }
 
-/* ── Channel themes: a tp-ch-* class on a point card or chip sets its colours ── */
-.tp-ch-stomach { --ch-bg: linear-gradient(135deg,#FEF3C7 0%,#FFFBEB 100%); --ch-border: #FDE68A; --ch-code: #B45309; --ch-icon: #D97706; }
-.tp-ch-large-intestine { --ch-bg: linear-gradient(135deg,#E0F2FE 0%,#F0F9FF 100%); --ch-border: #BAE6FD; --ch-code: #0369A1; --ch-icon: #0284C7; }
-.tp-ch-pericardium { --ch-bg: linear-gradient(135deg,#FCE7F3 0%,#FDF2F8 100%); --ch-border: #F9A8D4; --ch-code: #BE185D; --ch-icon: #DB2777; }
-.tp-ch-liver { --ch-bg: linear-gradient(135deg,#DCFCE7 0%,#F0FDF4 100%); --ch-border: #BBF7D0; --ch-code: #15803D; --ch-icon: #16A34A; }
-.tp-ch-spleen { --ch-bg: linear-gradient(135deg,#FEF9C3 0%,#FEFCE8 100%); --ch-border: #FDE047; --ch-code: #A16207; --ch-icon: #CA8A04; }
-.tp-ch-governing-vessel { --ch-bg: linear-gradient(135deg,#EDE9FE 0%,#F5F3FF 100%); --ch-border: #C4B5FD; --ch-code: #6D28D9; --ch-icon: #7C3AED; }
-.tp-ch-heart { --ch-bg: linear-gradient(135deg,#FEE2E2 0%,#FFF5F5 100%); --ch-border: #FECACA; --ch-code: #B91C1C; --ch-icon: #DC2626; }
-.tp-ch-kidney { --ch-bg: linear-gradient(135deg,#DBEAFE 0%,#EFF6FF 100%); --ch-border: #BFDBFE; --ch-code: #1D4ED8; --ch-icon: #2563EB; }
-.tp-ch-gallbladder { --ch-bg: linear-gradient(135deg,#D1FAE5 0%,#ECFDF5 100%); --ch-border: #A7F3D0; --ch-code: #065F46; --ch-icon: #059669; }
-.tp-ch-triple-energizer { --ch-bg: linear-gradient(135deg,#CFFAFE 0%,#ECFEFF 100%); --ch-border: #A5F3FC; --ch-code: #0E7490; --ch-icon: #0891B2; }
-.tp-ch-bladder { --ch-bg: linear-gradient(135deg,#E0F2FE 0%,#F0F9FF 100%); --ch-border: #7DD3FC; --ch-code: #0C4A6E; --ch-icon: #0369A1; }
-.tp-ch-conception-vessel { --ch-bg: linear-gradient(135deg,#F3E8FF 0%,#FAF5FF 100%); --ch-border: #E9D5FF; --ch-code: #7E22CE; --ch-icon: #9333EA; }
-.tp-ch-lung { --ch-bg: linear-gradient(135deg,#FEF2F2 0%,#FFF5F5 100%); --ch-border: #FECACA; --ch-code: #991B1B; --ch-icon: #DC2626; }
-.tp-ch-extra-point { --ch-bg: linear-gradient(135deg,#CCFBF1 0%,#F0FDFA 100%); --ch-border: #99F6E4; --ch-code: #0F766E; --ch-icon: #0D9488; }
-.tp-ch-default { --ch-bg: linear-gradient(135deg,#F3F4F6 0%,#FAFAFA 100%); --ch-border: #E5E7EB; --ch-code: #374151; --ch-icon: #6B7280; }
-.tp .tp-pt-card { padding: 18px 16px; border-bottom: 1px solid #F3F4F6; border-right: 1px solid #F3F4F6; display: flex; flex-direction: column; gap: 8px; transition: background .12s; }
-.tp .tp-pt-code-badge { background: var(--ch-bg); border: 1.5px solid var(--ch-border); border-radius: 10px; padding: 5px 12px; display: inline-flex; align-items: center; gap: 7px; }
-.tp .tp-pt-needle { color: var(--ch-icon); opacity: .75; }
-.tp .tp-pt-code { font-size: 18px; font-weight: 800; color: var(--ch-code); letter-spacing: .3px; }
-.tp .tp-pt-channel { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; background: var(--ch-bg); border: 1px solid var(--ch-border); border-radius: 6px; padding: 2px 8px; }
-.tp .tp-pt-channel-icon { color: var(--ch-icon); flex-shrink: 0; }
-.tp .tp-pt-channel-name { font-size: 10px; font-weight: 600; color: var(--ch-code); }
-.tp .tp-chip { border-color: var(--ch-border); color: var(--ch-code); background: var(--ch-bg); }
+/* ══ Point cards (Phase 4.2 — docs/POINT_CARD_DESIGN.md) ═══════════════════════
+   Built on css/tokens.css. Logical properties only (inline/block, never left/right), so the
+   cards mirror under dir=rtl by themselves; tests/integration/test_point_cards.py checks it. */
+
+/* channel themes: a tp-ch-* class sets the colours its card or chip uses */
+.tp-ch-stomach { --ch-soft: var(--zf-ch-stomach-soft); --ch-border: var(--zf-ch-stomach-border); --ch-ink: var(--zf-ch-stomach-ink); }
+.tp-ch-large-intestine { --ch-soft: var(--zf-ch-large-intestine-soft); --ch-border: var(--zf-ch-large-intestine-border); --ch-ink: var(--zf-ch-large-intestine-ink); }
+.tp-ch-pericardium { --ch-soft: var(--zf-ch-pericardium-soft); --ch-border: var(--zf-ch-pericardium-border); --ch-ink: var(--zf-ch-pericardium-ink); }
+.tp-ch-liver { --ch-soft: var(--zf-ch-liver-soft); --ch-border: var(--zf-ch-liver-border); --ch-ink: var(--zf-ch-liver-ink); }
+.tp-ch-spleen { --ch-soft: var(--zf-ch-spleen-soft); --ch-border: var(--zf-ch-spleen-border); --ch-ink: var(--zf-ch-spleen-ink); }
+.tp-ch-governing-vessel { --ch-soft: var(--zf-ch-governing-vessel-soft); --ch-border: var(--zf-ch-governing-vessel-border); --ch-ink: var(--zf-ch-governing-vessel-ink); }
+.tp-ch-heart { --ch-soft: var(--zf-ch-heart-soft); --ch-border: var(--zf-ch-heart-border); --ch-ink: var(--zf-ch-heart-ink); }
+.tp-ch-kidney { --ch-soft: var(--zf-ch-kidney-soft); --ch-border: var(--zf-ch-kidney-border); --ch-ink: var(--zf-ch-kidney-ink); }
+.tp-ch-gallbladder { --ch-soft: var(--zf-ch-gallbladder-soft); --ch-border: var(--zf-ch-gallbladder-border); --ch-ink: var(--zf-ch-gallbladder-ink); }
+.tp-ch-triple-energizer { --ch-soft: var(--zf-ch-triple-energizer-soft); --ch-border: var(--zf-ch-triple-energizer-border); --ch-ink: var(--zf-ch-triple-energizer-ink); }
+.tp-ch-bladder { --ch-soft: var(--zf-ch-bladder-soft); --ch-border: var(--zf-ch-bladder-border); --ch-ink: var(--zf-ch-bladder-ink); }
+.tp-ch-conception-vessel { --ch-soft: var(--zf-ch-conception-vessel-soft); --ch-border: var(--zf-ch-conception-vessel-border); --ch-ink: var(--zf-ch-conception-vessel-ink); }
+.tp-ch-lung { --ch-soft: var(--zf-ch-lung-soft); --ch-border: var(--zf-ch-lung-border); --ch-ink: var(--zf-ch-lung-ink); }
+.tp-ch-extra-point { --ch-soft: var(--zf-ch-extra-point-soft); --ch-border: var(--zf-ch-extra-point-border); --ch-ink: var(--zf-ch-extra-point-ink); }
+.tp-ch-default { --ch-soft: var(--zf-ch-default-soft); --ch-border: var(--zf-ch-default-border); --ch-ink: var(--zf-ch-default-ink); }
+
+.tp .tp-card-flush { background: var(--zf-surface); }
+.tp .tp-card-title-ruled { border-block-end-color: var(--zf-border-subtle); }
+.tp .tp-ai-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--zf-space-3);
+  padding: var(--zf-space-4) var(--zf-space-5) var(--zf-space-5);
+}
+
+.tp .pc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zf-space-2);
+  min-width: 0;
+  padding: var(--zf-space-4);
+  background: var(--zf-surface-raised);
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-lg);
+  box-shadow: var(--zf-shadow-sm);
+  color: var(--zf-text-2);
+  cursor: pointer;
+  transition: border-color var(--zf-motion-fast), box-shadow var(--zf-motion-fast), background-color var(--zf-motion-fast);
+}
+.tp .pc:hover { border-color: var(--ch-border); box-shadow: var(--zf-shadow-md); }
+.tp .pc.is-selected {
+  border-color: var(--zf-accent);
+  background: var(--zf-accent-soft);
+  box-shadow: 0 0 0 1px var(--zf-accent), var(--zf-shadow-sm);
+}
+
+.tp .pc-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--zf-space-2) var(--zf-space-3); min-width: 0; }
+.tp .pc-code {
+  flex-shrink: 0;
+  padding: 3px var(--zf-space-3);
+  border: 1.5px solid var(--ch-border);
+  border-radius: var(--zf-radius-md);
+  background: var(--ch-soft);
+  color: var(--ch-ink);
+  font-size: var(--zf-text-xl);
+  font-weight: var(--zf-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .3px;
+  line-height: var(--zf-leading-tight);
+}
+.tp .pc-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--zf-text);
+  font-size: var(--zf-text-md);
+  font-weight: var(--zf-weight-bold);
+  line-height: var(--zf-leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.tp .pc-toggle,
+.tp .pc-chip { font-family: inherit; }
+.tp .pc-toggle {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--zf-space-1);
+  min-height: 30px;
+  padding-inline: var(--zf-space-3);
+  border: 1.5px solid var(--zf-border);
+  border-radius: var(--zf-radius-pill);
+  background: var(--zf-surface);
+  color: var(--zf-text-2);
+  font-size: var(--zf-text-sm);
+  font-weight: var(--zf-weight-semibold);
+  cursor: pointer;
+  transition: border-color var(--zf-motion-fast), background-color var(--zf-motion-fast), color var(--zf-motion-fast);
+}
+.tp .pc-toggle:hover { border-color: var(--zf-accent); background: var(--zf-accent-soft); color: var(--zf-accent-text); }
+.tp .pc-toggle[aria-pressed="true"],
+.tp .pc-chip.is-selected {
+  border-color: var(--zf-accent-fill);
+  background: var(--zf-accent-fill);
+  color: var(--zf-on-accent);
+}
+.tp .pc-icon-done,
+.tp [aria-pressed="true"] > .pc-icon-add { display: none; }
+.tp [aria-pressed="true"] > .pc-icon-done { display: inline; }
+.tp .pc-toggle-text { white-space: nowrap; }
+
+.tp .pc-channel {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--zf-space-1);
+  padding: 2px var(--zf-space-2);
+  border: 1px solid var(--ch-border);
+  border-radius: var(--zf-radius-sm);
+  background: var(--ch-soft);
+  color: var(--ch-ink);
+  font-size: var(--zf-text-xs);
+  font-weight: var(--zf-weight-semibold);
+}
+.tp .pc-channel-icon { display: inline-flex; }
+.tp .pc-caution {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--zf-space-1);
+  padding: var(--zf-space-1) var(--zf-space-2);
+  border: 1px solid var(--zf-caution-border);
+  border-radius: var(--zf-radius-sm);
+  background: var(--zf-caution-soft);
+  color: var(--zf-caution-text);
+  font-size: var(--zf-text-xs);
+  font-weight: var(--zf-weight-semibold);
+  line-height: var(--zf-leading-tight);
+}
+.tp .pc-caution svg { flex-shrink: 0; margin-block-start: 1px; }
+.tp .pc-location {
+  display: flex;
+  align-items: center;
+  gap: var(--zf-space-1);
+  min-width: 0;
+  color: var(--zf-text-muted);
+  font-size: var(--zf-text-xs);
+}
+.tp .pc-location svg { flex-shrink: 0; }
+.tp .pc-location span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tp .pc-why {
+  padding: var(--zf-space-2) var(--zf-space-3);
+  border-inline-start: 3px solid var(--zf-accent);
+  border-radius: var(--zf-radius-sm);
+  background: var(--zf-accent-soft);
+}
+.tp .pc.is-selected .pc-why { background: var(--zf-surface); }
+.tp .pc-why-label {
+  margin-block-end: 2px;
+  color: var(--zf-accent-text);
+  font-size: var(--zf-text-2xs);
+  font-weight: var(--zf-weight-bold);
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+.tp .pc-why p { color: var(--zf-text-2); font-size: var(--zf-text-sm); line-height: var(--zf-leading-normal); }
+
+.tp .pc-more { margin-block-start: auto; font-size: var(--zf-text-sm); cursor: auto; }
+.tp .pc-more summary {
+  width: fit-content;
+  padding-block: 2px;
+  border-radius: var(--zf-radius-sm);
+  color: var(--zf-text-muted);
+  font-weight: var(--zf-weight-semibold);
+  cursor: pointer;
+}
+.tp .pc-more summary:hover { color: var(--zf-accent-text); }
+.tp .pc-more dl { display: grid; gap: 2px; margin-block-start: var(--zf-space-2); }
+.tp .pc-more dt {
+  color: var(--zf-text-muted);
+  font-size: var(--zf-text-2xs);
+  font-weight: var(--zf-weight-bold);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.tp .pc-more dd { margin-block-end: var(--zf-space-1); color: var(--zf-text-2); line-height: var(--zf-leading-normal); }
+
+/* compact chips in "Points used" */
+.tp .pc-chip {
+  gap: var(--zf-space-1);
+  border: 1.5px solid var(--ch-border);
+  background: var(--ch-soft);
+  color: var(--ch-ink);
+}
+.tp .pc-chip:hover { border-color: var(--ch-ink); }
+.tp .pc-chip.is-selected:hover { border-color: var(--zf-accent-fill); }
+
+/* used-point tags: the label opens the point panel */
+.tp .zf-point-tag { background: var(--zf-accent-fill); color: var(--zf-on-accent); }
+.tp .pc-tag-label {
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.tp .pc-tag-label:hover { text-decoration: underline; }
+
+/* keyboard focus */
+.tp .pc-toggle:focus-visible,
+.tp .pc-chip:focus-visible,
+.tp .pc-more summary:focus-visible,
+.tp .pc-tag-label:focus-visible,
+.tp .tp-tag-remove:focus-visible,
+.tp .pc-undo-btn:focus-visible,
+.tp .tp-icon-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--zf-focus-ring);
+}
+
+/* "Removed LR3 · Undo" */
+.tp .pc-undo {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: var(--zf-space-6);
+  z-index: 9500;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--zf-space-4));
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--zf-space-3);
+  padding-block: var(--zf-space-2);
+  padding-inline: var(--zf-space-4) var(--zf-space-2);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-text);
+  color: var(--zf-surface);
+  box-shadow: var(--zf-shadow-lg);
+  font-size: var(--zf-text-md);
+}
+.tp .pc-undo[hidden] { display: none; }
+.tp .pc-undo-btn {
+  padding: var(--zf-space-1) var(--zf-space-3);
+  border: 1px solid currentColor;
+  border-radius: var(--zf-radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: var(--zf-weight-bold);
+  cursor: pointer;
+}
+
+/* screen-reader-only text */
+.tp .tp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ══ end point cards ══ */

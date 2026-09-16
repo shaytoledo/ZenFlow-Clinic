@@ -1,0 +1,132 @@
+/* ZenFlow design tokens (Phase 4.2) — see docs/POINT_CARD_DESIGN.md.
+   Prefixed --zf- so they never collide with the older variables in style.css.
+   Every text/background pair used for text meets WCAG AA (4.5:1); tests/unit/test_design_tokens.py
+   checks the pairs in both themes. Dark mode is opt-in: <html data-theme="dark">. */
+
+:root {
+  /* spacing — 4px scale */
+  --zf-space-1: 4px;
+  --zf-space-2: 8px;
+  --zf-space-3: 12px;
+  --zf-space-4: 16px;
+  --zf-space-5: 20px;
+  --zf-space-6: 24px;
+
+  /* radius */
+  --zf-radius-sm: 6px;
+  --zf-radius-md: 10px;
+  --zf-radius-lg: 14px;
+  --zf-radius-pill: 999px;
+
+  /* type scale */
+  --zf-text-2xs: 10px;
+  --zf-text-xs: 11px;
+  --zf-text-sm: 12px;
+  --zf-text-md: 13px;
+  --zf-text-lg: 15px;
+  --zf-text-xl: 18px;
+  --zf-leading-tight: 1.3;
+  --zf-leading-normal: 1.5;
+  --zf-weight-medium: 500;
+  --zf-weight-semibold: 600;
+  --zf-weight-bold: 700;
+  --zf-weight-heavy: 800;
+
+  /* elevation & motion */
+  --zf-shadow-sm: 0 1px 2px rgba(17, 24, 39, .06);
+  --zf-shadow-md: 0 4px 16px rgba(17, 24, 39, .10);
+  --zf-shadow-lg: 0 12px 32px rgba(17, 24, 39, .18);
+  --zf-motion-fast: .12s ease;
+
+  /* semantic colours — surface / text */
+  --zf-surface: #FFFFFF;
+  --zf-surface-muted: #F9FAFB;
+  --zf-surface-raised: #FFFFFF;
+  --zf-border: #E5E7EB;
+  --zf-border-subtle: #F3F4F6;
+  --zf-text: #111827;
+  --zf-text-2: #374151;
+  --zf-text-muted: #6B7280;       /* smallest text colour allowed: 4.8:1 on white */
+  --zf-text-faint: #9CA3AF;       /* icons and borders only — fails 4.5:1 as text */
+
+  /* accent (teal) */
+  --zf-accent: #0D9488;           /* fills, rings, icons — 3.7:1, not for small text */
+  --zf-accent-text: #0F766E;      /* teal text: 5.5:1 on white */
+  --zf-accent-fill: #0F766E;      /* fills that carry text */
+  --zf-accent-soft: #F0FDFA;
+  --zf-accent-border: #99F6E4;
+  --zf-on-accent: #FFFFFF;        /* text on --zf-accent-fill: 5.5:1 */
+  --zf-focus-ring: 0 0 0 3px rgba(13, 148, 136, .40);
+
+  /* caution / danger */
+  --zf-caution-text: #92400E;
+  --zf-caution-soft: #FFFBEB;
+  --zf-caution-border: #FDE68A;
+  --zf-danger-text: #B91C1C;
+  --zf-danger-soft: #FEF2F2;
+  --zf-danger-border: #FECACA;
+
+  /* acupuncture channels — soft background · border · ink (text on soft, ≥ 4.5:1) */
+  --zf-ch-stomach-soft: #FEF3C7;           --zf-ch-stomach-border: #FDE68A;           --zf-ch-stomach-ink: #B45309;
+  --zf-ch-large-intestine-soft: #E0F2FE;   --zf-ch-large-intestine-border: #BAE6FD;   --zf-ch-large-intestine-ink: #0369A1;
+  --zf-ch-pericardium-soft: #FCE7F3;       --zf-ch-pericardium-border: #F9A8D4;       --zf-ch-pericardium-ink: #BE185D;
+  --zf-ch-liver-soft: #DCFCE7;             --zf-ch-liver-border: #BBF7D0;             --zf-ch-liver-ink: #15803D;
+  --zf-ch-spleen-soft: #FEF9C3;            --zf-ch-spleen-border: #FDE047;            --zf-ch-spleen-ink: #A16207;
+  --zf-ch-governing-vessel-soft: #EDE9FE;  --zf-ch-governing-vessel-border: #C4B5FD;  --zf-ch-governing-vessel-ink: #6D28D9;
+  --zf-ch-heart-soft: #FEE2E2;             --zf-ch-heart-border: #FECACA;             --zf-ch-heart-ink: #B91C1C;
+  --zf-ch-kidney-soft: #DBEAFE;            --zf-ch-kidney-border: #BFDBFE;            --zf-ch-kidney-ink: #1D4ED8;
+  --zf-ch-gallbladder-soft: #D1FAE5;       --zf-ch-gallbladder-border: #A7F3D0;       --zf-ch-gallbladder-ink: #065F46;
+  --zf-ch-triple-energizer-soft: #CFFAFE;  --zf-ch-triple-energizer-border: #A5F3FC;  --zf-ch-triple-energizer-ink: #0E7490;
+  --zf-ch-bladder-soft: #E0F2FE;           --zf-ch-bladder-border: #7DD3FC;           --zf-ch-bladder-ink: #0C4A6E;
+  --zf-ch-conception-vessel-soft: #F3E8FF; --zf-ch-conception-vessel-border: #E9D5FF; --zf-ch-conception-vessel-ink: #7E22CE;
+  --zf-ch-lung-soft: #FEF2F2;              --zf-ch-lung-border: #FECACA;              --zf-ch-lung-ink: #991B1B;
+  --zf-ch-extra-point-soft: #CCFBF1;       --zf-ch-extra-point-border: #99F6E4;       --zf-ch-extra-point-ink: #0F766E;
+  --zf-ch-default-soft: #F3F4F6;           --zf-ch-default-border: #E5E7EB;           --zf-ch-default-ink: #374151;
+}
+
+:root[data-theme="dark"] {
+  --zf-shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --zf-shadow-md: 0 4px 16px rgba(0, 0, 0, .5);
+  --zf-shadow-lg: 0 12px 32px rgba(0, 0, 0, .6);
+
+  --zf-surface: #111827;
+  --zf-surface-muted: #1F2937;
+  --zf-surface-raised: #1F2937;
+  --zf-border: #374151;
+  --zf-border-subtle: #1F2937;
+  --zf-text: #F9FAFB;
+  --zf-text-2: #E5E7EB;
+  --zf-text-muted: #9CA3AF;       /* 7.0:1 on #111827 */
+  --zf-text-faint: #6B7280;
+
+  --zf-accent: #2DD4BF;
+  --zf-accent-text: #5EEAD4;
+  --zf-accent-fill: #2DD4BF;
+  --zf-accent-soft: #042F2E;
+  --zf-accent-border: #115E59;
+  --zf-on-accent: #042F2E;
+  --zf-focus-ring: 0 0 0 3px rgba(45, 212, 191, .45);
+
+  --zf-caution-text: #FCD34D;
+  --zf-caution-soft: #2A1E05;
+  --zf-caution-border: #78350F;
+  --zf-danger-text: #FCA5A5;
+  --zf-danger-soft: #2A0F0F;
+  --zf-danger-border: #7F1D1D;
+
+  --zf-ch-stomach-soft: #1F2937;           --zf-ch-stomach-border: #92400E;           --zf-ch-stomach-ink: #FCD34D;
+  --zf-ch-large-intestine-soft: #1F2937;   --zf-ch-large-intestine-border: #075985;   --zf-ch-large-intestine-ink: #7DD3FC;
+  --zf-ch-pericardium-soft: #1F2937;       --zf-ch-pericardium-border: #9D174D;       --zf-ch-pericardium-ink: #F9A8D4;
+  --zf-ch-liver-soft: #1F2937;             --zf-ch-liver-border: #166534;             --zf-ch-liver-ink: #86EFAC;
+  --zf-ch-spleen-soft: #1F2937;            --zf-ch-spleen-border: #854D0E;            --zf-ch-spleen-ink: #FDE047;
+  --zf-ch-governing-vessel-soft: #1F2937;  --zf-ch-governing-vessel-border: #5B21B6;  --zf-ch-governing-vessel-ink: #C4B5FD;
+  --zf-ch-heart-soft: #1F2937;             --zf-ch-heart-border: #991B1B;             --zf-ch-heart-ink: #FCA5A5;
+  --zf-ch-kidney-soft: #1F2937;            --zf-ch-kidney-border: #1E40AF;            --zf-ch-kidney-ink: #93C5FD;
+  --zf-ch-gallbladder-soft: #1F2937;       --zf-ch-gallbladder-border: #065F46;       --zf-ch-gallbladder-ink: #6EE7B7;
+  --zf-ch-triple-energizer-soft: #1F2937;  --zf-ch-triple-energizer-border: #155E75;  --zf-ch-triple-energizer-ink: #67E8F9;
+  --zf-ch-bladder-soft: #1F2937;           --zf-ch-bladder-border: #0C4A6E;           --zf-ch-bladder-ink: #BAE6FD;
+  --zf-ch-conception-vessel-soft: #1F2937; --zf-ch-conception-vessel-border: #6B21A8; --zf-ch-conception-vessel-ink: #D8B4FE;
+  --zf-ch-lung-soft: #1F2937;              --zf-ch-lung-border: #9F1239;              --zf-ch-lung-ink: #FDA4AF;
+  --zf-ch-extra-point-soft: #1F2937;       --zf-ch-extra-point-border: #115E59;       --zf-ch-extra-point-ink: #5EEAD4;
+  --zf-ch-default-soft: #1F2937;           --zf-ch-default-border: #4B5563;           --zf-ch-default-ink: #D1D5DB;
+}

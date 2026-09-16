@@ -1,4 +1,5 @@
-// Treatment page — Acupoint reference data (EN/HE) used by the point panel.
+// Treatment page — Acupoint reference data (EN/HE) for the point cards and the point panel.
+// Phase 4.3 replaces these literals with /api/acupoints.
 // Classic script: shares globals with the other treatment/*.js files, loaded in order.
 
 // ── Point reference data ───────────────────────────────────────────────────────
@@ -54,6 +55,24 @@ const POINT_INFO_HE = {
   'YINTANG': { name: 'יינטנג', channel: 'נקודה נוספת', location: 'קו אמצע המצח, אמצע בין הקצות המדיאליות של הגבות', actions: 'מרגיע שן, מאיר עיניים, מקל על כאב ראש חזיתי, תומך בשינה' },
 };
 
+// The form every list on the page stores a code in: upper case, no spaces or dashes ("st-36" → "ST36").
+function normPointCode(code) {
+  return String(code ?? '').toUpperCase().replace(/[\s-]/g, '');
+}
+
+// The key a code has in POINT_INFO. The table uses KD for Kidney where the WHO code is KI (KI3).
+function pointInfoKey(code) {
+  const c = normPointCode(code);
+  if (POINT_INFO[c]) return c;
+  const kidney = c.replace(/^KI(?=\d)/, 'KD');
+  return POINT_INFO[kidney] ? kidney : c;
+}
+
 function getPointInfo(code) {
-  return (_ZF_LANG === 'he' ? POINT_INFO_HE : POINT_INFO)[code] || {};
+  return (_ZF_LANG === 'he' ? POINT_INFO_HE : POINT_INFO)[pointInfoKey(code)] || {};
+}
+
+// The English channel name, whatever the page language: it picks the colour theme.
+function pointChannel(code) {
+  return (POINT_INFO[pointInfoKey(code)] || {}).channel || '';
 }

@@ -1,5 +1,5 @@
   <!-- AI Suggested Points — full-width card grid -->
-  <div id="ai-points-section" class="tp-ai-section">
+  <section id="ai-points-section" class="tp-ai-section" aria-labelledby="ai-points-title">
     <div class="zf-card tp-card-flush">
       <div class="zf-card-title tp-card-title-ruled">
         <div class="zf-card-icon tp-icon-teal-gradient">
@@ -10,11 +10,11 @@
           </svg>
         </div>
         <div>
-          <span class="tp-section-title">{{ t['treatment_ai_points_header'] if t else 'AI-Suggested Acupuncture Points' }}</span>
-          <span class="tp-section-count" id="ai-points-count"></span>
+          <h2 class="tp-section-title" id="ai-points-title">{{ t['treatment_ai_points_header'] if t else 'AI-Suggested Acupuncture Points' }}</h2>
+          <span class="tp-section-count" id="ai-points-count" aria-live="polite"></span>
         </div>
         <span class="tp-pill-teal">{{ t['treatment_personalised_formula'] if t else 'Personalised Formula' }}</span>
       </div>
       <div id="ai-points-grid" class="tp-ai-grid"></div>
     </div>
-  </div>
+  </section>

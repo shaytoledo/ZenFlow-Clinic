@@ -56,12 +56,14 @@ REVIEWED = {
     "painTone",
     "improvementTone",
     "themeClass",  # channelThemeClass()
-    "channelThemeClass(info.channel)",
-    # static POINT_INFO reference data shipped with the page
-    "info.actions",
-    "info.channel",
-    "info.location",
-    "info.name",
+    # point cards (Phase 4.2): SVG constants, and markup assembled from escHtml()-ed parts
+    "ICON_ADD",
+    "ICON_DONE",
+    "ICON_PIN",
+    "ICON_CAUTION",
+    "body",
+    "rows",
+    "pointToggleHtml(code, selected)",
     # inside an escHtml(`…`) template — escaped as a whole
     "phone",
     # a CSS selector, not HTML

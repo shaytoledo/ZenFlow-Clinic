@@ -57,6 +57,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
 | `docs/BOT_AUDIT.md` | Phase 2.1 handler-by-handler bot audit, ranked defects B1–B17 |
 | `docs/HOSTING_AND_MONITORING.md` | Hosting options and free log-monitoring research |
+| `docs/POINT_CARD_DESIGN.md` | Phase 4.2 research + design of the acupuncture point cards (anatomy, selection, a11y, tokens) |
 
 > Start guide: `startup/START.md`
 
@@ -111,7 +112,8 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_panel
 └── static/
     ├── style.css            # zf- prefixed styles
-    ├── css/treatment.css    # treatment page styles: page-scoped tp-* classes under a .tp root
+    ├── css/tokens.css       # design tokens (--zf-*), loaded on every page; dark theme = <html data-theme="dark"> (ADR-25)
+    ├── css/treatment.css    # treatment page styles: page-scoped tp-* / pc-* (point card) classes under a .tp root
     ├── js/treatment/        # treatment page: classic scripts sharing globals, loaded IN ORDER (main.js last);
     │                        #   server values come from the JSON island #treatment-config, never Jinja inside JS
     └── js/                  # FullCalendar JS — schedule page only (loaded in order)
@@ -194,6 +196,7 @@ Any message / /start → SELECTING (main menu)
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
 - Treatment page: no `<style>` or inline `<script>` in `templates/treatment*` (only the `#treatment-config` JSON island) — tests read the page through `tests/integration/treatment_source.py`.
 - Treatment page styles: never write `style="…"` (markup or JS strings) or inject `<style>`; add a `tp-*` class to `static/css/treatment.css` as `.tp .tp-x { … }` (elements outside `#treatment-root` need `tp` on their own root). Data-driven colours are classes that set variables (`tp-tone-*`, `tp-ch-*`); a data-driven size is set through the CSSOM (`el.style.width = …`). Hover/focus feedback is CSS, not JS.
+- New UI colours/sizes come from `static/css/tokens.css` (`var(--zf-…)`); text colours must keep ≥ 4.5:1 (`tests/unit/test_design_tokens.py`). Every `tp-*`/`pc-*` class the treatment page uses must be defined, and every defined one used (`tests/integration/test_treatment_template.py`); point-card CSS uses logical properties only (RTL).
 - Treatment page events: never write `on*="…"`; declare `data-action="name"` (+ `data-*` args) and add the handler to `CLICK_ACTIONS` in `static/js/treatment/events.js`. Any value that reaches `innerHTML` goes through `escHtml()` unless it is on the reviewed list in `tests/security/test_treatment_page_xss.py` (SF-011).
 
 ## data/ files

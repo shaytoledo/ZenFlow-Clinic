@@ -25,6 +25,10 @@ SECTION_IDS = (
     "pt-name",
     "ai-points-section",
     "ai-points-grid",
+    "ai-points-count",
+    "points-undo",
+    "points-undo-text",
+    "points-undo-btn",
     "intake-card",
     "intake-body",
     "summary-body",
@@ -93,8 +97,16 @@ def _page_css() -> str:
     return "\n".join(p.read_text(encoding="utf-8") for p in ts.stylesheets())
 
 
+#: page-scoped class names: tp-* (Phase 4.1c) and pc-* (point cards, Phase 4.2)
+CLASS_NAME = r"(?:tp|pc)-[a-z0-9-]+"
+
+
 def _defined_classes() -> set[str]:
-    return set(re.findall(r"\.(tp-[a-z0-9-]+)", _page_css()))
+    return set(re.findall(r"\.(" + CLASS_NAME + ")", _page_css()))
+
+
+def _used_classes() -> set[str]:
+    return set(re.findall(r"\b" + CLASS_NAME, ts.source()))
 
 
 def test_the_stylesheet_is_balanced() -> None:
@@ -109,10 +121,15 @@ def test_the_stylesheet_is_balanced() -> None:
 
 def test_every_page_class_is_defined_in_the_stylesheet() -> None:
     defined = _defined_classes()
-    used = set(re.findall(r"\btp-[a-z0-9-]+", ts.source()))
+    used = _used_classes()
     prefixes = {name for name in used if name.endswith("-")}
     assert prefixes == {"tp-tone-", "tp-ch-"}, "a new computed class name needs a check below"
     assert sorted(used - prefixes - defined) == []
+
+
+def test_the_stylesheet_has_no_dead_classes() -> None:
+    computed = {name for name in _defined_classes() if name.startswith(("tp-tone-", "tp-ch-"))}
+    assert sorted(_defined_classes() - _used_classes() - computed) == []
 
 
 def test_every_computed_class_is_defined_in_the_stylesheet() -> None:

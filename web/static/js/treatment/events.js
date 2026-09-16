@@ -16,8 +16,14 @@ const CLICK_ACTIONS = {
   'regenerate-points': () => regeneratePoints(),
   'cancel-generation': () => cancelGeneration(),
   'add-point': () => addPoint(),
-  'quick-add-point': (el) => quickAddPoint(el.dataset.code),
+  'toggle-point': (el, e) => {
+    // A whole card toggles too, except clicks meant for its details or a text selection.
+    if (el.tagName === 'ARTICLE' && (e.target.closest('details') || String(window.getSelection()))) return;
+    togglePoint(el.dataset.code);
+  },
+  'undo-point-removal': () => undoPointRemoval(),
   'remove-point': (el) => removePoint(el.dataset.code),
+  'open-point-panel': (el) => openPointPanel(el.dataset.code, el),
   'close-point-panel': () => closePointPanel(),
   'send-advice': () => sendAdvice(),
   'send-advice-later': () => sendAdviceLater(),
@@ -46,6 +52,10 @@ document.addEventListener('input', (e) => {
   const el = e.target.closest('[data-input-action]');
   const run = el && INPUT_ACTIONS[el.dataset.inputAction];
   if (run) run(el, e);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closePointPanel();
 });
 
 document.addEventListener('focusout', (e) => {
