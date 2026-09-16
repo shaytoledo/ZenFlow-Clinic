@@ -19,8 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 def _lang(context: ContextTypes.DEFAULT_TYPE) -> str:
-    user_data = getattr(context, "user_data", None) or {}
-    return get_lang(user_data.get("selected_therapist"))
+    """The patient's language, falling back to English.
+
+    `get_lang` reads the therapist registry, which is exactly the kind of thing that may be
+    failing when the error handler runs — so it must not be able to raise from here.
+    """
+    try:
+        user_data = getattr(context, "user_data", None) or {}
+        return get_lang(user_data.get("selected_therapist"))
+    except Exception:
+        return "en"
 
 
 async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
