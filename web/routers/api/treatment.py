@@ -10,11 +10,11 @@ import json
 import logging
 import re as _re
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from web.deps import require_active_therapist, require_appointment_access
@@ -183,6 +183,70 @@ async def get_treatment_notes(patient_id: int, apt_date: str, apt_time: str, req
     notes["source"] = src
     notes["is_manual"] = (src == "manual") or (patient_id < 0)
     return JSONResponse(notes)
+
+
+# ── live updates (Phase 3.4, ZF_SSE_UPDATES) ────────────────────────────────────
+#: how often the stream re-reads the database even without a wake-up (a missed pub/sub message
+#: costs at most this much latency — no worse than the 2 s polling it replaces)
+SSE_RECHECK_SECONDS = 2.0
+#: a stream never outlives the page's own 15-minute watch
+SSE_MAX_SECONDS = 15 * 60
+
+
+def _sse(event: str, data: object) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, default=str, ensure_ascii=False)}\n\n"
+
+
+async def notes_events(
+    apt_id: int,
+    is_disconnected: Callable[[], Awaitable[bool]],
+    *,
+    recheck_seconds: float = SSE_RECHECK_SECONDS,
+    max_seconds: float = SSE_MAX_SECONDS,
+) -> AsyncIterator[str]:
+    """Server-sent events for one session: `notes` whenever they change, then `done`.
+
+    The first event is the current state. Every status write publishes a wake-up
+    (`zenflow.events`); the stream then re-reads the database — the only source of truth — and
+    sends the notes if they differ from what it sent last. It ends with `done` once nothing is
+    generating, or quietly when the page goes away or `max_seconds` pass.
+    """
+    from zenflow.events import subscribe_treatment
+
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + max_seconds
+    last = ""
+    async with subscribe_treatment(apt_id) as wait_for_change:
+        while True:
+            notes = await asyncio.to_thread(treatment_service.get_notes, apt_id) or {}
+            payload = json.dumps(notes, default=str, sort_keys=True)
+            if payload != last:
+                last = payload
+                yield _sse("notes", notes)
+            if not str(notes.get("points_status") or "").startswith("GENERATING"):
+                yield _sse("done", {})
+                return
+            if loop.time() >= deadline or await is_disconnected():
+                return
+            await wait_for_change(recheck_seconds)
+
+
+@router.get("/{patient_id}/{apt_date}/{apt_time}/stream")
+async def stream_treatment_notes(
+    patient_id: int, apt_date: str, apt_time: str, request: Request
+) -> StreamingResponse:
+    """Live notes for the treatment page while a generation runs (404 unless ZF_SSE_UPDATES)."""
+    from zenflow.settings import get_settings
+
+    if not get_settings().flags.sse_updates:
+        raise HTTPException(status_code=404, detail="Not found")
+    therapist = _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
+    return StreamingResponse(
+        notes_events(apt_id, request.is_disconnected),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.post("/{patient_id}/{apt_date}/{apt_time}")

@@ -242,3 +242,14 @@ EOF
 # Check memory
 redis-cli info memory | grep used_memory_human
 ```
+
+---
+
+## Pub/sub channel: `zenflow:treatment:{appointment_id}` (Phase 3.4)
+
+| Field | Value |
+|---|---|
+| Published by | `web/repositories/treatment_repo.py` after every `points_status` write (via `zenflow.events.notify_treatment`) |
+| Payload | the string `changed` — never data; listeners re-read the database |
+| Subscribed by | `GET /api/treatment-notes/{pid}/{date}/{time}/stream` while `ZF_SSE_UPDATES` is on |
+| Delivery | best effort (no replay). The stream re-checks the database every 2 s anyway, so a missed message costs at most that latency; with Redis down, streaming degrades to that timer. |

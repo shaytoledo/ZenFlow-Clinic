@@ -123,6 +123,7 @@ zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── queue.py                 # TaskQueue ABC + SqliteTaskQueue (jobs table): enqueue/claim/complete/fail, idempotency, backoff
 ├── worker.py                # Job worker: default_registry.handler(name); in-process task or python -m zenflow.worker
 ├── leases.py                # Named expiring DB locks: acquire/release/held (one generation per appointment)
+├── events.py                # Live-page wake-ups: notify_treatment() / subscribe_treatment() (Redis pub/sub, best effort)
 ├── migrate_timestamps.py    # python -m zenflow.migrate_timestamps [--dry-run] — legacy timestamps → canonical UTC
 ├── db_backup.py             # backup_database() via SQLite online backup (WAL-safe)
 ├── logging.py               # Structured logging: context (request_id…), redaction, console/JSON formatters, timed()
@@ -209,6 +210,7 @@ Any message / /start → SELECTING (main menu)
 | `CLINIC_TZ` | `Asia/Jerusalem` | clinic zone for `today()`; stored instants are always UTC |
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `ZF_CONV_TIMEOUT_MINUTES` | `30` | Idle minutes before a patient flow is closed; `0` = never |
+| `ZF_SSE_UPDATES` | `0` | `1` = the treatment page follows a generation over server-sent events instead of 2 s polling |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
 | `GOOGLE_REDIRECT_URI` | `http://localhost:8080/auth/callback` | Calendar OAuth redirect |
