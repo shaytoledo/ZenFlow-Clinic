@@ -1,0 +1,25 @@
+      <!-- Lifestyle Advice -->
+      <div class="zf-card">
+        <div class="zf-card-title">
+          <div class="zf-card-icon" style="background:#FEF3C7;color:#D97706;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </div>
+          <span>{{ t['treatment_lifestyle'] if t else 'Lifestyle Recommendations' }}</span>
+          <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#DCFCE7;color:#16A34A;padding:2px 8px;border-radius:999px;">Customisable</span>
+        </div>
+        <p style="font-size:12px;color:#9CA3AF;margin-top:8px;">Toggle recommendations to include in the patient message</p>
+        <div id="advice-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;"></div>
+
+        <!-- Send buttons row -->
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+          <button id="send-advice-btn" class="zf-btn zf-btn-primary" style="flex:1;justify-content:center;" onclick="sendAdvice()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            {{ t['treatment_send_now'] if t else 'Send Now' }}
+          </button>
+          <button id="send-later-btn" class="zf-btn zf-btn-outline" style="flex:1;justify-content:center;" onclick="sendAdviceLater()" title="Queued to send 24h after session completes">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Send in 24h
+          </button>
+        </div>
+        <div id="send-later-status" style="display:none;font-size:12px;color:#16A34A;margin-top:6px;text-align:center;"></div>
+      </div>

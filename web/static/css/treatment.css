@@ -1,0 +1,70 @@
+/* Treatment session page (moved out of templates/treatment.html in Phase 4.1). */
+/* ── Manual feedback stars ─────────────────────────────── */
+.zf-star-btn {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  border: 2px solid #E5E7EB;
+  background: #fff;
+  font-size: 14px; font-weight: 700;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+}
+.zf-star-btn:hover { border-color: #0D9488; color: #0D9488; background: #F0FDFA; }
+.zf-star-btn.active { border-color: #0D9488; background: #0D9488; color: #fff; }
+
+/* ── Intake conversation messages ─────────────────────── */
+.zf-intake-thread { display: flex; flex-direction: column; gap: 10px; }
+.zf-intake-msg {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: flex-start;
+}
+.zf-intake-msg.user  { direction: ltr; }
+.zf-intake-msg.ai    { direction: ltr; }
+.zf-intake-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0; margin-top: 2px;
+}
+.zf-intake-msg.user  .zf-intake-avatar { background: #DBEAFE; color: #1D4ED8; }
+.zf-intake-msg.ai    .zf-intake-avatar { background: #CCFBF1; color: #0D9488; }
+.zf-intake-bubble {
+  border-radius: 12px;
+  padding: 9px 13px;
+  line-height: 1.55;
+}
+.zf-intake-msg.user  .zf-intake-bubble { background: #EFF6FF; border: 1px solid #BFDBFE; }
+.zf-intake-msg.ai    .zf-intake-bubble { background: #F0FDF4; border: 1px solid #A7F3D0; }
+.zf-intake-role {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.6px; margin-bottom: 4px;
+}
+.zf-intake-msg.user  .zf-intake-role { color: #1D4ED8; }
+.zf-intake-msg.ai    .zf-intake-role { color: #0D9488; }
+.zf-intake-text { font-size: 13px; color: #374151; }
+
+/* ── Follow-up conversation ───────────────────────────── */
+.zf-followup-msg { padding: 8px 12px; border-radius: 10px; margin-bottom: 6px; }
+.zf-followup-msg.patient { background: #F0F9FF; border-inline-start: 3px solid #2563EB; }
+.zf-followup-msg.ai      { background: #F0FDF4; border-inline-start: 3px solid #0D9488; }
+
+/* ── Metric cards in follow-up ────────────────────────── */
+.zf-metric-card {
+  display: flex; align-items: center; gap: 10px;
+  background: #F9FAFB; border: 1px solid #E5E7EB;
+  border-radius: 10px; padding: 10px 14px;
+}
+.zf-metric-num { font-size: 22px; font-weight: 800; color: #0D9488; }
+.zf-metric-label { font-size: 12px; color: #6B7280; line-height: 1.4; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── AI-suggested point cards ─────────────────────── */
+.zf-pt-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.10);
+}
+.zf-pt-card:active { transform: translateY(0); }

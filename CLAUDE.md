@@ -107,8 +107,13 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │   ├── therapist_service.py
 │   └── cache_service.py
 ├── templates/               # Jinja2 templates (all extend base.html)
+│   ├── treatment.html       # treatment page entry (<400 lines): layout + includes + script tags
+│   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_panel
 └── static/
     ├── style.css            # zf- prefixed styles
+    ├── css/treatment.css    # treatment page styles
+    ├── js/treatment/        # treatment page: classic scripts sharing globals, loaded IN ORDER (main.js last);
+    │                        #   server values come from the JSON island #treatment-config, never Jinja inside JS
     └── js/                  # FullCalendar JS — schedule page only (loaded in order)
         ├── utils.js         # $ helper, showToast, fmt
         ├── calendar-list.js # Sidebar calendar list, visibility toggles, rename
@@ -187,6 +192,7 @@ Any message / /start → SELECTING (main menu)
 - Relay Bot clients: never build `Bot(token=...)` in a module. `bot.main.wire_bots()` hands the relay the running applications' own clients (BOT_AUDIT B14).
 - Booking: write the appointment row first (`save_appointment` raises `SlotTaken`), then touch the calendar (BOT_AUDIT B4).
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
+- Treatment page: no `<style>` or inline `<script>` in `templates/treatment*` (only the `#treatment-config` JSON island) — tests read the page through `tests/integration/treatment_source.py`.
 
 ## data/ files
 | File | Purpose |

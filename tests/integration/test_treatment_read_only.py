@@ -10,17 +10,16 @@ left behind by a crash, never a running job).
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import Any
 
 import pytest
 
 from bot.services import pipeline_jobs as pj
+from tests.integration import treatment_source
 from zenflow import leases
 
 pytestmark = pytest.mark.integration
 
-TEMPLATE = Path(__file__).resolve().parents[2] / "web" / "templates" / "treatment.html"
 GENERATING_ENDPOINTS = ("rediagnose", "generate-points", "regenerate-points")
 PW = "pw-Test-123"
 
@@ -77,7 +76,7 @@ async def test_opening_the_session_twice_enqueues_and_generates_nothing(
 
 def test_the_page_script_only_generates_from_an_explicit_click() -> None:
     """Every function that calls a generating endpoint runs only on a click or an Enter key."""
-    html = TEMPLATE.read_text(encoding="utf-8")
+    html = treatment_source.source()
     assert "_autoLoadDiagnosis" not in html
 
     starts = list(re.finditer(r"^(?:async )?function (\w+)\(", html, re.MULTILINE))

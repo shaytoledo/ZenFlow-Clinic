@@ -1,0 +1,150 @@
+// Treatment page — Loading the session and rendering the intake history.
+// Classic script: shares globals with the other treatment/*.js files, loaded in order.
+
+// ── Load treatment data ────────────────────────────────────────────────────────
+
+async function loadTreatment() {
+  if (!patientId || !aptDate) return;
+  try {
+    const data = await fetch(`/api/appointment/${patientId}/${aptDate}/${aptTimeSlug}`).then(r => r.json());
+
+    const initials = data.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('pt-initials').textContent = initials;
+    const nameEl = document.getElementById('pt-name');
+    nameEl.innerHTML = `<a href="/patients/${patientId}" style="color:inherit;text-decoration:none;" onmouseover="this.style.color='#0D9488'" onmouseout="this.style.color=''">${escHtml(data.patient_name)}</a>`;
+    const d = new Date(data.date);
+    document.getElementById('pt-meta').textContent =
+      d.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' at ' + data.time;
+    document.getElementById('pt-session-num').textContent = 'Session';
+
+    // Intake history — redesigned conversation view
+    renderIntakeHistory(data.intake_history, data.date);
+
+    // Load treatment notes
+    let notes = null;
+    try {
+      const nr = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}`);
+      if (nr.ok) notes = await nr.json();
+    } catch (_) {}
+
+    // Show no-Telegram banner for manual appointments
+    _isManual = notes?.is_manual || data.source === 'manual' || parseInt(patientId) < 0;
+    if (_isManual) {
+      const banner = document.getElementById('no-telegram-banner');
+      banner.style.display = 'flex';
+      document.getElementById('intake-source-badge').textContent = 'Manual Booking';
+      document.getElementById('intake-source-badge').style.background = '#FEF3C7';
+      document.getElementById('intake-source-badge').style.color = '#B45309';
+    }
+
+    renderDiagnosisBlock(notes, data.summary);
+
+    if (notes && Array.isArray(notes.ai_suggested_points)) {
+      aiPointRationale = {};
+      notes.ai_suggested_points.forEach(p => {
+        if (typeof p === 'object' && p.code) aiPointRationale[p.code] = p.rationale || '';
+        else if (typeof p === 'string') aiPointRationale[p] = '';
+      });
+    }
+
+    renderSuggestedPoints(notes, data.summary);
+
+    if (notes) {
+      if (notes.tongue_observation) document.getElementById('tongue-input').value = notes.tongue_observation;
+      if (notes.pulse_observation)  document.getElementById('pulse-input').value  = notes.pulse_observation;
+      if (notes.session_notes)      document.getElementById('session-notes').value = notes.session_notes;
+      const tdEl = document.getElementById('therapist-diagnosis');
+      const tnEl = document.getElementById('therapist-notes');
+      if (tdEl && notes.therapist_diagnosis) tdEl.value = notes.therapist_diagnosis;
+      if (tnEl && notes.therapist_notes)     tnEl.value = notes.therapist_notes;
+      if (Array.isArray(notes.used_points) && notes.used_points.length > 0) {
+        usedPoints = notes.used_points;
+        renderPoints();
+      }
+      // Restore manual feedback
+      if (notes.manual_feedback_rating) {
+        _mfRating = notes.manual_feedback_rating;
+        highlightMfStar(_mfRating);
+      }
+      if (notes.manual_feedback_notes) {
+        document.getElementById('mf-notes').value = notes.manual_feedback_notes;
+      }
+    }
+
+    // Build advice from AI recommendations
+    const aiRecs = notes && notes.ai_recommendations;
+    if (aiRecs && (aiRecs.diet || aiRecs.sleep || aiRecs.exercise || aiRecs.stress)) {
+      advice = [];
+      if (aiRecs.sleep)    advice.push({ id: 'sleep',    icon: '🌙', category: 'Sleep',    text: aiRecs.sleep,    enabled: true });
+      if (aiRecs.diet)     advice.push({ id: 'diet',     icon: '🥗', category: 'Diet',     text: aiRecs.diet,     enabled: true });
+      if (aiRecs.stress)   advice.push({ id: 'stress',   icon: '🧘', category: 'Stress',   text: aiRecs.stress,   enabled: true });
+      if (aiRecs.exercise) advice.push({ id: 'exercise', icon: '🏃', category: 'Exercise', text: aiRecs.exercise, enabled: false });
+    }
+    renderAdvice();
+
+    // Render follow-up conversation if it exists
+    if (notes?.followup_conversation) {
+      renderFollowupResults(notes.followup_conversation);
+    }
+
+    const hasSavedPoints = notes && Array.isArray(notes.ai_suggested_points) && notes.ai_suggested_points.length > 0;
+    const hasDiagnosis   = Boolean(notes?.tcm_pattern);
+    const hasIntake      = Boolean(data.summary || (data.intake_history && data.intake_history.length > 0));
+    const status         = notes?.points_status || '';
+    const botPipelineRunning = status.startsWith('GENERATING');
+
+    // Opening a session never starts a generation (plan 3.2). The queued pipeline owns the
+    // automatic run; the therapist starts any other run with an explicit click.
+    if (botPipelineRunning) {
+      // The pipeline is working — poll the DB and render each stage as it lands.
+      _pollForPoints();
+      if (!data.summary) _startSummaryPoller();
+    } else if (!hasSavedPoints) {
+      _showGenerateButton({
+        failed: status === 'FAILED',
+        cancelled: status === 'CANCELLED',
+        hasInput: hasDiagnosis || hasIntake,
+      });
+    } else if (!data.summary) {
+      // Points are already rendered but summary hasn't arrived from the bot yet
+      _startSummaryPoller();
+    }
+
+  } catch(e) {
+    console.error('Treatment load error:', e);
+    document.getElementById('pt-name').textContent = 'Error loading session';
+  }
+}
+
+// ── Intake history renderer ───────────────────────────────────────────────────
+
+function renderIntakeHistory(history, sessionDate) {
+  const intakeBody = document.getElementById('intake-body');
+  if (history && history.length > 0) {
+    const msgs = history.map(msg => {
+      const isUser = msg.role === 'user';
+      const icon = isUser
+        ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+        : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.84A2.5 2.5 0 0 1 9.5 2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.84A2.5 2.5 0 0 0 14.5 2"/></svg>`;
+      return `<div class="zf-intake-msg ${isUser ? 'user' : 'ai'}">
+        <div class="zf-intake-avatar">${icon}</div>
+        <div class="zf-intake-bubble">
+          <div class="zf-intake-role">${isUser ? 'Patient' : 'AI Assistant'}</div>
+          <div class="zf-intake-text">${escHtml(msg.content)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    const dateStr = new Date(sessionDate).toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+    intakeBody.innerHTML = `<div class="zf-intake-thread">${msgs}</div>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:14px;padding-top:10px;border-top:1px solid #F3F4F6;display:flex;align-items:center;gap:6px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        ${history.length} exchange${history.length !== 1 ? 's' : ''} · Collected via Telegram Bot · ${dateStr}
+      </div>`;
+  } else {
+    intakeBody.innerHTML = `<div style="text-align:center;padding:24px 0;">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:10px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <p style="font-size:13px;color:#9CA3AF;margin:0;">No intake questionnaire for this session.</p>
+      <p style="font-size:11px;color:#D1D5DB;margin:4px 0 0;">Patient booked without completing the AI intake flow.</p>
+    </div>`;
+  }
+}
