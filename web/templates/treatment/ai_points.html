@@ -1,0 +1,20 @@
+  <!-- AI Suggested Points — full-width card grid -->
+  <div id="ai-points-section" style="display:none;margin-top:20px;">
+    <div class="zf-card" style="padding:0;overflow:hidden;">
+      <div class="zf-card-title" style="padding:16px 20px 12px;border-bottom:1px solid #F3F4F6;">
+        <div class="zf-card-icon" style="background:linear-gradient(135deg,#CCFBF1,#A7F3D0);color:#0D9488;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+            <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+          </svg>
+        </div>
+        <div>
+          <span style="font-size:14px;font-weight:700;color:#111827;">{{ t['treatment_ai_points_header'] if t else 'AI-Suggested Acupuncture Points' }}</span>
+          <span style="font-size:11px;color:#9CA3AF;margin-inline-start:8px;" id="ai-points-count"></span>
+        </div>
+        <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#CCFBF1;color:#0D9488;padding:3px 10px;border-radius:999px;">{{ t['treatment_personalised_formula'] if t else 'Personalised Formula' }}</span>
+      </div>
+      <div id="ai-points-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0;"></div>
+    </div>
+  </div>

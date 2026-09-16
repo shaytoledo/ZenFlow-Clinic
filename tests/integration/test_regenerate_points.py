@@ -10,19 +10,18 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 from typing import Any
 
 import pytest
 
 from bot.services import pipeline_jobs as pj
 from tests.conftest import FakeChatModel
+from tests.integration import treatment_source
 from zenflow.queue import get_default_queue
 from zenflow.worker import Worker, default_registry
 
 pytestmark = pytest.mark.integration
 
-TEMPLATE = Path(__file__).resolve().parents[2] / "web" / "templates" / "treatment.html"
 PW = "pw-Test-123"
 OLD_POINTS = [{"code": "HT7", "rationale": "old"}, {"code": "PC6", "rationale": "old"}]
 NEW_A = [{"code": "LR3"}, {"code": "GB20"}]
@@ -256,7 +255,7 @@ def _function_body(html: str, name: str) -> str:
 
 
 def test_the_page_follows_the_status_only_after_the_server_accepted() -> None:
-    body = _function_body(TEMPLATE.read_text(encoding="utf-8"), "regeneratePoints")
+    body = _function_body(treatment_source.source(), "regeneratePoints")
     assert body.index("regenerate-points") < body.index(
         "_pollForPoints("
     ), "polling starts only after the 202 — no race between the response and the poller"
@@ -264,7 +263,7 @@ def test_the_page_follows_the_status_only_after_the_server_accepted() -> None:
 
 
 def test_the_page_offers_cancel_and_handles_cancelled() -> None:
-    html = TEMPLATE.read_text(encoding="utf-8")
+    html = treatment_source.source()
     assert 'onclick="cancelGeneration()"' in html
     assert "cancel-generation" in _function_body(html, "cancelGeneration")
     assert "'CANCELLED'" in _function_body(html, "_pollForPoints")

@@ -88,7 +88,9 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 4 — Clinical UI (items 1, 3, 9)
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 4.1 | Split `treatment.html` into partials + JS modules + CSS | [ ] | | | pure refactor, snapshot-tested |
+| 4.1a | Split `treatment.html` into partials + ordered scripts + one stylesheet | [x] | 2026-09-17 | e5894b4 | pure move: 1,967 → 66 lines; 10 partials, 10 classic scripts (shared globals, main.js last), `static/css/treatment.css`; the one Jinja value inside JS became a JSON island. Before/after DOM snapshot of 4 sessions (tag, id, class, style, attributes, text, 60 computed styles per element): identical — [PR #18](https://github.com/shaytoledo/ZenFlow-Clinic/pull/18) |
+| 4.1b | Inline `onclick` → event delegation; escape AI/patient data in `innerHTML` (F10) | [ ] | | | |
+| 4.1c | Inline styles → classes + CSS custom properties | [ ] | | | computed-style snapshot must stay identical |
 | 4.2 | Point layout redesign (tokens, cards, states, a11y, RTL) | [ ] | | | item 1a |
 | 4.3 | `acupoints` + `acupoint_images` + Storage ABC + ingester | [ ] | | | item 9 |
 | 4.4 | Sidebar user card → /settings | [ ] | | | item 3 |

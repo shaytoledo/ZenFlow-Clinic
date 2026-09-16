@@ -11,16 +11,15 @@ from __future__ import annotations
 
 import asyncio
 import json
-from pathlib import Path
 from typing import Any
 
 import pytest
 
+from tests.integration import treatment_source
 from zenflow import events
 
 pytestmark = pytest.mark.integration
 
-TEMPLATE = Path(__file__).resolve().parents[2] / "web" / "templates" / "treatment.html"
 PW = "pw-Test-123"
 
 
@@ -173,7 +172,7 @@ async def test_the_page_knows_whether_to_stream(session, fake_redis, monkeypatch
 
     page = f"/treatment/{session['slug']}"
     off = await session["client"].get(page)
-    assert "const ZF_SSE_UPDATES = false;" in off.text
+    assert 'id="treatment-config">{"sse_updates": false}' in off.text
 
     monkeypatch.setenv("ZF_SSE_UPDATES", "1")
     settings_mod.reset_settings()
@@ -181,10 +180,10 @@ async def test_the_page_knows_whether_to_stream(session, fake_redis, monkeypatch
         on = await session["client"].get(page)
     finally:
         settings_mod.reset_settings()
-    assert "const ZF_SSE_UPDATES = true;" in on.text
+    assert 'id="treatment-config">{"sse_updates": true}' in on.text
 
 
 def test_the_page_falls_back_to_polling() -> None:
-    html = TEMPLATE.read_text(encoding="utf-8")
+    html = treatment_source.javascript()
     assert "new EventSource(" in html
     assert "onerror" in html and "setInterval" in html
