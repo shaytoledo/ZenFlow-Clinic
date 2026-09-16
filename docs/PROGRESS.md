@@ -71,7 +71,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 |---|---|---|---|---|---|
 | 2.1 | `docs/BOT_AUDIT.md` — full handler sweep, ranked findings | [x] | 2026-09-16 | a993baf | 17 ranked findings B1–B17 (F3/F4/F5 confirmed; new: wrong-patient relay routing, Markdown breaks relay, double booking, stale therapist registry, silent booking loss). **Awaiting owner scope agreement + Q6/Q8/Q9 before 2.2** — [PR #7](https://github.com/shaytoledo/ZenFlow-Clinic/pull/7) |
 | 2.2a | Relay safety: B1 wrong-patient routing, B2 Markdown, B5 stale registry, B7 media (interim), B12 therapist substitution | [x] | 2026-09-16 | ed80de1 | 13 tests in `tests/bot/test_relay_safety.py`; no "last patient who wrote" fallback; relay bodies sent as plain text; media refused, never dropped. See `docs/BOT_AUDIT.md` §1a — [PR #8](https://github.com/shaytoledo/ZenFlow-Clinic/pull/8) |
-| 2.2b | B3 follow-up routing (F3), B4 double booking, B9 misreported relay failures | [x] | 2026-09-16 | | 24 new tests; partial unique index `ux_appointments_active_slot`; first booking/cancel flow tests. See `docs/BOT_AUDIT.md` §1b |
+| 2.2b | B3 follow-up routing (F3), B4 double booking, B9 misreported relay failures | [x] | 2026-09-16 | ee77c73 | 24 new tests; partial unique index `ux_appointments_active_slot`; first booking/cancel flow tests. See `docs/BOT_AUDIT.md` §1b — [PR #9](https://github.com/shaytoledo/ZenFlow-Clinic/pull/9) |
 | 2.2c | B6 /start reset, B8 error handler, B10 timeout, B11 stale callbacks, B14 Bot lifecycle, /cancel + /help | [ ] | | | B10 needs Q9 |
 | 2.3 | State persistence across restarts | [ ] | | | |
 | 2.4 | Multi-therapist relay isolation tests | [ ] | | | |
