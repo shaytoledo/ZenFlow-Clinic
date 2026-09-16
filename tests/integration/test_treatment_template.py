@@ -77,6 +77,67 @@ def test_no_css_or_javascript_lives_in_the_templates() -> None:
     ], "only the JSON config island may be inline"
 
 
+def test_no_inline_styles_anywhere_on_the_page() -> None:
+    """Phase 4.1c: a strict CSP (Phase 9) ignores style attributes and injected <style> elements.
+
+    Styles are classes in static/css/treatment.css; a value that comes from data (a width) is
+    set through the CSSOM (`el.style.width = …`), which the CSP allows.
+    """
+    source = ts.source()
+    assert re.findall(r"""\sstyle\s*=\s*["'`\\]""", source) == []
+    assert "cssText" not in source
+    assert not re.search(r"""createElement\(\s*["']style["']""", source)
+
+
+def _page_css() -> str:
+    return "\n".join(p.read_text(encoding="utf-8") for p in ts.stylesheets())
+
+
+def _defined_classes() -> set[str]:
+    return set(re.findall(r"\.(tp-[a-z0-9-]+)", _page_css()))
+
+
+def test_the_stylesheet_is_balanced() -> None:
+    """A stray brace makes the browser drop the rule after it, silently."""
+    css = re.sub(r"/\*.*?\*/", "", _page_css(), flags=re.DOTALL)
+    depth = 0
+    for char in css:
+        depth += {"{": 1, "}": -1}.get(char, 0)
+        assert depth >= 0, "a '}' closes nothing"
+    assert depth == 0
+
+
+def test_every_page_class_is_defined_in_the_stylesheet() -> None:
+    defined = _defined_classes()
+    used = set(re.findall(r"\btp-[a-z0-9-]+", ts.source()))
+    prefixes = {name for name in used if name.endswith("-")}
+    assert prefixes == {"tp-tone-", "tp-ch-"}, "a new computed class name needs a check below"
+    assert sorted(used - prefixes - defined) == []
+
+
+def test_every_computed_class_is_defined_in_the_stylesheet() -> None:
+    """Tone and channel class names are assembled in JS from these literal maps."""
+    js = ts.javascript()
+
+    def literals(pattern: str) -> list[str]:
+        found = re.search(pattern, js, re.DOTALL)
+        assert found is not None, pattern
+        return re.findall(r"'([a-z-]+)'", found.group(1))
+
+    tones = {
+        *literals(r"function _certaintyTone\(pct\) \{(.*?)\n\}"),
+        *literals(r"const improvementTones = \{(.*?)\};"),
+        *literals(r"const improvementTone = (.*?);"),
+        *literals(r"const painTone = (.*?);"),
+    }
+    # the map's keys are channel names ('Large Intestine'); only its lowercase values match
+    channels = {*literals(r"const CHANNEL_THEMES = \{(.*?)\};"), "default"}
+
+    assert len(tones) >= 5 and len(channels) == 15
+    missing = {f"tp-tone-{t}" for t in tones} | {f"tp-ch-{c}" for c in channels}
+    assert sorted(missing - _defined_classes()) == []
+
+
 def test_the_scripts_start_the_page_last() -> None:
     """Classic scripts share globals and run in order: start-up must come after every definition."""
     starters = [

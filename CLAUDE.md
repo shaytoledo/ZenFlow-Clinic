@@ -111,7 +111,7 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_panel
 └── static/
     ├── style.css            # zf- prefixed styles
-    ├── css/treatment.css    # treatment page styles
+    ├── css/treatment.css    # treatment page styles: page-scoped tp-* classes under a .tp root
     ├── js/treatment/        # treatment page: classic scripts sharing globals, loaded IN ORDER (main.js last);
     │                        #   server values come from the JSON island #treatment-config, never Jinja inside JS
     └── js/                  # FullCalendar JS — schedule page only (loaded in order)
@@ -193,6 +193,7 @@ Any message / /start → SELECTING (main menu)
 - Booking: write the appointment row first (`save_appointment` raises `SlotTaken`), then touch the calendar (BOT_AUDIT B4).
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
 - Treatment page: no `<style>` or inline `<script>` in `templates/treatment*` (only the `#treatment-config` JSON island) — tests read the page through `tests/integration/treatment_source.py`.
+- Treatment page styles: never write `style="…"` (markup or JS strings) or inject `<style>`; add a `tp-*` class to `static/css/treatment.css` as `.tp .tp-x { … }` (elements outside `#treatment-root` need `tp` on their own root). Data-driven colours are classes that set variables (`tp-tone-*`, `tp-ch-*`); a data-driven size is set through the CSSOM (`el.style.width = …`). Hover/focus feedback is CSS, not JS.
 - Treatment page events: never write `on*="…"`; declare `data-action="name"` (+ `data-*` args) and add the handler to `CLICK_ACTIONS` in `static/js/treatment/events.js`. Any value that reaches `innerHTML` goes through `escHtml()` unless it is on the reviewed list in `tests/security/test_treatment_page_xss.py` (SF-011).
 
 ## data/ files

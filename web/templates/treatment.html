@@ -3,24 +3,24 @@
 {% block page_heading %}{{ t['treatment_active_session'] if t else 'Active Treatment Session' }}{% endblock %}
 
 {% block topbar_actions %}
-<a href="/patients" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 12px;">
+<a href="/patients" class="zf-btn zf-btn-outline tp tp-back-link">
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="zf-rtl-flip"><polyline points="15 18 9 12 15 6"/></svg>
   {{ t['treatment_all_patients'] if t else 'All Patients' }}
 </a>
 {% endblock %}
 
 {% block content %}
-<div style="padding: 28px;" id="treatment-root">
+<div class="tp tp-page" id="treatment-root">
 
   {% include "treatment/header.html" %}
 
   {% include "treatment/ai_points.html" %}
 
   <!-- Two-column layout -->
-  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+  <div class="tp-columns">
 
     <!-- LEFT COLUMN -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="tp-column">
 
       {% include "treatment/intake.html" %}
 
@@ -29,7 +29,7 @@
     </div>
 
     <!-- RIGHT COLUMN -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="tp-column">
 
       {% include "treatment/points.html" %}
 

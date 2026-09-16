@@ -90,7 +90,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 |---|---|---|---|---|---|
 | 4.1a | Split `treatment.html` into partials + ordered scripts + one stylesheet | [x] | 2026-09-17 | e5894b4 | pure move: 1,967 → 66 lines; 10 partials, 10 classic scripts (shared globals, main.js last), `static/css/treatment.css`; the one Jinja value inside JS became a JSON island. Before/after DOM snapshot of 4 sessions (tag, id, class, style, attributes, text, 60 computed styles per element): identical — [PR #18](https://github.com/shaytoledo/ZenFlow-Clinic/pull/18) |
 | 4.1b | Inline `onclick` → event delegation; escape AI/patient data in `innerHTML` (F10) | [x] | 2026-09-17 | 5eb7ce2 | 26 inline handlers → `data-action` + `events.js` (click/input/focus/hover delegation). **SF-011 (HIGH) found & closed**: AI advice text rendered raw — a planted `<img onerror>` executed (reproduced), point codes broke out of `onclick`. `escHtml` escapes quotes. DOM snapshot of 4 sessions identical except the removed `on*` attributes; injection probes inert — [PR #19](https://github.com/shaytoledo/ZenFlow-Clinic/pull/19) |
-| 4.1c | Inline styles → classes + CSS custom properties | [ ] | | | computed-style snapshot must stay identical |
+| 4.1c | Inline styles → classes + CSS custom properties | [x] | 2026-09-17 | _pending_ | 174 static `style="…"` (140 distinct) → page-scoped `tp-*` classes in `static/css/treatment.css` under a `.tp` root (`.tp .x` outranks the shared `zf-*` rules and their `:hover`, as inline styles did); the 13 data-driven ones → `tp-ch-*` channel themes and `tp-tone-*` status tones (CSS variables) plus one CSSOM width. JS hover/focus handlers → CSS `:hover`/`:focus`; the injected `<style>` and the overlay `cssText` are gone. DOM snapshot of the 4 sessions (tag, id, attributes, text, 60 computed styles): identical; hover, focus, email dialog, progress bar and point panel checked by hand. Tests: no style attribute, every `tp-*` class (incl. computed tone/channel names) is defined, balanced stylesheet |
 | 4.2 | Point layout redesign (tokens, cards, states, a11y, RTL) | [ ] | | | item 1a |
 | 4.3 | `acupoints` + `acupoint_images` + Storage ABC + ingester | [ ] | | | item 9 |
 | 4.4 | Sidebar user card → /settings | [ ] | | | item 3 |
@@ -137,7 +137,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | 9.1 | Route/authz table + CI test for new routes | [ ] | | | |
 | 9.2 | Session & transport hardening | [ ] | | | |
 | 9.3 | CSRF | [ ] | | | |
-| 9.4 | Security headers + CSP with nonces | [ ] | | | needs 4.1 |
+| 9.4 | Security headers + CSP with nonces | [ ] | | | needs 4.1 (done). The treatment page has no inline script, handler or style left; `base.html` and 12 other templates still use `style="…"` — move them too, or ship `style-src 'unsafe-inline'` (styles cannot run script) and tighten later |
 | 9.5 | Rate limiting & lockout (web + Telegram) | [ ] | | | |
 | 9.6 | Secrets & key rotation, `SecretsProvider` | [ ] | | | |
 | 9.7 | Input/output safety (XSS, Markdown injection, SSRF) | [ ] | | | |

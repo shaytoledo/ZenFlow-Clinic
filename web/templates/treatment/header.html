@@ -1,20 +1,20 @@
   <!-- No-Telegram alert banner (shown dynamically if source=manual) -->
-  <div id="no-telegram-banner" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:none;align-items:center;gap:10px;">
+  <div id="no-telegram-banner" class="tp-telegram-banner">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <div>
-      <span style="font-size:13px;font-weight:600;color:#92400E;">{{ t['treatment_no_telegram'] if t else 'No Telegram account linked' }}</span>
-      <span style="font-size:12px;color:#B45309;margin-left:6px;">{{ t['treatment_no_telegram_body'] if t else 'This patient was booked manually — automated follow-up will not be sent. Use the manual feedback section below after the session.' }}</span>
+      <span class="tp-banner-title">{{ t['treatment_no_telegram'] if t else 'No Telegram account linked' }}</span>
+      <span class="tp-banner-text">{{ t['treatment_no_telegram_body'] if t else 'This patient was booked manually — automated follow-up will not be sent. Use the manual feedback section below after the session.' }}</span>
     </div>
   </div>
 
   <!-- Patient header bar -->
   <div class="zf-treatment-hdr">
-    <div class="zf-avatar" id="pt-initials" style="width:44px;height:44px;font-size:14px;">—</div>
+    <div class="zf-avatar tp-avatar" id="pt-initials">—</div>
     <div>
       <h2 class="zf-treatment-name" id="pt-name">Loading…</h2>
       <p class="zf-treatment-meta" id="pt-meta">Loading…</p>
     </div>
-    <div style="margin-inline-start:auto;display:flex;gap:10px;align-items:center;">
+    <div class="tp-header-actions">
       <span class="zf-badge zf-badge-blue" id="pt-session-num">Session —</span>
     </div>
   </div>

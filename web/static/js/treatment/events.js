@@ -6,7 +6,8 @@
 //   data-action="name"        + data-* arguments   → CLICK_ACTIONS[name](element, event)
 //   data-input-action="name"                       → INPUT_ACTIONS[name](element, event)
 //   data-advice-edit="id"     (contenteditable)    → saved when it loses focus
-//   data-hover="preset"                            → HOVER / UNHOVER inline styles
+// Hover and focus feedback is plain CSS (static/css/treatment.css), like every other style on
+// the page: no markup carries a style attribute either (Phase 4.1c).
 
 const CLICK_ACTIONS = {
   'toggle-intake': () => toggleIntake(),
@@ -35,18 +36,6 @@ const INPUT_ACTIONS = {
   'notes-change': () => onNotesChange(),
 };
 
-// Visual hover feedback, kept exactly as the inline handlers set it (4.1c moves it to CSS).
-const HOVER = {
-  'link-teal': { color: '#0D9488' },
-  'card-row': { background: '#FAFAFA' },
-  'add-point-btn': { borderColor: '#0D9488', color: '#0D9488', background: '#F0FDFA' },
-};
-const UNHOVER = {
-  'link-teal': { color: '' },
-  'card-row': { background: '' },
-  'add-point-btn': { borderColor: '#E5E7EB', color: '#9CA3AF', background: '#fff' },
-};
-
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
   const run = el && CLICK_ACTIONS[el.dataset.action];
@@ -59,32 +48,7 @@ document.addEventListener('input', (e) => {
   if (run) run(el, e);
 });
 
-document.addEventListener('focusin', (e) => {
-  const el = e.target.closest('[data-advice-edit]');
-  if (el) el.style.background = '#F9FAFB';
-});
-
 document.addEventListener('focusout', (e) => {
   const el = e.target.closest('[data-advice-edit]');
   if (el) updateAdviceText(el.dataset.adviceEdit, el.textContent);
-});
-
-// mouseenter/mouseleave do not bubble: emulate them for every [data-hover] ancestor the pointer
-// actually entered or left (not ones it merely moved inside of).
-function _hoverChain(e) {
-  const chain = [];
-  let el = e.target.closest ? e.target.closest('[data-hover]') : null;
-  while (el) {
-    if (!el.contains(e.relatedTarget)) chain.push(el);
-    el = el.parentElement ? el.parentElement.closest('[data-hover]') : null;
-  }
-  return chain;
-}
-
-document.addEventListener('mouseover', (e) => {
-  _hoverChain(e).forEach((el) => Object.assign(el.style, HOVER[el.dataset.hover] || {}));
-});
-
-document.addEventListener('mouseout', (e) => {
-  _hoverChain(e).forEach((el) => Object.assign(el.style, UNHOVER[el.dataset.hover] || {}));
 });

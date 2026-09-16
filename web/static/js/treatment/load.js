@@ -11,7 +11,7 @@ async function loadTreatment() {
     const initials = data.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
     document.getElementById('pt-initials').textContent = initials;
     const nameEl = document.getElementById('pt-name');
-    nameEl.innerHTML = `<a href="/patients/${patientId}" style="color:inherit;text-decoration:none;" data-hover="link-teal">${escHtml(data.patient_name)}</a>`;
+    nameEl.innerHTML = `<a href="/patients/${patientId}" class="tp-patient-link">${escHtml(data.patient_name)}</a>`;
     const d = new Date(data.date);
     document.getElementById('pt-meta').textContent =
       d.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' at ' + data.time;
@@ -136,15 +136,15 @@ function renderIntakeHistory(history, sessionDate) {
     }).join('');
     const dateStr = new Date(sessionDate).toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
     intakeBody.innerHTML = `<div class="zf-intake-thread">${msgs}</div>
-      <div style="font-size:11px;color:#9CA3AF;margin-top:14px;padding-top:10px;border-top:1px solid #F3F4F6;display:flex;align-items:center;gap:6px;">
+      <div class="tp-intake-footer">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         ${history.length} exchange${history.length !== 1 ? 's' : ''} · Collected via Telegram Bot · ${dateStr}
       </div>`;
   } else {
-    intakeBody.innerHTML = `<div style="text-align:center;padding:24px 0;">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:10px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <p style="font-size:13px;color:#9CA3AF;margin:0;">No intake questionnaire for this session.</p>
-      <p style="font-size:11px;color:#D1D5DB;margin:4px 0 0;">Patient booked without completing the AI intake flow.</p>
+    intakeBody.innerHTML = `<div class="tp-empty">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round" class="tp-mb-10"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <p class="tp-empty-title">No intake questionnaire for this session.</p>
+      <p class="tp-empty-hint">Patient booked without completing the AI intake flow.</p>
     </div>`;
   }
 }

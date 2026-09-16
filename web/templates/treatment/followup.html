@@ -1,39 +1,39 @@
       <!-- ── 24h Follow-up Results (shown when data available) ───────────── -->
-      <div id="followup-card" class="zf-card" style="display:none;">
+      <div id="followup-card" class="zf-card tp-hidden">
         <div class="zf-card-title">
-          <div class="zf-card-icon" style="background:#ECFDF5;color:#059669;">
+          <div class="zf-card-icon tp-icon-green">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.49 5.49l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           </div>
           <span>24h Patient Follow-up</span>
-          <span style="margin-inline-start:auto;font-size:11px;font-weight:500;background:#ECFDF5;color:#059669;padding:2px 8px;border-radius:999px;">Via Telegram</span>
+          <span class="tp-pill-emerald">Via Telegram</span>
         </div>
-        <div id="followup-body" style="margin-top:14px;"></div>
+        <div id="followup-body" class="tp-mt-14"></div>
       </div>
 
       <!-- ── Manual Patient Feedback (therapist-entered) ──────────────────── -->
       <div class="zf-card" id="manual-feedback-card">
         <div class="zf-card-title">
-          <div class="zf-card-icon" style="background:#FDF2F8;color:#9D174D;">
+          <div class="zf-card-icon tp-icon-pink">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
           <span>{{ t['treatment_manual_feedback'] if t else 'Manual Patient Feedback' }}</span>
-          <span style="margin-inline-start:auto;font-size:11px;color:#9CA3AF;" id="mf-status">—</span>
+          <span class="tp-title-aside" id="mf-status">—</span>
         </div>
-        <p style="font-size:12px;color:#9CA3AF;margin-top:6px;margin-bottom:12px;">
+        <p class="tp-card-intro">
           {{ t['treatment_manual_feedback_hint'] if t else 'Rate improvement manually if patient has no Telegram' }}
         </p>
 
         <!-- Star/number rating -->
-        <div style="margin-bottom:12px;">
+        <div class="tp-mb-12">
           <label class="zf-field-label">Patient Rating (1 = Much worse · 5 = Much better)</label>
-          <div id="mf-stars" style="display:flex;gap:6px;margin-top:6px;">
+          <div id="mf-stars" class="tp-stars">
             <button class="zf-star-btn" data-val="1" data-action="set-mf-rating" title="Much worse">1</button>
             <button class="zf-star-btn" data-val="2" data-action="set-mf-rating" title="Slightly worse">2</button>
             <button class="zf-star-btn" data-val="3" data-action="set-mf-rating" title="About the same">3</button>
             <button class="zf-star-btn" data-val="4" data-action="set-mf-rating" title="Better">4</button>
             <button class="zf-star-btn" data-val="5" data-action="set-mf-rating" title="Much better">5</button>
           </div>
-          <div id="mf-rating-label" style="font-size:11px;color:#9CA3AF;margin-top:4px;"></div>
+          <div id="mf-rating-label" class="tp-rating-label"></div>
         </div>
 
         <div>
@@ -43,7 +43,7 @@
             data-input-action="mf-change"></textarea>
         </div>
 
-        <button id="mf-save-btn" class="zf-btn zf-btn-primary" style="margin-top:12px;" data-action="save-manual-feedback">
+        <button id="mf-save-btn" class="zf-btn zf-btn-primary tp-mt-12" data-action="save-manual-feedback">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           {{ t['treatment_save_feedback'] if t else 'Save Feedback' }}
         </button>
