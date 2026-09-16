@@ -73,7 +73,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | 2.2a | Relay safety: B1 wrong-patient routing, B2 Markdown, B5 stale registry, B7 media (interim), B12 therapist substitution | [x] | 2026-09-16 | ed80de1 | 13 tests in `tests/bot/test_relay_safety.py`; no "last patient who wrote" fallback; relay bodies sent as plain text; media refused, never dropped. See `docs/BOT_AUDIT.md` §1a — [PR #8](https://github.com/shaytoledo/ZenFlow-Clinic/pull/8) |
 | 2.2b | B3 follow-up routing (F3), B4 double booking, B9 misreported relay failures | [x] | 2026-09-16 | ee77c73 | 24 new tests; partial unique index `ux_appointments_active_slot`; first booking/cancel flow tests. See `docs/BOT_AUDIT.md` §1b — [PR #9](https://github.com/shaytoledo/ZenFlow-Clinic/pull/9) |
 | 2.2c | B6 /start reset, B8 error handler, B11 stale callbacks, /cancel + /help | [x] | 2026-09-16 | c91854f | 13 tests in `tests/bot/test_robustness.py`; `allow_reentry=False` pinned. See `docs/BOT_AUDIT.md` §1c — [PR #10](https://github.com/shaytoledo/ZenFlow-Clinic/pull/10) |
-| 2.2d | B10 conversation timeout, B14 shared Bot lifecycle | [ ] | | | B10 needs Q9 |
+| 2.2d | B10 conversation timeout, B14 shared Bot lifecycle | [x] | 2026-09-16 | e056aba | `ZF_CONV_TIMEOUT_MINUTES` (default 30, 0 = off); `wire_bots()`; `python-telegram-bot[job-queue]` locked. See `docs/BOT_AUDIT.md` §1d — [PR #11](https://github.com/shaytoledo/ZenFlow-Clinic/pull/11) |
 | 2.3 | State persistence across restarts | [ ] | | | |
 | 2.4 | Multi-therapist relay isolation tests | [ ] | | | |
 
@@ -203,5 +203,5 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | Q6 | Media relay policy (photos/voice may be PHI) | 2.2c | Still open. 2.2a's interim behaviour forwards and stores nothing — it refuses politely and keeps the patient in the chat — so any answer is still available |
 | Q7 | Follow-up for sessions never explicitly "completed"? | 6.1 | |
 | Q8b | Relay: may therapists free-type without replying, when >1 patient chat is active? (BOT_AUDIT B1) | 2.2 | 2.2a ships the proposed rule: free typing delivered only while exactly one chat is open, otherwise the therapist is asked to reply to the patient's message. Say the word to change it |
-| Q9 | Conversation timeout: proposed 30 min booking/intake, 24 h therapist chat (BOT_AUDIT B10) | 2.2d | |
+| Q9 | Conversation timeout: proposed 30 min booking/intake, 24 h therapist chat (BOT_AUDIT B10) | 2.2d | 2.2d ships 30 min for every flow (`ZF_CONV_TIMEOUT_MINUTES`). A separate 24 h for therapist chats needs its own conversation — say if you want it |
 | Q8 | Rewrite git history to purge leaked tokens/logs/rdb (public repo, 0 forks)? Delete orphan `origin/main`? | 0.1 / F8 | 2026-09-14: approved + done. Keep current bot tokens (owner decision). Backup: `ZenFlow_Clinic-pre-rewrite-2026-09-14.bundle` next to the repo |

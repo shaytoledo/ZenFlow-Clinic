@@ -1,7 +1,7 @@
 # Bot Audit — Phase 2.1 (2026-09-15)
 
 > Status: B1, B2, B5, B7 (interim) and B12 were fixed in Phase 2.2a (§1a); B3, B4 and B9 in
-> Phase 2.2b (§1b); B6, B8 and B11 in Phase 2.2c (§1c).
+> Phase 2.2b (§1b); B6, B8 and B11 in Phase 2.2c (§1c); B10 and B14 in Phase 2.2d (§1d).
 
 Scope: every handler in `bot/patient_bot/` and `bot/therapist_bot/`, read on `master` @ `140a50f`.
 Method: for each handler — reachable states, return value, `user_data` read/written — and its
@@ -96,6 +96,23 @@ New strings in both locales: `bot_error`, `bot_button_expired`, `bot_cancelled_f
 
 Still open from the list above: B10 timeout (needs Q9) and B14 Bot lifecycle → Phase 2.2d;
 B13 → Phase 3.1; B15-B17.
+
+
+## 1d. Fixed in Phase 2.2d (idle flows and bot clients)
+
+| # | What changed | Where | Test |
+|---|---|---|---|
+| B10 | The ConversationHandler now has `conversation_timeout` = `ZF_CONV_TIMEOUT_MINUTES` (default **30**, the Q9 proposal for booking/intake; `0` = never expire). A `TIMEOUT` state handler clears the unfinished flow, tells the patient (`bot_timed_out`, both languages) and ends the conversation. A therapist reply still reaches the patient afterwards, because it is sent by the patient bot directly, not through conversation state. `python-telegram-bot[job-queue]` is now in the lockfile — without APScheduler PTB only warns and nothing ever expires. | patient_bot/timeout.py (new) · main.py · zenflow/settings.py · requirements | `tests/bot/test_timeout_and_lifecycle.py` |
+| B14 | Neither relay module builds a `Bot(token=...)` at import time any more. `bot.main.wire_bots()` points them at the two running applications' own clients, which PTB initialises, rate-limits and shuts down. If wiring did not happen, both sides say so instead of failing. | main.py · patient_bot/therapist.py · therapist_bot/handlers.py | 3 tests |
+
+**Q9, partially:** PTB has one timeout per conversation, so the proposed 24 h for an open therapist
+chat is not separately configurable — a chat also closes after 30 idle minutes. Nothing is lost
+(therapist replies still arrive; the patient can reopen the chat from the menu), but if the clinic
+wants chats to stay open longer, raise `ZF_CONV_TIMEOUT_MINUTES` or say so and the relay can get
+its own conversation.
+
+Every finding ranked for Phase 2.2 is now closed. Still open: B7's permanent media policy (Q6),
+B13 → Phase 3.1, B15-B17.
 
 ---
 

@@ -3,7 +3,7 @@ import logging
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bot.config import THERAPIST_BOT_TOKEN, THERAPIST_BY_ID, THERAPISTS
+from bot.config import THERAPIST_BY_ID, THERAPISTS
 from bot.patient_bot.services.relay import append_history, end_relay, save_relay_mapping
 from bot.states import SELECTING, THERAPIST_INPUT, THERAPIST_RELAY, THERAPIST_SELECT
 from bot.utils import get_main_keyboard
@@ -14,8 +14,10 @@ _END_KB = InlineKeyboardMarkup(
     [[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]]
 )
 
-# Therapist bot instance used to forward patient messages
-_therapist_bot: Bot | None = Bot(token=THERAPIST_BOT_TOKEN) if THERAPIST_BOT_TOKEN else None
+# The therapist application's own Bot client, set by `bot.main.wire_bots()` at startup.
+# Built nowhere at import time: an unmanaged `Bot(token=...)` is never initialised or shut down
+# and bypasses the application's rate limiter (BOT_AUDIT B14).
+_therapist_bot: Bot | None = None
 
 
 def _get_therapist(context) -> dict | None:

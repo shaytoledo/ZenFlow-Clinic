@@ -3,7 +3,7 @@
 --index-url https://pypi.org/simple
 
 # Telegram
-python-telegram-bot==21.6
+python-telegram-bot[job-queue]==21.6   # job-queue: conversation timeouts (2.2d)
 python-dotenv==1.2.1
 
 # AI / LLM

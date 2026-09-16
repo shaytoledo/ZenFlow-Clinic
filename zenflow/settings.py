@@ -46,6 +46,7 @@ FLAG_NAMES: tuple[str, ...] = (
     "WEBHOOK_MODE",
     "SSE_UPDATES",
     "POINT_IMAGES",
+    "CONV_TIMEOUT_MINUTES",
 )
 
 
@@ -68,6 +69,8 @@ class FeatureFlags(BaseSettings):
     webhook_mode: bool = False  # ZF_WEBHOOK_MODE — bots via webhooks, not polling (12.2.5)
     sse_updates: bool = False  # ZF_SSE_UPDATES — server-sent events instead of polling (3.4)
     point_images: bool = False  # ZF_POINT_IMAGES — acupoint image store (4.3)
+    # ZF_CONV_TIMEOUT_MINUTES — how long a patient flow may sit idle; 0 = never expire (2.2d)
+    conv_timeout_minutes: int = 30
 
     @field_validator("ai_provider", mode="before")
     @classmethod
@@ -75,7 +78,7 @@ class FeatureFlags(BaseSettings):
         # `.env` templates ship `ZF_AI_PROVIDER=` (empty) meaning "use USE_AI".
         return None if isinstance(value, str) and not value.strip() else value
 
-    def snapshot(self) -> dict[str, bool | str]:
+    def snapshot(self) -> dict[str, bool | str | int]:
         """Flag state for /api/admin/flags — never contains secrets."""
         return {name: getattr(self, name.lower()) for name in FLAG_NAMES}
 
