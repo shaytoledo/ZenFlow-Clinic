@@ -318,6 +318,7 @@
   "bot_cancelled_flow": "Okay — I've stopped what we were doing. Nothing was booked.\n\nWhat would you like to do?",
   "bot_booking_dropped": "Your unfinished booking was not saved.",
   "bot_help": "*ZenFlow Clinic bot*\n\n/start — main menu (this also cancels anything unfinished)\n/cancel — stop what we're doing and go back to the menu\n/help — this message\n\nFrom the menu you can book an appointment, cancel one, or message your therapist.",
+  "bot_timed_out": "I've closed this conversation after a while with no reply — nothing was booked. Tap a button when you're ready.",
   "bot_select_to_cancel": "Select an appointment to cancel:",
   "bot_cancelled_msg": "✅ Appointment on *{day}* at *{time}* has been cancelled.\n\nWhat else can I help you with?"
 }

@@ -6,7 +6,7 @@ import threading
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bot.config import TELEGRAM_TOKEN, THERAPIST_MAP
+from bot.config import THERAPIST_MAP
 from bot.patient_bot.services.relay import append_history
 from bot.therapist_bot.services.relay import get_patient_for_msg, list_active_patients
 from web.i18n import translate as _t
@@ -20,8 +20,8 @@ _reg_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
 
-# Patient bot instance used to deliver therapist replies
-_patient_bot = Bot(token=TELEGRAM_TOKEN)
+# The patient application's own Bot client, set by `bot.main.wire_bots()` at startup (B14).
+_patient_bot: Bot | None = None
 
 
 def _therapist_lang(user_id: int) -> str:
@@ -153,6 +153,15 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
             )
             await msg.reply_text(no_active_msg)
             return
+
+    if _patient_bot is None:  # startup wiring did not run (BOT_AUDIT B14)
+        logger.error("relay not wired: no patient bot client")
+        await msg.reply_text(
+            "⚠️ The patient bot is not connected right now. Please try again shortly."
+            if lang == "en"
+            else "⚠️ הבוט למטופלים אינו מחובר כרגע. נסה/י שוב בעוד מספר רגעים."
+        )
+        return
 
     try:
         # Plain text: patient and therapist wording is user data, and Markdown parsing made

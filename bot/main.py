@@ -39,6 +39,7 @@ from bot.patient_bot.therapist import (
     show_therapist_for_contact,
     start_relay,
 )
+from bot.patient_bot.timeout import on_conversation_timeout
 from bot.states import (
     CANCEL_SELECT,
     INTAKE,
@@ -136,6 +137,28 @@ async def _post_shutdown(app: Application) -> None:
 # ── app builder ───────────────────────────────────────────────────────────────
 
 
+def _timeout_minutes() -> int:
+    """Idle minutes before a patient flow is closed (0 = never)."""
+    from zenflow.settings import get_settings
+
+    return max(0, get_settings().flags.conv_timeout_minutes)
+
+
+def wire_bots(patient_bot: object, therapist_bot: object) -> None:
+    """Point each relay module at the running application's own Bot client (BOT_AUDIT B14).
+
+    Both modules used to build their own `Bot(token=...)` at import time: never initialised, never
+    shut down (a leaked httpx pool on exit) and outside the application's rate limiter. The
+    applications already own a properly managed client each, so the relay borrows those.
+    """
+    import bot.patient_bot.therapist as patient_side
+    import bot.therapist_bot.handlers as therapist_side
+
+    patient_side._therapist_bot = therapist_bot  # patient → therapist
+    therapist_side._patient_bot = patient_bot  # therapist → patient
+    logger.info("Relay wired to the running applications' bot clients")
+
+
 def build_patient_app() -> Application:
     app = (
         Application.builder()
@@ -199,6 +222,12 @@ def build_patient_app() -> Application:
                 MessageHandler(~filters.TEXT & ~filters.COMMAND, relay_unsupported_media),
                 CallbackQueryHandler(end_chat, pattern="^therapist_end$"),
             ],
+            # Reached when nothing has been heard for `conversation_timeout` (B10). Without a
+            # handler here PTB would end the conversation without telling anyone.
+            ConversationHandler.TIMEOUT: [
+                MessageHandler(filters.ALL, on_conversation_timeout),
+                CallbackQueryHandler(on_conversation_timeout),
+            ],
         },
         fallbacks=[
             CommandHandler("start", start),
@@ -209,6 +238,8 @@ def build_patient_app() -> Application:
             MessageHandler(filters.ALL, start),
         ],
         allow_reentry=False,
+        # 0 minutes = never expire, the clinic's call (ZF_CONV_TIMEOUT_MINUTES).
+        conversation_timeout=(_timeout_minutes() * 60) or None,
     )
 
     # Group -1 runs before the conversation: a 24h follow-up answer is consumed wherever the
@@ -231,6 +262,7 @@ async def _run(patient_app: Application, therapist_app: Application | None) -> N
             await asyncio.Event().wait()
         return
 
+    wire_bots(patient_app.bot, therapist_app.bot)
     async with patient_app, therapist_app:
         await patient_app.start()
         await therapist_app.start()
