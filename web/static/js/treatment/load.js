@@ -58,7 +58,8 @@ async function loadTreatment() {
       if (tdEl && notes.therapist_diagnosis) tdEl.value = notes.therapist_diagnosis;
       if (tnEl && notes.therapist_notes)     tnEl.value = notes.therapist_notes;
       if (Array.isArray(notes.used_points) && notes.used_points.length > 0) {
-        usedPoints = notes.used_points;
+        // Older notes may hold "st 36"; the cards compare normalised codes.
+        usedPoints = [...new Set(notes.used_points.map(normPointCode).filter(Boolean))];
         renderPoints();
       }
       // Restore manual feedback

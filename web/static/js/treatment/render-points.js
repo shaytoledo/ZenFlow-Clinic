@@ -1,9 +1,8 @@
-// Treatment page — Suggested-point cards and chips.
-// Classic script: shares globals with the other treatment/*.js files, loaded in order.
+// Treatment page — AI-suggested point cards and the compact chips (Phase 4.2 design:
+// docs/POINT_CARD_DESIGN.md). Classic script: shares globals with the other treatment/*.js
+// files, loaded in order (point-info.js first).
 
-// ── Suggested points renderer ──────────────────────────────────────────────────
-
-// SVG icons by channel category
+// SVG icons by channel (decorative: the channel name is always shown next to them)
 const CHANNEL_ICONS = {
   'Stomach':           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a9 9 0 0 1 9 9 9 9 0 0 1-9 9 9 9 0 0 1-9-9 9 9 0 0 1 9-9z"/><path d="M8 12h8"/></svg>',
   'Large Intestine':   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6c0 0 2-2 8-2s8 2 8 2"/><path d="M4 18s2 2 8 2 8-2 8-2"/><line x1="4" y1="6" x2="4" y2="18"/><line x1="20" y1="6" x2="20" y2="18"/></svg>',
@@ -21,8 +20,9 @@ const CHANNEL_ICONS = {
   'Extra Point':       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
 };
 
-// Channel colour theme: a `tp-ch-*` class on a card or chip sets the --ch-bg / --ch-border /
-// --ch-code / --ch-icon variables its children use (static/css/treatment.css).
+// Channel colour theme: a `tp-ch-*` class on a card or chip sets the --ch-soft / --ch-border /
+// --ch-ink variables its children use (static/css/treatment.css, palette in css/tokens.css).
+// Looked up by the English channel name (pointChannel), so Hebrew pages are coloured too.
 const CHANNEL_THEMES = {
   'Stomach': 'stomach',
   'Large Intestine': 'large-intestine',
@@ -44,113 +44,176 @@ function channelThemeClass(channel) {
   return 'tp-ch-' + (CHANNEL_THEMES[channel] || 'default');
 }
 
-function renderSuggestedPoints(notes, rawSummary) {
-  const div = document.getElementById('suggested-points');
-  let pointObjects = [];
+// Points traditionally avoided in pregnancy (docs/POINT_CARD_DESIGN.md §1). Shown on the card
+// face, never behind a disclosure. Phase 4.3 moves this into the acupoints table.
+const PREGNANCY_CAUTION = new Set(['LI4', 'SP6', 'GB21', 'BL60', 'BL67', 'CV3', 'CV4']);
 
+const POINT_TEXT = {
+  en: {
+    add: 'Add',
+    added: 'Added',
+    forPatient: 'For this patient',
+    more: 'Actions & needling',
+    actions: 'Actions',
+    needling: 'Needling',
+    location: 'Location',
+    pregnancy: 'Traditionally avoided in pregnancy',
+    selected: '{n} of {total} selected',
+    none: 'No specific points detected — add manually below.',
+    chipsIntro: 'AI formula — click a point to add or remove it:',
+    removed: 'Removed {code}',
+    undo: 'Undo',
+    remove: 'Remove {code}',
+    showInfo: 'Show {code} details',
+  },
+  he: {
+    add: 'הוסף',
+    added: 'נוסף',
+    forPatient: 'עבור מטופל זה',
+    more: 'פעולות ודיקור',
+    actions: 'פעולות',
+    needling: 'דיקור',
+    location: 'מיקום',
+    pregnancy: 'נמנעת באופן מסורתי בהריון',
+    selected: '{n} מתוך {total} נבחרו',
+    none: 'לא זוהו נקודות — הוסף ידנית למטה.',
+    chipsIntro: 'פורמולת AI — לחץ על נקודה כדי להוסיף או להסיר:',
+    removed: '{code} הוסרה',
+    undo: 'בטל',
+    remove: 'הסר את {code}',
+    showInfo: 'פרטי {code}',
+  },
+};
+
+// Plain text (callers escape it): POINT_TEXT[lang][key] with {placeholders} filled in.
+function pointText(key, vars = {}) {
+  const table = POINT_TEXT[_ZF_LANG === 'he' ? 'he' : 'en'];
+  return table[key].replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''));
+}
+
+const ICON_ADD = '<svg class="pc-icon-add" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+const ICON_DONE = '<svg class="pc-icon-done" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>';
+const ICON_PIN = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+const ICON_CAUTION = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
+// The AI's list (objects or bare codes), or — for old notes without one — the reference points
+// the summary mentions.
+function normalizeSuggestedPoints(notes, rawSummary) {
   if (notes && Array.isArray(notes.ai_suggested_points) && notes.ai_suggested_points.length > 0) {
-    pointObjects = notes.ai_suggested_points.map(p =>
-      typeof p === 'object' ? p : { code: String(p), rationale: '' }
-    ).filter(p => p.code);
-  } else {
-    const known = Object.keys(POINT_INFO);
-    pointObjects = known
-      .filter(p => rawSummary && rawSummary.toUpperCase().includes(p))
-      .map(p => ({ code: p, rationale: '' }));
+    return notes.ai_suggested_points
+      .map((p) => (p && typeof p === 'object' ? p : { code: p == null ? '' : String(p), rationale: '' }))
+      .filter((p) => normPointCode(p.code));
+  }
+  const summary = String(rawSummary || '').toUpperCase();
+  if (!summary) return [];
+  return Object.keys(POINT_INFO)
+    .filter((code) => summary.includes(code))
+    .map((code) => ({ code, rationale: '' }));
+}
+
+function pointToggleHtml(code, selected) {
+  return `<button type="button" class="pc-toggle" data-action="toggle-point" data-code="${escHtml(code)}" aria-pressed="${selected ? 'true' : 'false'}">
+      ${ICON_ADD}${ICON_DONE}<span class="pc-toggle-text">${escHtml(pointText(selected ? 'added' : 'add'))}</span><span class="tp-sr-only"> ${escHtml(code)}</span>
+    </button>`;
+}
+
+// One suggested point as a card (docs/POINT_CARD_DESIGN.md §3). Every value is escaped.
+function pointCardHtml(pt, selected) {
+  const code = normPointCode(pt.code);
+  const info = getPointInfo(code);
+  const channel = info.channel || '';
+  const themeClass = channelThemeClass(pointChannel(code));
+  const icon = CHANNEL_ICONS[pointChannel(code)] || '';
+  const name = info.name || '';
+  const location = pt.location || info.location || '';
+  const rationale = pt.rationale || '';
+  const details = [
+    [pointText('actions'), info.actions],
+    [pointText('needling'), pt.needle_technique],
+    [pointText('location'), location],
+  ].filter(([, value]) => value);
+
+  const parts = [];
+  if (channel) {
+    parts.push(`<p class="pc-channel"><span class="pc-channel-icon" aria-hidden="true">${icon}</span>${escHtml(channel)}</p>`);
+  }
+  if (PREGNANCY_CAUTION.has(pointInfoKey(code))) {
+    parts.push(`<p class="pc-caution">${ICON_CAUTION}<span>${escHtml(pointText('pregnancy'))}</span></p>`);
+  }
+  if (location) {
+    parts.push(`<p class="pc-location" title="${escHtml(location)}">${ICON_PIN}<span>${escHtml(location)}</span></p>`);
+  }
+  if (rationale) {
+    parts.push(`<section class="pc-why"><h4 class="pc-why-label">${escHtml(pointText('forPatient'))}</h4><p>${escHtml(rationale)}</p></section>`);
+  }
+  if (details.length) {
+    const rows = details.map(([label, value]) => `<dt>${escHtml(label)}</dt><dd>${escHtml(value)}</dd>`).join('');
+    parts.push(`<details class="pc-more"><summary>${escHtml(pointText('more'))}</summary><dl>${rows}</dl></details>`);
   }
 
-  // ── 1. Full-width card grid (above two columns) ───────────────────────────────
-  const section  = document.getElementById('ai-points-section');
-  const grid     = document.getElementById('ai-points-grid');
-  const countEl  = document.getElementById('ai-points-count');
+  const label = name ? code + ' ' + name : code;
+  const body = parts.join('\n    ');
+  return `<article class="pc ${themeClass}${selected ? ' is-selected' : ''}" data-point-card="${escHtml(code)}"
+      data-action="toggle-point" data-code="${escHtml(code)}" aria-label="${escHtml(label)}">
+    <header class="pc-head">
+      <span class="pc-code">${escHtml(code)}</span>
+      ${name ? `<h3 class="pc-name">${escHtml(name)}</h3>` : ''}
+      ${pointToggleHtml(code, selected)}
+    </header>
+    ${body}
+  </article>`;
+}
 
-  if (pointObjects.length === 0) {
+// One suggested point as a compact chip in the "Points used" card.
+function pointChipHtml(pt, selected) {
+  const code = normPointCode(pt.code);
+  const themeClass = channelThemeClass(pointChannel(code));
+  return `<button type="button" class="zf-point-chip pc-chip ${themeClass}${selected ? ' is-selected' : ''}" data-point-chip="${escHtml(code)}"
+      data-action="toggle-point" data-code="${escHtml(code)}" aria-pressed="${selected ? 'true' : 'false'}">${ICON_ADD}${ICON_DONE}${escHtml(code)}</button>`;
+}
+
+function renderSuggestedPoints(notes, rawSummary) {
+  const chips = document.getElementById('suggested-points');
+  const section = document.getElementById('ai-points-section');
+  const grid = document.getElementById('ai-points-grid');
+  const points = normalizeSuggestedPoints(notes, rawSummary);
+  const chosen = new Set(usedPoints.map(normPointCode));
+
+  if (points.length === 0) {
     if (section) section.style.display = 'none';
-    div.innerHTML = `<span class="tp-chips-empty">No specific points detected — add manually below.</span>`;
+    chips.innerHTML = `<span class="tp-chips-empty">${escHtml(pointText('none'))}</span>`;
     return;
   }
 
-  // Needle SVG icon for the card header
-  const needleSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-    <line x1="12" y1="2" x2="12" y2="17"/>
-    <line x1="9" y1="14" x2="12" y2="17"/><line x1="15" y1="14" x2="12" y2="17"/>
-    <circle cx="12" cy="20" r="2"/>
-  </svg>`;
-
   if (grid && section) {
-    if (countEl) countEl.textContent = `${pointObjects.length} point${pointObjects.length !== 1 ? 's' : ''}`;
-
-    grid.innerHTML = pointObjects.map((pt, idx) => {
-      const code            = typeof pt === 'object' ? (pt.code || '') : String(pt);
-      const rationale       = (typeof pt === 'object' && pt.rationale)        || '';
-      const aiLocation      = (typeof pt === 'object' && pt.location)         || '';
-      const needleTechnique = (typeof pt === 'object' && pt.needle_technique) || '';
-
-      const info   = getPointInfo(code);
-      const themeClass = channelThemeClass(info.channel);
-      const icon   = CHANNEL_ICONS[info.channel]  || CHANNEL_ICONS['Extra Point'];
-      const name   = info.name     || code;
-      const ch     = info.channel  || '';
-      const loc    = aiLocation    || info.location || '';
-      const action = info.actions  || '';
-
-      return `<div class="tp-pt-card ${themeClass}">
-
-        <!-- Code badge + quick-add -->
-        <div class="tp-pt-head">
-          <div class="tp-pt-code-badge">
-            <span class="tp-pt-needle">${needleSVG}</span>
-            <span class="tp-pt-code">${escHtml(code)}</span>
-          </div>
-          <button data-action="quick-add-point" data-code="${escHtml(code)}" title="Add ${escHtml(code)} to used points"
-            class="tp-pt-add">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
-
-        <!-- Name + channel badge -->
-        <div>
-          <div class="tp-pt-name">${escHtml(name)}</div>
-          ${ch ? `<div class="tp-pt-channel">
-            <span class="tp-pt-channel-icon">${icon}</span>
-            <span class="tp-pt-channel-name">${escHtml(ch)}</span>
-          </div>` : ''}
-        </div>
-
-        <!-- Location -->
-        ${loc ? `<div class="tp-pt-line">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" class="tp-pt-line-icon"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span class="tp-pt-location">${escHtml(loc)}</span>
-        </div>` : ''}
-
-        <!-- Actions -->
-        ${action ? `<div class="tp-pt-line">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round" class="tp-pt-line-icon"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span class="tp-pt-actions">${escHtml(action)}</span>
-        </div>` : ''}
-
-        ${needleTechnique ? `<div class="tp-pt-technique">
-          <span>🪡</span><span>${escHtml(needleTechnique)}</span>
-        </div>` : ''}
-
-        <!-- AI rationale for this patient -->
-        ${rationale ? `<div class="tp-pt-rationale">
-          <div class="tp-pt-rationale-label">${_ZF_LANG === 'he' ? 'עבור מטופל זה' : 'For this patient'}</div>
-          <p class="tp-pt-rationale-text">${escHtml(rationale)}</p>
-        </div>` : ''}
-      </div>`;
-    }).join('');
-
+    grid.innerHTML = points.map((pt) => pointCardHtml(pt, chosen.has(normPointCode(pt.code)))).join('');
     section.style.display = 'block';  // hidden by .tp-ai-section until there are points
   }
+  chips.innerHTML = `<span class="tp-chips-intro">${escHtml(pointText('chipsIntro'))}</span>`
+    + points.map((pt) => pointChipHtml(pt, chosen.has(normPointCode(pt.code)))).join('');
+  syncPointSelection();
+}
 
-  // ── 2. Compact chip row inside "Acupuncture Points Used" card ─────────────────
-  div.innerHTML =
-    `<span class="tp-chips-intro">${_ZF_LANG === 'he' ? 'פורמולת AI — לחץ <strong>+</strong> להוספה:' : 'AI formula — click <strong>+</strong> to add:'}</span>` +
-    pointObjects.map(pt => {
-      const code = typeof pt === 'object' ? (pt.code || '') : String(pt);
-      const info  = getPointInfo(code);
-      return `<button class="zf-point-chip tp-chip ${channelThemeClass(info.channel)}" data-action="quick-add-point" data-code="${escHtml(code)}"
-        title="Add ${escHtml(code)} to used points">${escHtml(code)} <span class="tp-chip-plus">+</span></button>`;
-    }).join('');
+// Reflect `usedPoints` on every card and chip without re-rendering them (open details stay open).
+function syncPointSelection() {
+  const chosen = new Set(usedPoints.map(normPointCode));
+  const cards = [...document.querySelectorAll('[data-point-card]')];
+  cards.forEach((card) => {
+    const on = chosen.has(card.dataset.pointCard);
+    card.classList.toggle('is-selected', on);
+    const toggle = card.querySelector('.pc-toggle');
+    if (!toggle) return;
+    toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+    toggle.querySelector('.pc-toggle-text').textContent = pointText(on ? 'added' : 'add');
+  });
+  document.querySelectorAll('[data-point-chip]').forEach((chip) => {
+    const on = chosen.has(chip.dataset.pointChip);
+    chip.classList.toggle('is-selected', on);
+    chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  const countEl = document.getElementById('ai-points-count');
+  if (countEl && cards.length) {
+    const n = cards.filter((card) => chosen.has(card.dataset.pointCard)).length;
+    countEl.textContent = pointText('selected', { n, total: cards.length });
+  }
 }

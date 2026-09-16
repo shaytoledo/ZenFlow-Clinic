@@ -713,3 +713,35 @@ the notes themselves over pub/sub (two sources of truth, and a lost message woul
 **Consequences.** The flag's two paths are both tested. Each open stream holds one Redis
 connection and one thread hop per re-check; at clinic scale that is negligible. Turn the flag on
 once Redis is confirmed on the deployment host (HOSTING_AND_MONITORING.md).
+
+---
+
+## ADR-25: A Design-Token Layer in CSS Custom Properties; Dark Mode Is Opt-In
+
+**Date:** 2026-09-17 (Phase 4.2a)
+
+**Before.** Colours, spacing and type sizes were literals repeated across `style.css`, the
+treatment page's classes and JS templates. The point-card palette lived in a JS object. Small text
+used `#0D9488` and `#9CA3AF`, which are 3.7:1 and 2.5:1 on white (WCAG AA asks for 4.5:1).
+
+**Decision.**
+1. `static/css/tokens.css`, loaded by `base.html` on every page, defines `--zf-*` custom
+   properties: a 4 px spacing scale, radii, a type scale, shadows, semantic colours (surface,
+   text, accent, caution, danger) and a soft/border/ink triple for each acupuncture channel.
+2. The prefix keeps them apart from the older `--primary`/`--border`/… variables in `style.css`,
+   which stay until each page moves over.
+3. Text tokens are chosen for contrast; `tests/unit/test_design_tokens.py` computes the WCAG ratio
+   of every text/background pair in both themes, and fails when a dark override is missing.
+4. Dark mode is an override block under `:root[data-theme="dark"]`, not
+   `prefers-color-scheme`: only the components built on tokens (the point cards so far) change,
+   so following the OS setting automatically would produce half-dark pages.
+5. Components map tokens to local variables (`tp-ch-liver` sets `--ch-soft/--ch-border/--ch-ink`),
+   so a card or chip says *which* palette it uses and its rules stay the same for every channel.
+
+**Options rejected.** A CSS preprocessor (a build step for a server-rendered app with no bundler);
+automatic dark mode now (see 4); keeping colours in JS (the CSP work in Phase 4.1c moved styling
+out of script, and variables let one rule serve every channel).
+
+**Consequences.** New UI should use tokens; old rules migrate page by page. Turning dark mode on
+for real (a setting, then `data-theme` on `<html>`) waits until the shell and the remaining
+components are on tokens.

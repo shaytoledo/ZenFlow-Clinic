@@ -47,6 +47,14 @@
 
 {% include "treatment/point_panel.html" %}
 
+<!-- "Removed LR3 · Undo" (Phase 4.2); a live region so the removal is announced -->
+<div class="tp" role="status">
+  <div id="points-undo" class="pc-undo" hidden>
+    <span id="points-undo-text"></span>
+    <button type="button" id="points-undo-btn" class="pc-undo-btn" data-action="undo-point-removal">Undo</button>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
