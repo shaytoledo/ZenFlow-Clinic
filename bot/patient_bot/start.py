@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 
 from bot.config import THERAPISTS
 from bot.locales import get_lang, t
+from bot.patient_bot.commands import clear_in_flight
 from bot.states import SELECTING, THERAPIST_SELECT
 from bot.utils import get_main_keyboard
 
@@ -55,6 +56,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # Follow-up answers never reach here: `bot.patient_bot.followup.handle_followup_reply` runs in
     # an earlier handler group and stops them, in whatever state the patient happens to be (B3).
     user = update.effective_user
+
+    # `/start` — and any update no state handler claimed — is a clean reset. A half-finished
+    # booking used to be abandoned in silence, with its day and time left in `user_data` (B6).
+    dropped = clear_in_flight(context)
+    if dropped and update.message:
+        await update.message.reply_text(
+            t("bot_booking_dropped", get_lang(context.user_data.get("selected_therapist")))
+        )
 
     active = [th for th in THERAPISTS if th.get("active")]
     existing_therapist_id = context.user_data.get("selected_therapist")

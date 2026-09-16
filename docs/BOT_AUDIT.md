@@ -1,7 +1,7 @@
 # Bot Audit — Phase 2.1 (2026-09-15)
 
 > Status: B1, B2, B5, B7 (interim) and B12 were fixed in Phase 2.2a (§1a); B3, B4 and B9 in
-> Phase 2.2b (§1b).
+> Phase 2.2b (§1b); B6, B8 and B11 in Phase 2.2c (§1c).
 
 Scope: every handler in `bot/patient_bot/` and `bot/therapist_bot/`, read on `master` @ `140a50f`.
 Method: for each handler — reachable states, return value, `user_data` read/written — and its
@@ -80,6 +80,22 @@ tests grew the measured codebase from 4,782 to 5,677 statements — roughly 900 
 already-untested code that coverage simply could not see before.
 
 Still open from the list above: B6, B8, B10, B11, B14 (Phase 2.2c), B13 (Phase 3.1), B15-B17.
+
+
+## 1c. Fixed in Phase 2.2c (never answer with silence)
+
+| # | What changed | Where | Test |
+|---|---|---|---|
+| B6 | `/start` is a clean reset: `clear_in_flight()` drops the half-finished booking (day, time, week, intake counter, cancel list, flow marker) and the patient is told it was not saved. Their chosen therapist survives, because that outlives any single flow. A patient whose media or stray message fell through to `start()` now gets the same clear answer instead of a silent abandon. | patient_bot/commands.py (new) · patient_bot/start.py | `tests/bot/test_robustness.py` |
+| B8 | Both applications install `on_error`: it logs the failure with its traceback, answers a pending callback query so the button stops spinning, and replies with `bot_error` plus a working menu. It is defensive throughout — an error for something that is not an update has nobody to answer, and a reply that itself fails is logged rather than raised. | errors.py (new) · main.py · therapist_bot/main.py | 4 tests |
+| B11 | `stale_button` is registered both as a conversation **entry point** (a button pressed with no conversation state — the position every keyboard is in after a restart, since state lives in memory) and as the last **fallback** (a button no state handler claimed). It answers the query, replaces the dead keyboard with the menu and returns `SELECTING`. | errors.py · main.py | 2 tests |
+| — | `/cancel` stops any flow and returns to the menu; `/help` lists the commands without touching the conversation state. A test pins `allow_reentry=False`, which CLAUDE.md calls critical. | patient_bot/commands.py · main.py | 4 tests |
+
+New strings in both locales: `bot_error`, `bot_button_expired`, `bot_cancelled_flow`,
+`bot_booking_dropped`, `bot_help`.
+
+Still open from the list above: B10 timeout (needs Q9) and B14 Bot lifecycle → Phase 2.2d;
+B13 → Phase 3.1; B15-B17.
 
 ---
 

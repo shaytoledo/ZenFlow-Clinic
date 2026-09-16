@@ -16,7 +16,9 @@ from telegram.ext import (
 )
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, TELEGRAM_TOKEN
+from bot.errors import on_error, stale_button
 from bot.patient_bot.cancel import confirm_cancel, show_appointments
+from bot.patient_bot.commands import cancel_command, help_command
 from bot.patient_bot.followup import handle_followup_reply
 from bot.patient_bot.schedule import (
     confirm_appointment,
@@ -148,6 +150,10 @@ def build_patient_app() -> Application:
     conv = ConversationHandler(
         entry_points=[
             CommandHandler("start", start),
+            CommandHandler("cancel", cancel_command),
+            # A button pressed with no conversation state — every keyboard is in that position
+            # after a restart, since the state lives in memory (B11).
+            CallbackQueryHandler(stale_button),
             MessageHandler(filters.ALL & ~filters.COMMAND, start),
         ],
         states={
@@ -196,6 +202,10 @@ def build_patient_app() -> Application:
         },
         fallbacks=[
             CommandHandler("start", start),
+            CommandHandler("cancel", cancel_command),
+            CommandHandler("help", help_command),
+            # Last resort inside a conversation: a button no state handler claimed (B11).
+            CallbackQueryHandler(stale_button),
             MessageHandler(filters.ALL, start),
         ],
         allow_reentry=False,
@@ -207,6 +217,8 @@ def build_patient_app() -> Application:
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_followup_reply), group=-1
     )
     app.add_handler(conv)
+    # Without this an exception reaches only the log; the patient gets silence (B8).
+    app.add_error_handler(on_error)
     return app
 
 
