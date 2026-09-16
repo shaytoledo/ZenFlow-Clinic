@@ -20,7 +20,8 @@ function renderDiagnosisBlock(notes, rawSummary) {
   const body = document.getElementById('summary-body');
   const tcmPattern   = notes?.tcm_pattern;
   const treatPrincip = notes?.treatment_principles;
-  const certainty    = notes?.diagnosis_certainty != null ? notes.diagnosis_certainty : null;
+  // A number or null — never a string that could reach innerHTML (F10).
+  const certainty    = notes?.diagnosis_certainty != null ? (Number(notes.diagnosis_certainty) || 0) : null;
 
   let html = '';
 

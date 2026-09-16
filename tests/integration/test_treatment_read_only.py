@@ -75,7 +75,10 @@ async def test_opening_the_session_twice_enqueues_and_generates_nothing(
 
 
 def test_the_page_script_only_generates_from_an_explicit_click() -> None:
-    """Every function that calls a generating endpoint runs only on a click or an Enter key."""
+    """Every function that calls a generating endpoint runs only on a click or an Enter key.
+
+    Since Phase 4.1b clicks are dispatched from `CLICK_ACTIONS` in events.js.
+    """
     html = treatment_source.source()
     assert "_autoLoadDiagnosis" not in html
 
@@ -95,11 +98,14 @@ def test_the_page_script_only_generates_from_an_explicit_click() -> None:
             if f"function {name}(" in line:
                 continue
             explicit = (
-                "onclick=" in line
-                or "addEventListener('click'" in line
+                # an entry in events.js's CLICK_ACTIONS map (dispatched from a click only)
+                re.match(r"^\s*'[\w-]+': \(", line) is not None
                 or ("addEventListener('keydown'" in line and "'Enter'" in line)
             )
             assert explicit, f"{name}() is called outside a user action: {line.strip()}"
+    events = (treatment_source.WEB / "static/js/treatment/events.js").read_text(encoding="utf-8")
+    assert "const CLICK_ACTIONS = {" in events
+    assert "document.addEventListener('click'" in events
 
 
 # ── the server refuses to overlap ──

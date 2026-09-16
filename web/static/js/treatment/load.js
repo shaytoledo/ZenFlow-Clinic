@@ -11,7 +11,7 @@ async function loadTreatment() {
     const initials = data.patient_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
     document.getElementById('pt-initials').textContent = initials;
     const nameEl = document.getElementById('pt-name');
-    nameEl.innerHTML = `<a href="/patients/${patientId}" style="color:inherit;text-decoration:none;" onmouseover="this.style.color='#0D9488'" onmouseout="this.style.color=''">${escHtml(data.patient_name)}</a>`;
+    nameEl.innerHTML = `<a href="/patients/${patientId}" style="color:inherit;text-decoration:none;" data-hover="link-teal">${escHtml(data.patient_name)}</a>`;
     const d = new Date(data.date);
     document.getElementById('pt-meta').textContent =
       d.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' at ' + data.time;

@@ -21,7 +21,7 @@ function renderFollowupResults(data) {
     const painColor = data.pain_level <= 3 ? '#16A34A' : data.pain_level <= 6 ? '#D97706' : '#DC2626';
     metricsHtml += `<div class="zf-metric-card">
       <div>
-        <div class="zf-metric-num" style="color:${painColor};">${data.pain_level}<span style="font-size:13px;color:#9CA3AF;">/10</span></div>
+        <div class="zf-metric-num" style="color:${painColor};">${escHtml(data.pain_level)}<span style="font-size:13px;color:#9CA3AF;">/10</span></div>
         <div class="zf-metric-label">Pain level<br><span style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">1=none · 10=severe</span></div>
       </div>
     </div>`;
@@ -30,8 +30,8 @@ function renderFollowupResults(data) {
     const iColor = improvementColors[data.improvement_rating] || '#6B7280';
     metricsHtml += `<div class="zf-metric-card">
       <div>
-        <div class="zf-metric-num" style="color:${iColor};">${data.improvement_rating}<span style="font-size:13px;color:#9CA3AF;">/5</span></div>
-        <div class="zf-metric-label">${improvementLabels[data.improvement_rating] || ''}<br><span style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Improvement</span></div>
+        <div class="zf-metric-num" style="color:${iColor};">${escHtml(data.improvement_rating)}<span style="font-size:13px;color:#9CA3AF;">/5</span></div>
+        <div class="zf-metric-label">${escHtml(improvementLabels[data.improvement_rating] || '')}<br><span style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">Improvement</span></div>
       </div>
     </div>`;
   }

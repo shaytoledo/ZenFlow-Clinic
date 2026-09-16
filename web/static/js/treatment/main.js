@@ -39,8 +39,15 @@ async function completeSession() {
 
 // ── Utility ────────────────────────────────────────────────────────────────────
 
-function escHtml(str) {
-  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// Escape any value for HTML text *and* quoted attributes (F10). Everything that did not come
+// from this file — AI output, patient input, database rows — goes through here before innerHTML.
+function escHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // Init

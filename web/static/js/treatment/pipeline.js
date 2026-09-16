@@ -158,7 +158,7 @@ function _showGenerateButton(opts) {
   div.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 0;">
       <span style="font-size:12px;color:#9CA3AF;">${msg}</span>
-      <button onclick="generateDiagnosisAndPoints()" class="zf-btn zf-btn-outline"
+      <button data-action="generate" class="zf-btn zf-btn-outline"
         style="font-size:12px;padding:6px 16px;color:#0D9488;border-color:#0D9488;">
         ✨ Generate diagnosis &amp; points
       </button>
@@ -528,7 +528,7 @@ function _showRetryButton(force) {
   div.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 0;">
       <span style="font-size:12px;color:#9CA3AF;">${msg}</span>
-      <button onclick="triggerRediagnosis(${force ? 'true' : 'false'})" class="zf-btn zf-btn-outline"
+      <button data-action="rediagnose" data-force="${force ? 'true' : 'false'}" class="zf-btn zf-btn-outline"
         style="font-size:12px;padding:6px 16px;color:#0D9488;border-color:#0D9488;">
         ↺ Retry Point Generation
       </button>

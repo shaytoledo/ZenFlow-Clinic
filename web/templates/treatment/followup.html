@@ -27,11 +27,11 @@
         <div style="margin-bottom:12px;">
           <label class="zf-field-label">Patient Rating (1 = Much worse · 5 = Much better)</label>
           <div id="mf-stars" style="display:flex;gap:6px;margin-top:6px;">
-            <button class="zf-star-btn" data-val="1" onclick="setMfRating(1)" title="Much worse">1</button>
-            <button class="zf-star-btn" data-val="2" onclick="setMfRating(2)" title="Slightly worse">2</button>
-            <button class="zf-star-btn" data-val="3" onclick="setMfRating(3)" title="About the same">3</button>
-            <button class="zf-star-btn" data-val="4" onclick="setMfRating(4)" title="Better">4</button>
-            <button class="zf-star-btn" data-val="5" onclick="setMfRating(5)" title="Much better">5</button>
+            <button class="zf-star-btn" data-val="1" data-action="set-mf-rating" title="Much worse">1</button>
+            <button class="zf-star-btn" data-val="2" data-action="set-mf-rating" title="Slightly worse">2</button>
+            <button class="zf-star-btn" data-val="3" data-action="set-mf-rating" title="About the same">3</button>
+            <button class="zf-star-btn" data-val="4" data-action="set-mf-rating" title="Better">4</button>
+            <button class="zf-star-btn" data-val="5" data-action="set-mf-rating" title="Much better">5</button>
           </div>
           <div id="mf-rating-label" style="font-size:11px;color:#9CA3AF;margin-top:4px;"></div>
         </div>
@@ -40,10 +40,10 @@
           <label class="zf-field-label">Feedback Notes</label>
           <textarea id="mf-notes" class="zf-textarea" rows="3"
             placeholder="Patient's reported symptoms, improvements, or questions…"
-            oninput="onMfChange()"></textarea>
+            data-input-action="mf-change"></textarea>
         </div>
 
-        <button id="mf-save-btn" class="zf-btn zf-btn-primary" style="margin-top:12px;" onclick="saveManualFeedback()">
+        <button id="mf-save-btn" class="zf-btn zf-btn-primary" style="margin-top:12px;" data-action="save-manual-feedback">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           {{ t['treatment_save_feedback'] if t else 'Save Feedback' }}
         </button>
