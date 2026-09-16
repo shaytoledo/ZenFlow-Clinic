@@ -10,6 +10,8 @@ import json
 import sqlite3
 from typing import Any
 
+from zenflow.events import notify_treatment
+
 
 def _conn() -> sqlite3.Connection:
     from bot.db import get_db
@@ -114,12 +116,20 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
     )
 
 
+def _notified(appointment_id: int, wrote: bool) -> bool:
+    """Wake live pages after a write that changed something (Phase 3.4)."""
+    if wrote:
+        notify_treatment(appointment_id)
+    return wrote
+
+
 def set_points_status(appointment_id: int, status: str) -> None:
     """Update the Stage-2 pipeline status (GENERATING | COMPLETED | FAILED)."""
     _conn().execute(
         "UPDATE treatment_notes SET points_status=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
         (status, appointment_id),
     )
+    notify_treatment(appointment_id)
 
 
 def reset_points(appointment_id: int, status: str) -> None:
@@ -129,6 +139,7 @@ def reset_points(appointment_id: int, status: str) -> None:
         "updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
         (status, appointment_id),
     )
+    notify_treatment(appointment_id)
 
 
 def advance_points_status(
@@ -148,7 +159,10 @@ def advance_points_status(
                   OR points_status IN (SELECT value FROM json_each(?)))""",
         (status, appointment_id, int(allow_empty), json.dumps(list(only_from))),
     )
-    return bool(cur.rowcount)
+    changed = bool(cur.rowcount)
+    if changed:
+        notify_treatment(appointment_id)
+    return changed
 
 
 def save_points(
@@ -181,7 +195,7 @@ def save_points(
                    WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)""",
                 (payload, appointment_id, expect_status, expect_status),
             )
-            return bool(cur.rowcount)
+            return _notified(appointment_id, bool(cur.rowcount))
         except Exception as exc:
             if "locked" in str(exc).lower() and attempt < 4:
                 time.sleep(0.2 * (2**attempt))  # 0.2 s, 0.4 s, 0.8 s, 1.6 s
@@ -214,7 +228,7 @@ def append_points(
             "WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)",
             (status, appointment_id, expect_status, expect_status),
         )
-        return bool(cur.rowcount)
+        return _notified(appointment_id, bool(cur.rowcount))
 
     import time
 
@@ -249,7 +263,7 @@ def append_points(
                 "WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)",
                 (merged, status, appointment_id, expect_status, expect_status),
             )
-            return bool(cur.rowcount)
+            return _notified(appointment_id, bool(cur.rowcount))
         except Exception as exc:
             if "locked" in str(exc).lower() and attempt < 4:
                 time.sleep(0.2 * (2**attempt))

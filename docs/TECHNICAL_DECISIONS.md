@@ -685,3 +685,31 @@ over an in-progress status), cancels the session's pending/running pipeline jobs
 stage writes with `expect_status` — the status it started with — so a batch that finishes after
 Cancel is discarded and its successor is never queued. The synchronous `generate-points` honours
 Cancel the same way.
+
+---
+
+## ADR-24: Live Treatment Updates Use SSE With Pub/Sub Wake-Ups
+
+**Date:** 2026-09-16 (Phase 3.4)
+
+**Before.** The treatment page asked `GET /api/treatment-notes/…` every 2 seconds for as long as a
+generation ran — up to 15 minutes, per open tab.
+
+**Decision.** Behind `ZF_SSE_UPDATES` (off by default):
+1. `GET …/stream` is a server-sent event stream: `notes` with the current state, `notes` again
+   whenever they change, `done` once nothing is generating. It closes on its own after 15 minutes
+   or when the page goes away.
+2. Every `points_status` write in the repository publishes `changed` on
+   `zenflow:treatment:{appointment_id}`. The message is only a wake-up: the stream re-reads the
+   database, which stays the single source of truth, and sends the notes only if they differ.
+3. Pub/sub has no replay, so the stream also re-checks every 2 s. A missed message costs latency,
+   never correctness; without Redis the stream degrades to that timer.
+4. The page uses `EventSource` when the server says the flag is on and falls back to the old
+   polling on any stream error. Both transports feed one `apply(notes)` function.
+
+**Options rejected.** WebSockets (two-way, more moving parts, nothing to send upstream); pushing
+the notes themselves over pub/sub (two sources of truth, and a lost message would lose data).
+
+**Consequences.** The flag's two paths are both tested. Each open stream holds one Redis
+connection and one thread hop per re-check; at clinic scale that is negligible. Turn the flag on
+once Redis is confirmed on the deployment host (HOSTING_AND_MONITORING.md).

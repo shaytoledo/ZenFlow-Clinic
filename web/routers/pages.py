@@ -78,7 +78,11 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
         resolve_owned_appointment(request, patient_id, apt_date, apt_time)
     except HTTPException:  # not found / not this therapist's → back to the list, like other pages
         return RedirectResponse("/patients")
-    return _page(request, "treatment.html", "patients")
+    from zenflow.settings import get_settings
+
+    return _page(
+        request, "treatment.html", "patients", sse_updates=get_settings().flags.sse_updates
+    )
 
 
 @router.get("/onboarding", response_class=HTMLResponse)

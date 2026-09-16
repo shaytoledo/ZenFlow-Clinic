@@ -455,6 +455,8 @@ const patientId = pathParts[1];
 const aptDate   = pathParts[2];
 const aptTimeSlug = pathParts[3] || '';
 const aptTime   = aptTimeSlug.replace('-', ':');
+// Live updates (Phase 3.4): stream status changes instead of polling when the server offers it.
+const ZF_SSE_UPDATES = {{ 'true' if sse_updates else 'false' }};
 
 // ── Auto-save ─────────────────────────────────────────────────────────────────
 
@@ -1169,7 +1171,7 @@ async function triggerRediagnosis(force) {
   const ICON_IDLE = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
 
   // Stop any DB poll that may be running for the bot pipeline
-  if (_pollHandle) { clearInterval(_pollHandle); _pollHandle = null; }
+  _stopFollowing();
 
   btn.disabled = true;
   btn.innerHTML = ICON_SPIN + ' Diagnosing…';
@@ -1254,20 +1256,23 @@ async function triggerRediagnosis(force) {
 //   Stage 2 arrival → point cards render, bar completes
 
 let _pollHandle = null;
+let _eventSource = null;
+
+function _stopFollowing() {
+  if (_pollHandle !== null) { clearInterval(_pollHandle); _pollHandle = null; }
+  if (_eventSource) { _eventSource.close(); _eventSource = null; }
+}
 
 async function _pollForPoints(skipProgress) {
-  if (_pollHandle) return;  // already polling
+  if (_pollHandle || _eventSource) return;  // already following
   if (!skipProgress) _startPointsProgress('AI is preparing your diagnosis…');
 
   let stage1Rendered = false;
 
   let stage2aRendered = false;
 
-  _pollHandle = setInterval(async () => {
+  const apply = async (notes) => {
     try {
-      const nr = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}`);
-      if (!nr.ok) return;
-      const notes = await nr.json();
 
       const status      = notes.points_status;
       const hasDiagnosis = Boolean(notes.tcm_pattern);
@@ -1330,8 +1335,7 @@ async function _pollForPoints(skipProgress) {
 
       // Stage 2B COMPLETED: render full point list and stop polling
       if (status === 'COMPLETED') {
-        clearInterval(_pollHandle);
-        _pollHandle = null;
+        _stopFollowing();
         aiPointRationale = {};
         (notes.ai_suggested_points || []).forEach(p => {
           if (typeof p === 'object' && p.code) aiPointRationale[p.code] = p.rationale || '';
@@ -1356,8 +1360,7 @@ async function _pollForPoints(skipProgress) {
 
       // Legacy COMPLETED without sub-stages (rediagnose path)
       if (hasPoints && !status) {
-        clearInterval(_pollHandle);
-        _pollHandle = null;
+        _stopFollowing();
         aiPointRationale = {};
         (notes.ai_suggested_points || []).forEach(p => {
           if (typeof p === 'object' && p.code) aiPointRationale[p.code] = p.rationale || '';
@@ -1370,8 +1373,7 @@ async function _pollForPoints(skipProgress) {
 
       // Cancelled by the therapist: stop and offer a fresh run
       if (status === 'CANCELLED') {
-        clearInterval(_pollHandle);
-        _pollHandle = null;
+        _stopFollowing();
         _finishPointsProgress(false);
         _showGenerateButton({ cancelled: true });
         return;
@@ -1379,8 +1381,7 @@ async function _pollForPoints(skipProgress) {
 
       // Stage 2 FAILED: stop polling and offer retry
       if (status === 'FAILED') {
-        clearInterval(_pollHandle);
-        _pollHandle = null;
+        _stopFollowing();
         _finishPointsProgress(false);
         _showRetryButton();
         return;
@@ -1395,23 +1396,48 @@ async function _pollForPoints(skipProgress) {
       // Nothing is generating and nothing exists: stop and offer the explicit button
       // (never start a run from here — plan 3.2).
       if (!stillGenerating && !hasDiagnosis && !hasPoints) {
-        clearInterval(_pollHandle);
-        _pollHandle = null;
+        _stopFollowing();
         _finishPointsProgress(false);
         _showGenerateButton({ failed: false, hasInput: true });
         return;
       }
-      // still generating → keep polling
+      // still generating → keep following
     } catch (_) {}
-  }, 2000);
+  };
+
+  const poll = () => {
+    _pollHandle = setInterval(async () => {
+      try {
+        const nr = await fetch(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}`);
+        if (nr.ok) await apply(await nr.json());
+      } catch (_) {}
+    }, 2000);
+  };
+
+  if (ZF_SSE_UPDATES && window.EventSource) {
+    // One stream instead of a request every 2 s. If it fails for any reason, poll instead.
+    _eventSource = new EventSource(`/api/treatment-notes/${patientId}/${aptDate}/${aptTimeSlug}/stream`);
+    _eventSource.addEventListener('notes', (e) => { apply(JSON.parse(e.data)); });
+    _eventSource.addEventListener('done', () => {
+      // Close before the server does, or the browser would reconnect.
+      if (_eventSource) { _eventSource.close(); _eventSource = null; }
+    });
+    _eventSource.onerror = () => {
+      if (!_eventSource) return;
+      _eventSource.close();
+      _eventSource = null;
+      poll();
+    };
+  } else {
+    poll();
+  }
 
   // Safety timeout: a queued run can take several minutes (each stage may retry with backoff),
   // so stop watching after 15 minutes and let the therapist decide. The retry offered here may
   // override a status a crashed run left behind; the server still refuses while a job is live.
   setTimeout(() => {
-    if (_pollHandle) {
-      clearInterval(_pollHandle);
-      _pollHandle = null;
+    if (_pollHandle || _eventSource) {
+      _stopFollowing();
       _finishPointsProgress(false);
       _showRetryButton(true);
     }
@@ -1439,7 +1465,7 @@ async function regeneratePoints() {
       const err = await r.json().catch(() => ({}));
       throw new Error((typeof err.detail === 'string' && err.detail) || `Regenerate failed (${r.status})`);
     }
-    if (_pollHandle) { clearInterval(_pollHandle); _pollHandle = null; }
+    _stopFollowing();
     _clearRenderedPoints();  // the server cleared them; don't keep showing the old formula
     _startPointsProgress('Request 2 of 3 — selecting first batch (5–7 points)…');
     _updateProgress(40, 'Request 2 of 3 — selecting first batch (5–7 points)…');
@@ -1474,7 +1500,7 @@ async function cancelGeneration() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
     });
     if (r.ok) {
-      if (_pollHandle) { clearInterval(_pollHandle); _pollHandle = null; }
+      _stopFollowing();
       _finishPointsProgress(false);
       _showGenerateButton({ cancelled: true, hasInput: true });
     }
