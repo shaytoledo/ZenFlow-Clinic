@@ -122,8 +122,20 @@ def set_points_status(appointment_id: int, status: str) -> None:
     )
 
 
-def advance_points_status(appointment_id: int, status: str, *, only_from: tuple[str, ...]) -> bool:
-    """Set the pipeline status only when the current one is empty or in `only_from`.
+def reset_points(appointment_id: int, status: str) -> None:
+    """Clear the suggested points and set the status in one statement (a fresh point run)."""
+    _conn().execute(
+        "UPDATE treatment_notes SET ai_suggested_points=NULL, points_status=?, "
+        "updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
+        (status, appointment_id),
+    )
+
+
+def advance_points_status(
+    appointment_id: int, status: str, *, only_from: tuple[str, ...], allow_empty: bool = True
+) -> bool:
+    """Set the pipeline status only when the current one is in `only_from` (or empty, unless
+    `allow_empty=False`).
 
     One statement, so a replayed or late job can never move a session backwards (for example from
     COMPLETED back to GENERATING). Returns whether the row changed.
@@ -132,15 +144,20 @@ def advance_points_status(appointment_id: int, status: str, *, only_from: tuple[
         """UPDATE treatment_notes
            SET points_status=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
            WHERE appointment_id=?
-             AND (points_status IS NULL OR points_status=''
+             AND ((? AND COALESCE(points_status, '') = '')
                   OR points_status IN (SELECT value FROM json_each(?)))""",
-        (status, appointment_id, json.dumps(list(only_from))),
+        (status, appointment_id, int(allow_empty), json.dumps(list(only_from))),
     )
     return bool(cur.rowcount)
 
 
-def save_points(appointment_id: int, points: list[dict[str, Any]]) -> None:
+def save_points(
+    appointment_id: int, points: list[dict[str, Any]], expect_status: str | None = None
+) -> bool:
     """Dedicated Stage-2 writer: unconditionally overwrites ai_suggested_points.
+
+    With `expect_status`, nothing is written unless the status is still that value — a run the
+    therapist cancelled meanwhile must not land (Phase 3.3). Returns whether it wrote.
 
     Uses a direct UPDATE (not UPSERT) so COALESCE cannot block a non-empty
     result from landing in the DB.  The row must already exist (created by
@@ -151,41 +168,53 @@ def save_points(appointment_id: int, points: list[dict[str, Any]]) -> None:
     simultaneously (WAL mode reduces but does not eliminate contention).
     """
     if not points:
-        return  # never persist an empty list — leave existing value intact
+        return False  # never persist an empty list — leave existing value intact
 
     import time
 
     payload = json.dumps(points, ensure_ascii=False)
     for attempt in range(5):
         try:
-            _conn().execute(
+            cur = _conn().execute(
                 """UPDATE treatment_notes
                    SET ai_suggested_points=?, points_status='COMPLETED', updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
-                   WHERE appointment_id=?""",
-                (payload, appointment_id),
+                   WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)""",
+                (payload, appointment_id, expect_status, expect_status),
             )
-            return
+            return bool(cur.rowcount)
         except Exception as exc:
             if "locked" in str(exc).lower() and attempt < 4:
                 time.sleep(0.2 * (2**attempt))  # 0.2 s, 0.4 s, 0.8 s, 1.6 s
                 continue
             raise
+    return False  # unreachable: the last attempt either returns or re-raises
 
 
 def append_points(
-    appointment_id: int, new_points: list[dict[str, Any]], status: str | None = None
-) -> None:
+    appointment_id: int,
+    new_points: list[dict[str, Any]],
+    status: str | None = None,
+    expect_status: str | None = None,
+) -> bool:
     """Append a batch of points to ai_suggested_points without overwriting existing ones.
 
     Safe against concurrent writes: reads current value, merges in Python, writes back.
     Retries up to 5 times with exponential back-off on SQLITE_LOCKED errors.
     `status`, when given, is written in the same statement, so "batch saved" and "stage advanced"
-    can never disagree after a crash (Phase 3.1).
+    can never disagree after a crash (Phase 3.1). With `expect_status`, nothing is written unless
+    the status is still that value (a cancelled run's batch is discarded — Phase 3.3).
+    Returns whether it wrote.
     """
     if not new_points:
-        if status is not None:
-            set_points_status(appointment_id, status)
-        return
+        if status is None:
+            return False
+        cur = _conn().execute(
+            "UPDATE treatment_notes SET points_status=?, "
+            "updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') "
+            "WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)",
+            (status, appointment_id, expect_status, expect_status),
+        )
+        return bool(cur.rowcount)
 
     import time
 
@@ -213,18 +242,20 @@ def append_points(
                 if not (isinstance(p, dict) and p.get("code") in existing_codes)
             ]
             merged = json.dumps(existing + to_add, ensure_ascii=False)
-            _conn().execute(
+            cur = _conn().execute(
                 "UPDATE treatment_notes SET ai_suggested_points=?, "
                 "points_status=COALESCE(?, points_status), "
-                "updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
-                (merged, status, appointment_id),
+                "updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') "
+                "WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)",
+                (merged, status, appointment_id, expect_status, expect_status),
             )
-            return
+            return bool(cur.rowcount)
         except Exception as exc:
             if "locked" in str(exc).lower() and attempt < 4:
                 time.sleep(0.2 * (2**attempt))
                 continue
             raise
+    return False  # unreachable: the last attempt either returns or re-raises
 
 
 def save_followup_conversation(appointment_id: int, conversation_data: dict[str, Any]) -> None:

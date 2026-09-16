@@ -677,3 +677,11 @@ and Phase 3.3 moves them onto the same jobs.
 return 409 with `points_status` while a generation is in progress. `force=true` skips only the
 status check — for a status a crashed run left behind — never the lease. The treatment page no
 longer generates on load; it offers an explicit button.
+
+**Amendment (Phase 3.3, 2026-09-16).** `regenerate-points` answers 202 and queues
+`points.generate` with its own run id (`regen-…`) and the therapist's language; the page follows
+the status only. `CANCELLED` is a terminal status: `POST …/cancel-generation` sets it (only
+over an in-progress status), cancels the session's pending/running pipeline jobs, and every
+stage writes with `expect_status` — the status it started with — so a batch that finishes after
+Cancel is discarded and its successor is never queued. The synchronous `generate-points` honours
+Cancel the same way.

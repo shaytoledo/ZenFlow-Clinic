@@ -120,8 +120,12 @@ async def test_force_overrides_a_stale_status(session, fake_llm, fake_redis, end
     """A status a crashed run left behind must not lock the therapist out."""
     _set_status(session["apt"]["id"], "GENERATING")
     resp = await _call(session["client"], session["base"], endpoint, force=True)
-    assert resp.status_code == 200, resp.text
-    assert fake_llm.calls, "the forced run did generate"
+    if endpoint == "regenerate-points":  # queued since Phase 3.3
+        assert resp.status_code == 202, resp.text
+        assert _job_count() == 1, "the forced run was queued"
+    else:
+        assert resp.status_code == 200, resp.text
+        assert fake_llm.calls, "the forced run did generate"
 
 
 @pytest.mark.parametrize("endpoint", GENERATING_ENDPOINTS)

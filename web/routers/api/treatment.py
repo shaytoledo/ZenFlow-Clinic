@@ -85,6 +85,13 @@ async def _resolve_apt_id(
 _require_auth = require_active_therapist
 
 
+def _fail_unless_cancelled(apt_id: int) -> None:
+    """Mark a synchronous run FAILED, unless the therapist cancelled it meanwhile."""
+    from web.repositories.treatment_repo import advance_points_status
+
+    advance_points_status(apt_id, "FAILED", only_from=("GENERATING",), allow_empty=False)
+
+
 # ── one generation at a time (Phase 3.2) ───────────────────────────────────────
 #: longest a synchronous web generation may hold the lease: regenerate-points can make four
 #: back-to-back AI calls (two batches, one inner retry each) at 180 s apiece
@@ -107,7 +114,7 @@ async def _exclusive_generation(
     apt_date: str,
     apt_time: str,
     force: bool,
-    run: Callable[[], Awaitable[Any]],
+    run: Callable[[dict[str, Any], int], Awaitable[Any]],
 ) -> Any:
     """Run a generating endpoint only when nothing else is generating for this session.
 
@@ -128,7 +135,7 @@ async def _exclusive_generation(
     with leases.held(lock_name(apt_id), holder, ttl_seconds=WEB_GENERATION_LEASE_SECONDS) as got:
         if not got:
             return _busy(status or "GENERATING")
-        return await run()
+        return await run(therapist, apt_id)
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
@@ -671,7 +678,7 @@ async def rediagnose(
         apt_date,
         apt_time,
         force,
-        lambda: _rediagnose(patient_id, apt_date, apt_time, body, request),
+        lambda _t, _a: _rediagnose(patient_id, apt_date, apt_time, body, request),
     )
 
 
@@ -810,7 +817,7 @@ async def generate_points(
         apt_date,
         apt_time,
         force,
-        lambda: _generate_points(patient_id, apt_date, apt_time, request),
+        lambda _t, _a: _generate_points(patient_id, apt_date, apt_time, request),
     )
 
 
@@ -872,12 +879,21 @@ async def _generate_points(
         logger.info(f"generate-points apt{apt_id} — AI returned {len(points)} point(s)")
 
         if points:
-            await asyncio.to_thread(
-                _save_pts, apt_id, points
-            )  # stamps COMPLETED in the same UPDATE
+            # Stamps COMPLETED in the same UPDATE — only if nobody cancelled meanwhile.
+            saved = await asyncio.to_thread(_save_pts, apt_id, points, "GENERATING")
+            if not saved:
+                logger.info(f"generate-points apt{apt_id} — cancelled meanwhile; result discarded")
+                current = await asyncio.to_thread(treatment_service.get_notes, apt_id)
+                return JSONResponse(
+                    {
+                        "detail": "The generation was cancelled; its result was discarded.",
+                        "points_status": str((current or {}).get("points_status") or ""),
+                    },
+                    status_code=409,
+                )
             logger.info(f"generate-points apt{apt_id} — COMPLETED: {len(points)} points saved")
         else:
-            await asyncio.to_thread(_set_st, apt_id, "FAILED")
+            await asyncio.to_thread(_fail_unless_cancelled, apt_id)
             logger.error(f"generate-points apt{apt_id} — FAILED: AI returned 0 points")
 
         return JSONResponse(
@@ -898,7 +914,7 @@ async def _generate_points(
         raise HTTPException(status_code=500, detail=f"AI service error: {e}")
 
 
-@router.post("/{patient_id}/{apt_date}/{apt_time}/regenerate-points")
+@router.post("/{patient_id}/{apt_date}/{apt_time}/regenerate-points", status_code=202)
 async def regenerate_points(
     patient_id: int,
     apt_date: str,
@@ -906,123 +922,52 @@ async def regenerate_points(
     request: Request,
     force: bool = False,
 ):
-    """Regenerate points — only on an explicit request, never alongside another run."""
-    return await _exclusive_generation(
-        request,
-        patient_id,
-        apt_date,
-        apt_time,
-        force,
-        lambda: _regenerate_points(patient_id, apt_date, apt_time, request),
-    )
+    """Replace the session's points with a fresh two-batch run (Phase 3.3).
 
-
-async def _regenerate_points(
-    patient_id: int,
-    apt_date: str,
-    apt_time: str,
-    request: Request,
-) -> JSONResponse:
-    """Re-run Stage 2A + 2B point selection from scratch using the saved diagnosis.
-
-    Clears existing ai_suggested_points, then runs both batches with the same
-    status-flip pattern as the bot's background pipeline so the frontend poller
-    can render each batch incrementally.
+    Answers 202 at once: the old points are cleared, the status becomes GENERATING_STAGE_2A, and
+    the same `points.generate` jobs the intake pipeline uses do the work. The page follows the
+    status — it never renders this response as the result.
     """
-    therapist = _require_auth(request)
-    lang = (therapist.get("language") or "en") if isinstance(therapist, dict) else "en"
-    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
-
-    from web.repositories.treatment_repo import (
-        append_points as _append,
-    )
-    from web.repositories.treatment_repo import (
-        get_by_appointment as _get,
-    )
-    from web.repositories.treatment_repo import (
-        set_points_status as _set_st,
+    return await _exclusive_generation(
+        request, patient_id, apt_date, apt_time, force, _enqueue_regeneration
     )
 
-    row = await asyncio.to_thread(_get, apt_id)
-    if not row:
+
+async def _enqueue_regeneration(therapist: dict[str, Any], apt_id: int) -> JSONResponse:
+    from bot.services.pipeline_jobs import STAGE_2A, start_points_regeneration
+
+    notes = await asyncio.to_thread(treatment_service.get_notes, apt_id)
+    if not notes:
         raise HTTPException(status_code=404, detail="No treatment notes for this appointment")
-
-    tcm_pattern = row.get("tcm_pattern") or ""
-    treatment_principles = row.get("treatment_principles") or ""
-    if not tcm_pattern:
+    if not notes.get("tcm_pattern"):
         raise HTTPException(status_code=422, detail="No TCM diagnosis yet — run diagnosis first")
-
-    intake_context = await asyncio.to_thread(_load_intake_context, apt_id)
-
-    # Clear existing points so the UI starts fresh
-    from bot.db import get_db
-
-    await asyncio.to_thread(
-        lambda: get_db().execute(
-            "UPDATE treatment_notes SET ai_suggested_points=NULL, points_status=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
-            ("GENERATING_STAGE_2A", apt_id),
-        )
+    lang = (therapist.get("language") or "en") if isinstance(therapist, dict) else "en"
+    run = await asyncio.to_thread(start_points_regeneration, apt_id, int(notes["patient_id"]), lang)
+    logger.info(f"regenerate-points apt{apt_id} — queued run {run}")
+    return JSONResponse(
+        {"points_status": STAGE_2A, "run": run, "ai_suggested_points": []}, status_code=202
     )
 
-    try:
-        from bot.patient_bot.services.ai_intake import _LLM_POINTS, select_points_for_diagnosis
 
-        if _LLM_POINTS is None:
-            await asyncio.to_thread(_set_st, apt_id, "FAILED")
-            raise HTTPException(status_code=503, detail="AI model not available")
+@router.post("/{patient_id}/{apt_date}/{apt_time}/cancel-generation")
+async def cancel_generation(patient_id: int, apt_date: str, apt_time: str, request: Request):
+    """Stop the session's generation. 409 when nothing is generating (Phase 3.3)."""
+    from bot.services.pipeline_jobs import CANCELLED
+    from bot.services.pipeline_jobs import cancel_generation as _cancel
 
-        logger.info(f"regenerate-points apt{apt_id} — Stage 2A start, pattern='{tcm_pattern}'")
-        batch_a = await select_points_for_diagnosis(
-            tcm_pattern=tcm_pattern,
-            treatment_principles=treatment_principles,
-            intake_context=intake_context or "No prior intake on file.",
-            log_tag=f"apt{apt_id}",
-            batch_number=1,
-            lang=lang,
-        )
-        if batch_a:
-            await asyncio.to_thread(_append, apt_id, batch_a)
-            logger.info(f"regenerate-points apt{apt_id} — Stage 2A done ({len(batch_a)} points)")
-
-        await asyncio.to_thread(_set_st, apt_id, "GENERATING_STAGE_2B")
-        existing_codes = [p["code"] for p in batch_a if isinstance(p, dict) and p.get("code")]
-        logger.info(f"regenerate-points apt{apt_id} — Stage 2B start, avoiding {existing_codes}")
-        batch_b = await select_points_for_diagnosis(
-            tcm_pattern=tcm_pattern,
-            treatment_principles=treatment_principles,
-            intake_context=intake_context or "No prior intake on file.",
-            log_tag=f"apt{apt_id}",
-            batch_number=2,
-            existing_codes=existing_codes,
-            lang=lang,
-        )
-        if batch_b:
-            await asyncio.to_thread(_append, apt_id, batch_b)
-            logger.info(f"regenerate-points apt{apt_id} — Stage 2B done ({len(batch_b)} points)")
-
-        total = len(batch_a) + len(batch_b)
-        final_status = "COMPLETED" if total > 0 else "FAILED"
-        await asyncio.to_thread(_set_st, apt_id, final_status)
-        logger.info(f"regenerate-points apt{apt_id} — {final_status}: {total} points total")
-
-        # Return the merged list so the caller can render it directly if desired
-        final_row = await asyncio.to_thread(_get, apt_id)
+    therapist = _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
+    was_generating, cancelled = await asyncio.to_thread(_cancel, apt_id)
+    if not was_generating:
+        notes = await asyncio.to_thread(treatment_service.get_notes, apt_id)
         return JSONResponse(
             {
-                "ai_suggested_points": final_row.get("ai_suggested_points") or [],
-                "points_status": final_status,
-                "point_count": total,
-            }
+                "detail": "Nothing is generating for this session.",
+                "points_status": str((notes or {}).get("points_status") or ""),
+            },
+            status_code=409,
         )
-
-    except TimeoutError:
-        await asyncio.to_thread(_set_st, apt_id, "FAILED")
-        raise HTTPException(status_code=504, detail="AI model timed out on point selection")
-    except Exception as e:
-        logger.error(f"regenerate-points error: {e}", exc_info=True)
-        with contextlib.suppress(Exception):
-            await asyncio.to_thread(_set_st, apt_id, "FAILED")
-        raise HTTPException(status_code=500, detail=f"AI service error: {e}")
+    return JSONResponse({"points_status": CANCELLED, "cancelled_jobs": cancelled})
 
 
 @router.get("/sessions/history")
