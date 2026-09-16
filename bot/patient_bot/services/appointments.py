@@ -11,6 +11,16 @@ logger = logging.getLogger(__name__)
 # ── public API ───────────────────────────────────────────────────────────────
 
 
+class SlotTaken(Exception):
+    """The hour was booked by someone else between showing it and saving (BOT_AUDIT B4)."""
+
+    def __init__(self, therapist_id: str, day: date, time_slot: str) -> None:
+        super().__init__(f"{therapist_id} {day.isoformat()} {time_slot} is already booked")
+        self.therapist_id = therapist_id
+        self.day = day
+        self.time_slot = time_slot
+
+
 def save_appointment(
     patient_id: int,
     patient_name: str,
@@ -21,12 +31,32 @@ def save_appointment(
     gcal_apt_event_id: str | None = None,
     therapist_id: str = "",
 ) -> int:
-    """Save appointment to SQLite. Returns the appointment row ID."""
+    """Save appointment to SQLite. Returns the appointment row ID.
+
+    Raises `SlotTaken` when the therapist already has an active appointment at that hour: the
+    hours were listed minutes ago and someone else may have taken this one since (BOT_AUDIT B4).
+    The check and the insert share one `BEGIN IMMEDIATE` transaction, and the partial unique index
+    `ux_appointments_active_slot` is the backstop for any writer that does not go through here.
+    """
+    import sqlite3
+
     from bot.db import get_db
 
     conn = get_db()
-    conn.execute("BEGIN")
+    conn.execute("BEGIN IMMEDIATE")
     try:
+        clash = conn.execute(
+            """SELECT id FROM appointments
+               WHERE therapist_id=? AND date=? AND time=? AND status='active'""",
+            (therapist_id, day.isoformat(), time_slot),
+        ).fetchone()
+        if clash is not None:
+            conn.execute("ROLLBACK")
+            logger.info(
+                f"Slot already taken: {therapist_id} {day.isoformat()} {time_slot} "
+                f"(appointment {clash['id']}); refusing booking for patient {patient_id}"
+            )
+            raise SlotTaken(therapist_id, day, time_slot)
         cur = conn.execute(
             f"""INSERT INTO appointments
                (patient_id, patient_name, therapist_id, date, time, status, gcal_apt_event_id,
@@ -55,6 +85,13 @@ def save_appointment(
             ),
         )
         conn.execute("COMMIT")
+    except SlotTaken:
+        raise
+    except sqlite3.IntegrityError as e:
+        conn.execute("ROLLBACK")
+        if "ux_appointments_active_slot" in str(e):
+            raise SlotTaken(therapist_id, day, time_slot) from e
+        raise
     except Exception:
         conn.execute("ROLLBACK")
         raise
@@ -69,6 +106,22 @@ def save_appointment(
         pass
 
     return appointment_id
+
+
+def set_gcal_event_id(appointment_id: int, gcal_apt_event_id: str | None) -> None:
+    """Attach the calendar event to an appointment that is already saved.
+
+    The appointment row is written first so it claims the slot; the calendar work happens after
+    (BOT_AUDIT B4), and its id lands here.
+    """
+    if not gcal_apt_event_id:
+        return
+    from bot.db import get_db
+
+    get_db().execute(
+        "UPDATE appointments SET gcal_apt_event_id=? WHERE id=?",
+        (gcal_apt_event_id, appointment_id),
+    )
 
 
 def update_appointment_summary(appointment_id: int, summary: str, history: list[dict]) -> None:

@@ -19,8 +19,10 @@ from bot.patient_bot.services.ai_intake import (
     select_points_for_diagnosis,
 )
 from bot.patient_bot.services.appointments import (
+    SlotTaken,
     save_appointment,
     save_treatment_notes,
+    set_gcal_event_id,
     update_appointment_summary,
 )
 from bot.patient_bot.services.availability import book_slot, get_available_days, get_available_hours
@@ -264,25 +266,31 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     lang = _lang(context)
     selected_therapist = context.user_data.get("selected_therapist")
 
-    gcal_id = await book_slot(
+    # Claim the slot in the database first: if someone else took this hour while the patient was
+    # deciding, nothing has been removed from the availability calendar yet (BOT_AUDIT B4).
+    try:
+        appointment_id = save_appointment(
+            patient_id=user.id,
+            patient_name=user.full_name or user.first_name,
+            day=day,
+            time_slot=time_slot,
+            intake_history=[],
+            summary="",
+            therapist_id=selected_therapist or "",
+        )
+    except SlotTaken:
+        return await _slot_taken(query, context, lang, day, time_slot)
+
+    await _release_hour(
         day,
         time_slot,
         user.full_name or user.first_name,
         "Patient opted to skip the intake questionnaire.",
-        therapist_id=selected_therapist,
-    )
-    appointment_id = save_appointment(
-        patient_id=user.id,
-        patient_name=user.full_name or user.first_name,
-        day=day,
-        time_slot=time_slot,
-        intake_history=[],
-        summary="",
-        gcal_apt_event_id=gcal_id,
-        therapist_id=selected_therapist or "",
+        selected_therapist,
+        appointment_id,
     )
     save_treatment_notes(appointment_id, user.id, {})
-    clear_intake(user.id)
+    _forget_intake(user.id)
     logger.info(f"[{user.id}] appointment saved (no intake)")
     context.user_data.clear()
     if selected_therapist:
@@ -290,6 +298,54 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     await query.edit_message_text(
         t("bot_booked", lang, day=day.strftime("%A, %d %B %Y"), time=time_slot),
+        parse_mode="Markdown",
+        reply_markup=get_main_keyboard(lang),
+    )
+    return SELECTING
+
+
+def _forget_intake(user_id: int) -> None:
+    """Drop the cached intake history, tolerating a Redis outage (BOT_AUDIT B9).
+
+    The appointment is already saved at this point; failing to clear a cache must never cost the
+    patient their confirmation message.
+    """
+    try:
+        clear_intake(user_id)
+    except Exception as e:
+        logger.error(f"[{user_id}] intake history not cleared: {e}")
+
+
+async def _release_hour(
+    day: date,
+    time_slot: str,
+    patient_name: str,
+    summary: str,
+    therapist_id: str | None,
+    appointment_id: int,
+) -> str | None:
+    """Remove the booked hour from availability and store the calendar event id.
+
+    Runs after the appointment row exists. A calendar failure must not undo a confirmed booking,
+    so it is logged and the patient still gets their confirmation.
+    """
+    try:
+        gcal_id = await book_slot(day, time_slot, patient_name, summary, therapist_id=therapist_id)
+    except Exception as e:
+        logger.error(f"appointment {appointment_id} saved but the calendar update failed: {e}")
+        return None
+    set_gcal_event_id(appointment_id, gcal_id)
+    return gcal_id
+
+
+async def _slot_taken(query, context, lang: str, day: date, time_slot: str) -> int:
+    """Tell the patient their hour is gone and send them back to the menu (BOT_AUDIT B4)."""
+    selected_therapist = context.user_data.get("selected_therapist")
+    context.user_data.clear()
+    if selected_therapist:
+        context.user_data["selected_therapist"] = selected_therapist
+    await query.edit_message_text(
+        t("bot_slot_taken", lang, day=day.strftime("%A, %d %B %Y"), time=time_slot),
         parse_mode="Markdown",
         reply_markup=get_main_keyboard(lang),
     )
@@ -441,7 +497,7 @@ async def _summary_and_tcm(
         except Exception:
             pass
     finally:
-        clear_intake(user_id)
+        _forget_intake(user_id)
 
 
 # ── intake answers ────────────────────────────────────────────────────────────
@@ -462,22 +518,35 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         lang = get_lang(selected_therapist)
         patient_name = user.full_name or user.first_name
 
-        gcal_id = await book_slot(
+        try:
+            appointment_id = save_appointment(
+                patient_id=user_id,
+                patient_name=patient_name,
+                day=day,
+                time_slot=time_slot,
+                intake_history=[],
+                summary="",
+                therapist_id=selected_therapist or "",
+            )
+        except SlotTaken:
+            _forget_intake(user_id)
+            context.user_data.clear()
+            if selected_therapist:
+                context.user_data["selected_therapist"] = selected_therapist
+            await update.message.reply_text(
+                t("bot_slot_taken", lang, day=day.strftime("%A, %d %b"), time=time_slot),
+                parse_mode="Markdown",
+                reply_markup=get_main_keyboard(lang),
+            )
+            return SELECTING
+
+        await _release_hour(
             day,
             time_slot,
             patient_name,
             "Intake in progress — AI summary pending.",
-            therapist_id=selected_therapist,
-        )
-        appointment_id = save_appointment(
-            patient_id=user_id,
-            patient_name=patient_name,
-            day=day,
-            time_slot=time_slot,
-            intake_history=[],
-            summary="",
-            gcal_apt_event_id=gcal_id,
-            therapist_id=selected_therapist or "",
+            selected_therapist,
+            appointment_id,
         )
         save_treatment_notes(appointment_id, user_id, {})
 

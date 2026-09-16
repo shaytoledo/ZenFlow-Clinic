@@ -312,6 +312,7 @@
   "bot_skip_intake": "❌ No, skip",
   "bot_intake_start": "Great! A few quick questions to help your acupuncturist prepare. 🌿",
   "bot_booked": "✅ *Appointment confirmed!*\n📅 *{day}* at *{time}*\n\nWe look forward to seeing you at ZenFlow Clinic 🌿\n\nWhat else can I help you with?",
+  "bot_slot_taken": "⚠️ *That time was just booked by someone else.*\n📅 *{day}* at *{time}* is no longer free — nothing was booked for you.\n\nPlease choose another time.",
   "bot_select_to_cancel": "Select an appointment to cancel:",
   "bot_cancelled_msg": "✅ Appointment on *{day}* at *{time}* has been cancelled.\n\nWhat else can I help you with?"
 }

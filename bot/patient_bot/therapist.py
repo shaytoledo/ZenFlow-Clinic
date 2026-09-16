@@ -33,6 +33,25 @@ def _get_therapist(context) -> dict | None:
     return active[0] if len(active) == 1 else None
 
 
+def _record_relay(
+    patient_id: int, message_id: int, therapist_id: str, patient_name: str, text: str
+) -> None:
+    """Store the routing mapping and the history entry for a message already delivered.
+
+    Best effort on purpose (BOT_AUDIT B9): the therapist has the message either way. Losing the
+    mapping only means their reply must go to a newer message, which the therapist bot says
+    clearly, so it is logged rather than surfaced to the patient as a failed send.
+    """
+    try:
+        save_relay_mapping(message_id, patient_id, therapist_id, patient_name)
+    except Exception as e:
+        logger.error(f"[{patient_id}] relay delivered but the mapping was not saved: {e}")
+    try:
+        append_history(patient_id, "patient", text)
+    except Exception as e:
+        logger.error(f"[{patient_id}] relay delivered but the history was not saved: {e}")
+
+
 async def show_therapist_for_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Ask patient which therapist they want to contact, then prompt for message."""
     query = update.callback_query
@@ -110,11 +129,6 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             chat_id=therapist["telegram_id"],
             text=f"💬 New message from {patient_name} (ID: {user.id})\n\n{update.message.text}",
         )
-        save_relay_mapping(sent.message_id, user.id, therapist["id"], patient_name)
-        append_history(user.id, "patient", update.message.text)
-        logger.info(
-            f"[{user.id}] relay opened via therapist bot, msg_id={sent.message_id}, therapist={therapist['id']}"
-        )
     except Exception as e:
         logger.error(f"[{user.id}] failed to forward to therapist bot: {e}")
         await update.message.reply_text(
@@ -122,6 +136,13 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             reply_markup=get_main_keyboard(),
         )
         return SELECTING
+
+    # The therapist has the message. A Redis failure past this point costs the reply routing, not
+    # the delivery, so the patient must not be told it failed (BOT_AUDIT B9).
+    _record_relay(user.id, sent.message_id, therapist["id"], patient_name, update.message.text)
+    logger.info(
+        f"[{user.id}] relay opened via therapist bot, msg_id={sent.message_id}, therapist={therapist['id']}"
+    )
 
     await update.message.reply_text(
         "✅ *Message sent to the therapist!*\n\n"
@@ -148,15 +169,16 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
             chat_id=therapist["telegram_id"],
             text=f"💬 {patient_name}:\n{update.message.text}",
         )
-        save_relay_mapping(sent.message_id, user.id, therapist["id"], patient_name)
-        append_history(user.id, "patient", update.message.text)
-        logger.info(f"[{user.id}] relayed via therapist bot, msg_id={sent.message_id}")
-        await update.message.reply_text("✅ Sent.", reply_markup=_END_KB)
     except Exception as e:
         logger.error(f"[{user.id}] relay failed: {e}")
         await update.message.reply_text(
             "⚠️ Could not forward your message. Please try again.", reply_markup=_END_KB
         )
+        return THERAPIST_RELAY
+
+    _record_relay(user.id, sent.message_id, therapist["id"], patient_name, update.message.text)
+    logger.info(f"[{user.id}] relayed via therapist bot, msg_id={sent.message_id}")
+    await update.message.reply_text("✅ Sent.", reply_markup=_END_KB)
     return THERAPIST_RELAY
 
 

@@ -17,6 +17,7 @@ from telegram.ext import (
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, TELEGRAM_TOKEN
 from bot.patient_bot.cancel import confirm_cancel, show_appointments
+from bot.patient_bot.followup import handle_followup_reply
 from bot.patient_bot.schedule import (
     confirm_appointment,
     handle_intake_answer,
@@ -200,6 +201,11 @@ def build_patient_app() -> Application:
         allow_reentry=False,
     )
 
+    # Group -1 runs before the conversation: a 24h follow-up answer is consumed wherever the
+    # patient happens to be, instead of being eaten by INTAKE or forwarded to a therapist (B3).
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_followup_reply), group=-1
+    )
     app.add_handler(conv)
     return app
 
