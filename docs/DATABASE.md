@@ -90,6 +90,26 @@ CREATE TABLE IF NOT EXISTS therapists (
 
 ---
 
+### Table: `bot_persistence` (Phase 2.3)
+
+```sql
+CREATE TABLE IF NOT EXISTS bot_persistence (
+    kind        TEXT NOT NULL,   -- 'conv' (conversation state) | 'user' (user_data)
+    name        TEXT NOT NULL,   -- conversation name ('patient'); '' for user rows
+    key         TEXT NOT NULL,   -- JSON [chat_id, user_id] for conv; telegram user id for user
+    value_json  TEXT NOT NULL,   -- state int, or whitelisted user_data
+    updated_at  TEXT NOT NULL,   -- canonical UTC
+    PRIMARY KEY (kind, name, key)
+);
+```
+
+Written by `bot/persistence.py::SqlitePersistence` so a restart does not drop a patient's
+half-finished booking. Only `PERSISTED_USER_KEYS` are stored (therapist choice, selected
+day/time/week, intake counter, flow marker, and the cancel list reduced to id/date/time/therapist/
+calendar id) — never intake answers, summaries or names. Rows older than
+`ZF_CONV_TIMEOUT_MINUTES` are not restored (the therapist choice is). An ended conversation deletes
+its row.
+
 ### Table: `appointments`
 
 ```sql

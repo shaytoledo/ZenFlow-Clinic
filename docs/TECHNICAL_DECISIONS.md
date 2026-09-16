@@ -604,3 +604,32 @@ body)`, so it always raised `TypeError`, was swallowed, and surfaced as a generi
 stamp can repeat a message once; the ordering keeps that window to milliseconds. Timestamps must
 be canonical for the reconciliation query (run `python -m zenflow.migrate_timestamps` once on an
 existing database).
+
+---
+
+## ADR-22: Bot State Persists as Whitelisted JSON in SQLite, Not Pickle
+
+**Date:** 2026-09-16 (Phase 2.3)
+
+**Context.** Conversation state and `user_data` lived only in memory, so every restart dropped
+every half-finished booking. The plan named `PicklePersistence`, but `bot_data` holds live
+asyncio tasks (the follow-up scheduler and the job worker) that cannot be pickled, a pickle file
+would be a second unmanaged copy of patient state next to the database, and loading pickle is
+code execution. The plan also says never to persist raw clinical free text.
+
+**Options.** (a) `PicklePersistence` with `bot_data` disabled; (b) a Redis-backed persistence
+class; (c) a custom `BasePersistence` writing JSON rows to the existing SQLite database.
+
+**Decision.** (c) — `bot/persistence.py::SqlitePersistence`, table `bot_persistence`.
+- Stored: conversation states, and only the `user_data` keys in `PERSISTED_USER_KEYS`
+  (therapist choice and the scheduling keys of the current flow). The cancel list keeps just the
+  fields `confirm_cancel()` needs. `bot_data`, `chat_data` and callback data are never stored.
+- Rows older than `ZF_CONV_TIMEOUT_MINUTES` are not restored, so after a long outage a patient
+  lands at the menu, not mid-booking; their therapist choice survives.
+- (b) was rejected because Redis in this deployment is a cache with eviction; the database is the
+  thing that is backed up (`zenflow/db_backup.py`).
+
+**Consequences.** A new `user_data` key is silently *not* persisted until it is added to the
+whitelist; this is intentional, and CLAUDE.md says so. Conversation timeouts are not persisted
+by PTB: after a restart, the idle timer restarts on the patient's next update. The acceptance
+test drives a real `Application` offline (a fake `BaseRequest`) through book → restart → finish.
