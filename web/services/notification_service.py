@@ -8,6 +8,8 @@ creating typed alerts so callers don't need to know about the schema.
 from __future__ import annotations
 
 import logging
+from typing import Any
+from urllib.parse import quote
 
 from web.repositories import notification_repo
 
@@ -169,8 +171,66 @@ def resolve_waiting_for_google(therapist_id: str, appointment_id: int) -> int:
     return notification_repo.resolve_kind(therapist_id, WAITING_FOR_GOOGLE, appointment_id)
 
 
+#: a completed session's 24h check-in cannot be sent: the therapist calls instead (Phase 6.4)
+FOLLOWUP_NO_CHANNEL = "followup_no_channel"
+#: where each kind of alert takes the therapist inside the session page
+_LINK_ANCHORS = {FOLLOWUP_NO_CHANNEL: "#manual-feedback-card"}
+
+
+def alert_followup_no_channel(
+    therapist_id: str,
+    appointment_id: int,
+    patient_id: int,
+    patient_name: str,
+    due_at: str,
+) -> int | None:
+    """Persistent: this patient cannot be messaged, so the 24h follow-up is a phone call.
+
+    Raised once per appointment, ever — completing the session again or a reconciliation sweep
+    does not bring back an alert the therapist already dealt with. Resolved when the outcome is
+    recorded (`resolve_followup_no_channel`).
+    """
+    if notification_repo.ever_raised(therapist_id, FOLLOWUP_NO_CHANNEL, appointment_id):
+        return None
+    return notification_repo.create(
+        therapist_id=therapist_id,
+        kind=FOLLOWUP_NO_CHANNEL,
+        severity="warning",
+        title=f"Follow-up due for {patient_name} — no messaging channel",
+        body=(
+            f"Due {due_at}. Please call them and record the outcome in the session "
+            "(Manual Patient Feedback)."
+        ),
+        appointment_id=appointment_id,
+        patient_id=patient_id,
+        patient_name=patient_name,
+        persistent=True,
+    )
+
+
+def resolve_followup_no_channel(therapist_id: str, appointment_id: int) -> int:
+    return notification_repo.resolve_kind(therapist_id, FOLLOWUP_NO_CHANNEL, appointment_id)
+
+
+def session_link(patient_id: Any, apt_date: Any, apt_time: Any, anchor: str = "") -> str | None:
+    """The treatment page of a session, or None when the parts are missing."""
+    if patient_id is None or not apt_date or not apt_time:
+        return None
+    parts = (str(int(patient_id)), str(apt_date), str(apt_time).replace(":", "-"))
+    return "/treatment/" + "/".join(quote(part, safe="") for part in parts) + anchor
+
+
 def list_for_therapist(therapist_id: str, limit: int = 50) -> list[dict]:
-    return notification_repo.list_for_therapist(therapist_id, limit)
+    """The bell's items; those tied to one of the therapist's sessions carry a `link` to it."""
+    items = []
+    for row in notification_repo.list_for_therapist(therapist_id, limit):
+        patient_id = row.pop("apt_patient_id", None)
+        apt_date = row.pop("apt_date", None)
+        apt_time = row.pop("apt_time", None)
+        anchor = _LINK_ANCHORS.get(str(row.get("kind")), "")
+        row["link"] = session_link(patient_id, apt_date, apt_time, anchor)
+        items.append(row)
+    return items
 
 
 def unread_count(therapist_id: str) -> int:

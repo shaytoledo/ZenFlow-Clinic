@@ -224,6 +224,14 @@ async def get_treatment_notes(patient_id: int, apt_date: str, apt_time: str, req
     src = (dict(row).get("source") if row else None) or "telegram"
     notes["source"] = src
     notes["is_manual"] = (src == "manual") or (patient_id < 0)
+    from web.repositories import followup_repo
+
+    checkin = await asyncio.to_thread(followup_repo.get, apt_id)
+    notes["followup"] = (
+        {k: checkin[k] for k in ("status", "channel", "scheduled_for", "source")}
+        if checkin
+        else None
+    )
     return JSONResponse(notes)
 
 
@@ -707,6 +715,11 @@ async def save_manual_feedback(
     await asyncio.to_thread(_save, apt_id, body.rating, body.notes)
     if body.rating is not None or body.notes.strip():  # an empty form records no outcome
         await asyncio.to_thread(followup_repo.record_manual, apt_id, body.rating, body.notes)
+        from web.services import notification_service
+
+        await asyncio.to_thread(
+            notification_service.resolve_followup_no_channel, therapist["id"], apt_id
+        )
     return JSONResponse({"ok": True})
 
 

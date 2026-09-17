@@ -22,6 +22,11 @@
         <p class="tp-card-intro">
           {{ t['treatment_manual_feedback_hint'] if t else 'Rate improvement manually if patient has no Telegram' }}
         </p>
+        <!-- The patient cannot be messaged: the 24h follow-up is a call (Phase 6.4, load.js) -->
+        <p id="mf-due" class="tp-mf-due" role="status" hidden>
+          {{ t['treatment_followup_no_channel'] if t else 'This patient cannot be messaged, so the 24h follow-up is a phone call. Call them and record the outcome here. Due:' }}
+          <time id="mf-due-time"></time>
+        </p>
 
         <!-- Star/number rating -->
         <div class="tp-mb-12">

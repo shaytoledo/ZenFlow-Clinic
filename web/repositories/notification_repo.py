@@ -54,14 +54,22 @@ def create(
 
 
 def list_for_therapist(therapist_id: str, limit: int = 50) -> list[dict[str, Any]]:
-    """Newest notifications first. Persistent unresolved alerts always rank first."""
+    """Newest notifications first. Persistent unresolved alerts always rank first.
+
+    Each row also carries its appointment's `apt_patient_id` / `apt_date` / `apt_time` (NULL when
+    there is none, or it is not this therapist's) so the service can link to the session.
+    """
     rows = (
         _conn()
         .execute(
-            """SELECT * FROM notifications
-           WHERE therapist_id=?
-           ORDER BY (CASE WHEN persistent=1 AND resolved_at IS NULL THEN 0 ELSE 1 END),
-                    created_at DESC
+            """SELECT n.*, a.patient_id AS apt_patient_id, a.date AS apt_date,
+                      a.time AS apt_time
+           FROM notifications n
+           LEFT JOIN appointments a
+                  ON a.id = n.appointment_id AND a.therapist_id = n.therapist_id
+           WHERE n.therapist_id=?
+           ORDER BY (CASE WHEN n.persistent=1 AND n.resolved_at IS NULL THEN 0 ELSE 1 END),
+                    n.created_at DESC, n.id DESC
            LIMIT ?""",
             (therapist_id, limit),
         )
@@ -141,6 +149,19 @@ def find_active(
         params.append(appointment_id)
     row = _conn().execute(sql + " ORDER BY created_at DESC, id DESC LIMIT 1", params).fetchone()
     return dict(row) if row else None
+
+
+def ever_raised(therapist_id: str, kind: str, appointment_id: int) -> bool:
+    """Whether a notification of `kind` was ever created for this appointment, resolved or not."""
+    row = (
+        _conn()
+        .execute(
+            "SELECT 1 FROM notifications WHERE therapist_id=? AND kind=? AND appointment_id=?",
+            (therapist_id, kind, appointment_id),
+        )
+        .fetchone()
+    )
+    return row is not None
 
 
 def resolve_kind(therapist_id: str, kind: str, appointment_id: int | None = None) -> int:

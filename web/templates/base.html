@@ -155,7 +155,17 @@
     just_now:"{{ t['notif_just_now'] if t else 'just now' }}",
     min_ago: "{{ t['notif_min_ago'] if t else 'min ago' }}",
     h_ago:   "{{ t['notif_h_ago'] if t else 'h ago' }}",
+    open_session: {{ (t['notif_open_session'] if t else 'Open session →') | tojson }},
   };
+
+  // A session link from the API (Phase 6.4): only our own treatment pages, attribute-escaped.
+  function _notifLinkHtml(link) {
+    if (typeof link !== 'string' || !link.startsWith('/treatment/')) return '';
+    const esc = { '&': '&amp;', '"': '&quot;', "'": '&#39;', '<': '&lt;', '>': '&gt;' };
+    const href = link.replace(/[&"'<>]/g, (c) => esc[c]);
+    const label = String(_ZF_NOTIF_STR.open_session).replace(/[&"'<>]/g, (c) => esc[c]);
+    return `<a href="${href}" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#0F766E;text-decoration:none;">${label}</a>`;
+  }
 
   // ── Language toggler ────────────────────────────────────────────────────────
   async function toggleLanguage() {
@@ -284,6 +294,7 @@
             <div style="font-size:12px;font-weight:${unread ? '600' : '500'};color:#111827;line-height:1.35;">${(n.title||'').replace(/[<>]/g, '')}</div>
             ${n.body ? `<div style="font-size:11px;color:#6B7280;margin-top:2px;line-height:1.45;">${(n.body||'').replace(/[<>]/g, '')}</div>` : ''}
             <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">${_formatNotifTime(n.created_at)}</div>
+            ${_notifLinkHtml(n.link)}
             ${action}
           </div>
         </div>`;

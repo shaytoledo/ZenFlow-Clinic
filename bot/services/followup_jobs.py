@@ -56,12 +56,39 @@ def enqueue_followup(appointment_id: int, completed_at: str) -> int:
     completed_at = clock.normalize(completed_at)
     run_at = clock.to_iso(clock.parse_iso(completed_at) + timedelta(hours=FOLLOWUP_DELAY_HOURS))
     followup_repo.schedule(appointment_id, run_at)
+    _alert_if_unreachable(appointment_id, run_at)
     return get_default_queue().enqueue(
         FOLLOWUP_JOB,
         {"appointment_id": int(appointment_id), "completed_at": completed_at},
         run_at=run_at,
         idempotency_key=followup_key(appointment_id, completed_at),
     )
+
+
+def _alert_if_unreachable(appointment_id: int, due_at: str) -> None:
+    """No messaging channel (Phase 6.4): the check-in becomes a call — tell the therapist once."""
+    from bot.db import get_db
+    from web.repositories import followup_repo
+    from web.services import notification_service
+
+    try:
+        row = followup_repo.get(appointment_id)
+        if not row or row["status"] != "no_channel":
+            return
+        apt = (
+            get_db()
+            .execute("SELECT patient_name FROM appointments WHERE id=?", (appointment_id,))
+            .fetchone()
+        )
+        notification_service.alert_followup_no_channel(
+            str(row["therapist_id"]),
+            appointment_id,
+            int(row["patient_id"]),
+            (apt["patient_name"] if apt else "") or "Patient",
+            due_at,
+        )
+    except Exception:  # the schedule itself must not fail over an alert
+        logger.exception("no-channel follow-up alert failed")
 
 
 def enqueue_recommendations(appointment_id: int, send_at: str) -> int:

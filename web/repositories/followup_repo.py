@@ -117,6 +117,24 @@ def open_for_patient(patient_id: int, now_iso: str | None = None) -> dict[str, A
     return _decode(row)
 
 
+def list_due_no_channel(therapist_id: str, now_iso: str | None = None) -> list[dict[str, Any]]:
+    """Check-ins that are due and can only be done by phone — the dashboard's call list."""
+    rows = (
+        _conn()
+        .execute(
+            """SELECT f.appointment_id, f.patient_id, f.scheduled_for, a.patient_name,
+                      a.date AS apt_date, a.time AS apt_time
+               FROM followups f JOIN appointments a ON a.id = f.appointment_id
+               WHERE f.therapist_id=? AND f.status='no_channel' AND f.scheduled_for <= ?
+                 AND a.status='active' AND a.therapist_id = f.therapist_id
+               ORDER BY f.scheduled_for, f.id""",
+            (therapist_id, now_iso or clock.iso_now()),
+        )
+        .fetchall()
+    )
+    return [dict(r) for r in rows]
+
+
 # ── the lifecycle ──
 def schedule(appointment_id: int, scheduled_for: str, *, auto: bool = False) -> None:
     """Record (or move) the check-in for a completed session.
