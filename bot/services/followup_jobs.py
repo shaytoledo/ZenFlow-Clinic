@@ -51,8 +51,11 @@ def recommendations_key(appointment_id: int, send_at: str) -> str:
 
 def enqueue_followup(appointment_id: int, completed_at: str) -> int:
     """Schedule follow-up step 1 at completed_at + 24h (once per appointment)."""
+    from web.repositories import followup_repo
+
     completed_at = clock.normalize(completed_at)
     run_at = clock.to_iso(clock.parse_iso(completed_at) + timedelta(hours=FOLLOWUP_DELAY_HOURS))
+    followup_repo.schedule(appointment_id, run_at)
     return get_default_queue().enqueue(
         FOLLOWUP_JOB,
         {"appointment_id": int(appointment_id), "completed_at": completed_at},
@@ -85,7 +88,7 @@ def safe_enqueue(fn: Callable[..., int], *args: Any) -> int | None:
 @default_registry.handler(FOLLOWUP_JOB)
 async def handle_followup(payload: dict[str, Any]) -> None:
     from bot.services import followup_scheduler as fs
-    from web.repositories import treatment_repo
+    from web.repositories import followup_repo, treatment_repo
 
     apt_id = int(payload["appointment_id"])
     row = await asyncio.to_thread(treatment_repo.get_followup_candidate, apt_id)
@@ -104,11 +107,19 @@ async def handle_followup(payload: dict[str, Any]) -> None:
     if expected and clock.to_iso(completed) != expected:
         logger.info("follow-up skipped: superseded by a later completion")
         return
+    # The row exists for sessions completed before Phase 6.3 too (the start-up backfill); a job
+    # enqueued before the backfill ran still gets one here.
+    await asyncio.to_thread(
+        followup_repo.schedule,
+        apt_id,
+        clock.to_iso(completed + timedelta(hours=FOLLOWUP_DELAY_HOURS)),
+    )
     if clock.now_utc() > completed + timedelta(hours=FOLLOWUP_EXPIRE_HOURS):
         logger.warning(
             "follow-up skipped: expired (fired more than %sh after completion)",
             FOLLOWUP_EXPIRE_HOURS,
         )
+        await asyncio.to_thread(followup_repo.expire_unsent, apt_id)
         return
     if row.get("source") == "manual" or int(row["patient_id"]) < 0:
         # No messaging channel. Phase 6.4 turns this into a persistent therapist alert.
