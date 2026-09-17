@@ -250,7 +250,8 @@
 .tp-ch-default { --ch-soft: var(--zf-ch-default-soft); --ch-border: var(--zf-ch-default-border); --ch-ink: var(--zf-ch-default-ink); }
 
 .tp .tp-card-flush { background: var(--zf-surface); }
-.tp .tp-card-title-ruled { border-block-end-color: var(--zf-border-subtle); }
+.tp .tp-card-title-ruled { flex-wrap: wrap; row-gap: var(--zf-space-2); border-block-end-color: var(--zf-border-subtle); }
+.tp .tp-card-title-ruled > div:nth-child(2) { flex: 1 1 12rem; }  /* the title takes the line; pill and toggle wrap under it */
 .tp .tp-ai-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));

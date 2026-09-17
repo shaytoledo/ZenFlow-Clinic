@@ -36,3 +36,6 @@ htmlcov/
 # --- editors / os ---
 .idea/
 .DS_Store
+
+# Visual snapshot test output (Phase 4.2e)
+tests/e2e/snapshots/_actual/

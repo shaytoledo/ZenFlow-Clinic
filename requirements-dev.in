@@ -15,5 +15,9 @@ pytest-cov==7.1.0
 fakeredis==2.38.0
 freezegun==1.5.5
 
+# Browser tests (Phase 4.2e): drives the installed Chrome/Edge, no browser download
+playwright==1.63.0
+pillow==12.3.0
+
 types-redis
 types-requests
