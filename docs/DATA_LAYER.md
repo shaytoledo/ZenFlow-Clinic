@@ -56,8 +56,9 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | `zenflow:relay:active:{patient_id}` | Active relay session presence | **None** | `patient_bot/services/relay.py` | Explicit `end_relay()` only — **no TTL** |
 | `zenflow:relay:history:{therapist_id}:{patient_id}` | Full relay chat log for web messages page | 86400 s | `web/services/telegram_service.py` (`append_relay_message`) | TTL only |
 | `zenflow:relay:lastseen:{therapist_id}:{patient_id}` | Therapist's last-seen timestamp for a conversation (drives unread badge) | 86400 s | `web/services/telegram_service.py` (`mark_conversation_read`) | TTL only — refreshed every read |
-| `zenflow:followup:sent:{appointment_id}` | Idempotency lock — 24h follow-up was sent for this appointment | 7 d | `bot/services/followup_scheduler.py` | TTL only |
-| `zenflow:followup:awaiting:{patient_id}` | Patient `pid` has an outstanding follow-up; next 1–5 reply is captured as the rating. Value = appointment_id | 24 h | `bot/services/followup_scheduler.py` (set on send, deleted on reply) | TTL only or explicit delete |
+| `zenflow:followup:sent:{appointment_id}` | Secondary guard only — `treatment_notes.followup_sent_at` (DB) is authoritative since Phase 1.3; a flush neither loses nor repeats a follow-up (`tests/integration/test_followup_window.py`) | 7 d | `bot/services/followup_scheduler.py` | TTL only |
+| `zenflow:followup:conv:{patient_id}` | The open follow-up conversation (step, answers, transcript) | 48 h | `bot/services/followup_scheduler.py` | TTL or explicit delete; moves to the `followups` table in Phase 6.3 |
+| `zenflow:followup:awaiting:{patient_id}` | **Legacy** (the old single-rating flow): still read once, never written | 24 h | `bot/services/followup_scheduler.py` | removed with Phase 6.3 |
 | `zenflow:slots:{date}` | Booked time slots for a date (`["09:00", "11:00"]`) | 300 s | `availability.py` | `book_slot()` / `restore_slot()` / TTL |
 | `zenflow:avail:days:{tid}:{week}` | Available days list for a therapist + week | 600 s | `availability.py` | `book_slot()` pattern scan / TTL |
 | `zenflow:avail:hours:{tid}:{date}` | Available hours for a therapist + date | 600 s | `availability.py` | `book_slot()` / TTL |
@@ -92,8 +93,9 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | `zenflow:relay:active:{pid}` | **None** | Must survive indefinitely until the session is explicitly ended. No TTL by design |
 | `zenflow:relay:history:{therapist_id}:{pid}` | **24 h** | Chat history shown on the web messages page. 24 h covers a full clinic working day |
 | `zenflow:relay:lastseen:{therapist_id}:{pid}` | **24 h** | Therapist last-seen timestamp; refreshed every time the conversation is opened or a reply is sent |
-| `zenflow:followup:sent:{apt_id}` | **7 d** | Idempotency lock so the 24h follow-up scheduler never sends twice for one appointment |
-| `zenflow:followup:awaiting:{pid}` | **24 h** | Patient has 24 h to reply with a 1–5 rating; after that the prompt expires silently and the start handler stops intercepting numbers |
+| `zenflow:followup:sent:{apt_id}` | **7 d** | Secondary guard; the database stamp is what prevents a second send |
+| `zenflow:followup:conv:{pid}` | **48 h** | The patient has 48 h to finish the check-in |
+| `zenflow:followup:awaiting:{pid}` | **24 h** | Legacy key, read only (see above) |
 | `zenflow:reg:{CODE}` | **10 min** | Activation codes must be short-lived for security. Therapist must complete bot activation promptly |
 
 ### Memory eviction (LRU)

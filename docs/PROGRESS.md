@@ -114,7 +114,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 6 — 24h follow-up & recommendations (items 7, 8)
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 6.1 | Root-cause fixes + failing tests with frozen clock | [ ] | | | item 8 |
+| 6.1 | Root-cause fixes + failing tests with frozen clock | [x] | 2026-09-17 | 6f28399 (PR #37) | item 8. `docs/FOLLOWUP.md` §1: every plan root cause with its status and proof — F1 (1.3), F2 (1.1; the window is now `completed_at + 24h`), F3 (2.2b), restart loss (durable job, 1.3), Redis-only dedupe (DB stamp, 1.3). F2 test rewritten to drive the real job in 3 clinic zones (T+23h59 → nothing, T+24h → once, +24h → no repeat); **new** Redis-flush test (before and after the send, plus a reconcile sweep → exactly one step 1). Dead code removed: `_find_due_followups`, the 22–26 h window constants, `consume_followup_rating`. DATA_LAYER Redis rows corrected (sent key is a secondary guard; conv key listed; awaiting key legacy). Open: Q7 (never-completed sessions) → `ZF_AUTO_FOLLOWUP` after 6.3; conversation state still Redis-only → 6.3 |
 | 6.2 | Extended conversation format + red-flag rule | [ ] | | | item 7 |
 | 6.3 | `followups` table + migration + backfill | [ ] | | | |
 | 6.4 | No-channel → persistent therapist alert + manual form | [ ] | | | item 7 |
@@ -211,7 +211,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 | Q4 | Point-image source + licence approval | 4.3 | Shortlist ready in `docs/POINT_IMAGE_SOURCING.md` — recommended: commission an owned SVG set (26 points); interim option: HOPE CC BY-SA 4.0 per-point diagrams. The pipeline is ready (`python -m zenflow.ingest_images`, `ZF_POINT_IMAGES=1`) |
 | Q5 | GDPR / Israeli privacy law posture for patient data | 9.9 | |
 | Q6 | Media relay policy (photos/voice may be PHI) | 2.2c | Still open. 2.2a's interim behaviour forwards and stores nothing — it refuses politely and keeps the patient in the chat — so any answer is still available |
-| Q7 | Follow-up for sessions never explicitly "completed"? | 6.1 | |
+| Q7 | Follow-up for sessions never explicitly "completed"? | 6.1 | Plan recommends yes (N h after the appointment end, flagged `auto`). Unchanged until decided; will ship behind `ZF_AUTO_FOLLOWUP` (off) after 6.3 — see `docs/FOLLOWUP.md` §1 |
 | Q8b | Relay: may therapists free-type without replying, when >1 patient chat is active? (BOT_AUDIT B1) | 2.2 | 2.2a ships the proposed rule: free typing delivered only while exactly one chat is open, otherwise the therapist is asked to reply to the patient's message. Say the word to change it |
 | Q9 | Conversation timeout: proposed 30 min booking/intake, 24 h therapist chat (BOT_AUDIT B10) | 2.2d | 2.2d ships 30 min for every flow (`ZF_CONV_TIMEOUT_MINUTES`). A separate 24 h for therapist chats needs its own conversation — say if you want it |
 | Q10 | User card: keep it a plain link to Settings, or open a small menu (Settings / Language / Sign out)? | 4.4 | 4.4 ships the plain link (the plan's requirement); language and sign-out stay where they are |

@@ -60,6 +60,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/POINT_CARD_DESIGN.md` | Phase 4.2 research + design of the acupuncture point cards (anatomy, selection, a11y, tokens) |
 | `docs/POINT_IMAGE_SOURCING.md` | Phase 4.3d shortlist of point-image sources with licences (owner decision Q4) |
 | `docs/GOOGLE_CONNECTION_UX.md` | Phase 5: recovered prior work, the `google_not_connected` 409 contract, client + background behaviour |
+| `docs/FOLLOWUP.md` | Phase 6: 24h follow-up and recommendation delivery — root causes, storage, conversation, alerts |
 
 > Start guide: `startup/START.md`
 
