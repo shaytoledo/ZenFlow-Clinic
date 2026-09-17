@@ -213,7 +213,7 @@ def test_an_empty_database_needs_no_backup(db: Path) -> None:
     dbmod.get_db().execute("DELETE FROM schema_migrations")
     _run()
     assert list(db.parent.glob(f"{db.name}.pre-patient-identity-*")) == []
-    assert _q("SELECT name FROM schema_migrations") == [{"name": MIGRATION}]
+    assert {"name": MIGRATION} in _q("SELECT name FROM schema_migrations")
 
 
 def test_a_failure_changes_nothing_and_stops_the_start(legacy) -> None:

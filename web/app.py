@@ -16,6 +16,8 @@ import time
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -32,6 +34,8 @@ from web.routers.api.messages import router as messages_router
 from web.routers.api.notifications import router as notifications_router
 from web.routers.api.system import router as system_router
 from web.routers.api.treatment import router as treatment_router
+from web.routers.api.v1 import ApiException, error_response
+from web.routers.api.v1 import router as v1_router
 from web.routers.auth import router as auth_router
 
 # ── Routers────────────────────────────────────────────────────────────────────
@@ -149,3 +153,19 @@ app.include_router(system_router, dependencies=_API_AUTH)
 app.include_router(notifications_router, dependencies=_API_AUTH)
 app.include_router(admin_router, dependencies=_API_AUTH)
 app.include_router(acupoints_router, dependencies=_API_AUTH)
+# The booking API authenticates per request (API key or session) — see web/routers/api/v1.py.
+app.include_router(v1_router)
+
+
+@app.exception_handler(ApiException)
+async def _api_error(request: Request, exc: ApiException) -> JSONResponse:
+    return error_response(exc.status, exc.code, exc.detail, exc.headers)
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """The booking API answers `{code, detail}` like its other refusals; the dashboard's own
+    endpoints keep FastAPI's default shape."""
+    if request.url.path.startswith("/api/v1/"):
+        return error_response(422, "validation_error", jsonable_encoder(exc.errors()))
+    return JSONResponse({"detail": jsonable_encoder(exc.errors())}, status_code=422)

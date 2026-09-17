@@ -181,7 +181,7 @@ canonical UTC. CHECK constraints guard `status`, `pain_level` (0–10), `improve
 ### Table: `message_log` (plan 8.3, started in Phase 6.6)
 
 One append-only row per outbound patient message attempt: `ts`, `direction`, `channel`
-(`telegram` / `email`), `patient_id`, `therapist_id`, `appointment_id`, `kind`
+(`telegram` / `whatsapp` / `email`), `patient_id`, `therapist_id`, `appointment_id`, `kind`
 (`recommendations` / `followup`), `status` (`sent` / `failed`), `provider_message_id`, and
 `error` (redacted, at most 300 characters).
 
@@ -208,6 +208,36 @@ day/time/week, intake counter, flow marker, and the cancel list reduced to id/da
 calendar id) — never intake answers, summaries or names. Rows older than
 `ZF_CONV_TIMEOUT_MINUTES` are not restored (the therapist choice is). An ended conversation deletes
 its row.
+
+### Tables: `api_clients`, `api_idempotency` (Phase 7.3)
+
+```sql
+CREATE TABLE IF NOT EXISTS api_clients (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT NOT NULL UNIQUE,
+    key_hash     TEXT NOT NULL UNIQUE,   -- SHA-256 of the key; the key itself is never stored
+    created_at   TEXT NOT NULL,
+    last_used_at TEXT,
+    revoked_at   TEXT
+);
+CREATE TABLE IF NOT EXISTS api_idempotency (
+    client        TEXT NOT NULL,
+    key           TEXT NOT NULL,
+    request_hash  TEXT NOT NULL,
+    status_code   INTEGER,               -- NULL while the first request is running
+    response_json TEXT,
+    created_at    TEXT NOT NULL,
+    PRIMARY KEY (client, key)
+);
+```
+
+- **`api_clients`** — machine clients of the booking API. Manage with `python -m zenflow.api_keys`.
+- **`api_idempotency`** — one row per `Idempotency-Key`, holding the answer to replay. Rows older
+  than 24 h are deleted on the next use.
+- **Code:** `web/repositories/api_client_repo.py`, `web/services/idempotency.py`,
+  `docs/BOOKING_API.md`.
+
+---
 
 ### Tables: `patients`, `patient_channels` (Phase 7.2)
 

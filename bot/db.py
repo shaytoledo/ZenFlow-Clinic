@@ -242,6 +242,16 @@ def init_db() -> None:
     _create_acupoints(conn)
     _create_message_log(conn)
     _create_followups(conn)
+    _create_api_tables(conn)
+
+
+def _create_api_tables(conn: sqlite3.Connection) -> None:
+    """Booking API clients and their idempotency keys (Phase 7.3)."""
+    from web.repositories import api_client_repo
+    from web.services import idempotency
+
+    api_client_repo.create_schema(conn)
+    idempotency.create_schema(conn)
 
 
 def _create_patients(conn: sqlite3.Connection) -> None:

@@ -908,3 +908,57 @@ JavaScript. A WhatsApp patient (7.4) would have no Telegram id to use at all.
   patients through `make_patient(telegram_id=…)`, whose internal id deliberately differs from
   the Telegram id.
 - The compatibility layer, and the `legacy_id` column, are to be removed one release later.
+
+---
+
+## ADR-29: One Booking Implementation, Reached Through a Versioned API with Idempotency Keys
+
+**Date:** 2026-09-17 (Phase 7.3)
+
+**Context.** Two code paths created appointments — the Telegram flow and the dashboard's manual
+booking — and each had its own order of steps, its own patient handling and its own idea of what
+"the hour is taken" means. WhatsApp (7.4) would have been a third. Nothing outside the clinic
+could book at all, and a client that retried after a timeout had no way to avoid a double
+booking.
+
+**Decision.**
+
+1. **One service.** `web/services/booking_service.py` creates and cancels every appointment:
+   validate → resolve the patient → check availability → insert the row → update the calendar →
+   queue the confirmation. The row claims the hour first; a calendar failure never loses a
+   booking (B4).
+2. **A versioned API over it.** `/api/v1` exposes booking, listing, cancelling and availability.
+   Times are instants; responses also carry the clinic-local date and time the clinic thinks in.
+3. **Two kinds of caller.** A machine client sends an API key and may book for any therapist; the
+   dashboard keeps its session cookie and may only act for itself. The guard is a declared
+   dependency, so the "every /api route authenticates" test can see it.
+4. **API keys, not JWT.** A key is `zf_` + 32 random bytes, stored as a SHA-256 hash, revocable
+   by name. JWT would add a dependency and a key-rotation story for no gain: these clients are
+   servers the clinic runs, not third parties needing delegated, expiring access.
+5. **Idempotency keys.** The first request under a key claims it; the answer — success or
+   refusal — is stored and replayed. A different body under the same key is refused. Keys are
+   per caller and kept for 24 hours.
+6. **A published schema.** `docs/api/booking-v1.openapi.json` is committed and compared with what
+   the app serves, so an API change is a deliberate export, not a side effect.
+7. **A rate limit that fails open.** A one-minute window per caller in Redis; when Redis is
+   unavailable the request is allowed.
+
+**Options rejected:**
+
+- **Letting each client keep its own booking code.** That is the bug: three orders of steps and
+  three answers to "is this hour free?".
+- **Making the bot call the API over HTTP in-process.** A network hop, a second auth path and a
+  new failure mode for no benefit; the bot calls the service directly and the API is the seam if
+  the processes are ever split.
+- **Idempotency by hashing the request alone.** Two different people may legitimately ask for the
+  same hour; the client's key is what says "this is my retry".
+- **Failing closed when Redis is down.** A rate limiter is not worth refusing bookings over.
+
+**Consequences.**
+
+- Adding a channel means calling the service (or the API), not writing booking logic.
+- Availability is enforced for API callers; a therapist booking their own calendar from the
+  dashboard may still take any hour (7.3b passes `enforce_availability=False`).
+- `message_log` now records confirmations, which needed its `kind` and `channel` CHECKs widened —
+  migration `0002_message_log_kinds` rebuilds the table once.
+- The exported schema has to be regenerated whenever a model or route changes.

@@ -17,8 +17,9 @@ from zenflow import clock
 from zenflow.logging import redact
 
 DIRECTIONS = ("out", "in")
-CHANNELS = ("telegram", "email")
-KINDS = ("recommendations", "followup")
+CHANNELS = ("telegram", "whatsapp", "email")
+KINDS = ("recommendations", "followup", "confirmation")
+MIGRATION = "0002_message_log_kinds"
 STATUSES = ("sent", "failed")
 MAX_ERROR_LEN = 300
 
@@ -26,11 +27,11 @@ CREATE_MESSAGE_LOG = """CREATE TABLE IF NOT EXISTS message_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT NOT NULL,
     direction TEXT NOT NULL DEFAULT 'out' CHECK (direction IN ('out','in')),
-    channel TEXT NOT NULL CHECK (channel IN ('telegram','email')),
+    channel TEXT NOT NULL CHECK (channel IN ('telegram','whatsapp','email')),
     patient_id INTEGER,
     therapist_id TEXT NOT NULL DEFAULT '',
     appointment_id INTEGER,
-    kind TEXT NOT NULL CHECK (kind IN ('recommendations','followup')),
+    kind TEXT NOT NULL CHECK (kind IN ('recommendations','followup','confirmation')),
     status TEXT NOT NULL CHECK (status IN ('sent','failed')),
     provider_message_id TEXT,
     error TEXT
@@ -49,6 +50,35 @@ def _conn() -> sqlite3.Connection:
 def create_schema(conn: sqlite3.Connection) -> None:
     conn.execute(CREATE_MESSAGE_LOG)
     conn.execute(CREATE_MESSAGE_LOG_INDEX)
+    widen_kinds(conn)
+
+
+def widen_kinds(conn: sqlite3.Connection) -> None:
+    """Phase 7.3: booking confirmations, and WhatsApp as a channel.
+
+    SQLite cannot change a CHECK constraint, so a table created before this runs is rebuilt once
+    with its rows copied over. Recorded in `schema_migrations` like every data migration.
+    """
+    from web.repositories import patient_repo
+
+    conn.execute(patient_repo.CREATE_SCHEMA_MIGRATIONS)
+    done = conn.execute("SELECT 1 FROM schema_migrations WHERE name=?", (MIGRATION,)).fetchone()
+    if done:
+        return
+    sql = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='message_log'"
+    ).fetchone()
+    if sql and "confirmation" not in str(sql["sql"]):
+        with patient_repo.atomic(conn, "message_log_kinds"):
+            conn.execute(CREATE_MESSAGE_LOG.replace("message_log", "message_log_new", 1))
+            conn.execute("INSERT INTO message_log_new SELECT * FROM message_log")
+            conn.execute("DROP TABLE message_log")
+            conn.execute("ALTER TABLE message_log_new RENAME TO message_log")
+            conn.execute(CREATE_MESSAGE_LOG_INDEX)
+    conn.execute(
+        "INSERT OR IGNORE INTO schema_migrations (name, applied_at) VALUES (?, ?)",
+        (MIGRATION, clock.iso_now()),
+    )
 
 
 def record(

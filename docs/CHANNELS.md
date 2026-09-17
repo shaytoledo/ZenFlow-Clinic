@@ -123,7 +123,7 @@ The suite has 43 checks per adapter, covering:
 
 Telegram runs the suite twice (`tests/contract/test_telegram_channel.py`), once per way in, against one offline Bot API (`tests/telegram_fake.py`). That fake speaks both httpx (a mock transport) and python-telegram-bot (a `BaseRequest`), so the real request encoding runs.
 
-**Adding WhatsApp (7.4)** means writing `WhatsAppChannel(ChannelAdapter)`, a harness over a mocked provider, and making the suite green.
+**Adding WhatsApp (7.4)** means writing `WhatsAppChannel(ChannelAdapter)`, a harness over a mocked provider, and making the suite green. Its bookings go through the booking API or its service (`docs/BOOKING_API.md`), never through booking code of their own.
 
 ## 5. Tests never reach Telegram
 

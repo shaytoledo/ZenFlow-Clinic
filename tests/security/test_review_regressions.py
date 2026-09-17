@@ -62,10 +62,13 @@ def test_zenflow_dotenv_zero_disables_env_file(
         S.reset_settings()
 
 
-# ── every /api route carries the router-level session dependency (default-deny, not opt-in) ──
-def test_every_api_route_declares_require_signed_in() -> None:
+# ── every /api route declares an authentication dependency (default-deny, not opt-in) ──
+def test_every_api_route_declares_its_authentication() -> None:
+    """The dashboard's endpoints take the router-level session dependency; the booking API
+    (Phase 7.3) takes its own guard, which accepts an API key or that same session."""
     from web.app import app
     from web.deps import require_signed_in
+    from web.routers.api.v1 import _guard
 
     missing = []
     for route in app.routes:
@@ -73,10 +76,13 @@ def test_every_api_route_declares_require_signed_in() -> None:
         if not path.startswith("/api/"):
             continue
         dependant = getattr(route, "dependant", None)
-        deps = [d.call for d in dependant.dependencies] if dependant else []
-        if require_signed_in not in deps:
+        guards = {d.call for d in dependant.dependencies} if dependant else set()
+        if path.startswith("/api/v1/"):
+            if _guard not in guards:
+                missing.append(path)
+        elif require_signed_in not in guards:
             missing.append(path)
-    assert missing == [], f"/api routes without require_signed_in: {missing}"
+    assert missing == [], f"/api routes without authentication: {missing}"
 
 
 # ── send-recommendations must act on the caller's appointment even when another therapist has
