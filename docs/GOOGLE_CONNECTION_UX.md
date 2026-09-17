@@ -60,6 +60,7 @@ HTTP/1.1 409 Conflict
   "ok": false,
   "code": "google_not_connected",
   "reason": "not_connected" | "token_invalid",
+  "title": "<localised heading>",
   "message": "<localised sentence>",
   "action_url": "/settings#google",
   "connect_url": "/auth/login?next=<the page>",
@@ -71,7 +72,40 @@ HTTP/1.1 409 Conflict
 - **`reason`** selects "Connect Google" or "Reconnect Google".
 - **`text`** is present only when there was a message to send.
 - **The page bootstrap** (`#treatment-config`) carries `google: {connected, reason}`, so the UI
-  knows before the click. `GET /api/gmail-status` stays for Settings and for re-checks.
+  knows before the click. `GET /api/gmail-status` returns the same pair, for Settings and for
+  re-checks.
+
+### How the server decides (implemented in 5.2)
+
+`email_service.google_connection(therapist_id)` never raises. It returns one of:
+
+| State | Returned |
+|---|---|
+| No token stored | `connected: false`, `reason: not_connected` |
+| A "reconnect Google" alert is still open | `connected: false`, `reason: token_invalid` |
+| Otherwise | `connected: true` |
+| The check itself failed | `connected: null`. Callers do not block on it, because the send still guards itself |
+
+`send_email()` raises:
+
+- **`EmailNotConfigured(reason)`:** there is no token, or the token cannot be loaded or
+  refreshed. A refused refresh is `token_invalid`.
+- **`EmailSendError(token_invalid=True)`:** Gmail refused the credentials (HTTP 401,
+  `invalid_grant`, revoked).
+- **Plain `EmailSendError`:** Google was unreachable, or another error occurred. That is worth a
+  retry, never a reconnect prompt. The immediate send answers 502 with a generic message; the
+  details stay in the log.
+
+The "reconnect Google" alert (`gmail_token_expired`) behaves like this:
+
+- It is created **once** while it is unresolved.
+- It is resolved when the therapist reconnects, or when any send succeeds.
+
+`POST …/send-recommendations` answers this contract in two cases:
+
+- when the email send cannot go out;
+- when a **24h send is scheduled for an email-only (manual) patient** while Google is known to be
+  disconnected. A send like that would fail a day later. Telegram patients are still queued.
 
 ## 3. Client (task 5.3)
 

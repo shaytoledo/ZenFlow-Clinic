@@ -7,6 +7,7 @@ Authentication routes: Google OAuth, register/sign-in, logout.
 import asyncio
 import json
 import logging
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -32,6 +33,7 @@ from web.gcal import (
     get_auth_url,
 )
 from web.services.cache_service import prefetch_calendar, purge_calendar
+from web.services.email_service import google_reconnected
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -40,13 +42,47 @@ logger = logging.getLogger(__name__)
 # ── Google Calendar OAuth ──────────────────────────────────────────────────────
 
 
+#: session key holding where to go once Google has answered (Phase 5.2)
+_NEXT_KEY = "google_next"
+_NEXT_MAX_LENGTH = 512
+
+
+def _safe_next(value: str | None) -> str:
+    """`value` if it is a path on this site, else "" — `next` must never be an open redirect.
+
+    Browsers read `\\` as `/` and drop tabs/newlines inside URLs, so `/\\evil.example` or
+    `/<tab>/evil.example` would leave the site; anything with them is refused outright.
+    """
+    path = value or ""
+    if not path.startswith("/") or path.startswith("//") or len(path) > _NEXT_MAX_LENGTH:
+        return ""
+    if "\\" in path or any(ord(ch) < 0x21 or ord(ch) == 0x7F for ch in path):
+        return ""
+    parts = urlsplit(path)
+    return "" if parts.scheme or parts.netloc else path
+
+
+def _with_param(path: str, name: str, value: str) -> str:
+    """`path` with `name=value` set in its query (replacing any old value), fragment kept."""
+    parts = urlsplit(path)
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k != name]
+    query.append((name, value))
+    return urlunsplit(("", "", parts.path, urlencode(query), parts.fragment))
+
+
 @router.get("/auth/login")
-async def auth_login():
+async def auth_login(request: Request, next: str = ""):  # noqa: A002 - the query parameter's name
+    """Start Google consent. `?next=/treatment/…` comes back to that page afterwards."""
     if not GOOGLE_CLIENT_ID:
         return HTMLResponse(
             "<h2>GOOGLE_CLIENT_ID not set in .env — see START.md for setup.</h2>",
             status_code=500,
         )
+    target = _safe_next(next)
+    if target:
+        request.session[_NEXT_KEY] = target
+    else:
+        request.session.pop(_NEXT_KEY, None)
     return RedirectResponse(get_auth_url())
 
 
@@ -63,19 +99,25 @@ async def auth_disconnect(request: Request):
 
 @router.get("/auth/callback")
 async def auth_callback(request: Request, code: str = "", error: str = ""):
+    target = _safe_next(request.session.pop(_NEXT_KEY, ""))
     if request.session.pop("reg_google", False):
         return await _handle_reg_google(request, code, error)
     if error or not code:
+        if target:
+            return RedirectResponse(_with_param(target, "google", "cancelled"))
         return RedirectResponse("/settings?error=Google+auth+cancelled")
     try:
         therapist = _get_session_therapist(request)
         if not therapist:
             return RedirectResponse("/register")
         await asyncio.to_thread(exchange_code, code, therapist["id"])
+        await asyncio.to_thread(google_reconnected, therapist["id"])
         asyncio.create_task(prefetch_calendar(therapist["id"]))
     except Exception as e:
         logger.error(f"OAuth callback error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+    if target:
+        return RedirectResponse(_with_param(target, "google", "connected"))
     return RedirectResponse("/settings?connected=1")
 
 

@@ -81,15 +81,18 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
     except HTTPException:  # not found / not this therapist's → back to the list, like other pages
         return RedirectResponse("/patients")
     from web.repositories import therapist_repo
+    from web.services.email_service import google_connection
     from zenflow.settings import get_settings
 
     prefs = await asyncio.to_thread(therapist_repo.get_ui_prefs, therapist["id"])
+    google = await asyncio.to_thread(google_connection, therapist["id"])
     return _page(
         request,
         "treatment.html",
         "patients",
         sse_updates=get_settings().flags.sse_updates,
         point_density=prefs["point_density"],
+        google=google.as_dict(),
     )
 
 

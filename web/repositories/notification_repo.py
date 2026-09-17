@@ -125,3 +125,30 @@ def find_active_missing_contact(therapist_id: str, appointment_id: int) -> dict[
         .fetchone()
     )
     return dict(row) if row else None
+
+
+def find_active(
+    therapist_id: str, kind: str, appointment_id: int | None = None
+) -> dict[str, Any] | None:
+    """The newest unresolved notification of `kind` (for this appointment, when one is given).
+
+    Senders check this first so a condition that persists raises one alert, not one per attempt.
+    """
+    sql = "SELECT * FROM notifications WHERE therapist_id=? AND kind=? AND resolved_at IS NULL"
+    params: list[Any] = [therapist_id, kind]
+    if appointment_id is not None:
+        sql += " AND appointment_id=?"
+        params.append(appointment_id)
+    row = _conn().execute(sql + " ORDER BY created_at DESC, id DESC LIMIT 1", params).fetchone()
+    return dict(row) if row else None
+
+
+def resolve_kind(therapist_id: str, kind: str) -> int:
+    """Resolve every open notification of `kind` for the therapist (the cause is gone).
+
+    Returns how many were resolved."""
+    # SQL_NOW is a constant expression; the values are bound parameters
+    sql = f"""UPDATE notifications SET resolved_at={SQL_NOW}, read_at=COALESCE(read_at, {SQL_NOW})
+              WHERE therapist_id=? AND kind=? AND resolved_at IS NULL"""  # nosec B608
+    cur = _conn().execute(sql, (therapist_id, kind))
+    return int(cur.rowcount or 0)

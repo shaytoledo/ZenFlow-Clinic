@@ -6,8 +6,9 @@ Outbound email via Gmail API (OAuth2 only — no SMTP).
 Each therapist connects their Gmail account once via Settings → "Connect Google".
 The stored token (encrypted in SQLite) is used to send on their behalf.
 
-If the token is expired or revoked, a persistent notification is created so the
-therapist is prompted to reconnect their Google account.
+If the token is expired or revoked, ONE persistent notification asks the therapist to reconnect;
+a later successful send (or reconnecting) resolves it. `google_connection()` tells a page, before
+any click, whether email can go out (Phase 5.2, docs/GOOGLE_CONNECTION_UX.md).
 
 Usage
 ─────
@@ -26,17 +27,86 @@ from __future__ import annotations
 
 import base64
 import logging
+from dataclasses import dataclass
 from email.mime.text import MIMEText
+
+from google.auth.exceptions import RefreshError, TransportError
 
 logger = logging.getLogger(__name__)
 
+#: why email cannot go out: no Google account was ever linked / the stored token stopped working
+NOT_CONNECTED = "not_connected"
+TOKEN_INVALID = "token_invalid"  # noqa: S105  # nosec B105 - a reason code, not a secret
+RECONNECT_KIND = "gmail_token_expired"
+
+#: words in a Gmail API error that mean "the credentials were refused" (reconnect needed)
+_AUTH_ERROR_MARKERS = (
+    "invalid_grant",
+    "invalid_credentials",
+    "invalid credentials",
+    "revoked",
+    "unauthorized",
+)
+
 
 class EmailNotConfigured(RuntimeError):
-    """Raised when the therapist has not connected their Google account."""
+    """Email cannot go out through the therapist's Google account.
+
+    `reason` is NOT_CONNECTED (never linked → "Connect Google") or TOKEN_INVALID (the stored
+    token no longer works → "Reconnect Google").
+    """
+
+    def __init__(self, message: str, reason: str = NOT_CONNECTED) -> None:
+        super().__init__(message)
+        self.reason = reason
 
 
 class EmailSendError(RuntimeError):
-    """Raised when Gmail API call fails (token revoked, quota, network, …)."""
+    """Raised when Gmail API call fails (token revoked, quota, network, …).
+
+    `token_invalid` is True when Google refused the credentials — reconnecting is the fix,
+    retrying is not.
+    """
+
+    def __init__(self, message: str, token_invalid: bool = False) -> None:
+        super().__init__(message)
+        self.token_invalid = token_invalid
+
+
+@dataclass(frozen=True)
+class GoogleConnection:
+    #: None = the check itself failed; the send still guards, so callers should not block on it
+    connected: bool | None
+    reason: str | None = None
+
+    def as_dict(self) -> dict[str, bool | str | None]:
+        return {"connected": self.connected, "reason": self.reason}
+
+
+def google_connection(therapist_id: str) -> GoogleConnection:
+    """Can email go out for this therapist right now? Never raises."""
+    from web.gcal import is_gmail_authenticated
+    from web.repositories import notification_repo
+
+    try:
+        if not is_gmail_authenticated(therapist_id):
+            return GoogleConnection(False, NOT_CONNECTED)
+        if notification_repo.find_active(therapist_id, RECONNECT_KIND):
+            return GoogleConnection(False, TOKEN_INVALID)
+        return GoogleConnection(True)
+    except Exception as e:
+        logger.warning(f"Google connection check failed for {therapist_id!r}: {e}")
+        return GoogleConnection(None)
+
+
+def _is_auth_error(error: Exception) -> bool:
+    if isinstance(error, RefreshError):
+        return True
+    status = getattr(getattr(error, "resp", None), "status", None)
+    if status == 401:
+        return True
+    text = str(error).lower()
+    return any(marker in text for marker in _AUTH_ERROR_MARKERS)
 
 
 # ── Core send ─────────────────────────────────────────────────────────────────
@@ -62,15 +132,19 @@ def send_email(
     if not is_gmail_authenticated(therapist_id):
         raise EmailNotConfigured(
             f"Therapist {therapist_id!r} has not connected Google. "
-            "Go to Settings → Connect Google to enable email delivery."
+            "Go to Settings → Connect Google to enable email delivery.",
+            reason=NOT_CONNECTED,
         )
 
     try:
         service = get_gmail_service(therapist_id)
+    except TransportError as e:  # Google unreachable: the token may be fine, so retry later
+        raise EmailSendError(f"Could not reach Google for {therapist_id!r}: {e}") from e
     except Exception as e:
         _notify_reconnect(therapist_id)
         raise EmailNotConfigured(
-            f"Could not load Gmail credentials for {therapist_id!r}: {e}"
+            f"Could not load Gmail credentials for {therapist_id!r}: {e}",
+            reason=TOKEN_INVALID,
         ) from e
 
     mime = MIMEText(body_text, "plain", "utf-8")
@@ -80,27 +154,28 @@ def send_email(
 
     try:
         service.users().messages().send(userId="me", body={"raw": raw}).execute()
-        logger.info(f"Email sent (Gmail API) to {to!r} — {subject!r}")
     except Exception as e:
-        err_str = str(e).lower()
-        if any(
-            k in err_str for k in ("invalid_grant", "token", "revoked", "expired", "unauthorized")
-        ):
+        token_invalid = _is_auth_error(e)
+        if token_invalid:
             _notify_reconnect(therapist_id)
-        raise EmailSendError(f"Gmail API send failed: {e}") from e
+        raise EmailSendError(f"Gmail API send failed: {e}", token_invalid=token_invalid) from e
+    logger.info(f"Email sent (Gmail API) to {to!r} — {subject!r}")
+    google_reconnected(therapist_id)  # a working token proves any reconnect alert is stale
 
 
 # ── Notification helper ───────────────────────────────────────────────────────
 
 
 def _notify_reconnect(therapist_id: str) -> None:
-    """Create a persistent alert asking the therapist to reconnect Google."""
+    """Ask the therapist to reconnect Google — once, until that alert is resolved."""
     try:
         from web.repositories import notification_repo
 
+        if notification_repo.find_active(therapist_id, RECONNECT_KIND):
+            return
         notification_repo.create(
             therapist_id=therapist_id,
-            kind="gmail_token_expired",
+            kind=RECONNECT_KIND,
             severity="error",
             title="Gmail disconnected — please reconnect Google",
             body=(
@@ -114,6 +189,17 @@ def _notify_reconnect(therapist_id: str) -> None:
         )
     except Exception as e:
         logger.warning(f"Could not create reconnect notification: {e}")
+
+
+def google_reconnected(therapist_id: str) -> None:
+    """The therapist's Google token works again (reconnected, or a send succeeded)."""
+    try:
+        from web.repositories import notification_repo
+
+        if notification_repo.resolve_kind(therapist_id, RECONNECT_KIND):
+            logger.info(f"Google reconnect alert resolved for {therapist_id!r}")
+    except Exception as e:
+        logger.warning(f"Could not resolve the reconnect notification: {e}")
 
 
 # ── Legacy SMTP check (kept so old callers get a clean error) ─────────────────

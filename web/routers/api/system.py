@@ -22,7 +22,7 @@ from web.deps import (
     _get_therapist_bot_username,
     _load_therapists_fresh,
 )
-from web.gcal import is_authenticated, is_gmail_authenticated
+from web.gcal import is_authenticated
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
@@ -148,16 +148,19 @@ async def get_smtp_status():
 
 @router.get("/gmail-status")
 async def get_gmail_status(request: Request):
-    """Return Gmail OAuth2 connection status for the current therapist."""
+    """Gmail connection for the current therapist: `connected` (null = could not tell) and
+    `reason` ("not_connected" | "token_invalid" | null), as in the 409 contract (Phase 5.2)."""
     therapist, redirect = _active_therapist_or_redirect(request)
     if redirect:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    connected = is_gmail_authenticated(therapist["id"])
+    from web.services.email_service import google_connection
+
+    state = await asyncio.to_thread(google_connection, therapist["id"])
     return JSONResponse(
         {
-            "connected": connected,
+            **state.as_dict(),
             "therapist_id": therapist["id"],
-            "detail": "Gmail connected" if connected else "Not connected",
+            "detail": "Gmail connected" if state.connected else "Not connected",
         }
     )
 

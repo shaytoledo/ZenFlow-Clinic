@@ -192,6 +192,7 @@ Any message / /start → SELECTING (main menu)
 - `context.user_data` holds in-flight booking state (`selected_therapist`, `selected_day`, `selected_time`, `intake_count`). Cleared on completion, skip, or cancellation.
 - `allow_reentry=False` is critical — setting it True breaks INTAKE and THERAPIST_INPUT states.
 - The patient conversation is persistent (`name="patient"`). A new `user_data` key is NOT persisted unless added to `PERSISTED_USER_KEYS` in `bot/persistence.py` — only add scheduling data, never clinical free text.
+- Email (Phase 5): anything that sends mail goes through `web/services/email_service.send_email` and turns `EmailNotConfigured` / `EmailSendError(token_invalid=True)` into the 409 `google_not_connected` contract (`docs/GOOGLE_CONNECTION_UX.md`); pages learn the state up front from `google_connection()`. Never answer a failed send with 200.
 - Cancelled appointments are **soft-deleted** (`status='cancelled'`). Records preserved for clinical history.
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
