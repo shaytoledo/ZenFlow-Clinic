@@ -179,10 +179,12 @@ def error_response(
 
 async def _guard(request: Request) -> Caller:
     """Authenticate, then count the request against this caller's rate limit."""
-    from web.services import rate_limit
+    from web.services import audit, rate_limit
     from zenflow.settings import get_settings
 
     who = caller(request)
+    if who.kind == "client":  # a machine client, not the therapist the middleware already named
+        audit.set_actor("api", who.name)
     retry_after = await rate_limit.hit(who.rate_key, get_settings().flags.api_rate_per_minute)
     if retry_after is not None:
         raise ApiException(

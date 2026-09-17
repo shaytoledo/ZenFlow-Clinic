@@ -188,6 +188,9 @@ class Worker:
 
     async def _run_handler(self, job: Job, fields: dict[str, Any]) -> None:
         with zlog.log_context(**fields):
+            from web.services import audit
+
+            audit.set_actor("system", job.name)
             handler = self.registry.get(job.name)
             if handler is None:
                 msg = f"no handler registered for job {job.name!r}"

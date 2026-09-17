@@ -24,14 +24,25 @@ def get_notes(appointment_id: int) -> dict | None:
     return treatment_repo.get_by_appointment(appointment_id)
 
 
-def save_notes(appointment_id: int, patient_id: int, data: dict) -> None:
-    """Upsert treatment notes for a given appointment."""
+def save_notes(
+    appointment_id: int, patient_id: int, data: dict, *, action: str = "treatment_notes.updated"
+) -> None:
+    """Upsert treatment notes, and record what actually changed (8.1)."""
+    from web.services import audit
+
+    before = treatment_repo.get_by_appointment(appointment_id) or {}
     treatment_repo.upsert(appointment_id, patient_id, data)
+    after = treatment_repo.get_by_appointment(appointment_id) or {}
+    was, now = audit.changes(before, after)
+    if now:
+        audit.record(action, "treatment_notes", appointment_id, before=was or None, after=now)
 
 
 def complete_session(appointment_id: int, patient_id: int) -> None:
     """Mark a treatment session as completed (records completion timestamp)."""
-    save_notes(appointment_id, patient_id, {"completed_at": clock.iso_now()})
+    save_notes(
+        appointment_id, patient_id, {"completed_at": clock.iso_now()}, action="session.completed"
+    )
 
 
 def list_completed_sessions(therapist_id: str | None = None) -> list[dict]:

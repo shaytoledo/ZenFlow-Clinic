@@ -133,7 +133,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 8 — Observability & audit
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 8.1 | `audit_log` | [ ] | | | confirm "SDB" reading |
+| 8.1 | `audit_log` | [x] | 2026-09-18 | e03b3cb (PR #50) | `docs/AUDIT.md`, ADR-31. One row per clinical mutation: `ts`, actor (`therapist` / `patient` / `api` / `ai` / `system`) + id, `action` (`entity.verb`), entity, the **fields that changed** before/after (redacted, secrets dropped, capped), ip / user agent / `request_id`. **Append-only by SQLite trigger** — UPDATE and DELETE raise, so the application cannot rewrite its own trail. The actor comes from context, set where identity is known: the request middleware (session + IP), the booking API guard (key name), the bot (the patient), the pipeline (the AI), the worker (the job); `system` is the honest default. Recording never raises — evidence must not cost an appointment. Recorded today: `appointment.created` / `.cancelled`, `treatment_notes.updated`, `session.completed`, `followup.answered` / `.recorded`. Tests: 13, including the append-only guarantee, secrets never landing in a row, a broken trail not breaking the change, the right actor from all four sources, and a list of clinical endpoints that fails when one stops recording |
 | 8.2 | `ai_calls` (cost/latency/failures) | [ ] | | | |
 | 8.3 | `message_log` | [~] | 2026-09-17 | | Table + recommendations/follow-up deliveries done in 6.6; booking confirmations, relay messages and the inbound direction remain |
 | 8.4 | `/healthz`, `/readyz`, `/api/admin/metrics` | [ ] | | | |

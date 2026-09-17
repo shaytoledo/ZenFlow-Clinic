@@ -43,6 +43,7 @@ from web.routers.auth import router as auth_router
 from web.routers.media import router as media_router
 from web.routers.pages import router as pages_router
 from web.routers.patients import router as patients_router
+from web.services import audit
 from zenflow import logging as zlog
 from zenflow.settings import get_settings
 
@@ -53,6 +54,12 @@ _access_log = logging.getLogger("web.access")
 app = FastAPI(title="ZenFlow Therapist")
 
 _REQUEST_ID_MAX = 64
+
+
+def _client_ip(request: Request) -> str | None:
+    """The caller's address, as the proxy in front of us reports it."""
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    return forwarded or (request.client.host if request.client else None)
 
 
 async def request_context_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
@@ -71,7 +78,15 @@ async def request_context_middleware(request: Request, call_next):  # type: igno
         therapist_id = request.session.get("therapist_id")
     except Exception:  # session middleware absent (should not happen) — never break a request
         therapist_id = None
-    with zlog.log_context(request_id=rid, therapist_id=therapist_id):
+    with (
+        zlog.log_context(request_id=rid, therapist_id=therapist_id),
+        audit.acting_as(
+            "therapist" if therapist_id else "system",
+            therapist_id or "",
+            ip=_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        ),
+    ):
         start = time.perf_counter()
         response = await call_next(request)
         duration = round((time.perf_counter() - start) * 1000, 1)

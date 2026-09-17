@@ -26,6 +26,7 @@ from bot.states import (
     THERAPIST_SELECT,
 )
 from bot.utils import get_main_keyboard
+from web.services import audit
 from web.services.booking_service import BookingError, BookingRequest, PatientSpec
 from web.services.booking_service import create as book_appointment
 from zenflow import clock
@@ -315,20 +316,23 @@ async def _book(
     """Book through the one booking service (ADR-29). The patient hears from the conversation,
     so no confirmation job is queued."""
     name = user.full_name or user.first_name or ""
-    return await book_appointment(
-        BookingRequest(
-            therapist_id=therapist_id or "",
-            start_at=clock.parse_iso(f"{day.isoformat()}T{time_slot}", naive_tz=clock.clinic_tz()),
-            patient=PatientSpec(
-                name=name, patient_id=telegram_patient(user.id, name), channel=None
-            ),
-            summary="",  # the AI summary lands here when the pipeline finishes
-            calendar_note=calendar_note,
-            source="telegram",
-            send_confirmation=False,
-            intake_history=list(intake_history or []),
+    patient_id = telegram_patient(user.id, name)
+    # The patient is the one booking, and the audit trail says so (8.1).
+    with audit.acting_as("patient", patient_id):
+        return await book_appointment(
+            BookingRequest(
+                therapist_id=therapist_id or "",
+                start_at=clock.parse_iso(
+                    f"{day.isoformat()}T{time_slot}", naive_tz=clock.clinic_tz()
+                ),
+                patient=PatientSpec(name=name, patient_id=patient_id, channel=None),
+                summary="",  # the AI summary lands here when the pipeline finishes
+                calendar_note=calendar_note,
+                source="telegram",
+                send_confirmation=False,
+                intake_history=list(intake_history or []),
+            )
         )
-    )
 
 
 async def _slot_taken(query, context, lang: str, day: date, time_slot: str) -> int:

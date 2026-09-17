@@ -209,6 +209,33 @@ calendar id) — never intake answers, summaries or names. Rows older than
 `ZF_CONV_TIMEOUT_MINUTES` are not restored (the therapist choice is). An ended conversation deletes
 its row.
 
+### Table: `audit_log` (Phase 8.1)
+
+```sql
+CREATE TABLE IF NOT EXISTS audit_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts          TEXT NOT NULL,                       -- canonical UTC
+    actor_type  TEXT NOT NULL CHECK (actor_type IN ('therapist','patient','system','ai','api')),
+    actor_id    TEXT NOT NULL DEFAULT '',
+    action      TEXT NOT NULL,                       -- appointment.created, session.completed, …
+    entity_type TEXT NOT NULL,
+    entity_id   TEXT NOT NULL,
+    before_json TEXT,                                -- only the fields that changed, redacted
+    after_json  TEXT,
+    ip          TEXT,
+    user_agent  TEXT,
+    request_id  TEXT
+);
+-- append-only: triggers raise on UPDATE and DELETE
+-- indexes: (entity_type, entity_id, id), (actor_type, actor_id, id), (ts)
+```
+
+One row per clinical mutation. **Append-only by trigger** — an UPDATE or DELETE raises
+`audit_log is append-only`, so the trail cannot be rewritten by the application that writes it.
+Retention: kept with the clinical record (plan 9.9 / Q5). Details: `docs/AUDIT.md`.
+
+---
+
 ### Tables: `api_clients`, `api_idempotency` (Phase 7.3)
 
 ```sql
