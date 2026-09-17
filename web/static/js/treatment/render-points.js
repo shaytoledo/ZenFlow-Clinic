@@ -157,7 +157,7 @@ function pointCardHtml(pt, selected) {
   return `<article class="pc ${themeClass}${selected ? ' is-selected' : ''}" data-point-card="${escHtml(code)}"
       data-action="toggle-point" data-code="${escHtml(code)}" aria-label="${escHtml(label)}">
     <header class="pc-head">
-      <span class="pc-code">${escHtml(code)}</span>
+      <button type="button" class="pc-code" data-action="open-point-lightbox" data-code="${escHtml(code)}" aria-haspopup="dialog">${escHtml(code)}</button>
       ${name ? `<h3 class="pc-name">${escHtml(name)}</h3>` : ''}
       ${pointToggleHtml(code, selected)}
     </header>

@@ -52,6 +52,7 @@ def run_js(expression: str, lang: str = "en") -> Any:
             (JS / "render-points.js").read_text(encoding="utf-8"),
             (JS / "point-states.js").read_text(encoding="utf-8"),
             (JS / "points-input.js").read_text(encoding="utf-8"),
+            (JS / "lightbox.js").read_text(encoding="utf-8"),
             (JS / "handout.js").read_text(encoding="utf-8"),
             f"process.stdout.write(JSON.stringify({expression}));",
         ]
@@ -82,7 +83,7 @@ def test_a_card_has_the_designed_anatomy() -> None:
     assert html.startswith("<article")
     assert 'aria-label="LR3 Taichong"' in html
     order = [
-        'class="pc-code">LR3<',
+        'aria-haspopup="dialog">LR3<',
         '<h3 class="pc-name">Taichong</h3>',
         'class="pc-toggle"',
         'class="pc-channel"',
@@ -126,10 +127,10 @@ def test_pregnancy_cautions_are_on_the_card_face() -> None:
 
 def test_the_who_kidney_code_finds_the_reference_data() -> None:
     html = card({"code": "KI3"})
-    assert "tp-ch-kidney" in html and "Taixi" in html and 'class="pc-code">KI3<' in html
+    assert "tp-ch-kidney" in html and "Taixi" in html and 'aria-haspopup="dialog">KI3<' in html
     old_spelling = card({"code": "KD3"})
     assert "tp-ch-kidney" in old_spelling and "Taixi" in old_spelling, "KD3 is an alias of KI3"
-    assert 'class="pc-code">KD3<' in old_spelling, "the card shows the code the AI used"
+    assert 'aria-haspopup="dialog">KD3<' in old_spelling, "the card shows the code the AI used"
 
 
 def test_an_unknown_point_still_renders_plainly() -> None:
@@ -216,9 +217,8 @@ def test_the_toggles_and_removals_are_real_buttons_with_names() -> None:
     assert tag is not None
     assert tag.group(0).count('<button type="button"') == 2
     assert "aria-label=" in tag.group(0), "the × button needs a name"
-    panel = (ts.WEB / "templates/treatment/point_panel.html").read_text(encoding="utf-8")
-    assert 'role="dialog"' in panel and 'aria-labelledby="panel-code"' in panel
-    assert 'aria-label="Close"' in panel
+    dialog = (ts.WEB / "templates/treatment/point_lightbox.html").read_text(encoding="utf-8")
+    assert '<dialog id="point-lightbox"' in dialog and 'aria-labelledby="pl-title"' in dialog
 
 
 def test_the_page_offers_undo_in_a_live_region() -> None:

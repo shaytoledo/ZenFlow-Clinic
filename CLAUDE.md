@@ -58,6 +58,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/BOT_AUDIT.md` | Phase 2.1 handler-by-handler bot audit, ranked defects B1–B17 |
 | `docs/HOSTING_AND_MONITORING.md` | Hosting options and free log-monitoring research |
 | `docs/POINT_CARD_DESIGN.md` | Phase 4.2 research + design of the acupuncture point cards (anatomy, selection, a11y, tokens) |
+| `docs/POINT_IMAGE_SOURCING.md` | Phase 4.3d shortlist of point-image sources with licences (owner decision Q4) |
 
 > Start guide: `startup/START.md`
 
@@ -111,7 +112,7 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │   └── cache_service.py
 ├── templates/               # Jinja2 templates (all extend base.html)
 │   ├── treatment.html       # treatment page entry (<400 lines): layout + includes + script tags
-│   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_panel
+│   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_lightbox
 └── static/
     ├── style.css            # zf- prefixed styles
     ├── css/tokens.css       # design tokens (--zf-*), loaded on every page; dark theme = <html data-theme="dark"> (ADR-25)

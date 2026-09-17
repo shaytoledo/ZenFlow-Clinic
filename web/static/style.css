@@ -1319,16 +1319,6 @@ body {
 [dir="rtl"] #donut-legend       { direction: rtl; }
 /* Natural RTL row handles legend item (dot RIGHT, label LEFT) — no override needed */
 
-/* ── Point info panel — flips to LEFT in RTL ─────────────────────────────── */
-[dir="rtl"] .zf-point-panel {
-  right: auto;
-  left: 0;
-  border-left: none;
-  border-right: 1px solid #E5E7EB;
-  box-shadow: 4px 0 16px rgba(0,0,0,0.08);
-}
-[dir="rtl"] .zf-point-panel-content { direction: rtl; text-align: right; }
-
 /* ── Messages chat bubbles ────────────────────────────────────────────────── */
 [dir="rtl"] .zf-msg-bubble.user {
   border-bottom-right-radius: 12px;
@@ -1447,29 +1437,6 @@ body {
 
 [dir="rtl"] .zf-toggle::after     { left: auto; right: 2px; }
 [dir="rtl"] .zf-toggle.on::after  { left: auto; right: 18px; }
-
-/* Point info panel */
-.zf-point-panel {
-  position: fixed;
-  top: 52px;
-  right: 0;
-  bottom: 0;
-  width: 320px;
-  background: white;
-  border-left: 1px solid #E5E7EB;
-  box-shadow: -4px 0 16px rgba(0,0,0,0.08);
-  z-index: 100;
-  animation: slideInRight 0.2s ease;
-}
-@keyframes slideInRight {
-  from { transform: translateX(40px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
-}
-.zf-point-panel-content {
-  padding: 20px;
-  height: 100%;
-  overflow-y: auto;
-}
 
 /* ── Messages page ── */
 .zf-convo-item {
@@ -1753,8 +1720,6 @@ body {
 
 /* 8. Advice items: text inside toggle rows */
 [dir="rtl"] .zf-advice-item { direction: rtl; }
-
-/* 9. Point info panel header: h3 right, close button left — natural RTL row handles it */
 
 /* 10. Star-rating row: keep numeric order 1→5 reading left-to-right */
 [dir="rtl"] #mf-stars { flex-direction: row-reverse; }

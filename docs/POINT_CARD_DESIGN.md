@@ -226,3 +226,24 @@ width, plus the phone with the drawer open.
   committing.
 - **What they have caught:** the first run showed the section header squeezing into three lines
   on a Hebrew phone. The header now wraps (title on one line, pill and density toggle under it).
+
+## 8. The point lightbox (Phase 4.3d)
+
+The side panel that only the used-point tags could open is gone. A point now opens in a lightbox
+from its **code badge** on a card, or from its tag. The rest of the card still toggles the point.
+
+- **Native `<dialog>` with `showModal()`:** the browser traps focus, closes it on Escape, returns
+  focus to the badge, and dims the page. A click on the backdrop closes it too.
+- **Header:** the code in its channel colours, the name with its Han characters, and the English
+  name and channel.
+- **Image area:**
+  - the primary image, with thumbnails when there are several, and a Zoom toggle;
+  - the attribution line: credit, licence (linked, `rel="license"`) and source;
+  - every link passes `safeUrl()`, which allows only http(s) or our own `/media/`;
+  - with no image, or an image that fails to load, a labelled placeholder is shown, never a
+    broken icon.
+- **Detail:** the pregnancy caution, location, actions, and this session's AI rationale.
+- **Visual snapshots** caught the dialog pinned to a corner: `style.css` resets every margin. The
+  dialog now has `margin: auto`.
+
+Which images appear is the owner's decision (Q4); see `docs/POINT_IMAGE_SOURCING.md`.

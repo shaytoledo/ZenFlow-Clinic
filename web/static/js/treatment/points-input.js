@@ -1,4 +1,4 @@
-// Treatment page — The used-points input and tags, the selection model, the point info panel.
+// Treatment page — The used-points input and tags, and the selection model.
 // Classic script: shares globals with the other treatment/*.js files, loaded in order.
 
 // ── Points input ───────────────────────────────────────────────────────────────
@@ -94,64 +94,10 @@ function dismissUndo() {
 
 function renderPoints() {
   document.getElementById('points-tags').innerHTML = usedPoints.map((p) =>
-    `<span class="zf-point-tag"><button type="button" class="pc-tag-label" data-action="open-point-panel" data-code="${escHtml(p)}" title="${escHtml(pointText('showInfo', { code: p }))}">${escHtml(p)}</button><button type="button" data-action="remove-point" data-code="${escHtml(p)}" class="tp-tag-remove" aria-label="${escHtml(pointText('remove', { code: p }))}">&times;</button></span>`
+    `<span class="zf-point-tag"><button type="button" class="pc-tag-label" data-action="open-point-lightbox" data-code="${escHtml(p)}" title="${escHtml(pointText('showInfo', { code: p }))}">${escHtml(p)}</button><button type="button" data-action="remove-point" data-code="${escHtml(p)}" class="tp-tag-remove" aria-label="${escHtml(pointText('remove', { code: p }))}">&times;</button></span>`
   ).join('');
   document.getElementById('point-count').textContent = `${usedPoints.length} point${usedPoints.length !== 1 ? 's' : ''} selected · Press Enter to add, Backspace to remove last`;
   syncPointSelection();
-}
-
-// ── Point info panel (opened from a tag in "Points used") ─────────────────────
-
-let _panelOpener = null;
-
-function rationaleFor(code) {
-  const key = Object.keys(aiPointRationale).find((k) => normPointCode(k) === code);
-  return key ? aiPointRationale[key] : '';
-}
-
-function openPointPanel(code, opener) {
-  const c = normPointCode(code);
-  const panel = document.getElementById('point-panel');
-  const info = getPointInfo(c);
-  const rationale = rationaleFor(c);
-  const isHe = _ZF_LANG === 'he';
-  document.getElementById('panel-code').textContent = c;
-  let html = '';
-  if (rationale) {
-    html += `<div class="tp-panel-note">
-      <div class="tp-panel-note-label">${isHe ? 'נימוק AI לטיפול זה' : 'AI Rationale for This Session'}</div>
-      <p class="tp-note-text">${escHtml(rationale)}</p>
-    </div>`;
-  }
-  if (info && info.name) {
-    const themeClass = channelThemeClass(pointChannel(c));
-    html += `
-      <div class="tp-mb-10 ${themeClass}"><p class="pc-channel">${escHtml(info.channel)}</p></div>
-      <div class="tp-panel-name">${escHtml(info.name)}</div>
-      ${hasPregnancyCaution(c) ? `<p class="pc-caution tp-mb-12">${ICON_CAUTION}<span>${escHtml(pointText('pregnancy'))}</span></p>` : ''}
-      <div class="tp-mb-12">
-        <span class="tp-panel-label">${escHtml(pointText('location'))}</span>
-        <p class="tp-panel-text">${escHtml(info.location)}</p>
-      </div>
-      <div>
-        <span class="tp-panel-label">${escHtml(pointText('actions'))}</span>
-        <p class="tp-panel-text">${escHtml(info.actions)}</p>
-      </div>`;
-  } else {
-    html += `<p class="tp-muted">${isHe ? 'אין נתוני עזר עבור' : 'No reference data for'} <strong>${escHtml(c)}</strong>.</p>`;
-  }
-  document.getElementById('panel-body').innerHTML = html;
-  panel.classList.remove('hidden');
-  _panelOpener = opener || null;
-  panel.querySelector('[data-action="close-point-panel"]').focus();
-}
-
-function closePointPanel() {
-  const panel = document.getElementById('point-panel');
-  if (panel.classList.contains('hidden')) return;
-  panel.classList.add('hidden');
-  if (_panelOpener && document.contains(_panelOpener)) _panelOpener.focus();
-  _panelOpener = null;
 }
 
 function toggleIntake() {

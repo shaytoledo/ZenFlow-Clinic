@@ -56,9 +56,7 @@ SECTION_IDS = (
     "manual-feedback-card",
     "mf-stars",
     "mf-save-btn",
-    "point-panel",
-    "panel-code",
-    "panel-body",
+    "point-lightbox",
     "treatment-config",
     "print-handout",
 )
