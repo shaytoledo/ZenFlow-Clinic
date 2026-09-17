@@ -21,3 +21,6 @@ playwright==1.63.0
 
 types-redis
 types-requests
+
+# Fake AWS for the S3 storage tests (Phase 4.3c)
+moto[s3]==5.2.3

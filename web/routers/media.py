@@ -22,7 +22,7 @@ async def media(key: str) -> FileResponse:
             raise StorageError("not a local store")
         path = storage.path(key)
         media_type = content_type_of(key)
-    except (StorageError, NotImplementedError):  # remote stores hand out their own links
+    except StorageError:  # remote stores hand out their own (presigned) links
         raise HTTPException(status_code=404) from None
     if not path.is_file():
         raise HTTPException(status_code=404)

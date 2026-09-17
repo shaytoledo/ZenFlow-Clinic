@@ -148,8 +148,16 @@ BOOL_FLAGS = [
 @pytest.mark.parametrize("flag", BOOL_FLAGS)
 @pytest.mark.parametrize("value", ["1", "0"])
 def test_boolean_flags_parse_both_values(env, flag: str, value: str) -> None:
-    s = env({f"ZF_{flag}": value})
+    extra = {"S3_BUCKET": "media-bucket"} if flag == "STORAGE_S3" else {}
+    s = env({f"ZF_{flag}": value, **extra})
     assert getattr(s.flags, flag.lower()) is (value == "1")
+
+
+def test_s3_storage_needs_a_bucket(env) -> None:
+    """Phase 4.3c: a store with nowhere to write must stop the boot, in every environment."""
+    with pytest.raises(S.SettingsError, match="S3_BUCKET"):
+        env({"ZF_STORAGE_S3": "1"})
+    assert env({"ZF_STORAGE_S3": "0"}).s3_bucket == ""
 
 
 @pytest.mark.parametrize("value", ["inprocess", "celery", "temporal", "aws"])

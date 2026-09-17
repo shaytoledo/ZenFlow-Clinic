@@ -7,14 +7,32 @@ bandit==1.9.4
     # via -r requirements-dev.in
 black==26.5.1
     # via -r requirements-dev.in
+boto3==1.43.96
+    # via
+    #   -c requirements.txt
+    #   moto
+botocore==1.43.96
+    # via
+    #   -c requirements.txt
+    #   boto3
+    #   moto
+    #   s3transfer
 build==1.6.1
     # via pip-tools
+certifi==2025.11.12
+    # via
+    #   -c requirements.txt
+    #   requests
 cffi==2.0.0
     # via
     #   -c requirements.txt
     #   cryptography
 cfgv==3.5.0
     # via pre-commit
+charset-normalizer==3.4.4
+    # via
+    #   -c requirements.txt
+    #   requests
 click==8.3.1
     # via
     #   -c requirements.txt
@@ -32,6 +50,7 @@ coverage==7.16.1
 cryptography==46.0.5
     # via
     #   -c requirements.txt
+    #   moto
     #   types-pyopenssl
     #   types-redis
 distlib==0.4.3
@@ -50,14 +69,29 @@ greenlet==3.3.2
     #   playwright
 identify==2.6.19
     # via pre-commit
+idna==3.11
+    # via
+    #   -c requirements.txt
+    #   requests
 iniconfig==2.3.0
     # via pytest
+jmespath==1.1.0
+    # via
+    #   -c requirements.txt
+    #   boto3
+    #   botocore
 librt==0.15.0
     # via mypy
 markdown-it-py==4.2.0
     # via rich
+markupsafe==3.0.3
+    # via
+    #   -c requirements.txt
+    #   werkzeug
 mdurl==0.1.2
     # via markdown-it-py
+moto==5.2.3
+    # via -r requirements-dev.in
 mypy==2.3.1
     # via -r requirements-dev.in
 mypy-extensions==1.1.0
@@ -92,6 +126,8 @@ pluggy==1.6.0
     #   pytest-cov
 pre-commit==4.6.2
     # via -r requirements-dev.in
+py-partiql-parser==0.6.3
+    # via moto
 pycparser==3.0
     # via
     #   -c requirements.txt
@@ -114,7 +150,10 @@ pytest-asyncio==0.24.0
 pytest-cov==7.1.0
     # via -r requirements-dev.in
 python-dateutil==2.9.0.post0
-    # via freezegun
+    # via
+    #   -c requirements.txt
+    #   botocore
+    #   freezegun
 python-discovery==1.6.0
     # via virtualenv
 pytokens==0.4.1
@@ -123,15 +162,28 @@ pyyaml==6.0.3
     # via
     #   -c requirements.txt
     #   bandit
+    #   moto
     #   pre-commit
+    #   responses
 redis==5.1.1
     # via
     #   -c requirements.txt
     #   fakeredis
+requests==2.32.5
+    # via
+    #   -c requirements.txt
+    #   moto
+    #   responses
+responses==0.26.3
+    # via moto
 rich==15.0.0
     # via bandit
 ruff==0.6.9
     # via -r requirements-dev.in
+s3transfer==0.19.2
+    # via
+    #   -c requirements.txt
+    #   boto3
 six==1.17.0
     # via
     #   -c requirements.txt
@@ -158,11 +210,18 @@ typing-extensions==4.15.0
 urllib3==2.6.3
     # via
     #   -c requirements.txt
+    #   botocore
+    #   requests
+    #   responses
     #   types-requests
 virtualenv==21.7.9
     # via pre-commit
+werkzeug==3.1.8
+    # via moto
 wheel==0.48.0
     # via pip-tools
+xmltodict==1.0.4
+    # via moto
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
