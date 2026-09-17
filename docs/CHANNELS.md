@@ -123,7 +123,16 @@ The suite has 43 checks per adapter, covering:
 
 Telegram runs the suite twice (`tests/contract/test_telegram_channel.py`), once per way in, against one offline Bot API (`tests/telegram_fake.py`). That fake speaks both httpx (a mock transport) and python-telegram-bot (a `BaseRequest`), so the real request encoding runs.
 
-**Adding WhatsApp (7.4)** means writing `WhatsAppChannel(ChannelAdapter)`, a harness over a mocked provider, and making the suite green. Its bookings go through the booking API or its service (`docs/BOOKING_API.md`), never through booking code of their own.
+**WhatsApp (7.4)** is `WhatsAppChannel`, on Meta's Cloud API, with its own harness over a mocked provider — see `docs/WHATSAPP.md`. Its bookings go through the booking API or its service (`docs/BOOKING_API.md`), never through booking code of their own.
+
+**Capabilities.** Channels differ in what they can do, so the contract declares it and the suite
+checks each adapter against its own abilities:
+
+- `supports_edit` — WhatsApp cannot replace a sent message, so the suite checks the refusal instead;
+- `session_window_hours` — WhatsApp only allows free-form text within 24 h of the patient's last
+  message; a channel with a window must have `send_template`, and one without refuses templates;
+- button limits (`max_buttons`, `max_button_data_len`) and how rows are laid out are the
+  channel's own business: the suite checks that every option arrives, in order.
 
 ## 5. Tests never reach Telegram
 

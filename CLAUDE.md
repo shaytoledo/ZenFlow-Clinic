@@ -66,6 +66,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/GOOGLE_CONNECTION_UX.md` | Phase 5: recovered prior work, the `google_not_connected` 409 contract, client + background behaviour |
 | `docs/FOLLOWUP.md` | Phase 6: 24h follow-up and recommendation delivery — root causes, storage, conversation, alerts |
 | `docs/BOOKING_API.md` | Phase 7.3: `/api/v1` booking — API keys, idempotency, errors, the published OpenAPI schema |
+| `docs/WHATSAPP.md` | Phase 7.4: the WhatsApp channel — 24-hour window, templates, button limits, webhooks |
 | `docs/CHANNELS.md` | Phase 7: the `ChannelAdapter` contract, Telegram adapter, conformance suite, adding a channel; patient identity (`patients` + `patient_channels`) |
 
 > Start guide: `startup/START.md`
@@ -80,7 +81,7 @@ bot/
 ├── states.py          # 10 integer state constants (SELECTING, THERAPIST_SELECT, …)
 ├── config.py          # Constants sourced from zenflow.settings; calls init_db(); loads THERAPISTS from SQLite
 ├── utils.py           # Shared: get_main_keyboard(show_change_therapist)
-├── interfaces/        # ChannelAdapter (channel.py), TelegramChannel (the only Bot API caller), factory
+├── interfaces/        # ChannelAdapter (channel.py), TelegramChannel + WhatsAppChannel (the only provider callers), factory
 ├── patient_bot/
 │   ├── start.py       # start(), back_to_main(), change_therapist()
 │   ├── schedule.py    # Booking flow: therapist → week → days → hours → intake
@@ -248,6 +249,7 @@ Any message / /start → SELECTING (main menu)
 | `CLINIC_TZ` | `Asia/Jerusalem` | clinic zone for `today()`; stored instants are always UTC |
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `ZF_CONV_TIMEOUT_MINUTES` | `30` | Idle minutes before a patient flow is closed; `0` = never |
+| `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TOKEN` / `WHATSAPP_APP_SECRET` / `WHATSAPP_VERIFY_TOKEN` / `WHATSAPP_API_VERSION` | — / — / — / — / `v23.0` | WhatsApp Cloud API (only with `ZF_CHANNEL_WHATSAPP=1`; `docs/WHATSAPP.md`) |
 | `TELEGRAM_WEBHOOK_SECRET` | — | Secret Telegram echoes on webhook calls (7.1); empty ⇒ every webhook refused |
 | `ZF_API_RATE_PER_MINUTE` | `60` | Booking API requests per minute per caller (`0` = no limit) |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |

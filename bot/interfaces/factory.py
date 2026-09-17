@@ -27,7 +27,9 @@ def get_channel(name: str) -> ChannelAdapter:
     if name == "whatsapp":
         if not s.flags.channel_whatsapp:
             raise ValueError("the WhatsApp channel requires ZF_CHANNEL_WHATSAPP=1")
-        raise NotImplementedError("WhatsApp adapter is delivered in Phase 7.4")
+        from .whatsapp_channel import WhatsAppChannel
+
+        return WhatsAppChannel()
     raise ValueError(f"Unknown channel '{name}' — supported: {', '.join(CHANNELS)}")
 
 

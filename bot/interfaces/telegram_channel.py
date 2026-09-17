@@ -36,6 +36,7 @@ from .channel import (
     InboundMedia,
     InboundMessage,
     OutboundMedia,
+    Scrubber,
     SentMessage,
     header,
 )
@@ -71,23 +72,9 @@ _PERMANENT = {400, 401, 403, 404}
 _NUMERIC_ID = re.compile(r"-?\d+")
 
 
-class _Scrubber:
-    """Removes this channel's own secrets from any text that leaves it."""
-
-    def __init__(self, secrets: tuple[str, ...]) -> None:
-        self._secrets = tuple(s for s in secrets if s)
-
-    def __call__(self, text: str) -> str:
-        from zenflow.logging import redact
-
-        for secret in self._secrets:
-            text = text.replace(secret, "***")
-        return redact(text)
-
-
 class _HttpApi:
     def __init__(
-        self, token: str, transport: httpx.AsyncBaseTransport | None, scrub: _Scrubber
+        self, token: str, transport: httpx.AsyncBaseTransport | None, scrub: Scrubber
     ) -> None:
         self._token = token
         self._transport = transport
@@ -131,7 +118,7 @@ class _HttpApi:
 class _PtbApi:
     """The same calls through a python-telegram-bot `Bot` (or a stand-in with its methods)."""
 
-    def __init__(self, bot: Any, scrub: _Scrubber) -> None:
+    def __init__(self, bot: Any, scrub: Scrubber) -> None:
         self.bot = bot
         self._scrub = scrub
 
@@ -166,7 +153,7 @@ class _PtbApi:
         return {"message_id": getattr(result, "message_id", None)}
 
 
-def _api_error(status: int, body: Any, scrub: _Scrubber) -> ChannelError:
+def _api_error(status: int, body: Any, scrub: Scrubber) -> ChannelError:
     body = body if isinstance(body, dict) else {}
     try:
         code = int(body.get("error_code") or status)
@@ -180,7 +167,7 @@ def _api_error(status: int, body: Any, scrub: _Scrubber) -> ChannelError:
     return ChannelError(description, permanent=code in _PERMANENT, code=str(code))
 
 
-def _ptb_error(e: Exception, scrub: _Scrubber) -> ChannelError:
+def _ptb_error(e: Exception, scrub: Scrubber) -> ChannelError:
     from telegram import error as tg
 
     message = scrub(str(e) or type(e).__name__)
@@ -275,7 +262,7 @@ class TelegramChannel(ChannelAdapter):
         if token is None and bot is None:
             raise ValueError("TelegramChannel needs a bot token or a running bot client")
         self._webhook_secret = webhook_secret
-        scrub = _Scrubber((token or "", str(getattr(bot, "token", "") or ""), webhook_secret or ""))
+        scrub = Scrubber((token or "", str(getattr(bot, "token", "") or ""), webhook_secret or ""))
         self._api: _HttpApi | _PtbApi = (
             _PtbApi(bot, scrub) if bot is not None else _HttpApi(token or "", transport, scrub)
         )
