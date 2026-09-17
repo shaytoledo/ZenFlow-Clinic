@@ -34,6 +34,9 @@ RECOMMENDATIONS_JOB = "recommendations.dispatch"
 FOLLOWUP_DELAY_HOURS = 24
 #: a follow-up that could not go out within this many hours of completion is dropped, not sent
 FOLLOWUP_EXPIRE_HOURS = 48
+#: an email send waiting for the therapist's Google looks again this often (connecting Google
+#: wakes it at once — `resume_after_google_connected`); a safety net, not the main path
+GOOGLE_RECHECK_HOURS = 6
 
 
 def followup_key(appointment_id: int, completed_at: str) -> str:
@@ -123,6 +126,7 @@ async def handle_recommendations(payload: dict[str, Any]) -> None:
     row = await asyncio.to_thread(treatment_repo.get_pending_recommendation, apt_id)
     if not row:
         logger.info("recommendations skipped: nothing queued (already sent or cleared)")
+        await asyncio.to_thread(_settle_waiting_alert, apt_id)
         return
     expected = payload.get("send_at")
     queued_at = row.get("pending_rec_send_at")
@@ -130,6 +134,51 @@ async def handle_recommendations(payload: dict[str, Any]) -> None:
         logger.info("recommendations skipped: rescheduled to %s", queued_at)
         return
     await fs.dispatch_recommendations(row)
+
+
+def _settle_waiting_alert(appointment_id: int) -> None:
+    """Nothing is queued any more (sent by hand, or cleared): a "waiting for Google" alert is moot."""
+    from bot.db import get_db
+    from web.services import notification_service
+
+    try:
+        row = (
+            get_db()
+            .execute("SELECT therapist_id FROM appointments WHERE id=?", (appointment_id,))
+            .fetchone()
+        )
+        if row and row["therapist_id"]:
+            notification_service.resolve_waiting_for_google(
+                str(row["therapist_id"]), appointment_id
+            )
+    except Exception:
+        logger.exception("could not resolve the waiting-for-Google alert")
+
+
+def resume_after_google_connected(therapist_id: str) -> int:
+    """The therapist connected Google: their queued recommendation sends run now instead of at
+    their next recheck (Phase 5.4). Returns how many were woken. Never raises."""
+    from bot.db import get_db
+
+    woken = 0
+    try:
+        queue = get_default_queue()
+        for job in queue.pending(RECOMMENDATIONS_JOB):
+            row = (
+                get_db()
+                .execute(
+                    "SELECT therapist_id FROM appointments WHERE id=?",
+                    (int(job.payload.get("appointment_id") or 0),),
+                )
+                .fetchone()
+            )
+            if row and row["therapist_id"] == therapist_id and queue.run_now(job.id):
+                woken += 1
+    except Exception:
+        logger.exception("could not wake the recommendation sends after Google was connected")
+    if woken:
+        logger.info("%s recommendation send(s) resumed after Google was connected", woken)
+    return woken
 
 
 @default_registry.on_dead(RECOMMENDATIONS_JOB)

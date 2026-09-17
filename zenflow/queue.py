@@ -118,6 +118,21 @@ class TaskQueue(ABC):
         cleared, the unrun attempt not charged. Returns True if applied."""
 
     @abstractmethod
+    def defer(self, job_id: int, *, run_at: str, reason: str, worker_id: str | None = None) -> bool:
+        """Put a `running` job back to `pending` until `run_at` without charging the attempt: it is
+        waiting for something outside it (a person connecting an account), not failing. `reason`
+        is kept as last_error. Returns True if applied."""
+
+    @abstractmethod
+    def pending(self, name: str) -> list[Job]:
+        """The `pending` jobs of `name`, soonest first."""
+
+    @abstractmethod
+    def run_now(self, job_id: int) -> bool:
+        """Make a `pending` job due immediately (what it waited for has happened). Returns True if
+        applied."""
+
+    @abstractmethod
     def cancel(self, job_id: int) -> bool: ...
 
     @abstractmethod
@@ -266,6 +281,42 @@ class SqliteTaskQueue(TaskQueue):
                                locked_by=NULL, locked_at=NULL
                WHERE id=? AND status='running' AND locked_by=?""",
             (clock.iso_now(), job_id, worker_id),
+        )
+        return int(cur.rowcount or 0) > 0
+
+    def defer(self, job_id: int, *, run_at: str, reason: str, worker_id: str | None = None) -> bool:
+        clause, extra = self._owner_clause(worker_id)
+        cur = self._conn().execute(
+            f"""UPDATE jobs SET status='pending', run_at=?, attempts=MAX(attempts - 1, 0),
+                                last_error=?, updated_at=?, locked_by=NULL, locked_at=NULL
+                WHERE id=? AND {clause}""",
+            (
+                clock.normalize(run_at),
+                (reason or "")[:MAX_ERROR_LEN],
+                clock.iso_now(),
+                job_id,
+                *extra,
+            ),
+        )
+        return int(cur.rowcount or 0) > 0
+
+    def pending(self, name: str) -> list[Job]:
+        rows = (
+            self._conn()
+            .execute(
+                "SELECT * FROM jobs WHERE name=? AND status='pending' ORDER BY run_at, id",
+                (name,),
+            )
+            .fetchall()
+        )
+        return [Job.from_row(r) for r in rows]
+
+    def run_now(self, job_id: int) -> bool:
+        now = clock.iso_now()
+        cur = self._conn().execute(
+            """UPDATE jobs SET run_at=?, updated_at=?
+               WHERE id=? AND status='pending' AND run_at > ?""",
+            (now, now, job_id, now),
         )
         return int(cur.rowcount or 0) > 0
 

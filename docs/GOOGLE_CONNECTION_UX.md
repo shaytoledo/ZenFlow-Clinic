@@ -150,10 +150,27 @@ partial, a native `<dialog>` like the point lightbox.
 
 ## 4. Background sends (task 5.4)
 
-- **Google not connected** during a queued delivery:
-  - **one** persistent notification per appointment, never one per attempt;
-  - the queue entry is kept;
-  - delivery is retried after the therapist reconnects.
-- **Token revoked mid-flight:**
-  - **one** reconnect notification per therapist while it is unresolved;
-  - the job retries and is dead-lettered after its attempt budget.
+Implemented in `bot/services/followup_scheduler.dispatch_recommendations` and
+`bot/services/followup_jobs.py`, on two new queue verbs (ADR-20 addendum).
+
+- **Google not connected** when a queued email delivery runs:
+  - **One** persistent `recommendations_waiting_google` alert per appointment, however often the
+    job looks again.
+  - The job is **deferred**: it goes back to `pending` for `GOOGLE_RECHECK_HOURS` (6 h), and the
+    attempt is **not** charged, so waiting never dead-letters it. The queue entry is kept.
+  - **Connecting Google** makes the waiting send due at once:
+    - `/auth/callback` calls `resume_after_google_connected(therapist_id)`, which runs `run_now`
+      on that therapist's pending recommendation jobs;
+    - the next worker pass delivers them.
+  - The alert is resolved when the send is delivered. It is also resolved when the queue entry
+    disappears (for example, sent by hand), which the job notices on its next run.
+- **Token refused mid-flight** (a refused refresh, or Gmail 401 / `invalid_grant`):
+  - `send_email` raises **one** reconnect alert (`gmail_token_expired`) per therapist while it is
+    unresolved;
+  - the job **retries** with backoff and is dead-lettered after its attempts;
+  - `recommendations_dead` then raises **one** `send_failed` alert. That alert is now
+    deduplicated per appointment, so a second dead job or another failure path adds nothing
+    while it is open;
+  - the queue entry is kept for "Send Now". Reconnecting also pulls any backoff wait forward.
+- **Google unreachable**, or a refresh marked retryable: an ordinary failure. It retries and then
+  dead-letters, with no reconnect alert.

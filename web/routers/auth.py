@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from bot.config import GOOGLE_CLIENT_ID
+from bot.services.followup_jobs import resume_after_google_connected
 from web.deps import (
     _active_therapist_or_redirect,
     _find_by_email,
@@ -112,6 +113,7 @@ async def auth_callback(request: Request, code: str = "", error: str = ""):
             return RedirectResponse("/register")
         await asyncio.to_thread(exchange_code, code, therapist["id"])
         await asyncio.to_thread(google_reconnected, therapist["id"])
+        await asyncio.to_thread(resume_after_google_connected, therapist["id"])
         asyncio.create_task(prefetch_calendar(therapist["id"]))
     except Exception as e:
         logger.error(f"OAuth callback error: {e}")
