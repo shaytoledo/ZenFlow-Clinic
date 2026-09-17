@@ -36,6 +36,7 @@ from web.routers.api.system import router as system_router
 from web.routers.api.treatment import router as treatment_router
 from web.routers.api.v1 import ApiException, error_response
 from web.routers.api.v1 import router as v1_router
+from web.routers.api.whatsapp import router as whatsapp_router
 from web.routers.auth import router as auth_router
 
 # ── Routers────────────────────────────────────────────────────────────────────
@@ -155,6 +156,8 @@ app.include_router(admin_router, dependencies=_API_AUTH)
 app.include_router(acupoints_router, dependencies=_API_AUTH)
 # The booking API authenticates per request (API key or session) — see web/routers/api/v1.py.
 app.include_router(v1_router)
+# WhatsApp's webhook verifies Meta's signature itself; it answers 404 while the channel is off.
+app.include_router(whatsapp_router)
 
 
 @app.exception_handler(ApiException)

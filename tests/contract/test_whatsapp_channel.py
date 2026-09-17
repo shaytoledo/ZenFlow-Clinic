@@ -46,6 +46,7 @@ class FakeCloudApi:
         self._next = 100
         #: media id → (filename, bytes), as an upload leaves them on the provider
         self.uploads: dict[str, tuple[str | None, bytes]] = {}
+        self.tokens: set[str] = set()
 
     def fail_next(self, status: int, code: int | None, message: str) -> None:
         body: dict[str, Any] = {"error": {"message": message, "type": "OAuthException"}}
@@ -61,7 +62,9 @@ class FakeCloudApi:
             if self.down:
                 raise httpx.ConnectError("connection refused", request=request)
             assert request.url.host == "graph.facebook.com", request.url
-            assert request.headers.get("authorization") == f"Bearer {TOKEN}"
+            auth = request.headers.get("authorization", "")
+            assert auth.startswith("Bearer ") and len(auth) > 8, auth
+            self.tokens.add(auth.removeprefix("Bearer "))
             payload, files = _decode(request)
             self.calls.append((request.url.path, payload, files))
             if self._failures:
@@ -311,6 +314,7 @@ def channel(cloud: FakeCloudApi) -> WhatsAppChannel:
 
 async def test_the_wire_format(cloud: FakeCloudApi, channel: WhatsAppChannel, open_window) -> None:
     await channel.send_text(f"+{USER}", "Hello there")
+    assert cloud.tokens == {TOKEN}, "the configured token, as a bearer credential"
     assert cloud.of("/messages") == [
         {
             "messaging_product": "whatsapp",
@@ -353,10 +357,17 @@ async def test_more_options_than_a_list_become_numbered_text(
     assert body.startswith("Pain 0–10?") and "1. 0" in body and "11. 10" in body
 
 
-async def test_a_long_button_label_is_refused(channel: WhatsAppChannel, open_window) -> None:
-    with pytest.raises(ChannelError) as err:
-        await channel.send_buttons(USER, "?", [[("x" * 21, "d")]])
-    assert err.value.permanent and err.value.code == "button_label"
+async def test_a_label_wider_than_whatsapp_allows_falls_back_to_text(
+    cloud: FakeCloudApi, channel: WhatsAppChannel, open_window
+) -> None:
+    """The check-in's own labels run past 20 characters: asking in words beats refusing a
+    question the patient is waiting for."""
+    await channel.send_buttons(
+        USER, "How is it?", [[("Much better", "b"), ("A little worse than before", "w")]]
+    )
+    (payload,) = cloud.of("/messages")
+    assert payload["type"] == "text"
+    assert payload["text"]["body"].endswith("1. Much better\n2. A little worse than before")
 
 
 async def test_media_by_upload_goes_through_the_media_endpoint(

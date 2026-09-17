@@ -126,6 +126,28 @@ def _contact(row: dict) -> Any:
     return patient_repo.messaging_contact(int(row["patient_id"]))
 
 
+async def _send_template(channel: Any, contact: Any, appt: dict, name: str, lang: str) -> Any:
+    """The pre-approved stand-in for step 1 when free-form text is not allowed (7.4)."""
+    from bot.interfaces.channel import ChannelError, Template
+    from zenflow.settings import get_settings
+
+    template = get_settings().whatsapp_template_followup
+    if not template:
+        raise ChannelError(
+            "the service window is closed and no check-in template is configured",
+            permanent=True,
+            code="no_template",
+        )
+    logger.info(
+        "follow-up for appt=%s sent as template %s (the service window is closed)",
+        appt.get("appointment_id"),
+        template,
+    )
+    return await channel.send_template(
+        contact.external_id, Template(name=template, language=lang, params=(name,))
+    )
+
+
 def _open_checkin(channel: str, sender_id: int | str) -> dict | None:
     """The open check-in of the patient behind a channel identity, if any."""
     from web.repositories import followup_repo, patient_repo
@@ -155,7 +177,7 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
         return
 
     from bot.interfaces import get_channel
-    from bot.interfaces.channel import OutboundMessage
+    from bot.interfaces.channel import ChannelError, OutboundMessage
 
     contact = await asyncio.to_thread(_contact, appt)
     if contact is None:
@@ -175,6 +197,11 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
                 extra={"buttons": prompt.buttons},
             )
         )
+    except ChannelError as e:
+        if e.code != "outside_session_window":
+            raise
+        # The check-in falls due as WhatsApp's 24-hour window closes: only a template gets in.
+        sent = await _send_template(channel, contact, appt, first_name, lang)
     except Exception as e:
         logger.warning(f"follow-up send failed for appt={appt_id}: {e}")
         await _best_effort(log_delivery, contact.channel, "followup", appt, None, str(e))

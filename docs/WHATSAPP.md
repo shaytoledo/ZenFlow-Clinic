@@ -61,6 +61,8 @@ Labels are truncated by WhatsApp at 20 characters, so a longer one is refused up
 | `WHATSAPP_APP_SECRET` | signs webhook deliveries; **empty ⇒ every webhook is refused** |
 | `WHATSAPP_VERIFY_TOKEN` | the subscription handshake's shared string |
 | `WHATSAPP_API_VERSION` | Graph API version (default `v23.0`) |
+| `WHATSAPP_TEMPLATE_FOLLOWUP` | approved template for the 24-hour check-in outside the window |
+| `WHATSAPP_TEMPLATE_CONFIRMATION` | approved template for a booking confirmation (7.3's job) |
 
 ## 3. Wire format
 
@@ -111,7 +113,34 @@ Anything else — statuses, system messages, a payload without a sender — is `
   token matches.
 - `statuses(payload)` reads delivery receipts (`sent`/`delivered`/`read`/`failed`).
 
-The HTTP endpoint that calls these, and routing an inbound message into the check-in, are 7.4b.
+### The endpoint (7.4b)
+
+`GET|POST /api/webhooks/whatsapp` — **404 while `ZF_CHANNEL_WHATSAPP` is off**, so nothing is
+exposed before the clinic has an account.
+
+- **`GET`** answers Meta's subscription handshake (`hub.mode`, `hub.verify_token`,
+  `hub.challenge`); a wrong or missing token is 403.
+- **`POST`** verifies the signature **before reading anything**; unsigned or tampered is 401.
+- **Anything it cannot use answers 200** — a stranger's message, a status, a payload with no
+  message. Meta retries a non-200, and retrying will not make it meaningful.
+- **A delivery is acted on once.** Meta re-delivers until it sees a 200, so message ids are
+  remembered for 24 h (Redis); a repeat is dropped. A Redis outage lets the message through
+  rather than losing it.
+- **The window is stamped when the message reaches us**, not with the provider's timestamp: a
+  stale or skewed clock must not stop us answering a message we are holding.
+- **The check-in answers it** through the same `followup_scheduler` the Telegram handler uses;
+  the patient is resolved through `patient_channels` (7.2). A reply that cannot be delivered is
+  logged — the patient's answer is already recorded.
+- **Delivery receipts:** a `failed` receipt becomes a `message_log` row (kind and appointment
+  copied from the original send, by provider message id), so the therapist sees it never
+  arrived. `sent` / `delivered` / `read` are not recorded — they would be noise.
+
+### The closed window and the check-in
+
+The 24-hour check-in falls due exactly as the service window closes. When WhatsApp refuses the
+free-form message, `followup_scheduler` sends `WHATSAPP_TEMPLATE_FOLLOWUP` instead, in the
+therapist's language, with the patient's first name as its parameter. Without a configured
+template name the send fails loudly (`no_template`) rather than silently skipping a patient.
 
 ## 5. Tests
 

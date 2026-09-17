@@ -62,6 +62,32 @@ def test_zenflow_dotenv_zero_disables_env_file(
         S.reset_settings()
 
 
+#: The one kind of /api endpoint without a session or key: a provider webhook, which proves
+#: itself with a signature over the body and is absent while its channel is off. The test below
+#: pins that it really does verify, so this is an exception with a reason, not a hole.
+SIGNATURE_AUTHENTICATED = {"/api/webhooks/whatsapp"}
+
+
+async def test_a_webhook_without_a_signature_is_refused(client, monkeypatch) -> None:
+    """The exception above, enforced: no signature, no entry — and nothing while the flag is off."""
+    from zenflow import settings as S
+
+    monkeypatch.setenv("ZF_CHANNEL_WHATSAPP", "1")
+    monkeypatch.setenv("WHATSAPP_APP_SECRET", "secret-for-this-test-0123456789")
+    S.reset_settings()
+    try:
+        resp = await client.post("/api/webhooks/whatsapp", content=b'{"entry": []}')
+        assert resp.status_code == 401
+        resp = await client.post(
+            "/api/webhooks/whatsapp",
+            content=b'{"entry": []}',
+            headers={"X-Hub-Signature-256": "sha256=" + "0" * 64},
+        )
+        assert resp.status_code == 401, "a wrong signature is no signature"
+    finally:
+        S.reset_settings()
+
+
 # ── every /api route declares an authentication dependency (default-deny, not opt-in) ──
 def test_every_api_route_declares_its_authentication() -> None:
     """The dashboard's endpoints take the router-level session dependency; the booking API
@@ -74,6 +100,8 @@ def test_every_api_route_declares_its_authentication() -> None:
     for route in app.routes:
         path = getattr(route, "path", "")
         if not path.startswith("/api/"):
+            continue
+        if path in SIGNATURE_AUTHENTICATED:
             continue
         dependant = getattr(route, "dependant", None)
         guards = {d.call for d in dependant.dependencies} if dependant else set()
