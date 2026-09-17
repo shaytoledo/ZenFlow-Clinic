@@ -219,3 +219,49 @@ patient has no Telegram. Their check-in becomes a phone call.
 
 Times are shown in the clinic's time zone. Every string is in `locales/{en,he}.json` (`fu_*`),
 and Hebrew mirrors from `dir="rtl"` alone.
+
+## 6. Recommendation delivery and the delivery log (task 6.6)
+
+**The chain, end to end.**
+
+1. "Complete Session" queues the enabled recommendations for T+24h
+   (`recommendations.dispatch`, idempotency key `recommendations:{appointment}:{send_at}`).
+2. The job routes the delivery:
+   - Telegram → the patient bot;
+   - email → the therapist's Gmail (Phase 5: it waits for Google, or retries a refused token);
+   - neither → a persistent "missing contact" alert.
+3. On delivery, `mark_recommendations_delivered()` stamps `recommendations_sent_at` and clears the
+   queue entry in one statement (5.5).
+
+**Why it is idempotent:**
+
+- the job only acts while the queue entry exists;
+- "Send Now" clears the queued copy;
+- completing the session again queues nothing once the recommendations were sent.
+
+F1 (email without the therapist id) was fixed in Phase 1.3.
+
+**`message_log`** (plan 8.3, started here; `web/repositories/message_log_repo.py`) holds one
+append-only row per outbound patient message attempt. Columns: `ts`, `direction` (`out`),
+`channel` (`telegram` / `email`), `patient_id`, `therapist_id`, `appointment_id`, `kind`
+(`recommendations` / `followup`), `status` (`sent` / `failed`), `provider_message_id` (the
+Telegram message id or the Gmail id), and `error`.
+
+**What it records:**
+
+- **Sends:** queued recommendations, "Send Now" (Telegram and email), and the follow-up's
+  step 1.
+- **Failures:** each failed attempt gets its own row, with the error **redacted**
+  (`zenflow.logging.redact`) and shortened to 300 characters, because therapists read it.
+- **Not recorded:** the recipient address (the appointment holds it); a send that is only
+  waiting for Google (the "waiting for Google" alert covers that).
+- **Never blocks delivery:** after a successful send, the row is written best-effort, so a
+  logging failure cannot cause a retry, and so no second message.
+
+**What the therapist sees:** a "Messages sent" list (`partials/delivery_log.html`, `fu-log-*`
+classes) under the follow-up card, on the treatment page and in the session archive. Each line
+shows the time (clinic zone), what was sent, the channel, the status, and the error if there was
+one. It lists only the therapist's own rows and is hidden when nothing was sent.
+
+The rest of plan 8.3 (booking confirmations, relay messages, an inbound direction) comes with
+Phase 8.

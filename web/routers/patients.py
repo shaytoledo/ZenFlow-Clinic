@@ -67,10 +67,13 @@ async def session_archive(request: Request, patient_id: int, appointment_id: int
         return RedirectResponse(f"/patients/{patient_id}")
 
     t = get_t(therapist.get("language") if therapist else None)
-    from web.repositories import followup_repo
-    from web.services.followup_view import followup_view
+    from web.repositories import followup_repo, message_log_repo
+    from web.services.followup_view import delivery_view, followup_view
 
     checkin = await asyncio.to_thread(followup_repo.get, appointment_id)
+    sent = await asyncio.to_thread(
+        message_log_repo.for_appointment, therapist["id"] if therapist else "", appointment_id
+    )
     return templates.TemplateResponse(
         "session_archive.html",
         {
@@ -81,5 +84,6 @@ async def session_archive(request: Request, patient_id: int, appointment_id: int
             "session": session,
             "t": t,
             "fu": followup_view(checkin, therapist.get("language") if therapist else None),
+            "deliveries": delivery_view(sent, therapist.get("language") if therapist else None),
         },
     )

@@ -466,6 +466,18 @@ def _format_recommendations_for_email(enabled: list[dict], patient_name: str) ->
     return subject, "\n".join(lines)
 
 
+async def _log_send(
+    channel: str, row: dict[str, Any], *, result: Any = None, error: str | None = None
+) -> None:
+    """The delivery log (Phase 6.6). Never turns a delivered message into an error."""
+    from bot.services.followup_scheduler import log_delivery
+
+    try:
+        await asyncio.to_thread(log_delivery, channel, "recommendations", row, result, error)
+    except Exception as e:
+        logger.error(f"delivery log write failed: {e}")
+
+
 def _patient_name(apt_id: int) -> str:
     from bot.db import get_db
 
@@ -604,8 +616,13 @@ async def send_recommendations(
         )
 
         subject, text = _format_recommendations_for_email(enabled, patient_name)
+        log_row = {
+            "therapist_id": therapist["id"],
+            "patient_id": patient_id,
+            "appointment_id": apt_id,
+        }
         try:
-            await asyncio.to_thread(
+            sent = await asyncio.to_thread(
                 send_email,
                 therapist["id"],  # therapist_id — uses their Gmail OAuth token
                 body.email.strip(),  # to
@@ -614,8 +631,10 @@ async def send_recommendations(
             )
         except EmailNotConfigured as e:
             # No usable Google account: say so, and hand back the text to copy instead
+            await _log_send("email", log_row, error=f"Google not connected ({e.reason})")
             return _google_not_connected(therapist, e.reason, page, text=f"{subject}\n\n{text}")
         except EmailSendError as e:
+            await _log_send("email", log_row, error=str(e))
             if e.token_invalid:
                 return _google_not_connected(
                     therapist, TOKEN_INVALID, page, text=f"{subject}\n\n{text}"
@@ -626,7 +645,9 @@ async def send_recommendations(
             ) from e
         except Exception as e:
             logger.error(f"send_recommendations(email) error: {e}")
+            await _log_send("email", log_row, error=str(e))
             raise HTTPException(status_code=502, detail="Email send failed.") from e
+        await _log_send("email", log_row, result=sent)
         sent_via = "email"
         sent_to = body.email.strip()
 
@@ -654,13 +675,20 @@ async def send_recommendations(
 
     # ── 3) Telegram-source patient — original happy path
     else:
+        log_row = {
+            "therapist_id": therapist["id"],
+            "patient_id": patient_id,
+            "appointment_id": apt_id,
+        }
         try:
-            await telegram_service.send_to_patient(
+            sent = await telegram_service.send_to_patient(
                 patient_id, _format_recommendations_for_telegram(enabled)
             )
         except Exception as e:
             logger.error(f"send_recommendations(telegram) error: {e}")
+            await _log_send("telegram", log_row, error=str(e))
             raise HTTPException(status_code=500, detail=str(e))
+        await _log_send("telegram", log_row, result=sent)
         sent_via = "telegram"
         sent_to = str(patient_id)
 

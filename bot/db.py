@@ -241,6 +241,14 @@ def init_db() -> None:
     _create_active_slot_index(conn)
     _create_acupoints(conn)
     _create_followups(conn)
+    _create_message_log(conn)
+
+
+def _create_message_log(conn: sqlite3.Connection) -> None:
+    """Outbound patient messages (plan 8.3, started in Phase 6.6)."""
+    from web.repositories import message_log_repo
+
+    message_log_repo.create_schema(conn)
 
 
 def _create_followups(conn: sqlite3.Connection) -> None:

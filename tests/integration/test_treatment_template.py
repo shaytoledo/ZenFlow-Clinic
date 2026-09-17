@@ -103,7 +103,7 @@ def _page_css() -> str:
 #: pl-* (point lightbox, 4.3d), ed-* (email dialog, 5.3) and fu-* (follow-up card, 6.5)
 CLASS_NAME = r"(?:tp|pc|ps|pl|ed|fu)-[a-z0-9-]+"
 #: class names finished at render time from a known list (see the checks below)
-COMPUTED_PREFIXES = {"tp-tone-", "tp-ch-", "fu-state-", "fu-tone-", "fu-msg-"}
+COMPUTED_PREFIXES = {"tp-tone-", "tp-ch-", "fu-state-", "fu-tone-", "fu-msg-", "fu-status-"}
 
 
 def _defined_classes() -> set[str]:

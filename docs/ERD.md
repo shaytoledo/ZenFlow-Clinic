@@ -89,12 +89,27 @@ erDiagram
         TEXT    source                "patient | therapist_manual"
     }
 
+    MESSAGE_LOG {
+        INTEGER id                PK  AUTOINCREMENT
+        TEXT    ts                    "canonical UTC"
+        TEXT    direction             "out (in: Phase 8)"
+        TEXT    channel               "telegram | email"
+        INTEGER patient_id
+        TEXT    therapist_id
+        INTEGER appointment_id    FK  "→ appointments.id"
+        TEXT    kind                  "recommendations | followup"
+        TEXT    status                "sent | failed"
+        TEXT    provider_message_id
+        TEXT    error                 "redacted, ≤ 300 chars"
+    }
+
     THERAPISTS    ||--o{ APPOINTMENTS       : "treats"
     THERAPISTS    ||--o{ INTAKE_SESSIONS    : "reviews"
     THERAPISTS    ||--o{ AVAILABILITY       : "has slots"
     APPOINTMENTS  ||--o| INTAKE_SESSIONS    : "has one"
     APPOINTMENTS  ||--o| TREATMENT_NOTES   : "has one"
     APPOINTMENTS  ||--o| FOLLOWUPS         : "has one check-in"
+    APPOINTMENTS  ||--o{ MESSAGE_LOG       : "messages sent"
 ```
 
 ---
@@ -108,6 +123,7 @@ erDiagram
 | `intake_sessions` | INTEGER AUTOINCREMENT | 1:1 with appointments | `save_appointment()` |
 | `availability` | UUID hex | Tens–hundreds | Web `/api/availability`, `book_slot()`, `restore_slot()` |
 | `treatment_notes` | INTEGER AUTOINCREMENT | 1:1 with appointments | `save_treatment_notes()`, web `/complete` |
+| `message_log` | INTEGER AUTOINCREMENT | a few per session | every outbound patient message attempt (6.6) |
 | `followups` | INTEGER AUTOINCREMENT | 1:1 with completed appointments | `followup_repo` (enqueue, send, answers, manual entry, start-up backfill) |
 
 ---

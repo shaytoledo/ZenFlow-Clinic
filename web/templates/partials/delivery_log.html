@@ -1,0 +1,19 @@
+{#- The session's outbound messages (Phase 6.6): `deliveries` from
+    web/services/followup_view.delivery_view; styled by static/css/followup.css. -#}
+{% if deliveries %}
+<section id="delivery-log" class="zf-card fu" aria-labelledby="dl-title">
+  <h2 class="fu-title" id="dl-title">{{ deliveries.title }}</h2>
+  <ol class="fu-log">
+    {% for item in deliveries['items'] %}
+    <li class="fu-log-item fu-status-{{ item.status }}">
+      <time class="fu-log-time">{{ item.time }}</time>
+      <span class="fu-log-what">{{ item.what }} · {{ item.channel }}</span>
+      <span class="fu-log-status">{{ item.status_label }}</span>
+      {% if item.error %}<span class="fu-log-error">{{ item.error }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% else %}
+<section id="delivery-log" class="fu" hidden></section>
+{% endif %}

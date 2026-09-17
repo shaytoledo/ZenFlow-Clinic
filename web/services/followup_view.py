@@ -51,6 +51,27 @@ def _answered(answers: dict[str, Any]) -> int:
     return sum(1 for key in _ANSWER_KEYS if answers.get(key) not in (None, "", []))
 
 
+def delivery_view(rows: list[dict[str, Any]], lang: str | None) -> dict[str, Any] | None:
+    """The session's "Messages sent" list (Phase 6.6), or None when nothing was sent."""
+    if not rows:
+        return None
+    t = get_t(lang)
+    return {
+        "title": t["dl_title"],
+        "items": [
+            {
+                "time": _when(row.get("ts")),
+                "what": t[f"dl_kind_{row.get('kind')}"],
+                "channel": t[f"dl_channel_{row.get('channel')}"],
+                "status": str(row.get("status") or ""),
+                "status_label": t[f"dl_status_{row.get('status')}"],
+                "error": row.get("error") or "",
+            }
+            for row in rows
+        ],
+    }
+
+
 def followup_view(row: dict[str, Any] | None, lang: str | None) -> dict[str, Any] | None:
     """The card's content, or None when the session has no check-in (not completed yet)."""
     if not row:
