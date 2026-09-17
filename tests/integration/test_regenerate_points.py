@@ -259,11 +259,13 @@ def test_the_page_follows_the_status_only_after_the_server_accepted() -> None:
     assert body.index("regenerate-points") < body.index(
         "_pollForPoints("
     ), "polling starts only after the 202 — no race between the response and the poller"
-    assert "renderSuggestedPoints" not in body, "the response body is never rendered directly"
+    assert "pointsOf(" not in body, "the response body is never rendered directly"
+    assert "showPointState('loading'" in body, "the old formula is replaced by the loading state"
 
 
 def test_the_page_offers_cancel_and_handles_cancelled() -> None:
     html = treatment_source.source()
     assert 'data-action="cancel-generation"' in html
     assert "cancel-generation" in _function_body(html, "cancelGeneration")
-    assert "'CANCELLED'" in _function_body(html, "_pollForPoints")
+    assert "stateOfNotes(" in _function_body(html, "_pollForPoints")
+    assert "'CANCELLED'" in _function_body(html, "restingState")

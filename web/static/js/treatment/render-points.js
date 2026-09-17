@@ -59,7 +59,6 @@ const POINT_TEXT = {
     location: 'Location',
     pregnancy: 'Traditionally avoided in pregnancy',
     selected: '{n} of {total} selected',
-    none: 'No specific points detected — add manually below.',
     chipsIntro: 'AI formula — click a point to add or remove it:',
     removed: 'Removed {code}',
     undo: 'Undo',
@@ -76,7 +75,6 @@ const POINT_TEXT = {
     location: 'מיקום',
     pregnancy: 'נמנעת באופן מסורתי בהריון',
     selected: '{n} מתוך {total} נבחרו',
-    none: 'לא זוהו נקודות — הוסף ידנית למטה.',
     chipsIntro: 'פורמולת AI — לחץ על נקודה כדי להוסיף או להסיר:',
     removed: '{code} הוסרה',
     undo: 'בטל',
@@ -170,28 +168,6 @@ function pointChipHtml(pt, selected) {
   const themeClass = channelThemeClass(pointChannel(code));
   return `<button type="button" class="zf-point-chip pc-chip ${themeClass}${selected ? ' is-selected' : ''}" data-point-chip="${escHtml(code)}"
       data-action="toggle-point" data-code="${escHtml(code)}" aria-pressed="${selected ? 'true' : 'false'}">${ICON_ADD}${ICON_DONE}${escHtml(code)}</button>`;
-}
-
-function renderSuggestedPoints(notes, rawSummary) {
-  const chips = document.getElementById('suggested-points');
-  const section = document.getElementById('ai-points-section');
-  const grid = document.getElementById('ai-points-grid');
-  const points = normalizeSuggestedPoints(notes, rawSummary);
-  const chosen = new Set(usedPoints.map(normPointCode));
-
-  if (points.length === 0) {
-    if (section) section.style.display = 'none';
-    chips.innerHTML = `<span class="tp-chips-empty">${escHtml(pointText('none'))}</span>`;
-    return;
-  }
-
-  if (grid && section) {
-    grid.innerHTML = points.map((pt) => pointCardHtml(pt, chosen.has(normPointCode(pt.code)))).join('');
-    section.style.display = 'block';  // hidden by .tp-ai-section until there are points
-  }
-  chips.innerHTML = `<span class="tp-chips-intro">${escHtml(pointText('chipsIntro'))}</span>`
-    + points.map((pt) => pointChipHtml(pt, chosen.has(normPointCode(pt.code)))).join('');
-  syncPointSelection();
 }
 
 // Reflect `usedPoints` on every card and chip without re-rendering them (open details stay open).

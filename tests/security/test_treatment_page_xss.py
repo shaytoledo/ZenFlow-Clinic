@@ -32,25 +32,19 @@ REVIEWED = {
     "patientId",
     "aptDate",
     "aptTimeSlug",
+    "NOTES_URL()",  # built from the three parts above
     "q",  # '' or '?force=true'
     # numbers
     "certainty",  # coerced with Number() in render-diagnosis.js
-    "count",
-    "newCount",
     "r.status",
     "history.length",
-    "pointObjects.length",
     "usedPoints.length",
     # built from constants in the same function
     "lbl",
     "icon",
     "dateStr",  # Date.toLocaleDateString()
     "channel",  # 'email' | 'Telegram'
-    "msg",  # one of three literal messages
     "msgs",  # joined from escHtml()-ed parts
-    "needleSVG",
-    "actionsLabel",
-    "locationLabel",
     # CSS class names from literal maps (Phase 4.1c; checked against treatment.css below)
     "tone",  # _certaintyTone()
     "painTone",
@@ -64,10 +58,11 @@ REVIEWED = {
     "body",
     "rows",
     "pointToggleHtml(code, selected)",
+    # point states (Phase 4.2b): markup assembled from escHtml()-ed text in the same function
+    "labelHtml",
+    "actionHtml",
     # inside an escHtml(`…`) template — escaped as a whole
     "phone",
-    # a CSS selector, not HTML
-    "CSS.escape(c)",
 }
 #: `cond ? 'literal' : 'literal'` needs no escaping
 LITERAL_TERNARY = re.compile(
@@ -104,6 +99,12 @@ def test_every_interpolation_is_escaped_or_reviewed() -> None:
         "wrap untrusted values in escHtml(); if a value is provably safe, add it to REVIEWED "
         f"with the reason: {sorted(unreviewed)}"
     )
+
+
+def test_the_reviewed_list_has_no_stale_entries() -> None:
+    """An entry whose code is gone would silently approve a future value with the same name."""
+    used = set(_interpolations(ts.javascript()))
+    assert sorted(REVIEWED - used) == []
 
 
 def test_every_data_action_has_a_handler() -> None:

@@ -38,12 +38,14 @@ def run_js(expression: str, lang: str = "en") -> Any:
             esc.group(0),
             (JS / "point-info.js").read_text(encoding="utf-8"),
             (JS / "render-points.js").read_text(encoding="utf-8"),
+            (JS / "point-states.js").read_text(encoding="utf-8"),
             (JS / "points-input.js").read_text(encoding="utf-8"),
             f"process.stdout.write(JSON.stringify({expression}));",
         ]
     )
+    # stdin, not `node -e`: the scripts together exceed Windows' command-line limit
     out = subprocess.run(
-        ["node", "-e", script], capture_output=True, text=True, timeout=30, encoding="utf-8"
+        ["node", "-"], input=script, capture_output=True, text=True, timeout=30, encoding="utf-8"
     )
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)

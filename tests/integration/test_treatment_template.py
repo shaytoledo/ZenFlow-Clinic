@@ -29,6 +29,9 @@ SECTION_IDS = (
     "points-undo",
     "points-undo-text",
     "points-undo-btn",
+    "ai-points-status",
+    "ai-points-step",
+    "ai-points-message",
     "intake-card",
     "intake-body",
     "summary-body",
@@ -38,8 +41,6 @@ SECTION_IDS = (
     "therapist-diagnosis",
     "therapist-notes",
     "regen-points-btn",
-    "points-progress",
-    "points-progress-bar",
     "cancel-generation-btn",
     "suggested-points",
     "points-tags",
@@ -97,8 +98,8 @@ def _page_css() -> str:
     return "\n".join(p.read_text(encoding="utf-8") for p in ts.stylesheets())
 
 
-#: page-scoped class names: tp-* (Phase 4.1c) and pc-* (point cards, Phase 4.2)
-CLASS_NAME = r"(?:tp|pc)-[a-z0-9-]+"
+#: page-scoped class names: tp-* (Phase 4.1c), pc-* (point cards) and ps-* (point states, 4.2)
+CLASS_NAME = r"(?:tp|pc|ps)-[a-z0-9-]+"
 
 
 def _defined_classes() -> set[str]:
