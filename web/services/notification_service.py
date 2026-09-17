@@ -88,7 +88,10 @@ def alert_send_failed(
     patient_name: str,
     reason: str,
 ) -> int:
-    """Recommendations failed to send (Telegram/email error)."""
+    """Recommendations failed to send (Telegram/email error). One open alert per appointment."""
+    existing = notification_repo.find_active(therapist_id, "send_failed", appointment_id)
+    if existing:
+        return int(existing["id"])
     return notification_repo.create(
         therapist_id=therapist_id,
         kind="send_failed",
@@ -100,6 +103,38 @@ def alert_send_failed(
         patient_name=patient_name,
         persistent=True,
     )
+
+
+#: queued recommendations for an email-only patient, waiting for the therapist's Google (5.4)
+WAITING_FOR_GOOGLE = "recommendations_waiting_google"
+
+
+def alert_waiting_for_google(
+    therapist_id: str, appointment_id: int, patient_id: int, patient_name: str
+) -> int:
+    """Queued email recommendations cannot go out until Google is connected. One open alert per
+    appointment, however often the job rechecks; resolved when they are delivered or dropped."""
+    existing = notification_repo.find_active(therapist_id, WAITING_FOR_GOOGLE, appointment_id)
+    if existing:
+        return int(existing["id"])
+    return notification_repo.create(
+        therapist_id=therapist_id,
+        kind=WAITING_FOR_GOOGLE,
+        severity="warning",
+        title=f"Recommendations for {patient_name} are waiting for Google",
+        body=(
+            "They go out by email through your Google account, which is not connected. "
+            "Connect Google in Settings and they are sent right away."
+        ),
+        appointment_id=appointment_id,
+        patient_id=patient_id,
+        patient_name=patient_name,
+        persistent=True,
+    )
+
+
+def resolve_waiting_for_google(therapist_id: str, appointment_id: int) -> int:
+    return notification_repo.resolve_kind(therapist_id, WAITING_FOR_GOOGLE, appointment_id)
 
 
 def list_for_therapist(therapist_id: str, limit: int = 50) -> list[dict]:

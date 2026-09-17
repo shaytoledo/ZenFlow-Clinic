@@ -33,6 +33,21 @@ from zenflow.queue import LOCK_TIMEOUT_SECONDS, Job, TaskQueue
 logger = logging.getLogger(__name__)
 
 Handler = Callable[[dict[str, Any]], Awaitable[None]]
+
+
+class JobDeferred(Exception):  # noqa: N818 - a signal, not an error
+    """Raised by a handler whose job has to wait for something outside it (Phase 5.4).
+
+    Not a failure: the job goes back to `pending` until `run_at`, the attempt is not charged and
+    no dead-letter hook runs.
+    """
+
+    def __init__(self, run_at: str, reason: str) -> None:
+        super().__init__(reason)
+        self.run_at = run_at
+        self.reason = reason
+
+
 DeadHook = Callable[[dict[str, Any], str], Awaitable[None]]
 
 
@@ -187,6 +202,15 @@ class Worker:
                 self.queue.release(job.id, worker_id=self.worker_id)
                 logger.info("job released on worker cancellation")
                 raise
+            except JobDeferred as deferred:
+                self.queue.defer(
+                    job.id,
+                    run_at=deferred.run_at,
+                    reason=deferred.reason,
+                    worker_id=self.worker_id,
+                )
+                logger.info("job deferred until %s: %s", deferred.run_at, deferred.reason)
+                return
             except TimeoutError:
                 msg = f"handler timed out after {self.handler_timeout}s"
                 logger.error(msg)

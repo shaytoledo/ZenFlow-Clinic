@@ -262,7 +262,8 @@ async def test_gmail_not_connected_does_not_realert_on_later_sweeps(
     alerts = (
         dbmod.get_db()
         .execute(
-            "SELECT COUNT(*) FROM notifications WHERE kind='send_failed' AND appointment_id=?",
+            "SELECT COUNT(*) FROM notifications WHERE kind='recommendations_waiting_google' "
+            "AND appointment_id=?",
             (apt["id"],),
         )
         .fetchone()[0]

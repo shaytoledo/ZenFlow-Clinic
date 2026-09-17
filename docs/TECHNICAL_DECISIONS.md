@@ -553,6 +553,20 @@ must survive eviction and restarts. SQLite already holds every clinical record a
 idempotency key — handlers must be safe to re-run. Phase 1.3 registers the follow-up and
 recommendation handlers and replaces the 30-minute poll; Phase 3.1 moves the intake pipeline.
 
+**Addendum (2026-09-17, Phase 5.4): waiting is not failing.** Some jobs cannot proceed until a
+person acts, for example an email that needs the therapist to connect Google. Retrying those
+would burn the attempt budget and dead-letter a send that would succeed an hour later. The
+contract gains three verbs, each covered by the conformance tests:
+
+- **`defer(job_id, run_at, reason)`:** a running job goes back to `pending` until `run_at`. The
+  attempt is not charged, and `reason` is kept as `last_error`.
+- **`pending(name)`:** lists what is waiting.
+- **`run_now(job_id)`:** ends a wait early, when what the job waited for has happened.
+
+A handler signals a wait by raising `zenflow.worker.JobDeferred(run_at, reason)`. The worker then
+defers the job and runs no dead-letter hook. The Celery, Temporal and AWS backends of Phase 12
+must offer the same behaviour: a delayed re-delivery that does not count as a failure.
+
 ---
 
 ## ADR-21: Follow-ups and Recommendations Are Enqueued at Completion, Not Polled

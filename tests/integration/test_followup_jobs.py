@@ -224,7 +224,8 @@ async def test_gmail_not_connected_alerts_once_and_keeps_the_recommendations(
     failed = (
         dbmod.get_db()
         .execute(
-            "SELECT COUNT(*) FROM notifications WHERE kind='send_failed' AND appointment_id=?",
+            "SELECT COUNT(*) FROM notifications WHERE kind='recommendations_waiting_google' "
+            "AND appointment_id=?",
             (apt["id"],),
         )
         .fetchone()[0]

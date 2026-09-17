@@ -27,6 +27,7 @@ from typing import Any
 from bot.db import get_db
 from bot.redis_client import get_async_redis
 from zenflow import clock
+from zenflow.worker import JobDeferred
 
 logger = logging.getLogger(__name__)
 
@@ -316,7 +317,12 @@ async def dispatch_recommendations(row: dict) -> None:
     Routing:
       - Telegram patient                 → patient bot; queue entry cleared.
       - Manual patient with email        → therapist's Gmail; queue entry cleared.
-          * Gmail not connected           → one "send failed" alert, entry KEPT for Send Now.
+          * Google not connected          → one "waiting for Google" alert; the job is DEFERRED
+                                            (entry kept, no attempt charged) until the therapist
+                                            connects — `resume_after_google_connected()` — or
+                                            the next recheck (Phase 5.4).
+          * token refused / revoked       → send_email raised one reconnect alert; the job
+                                            retries, then dead-letters with one "send failed".
       - Manual patient without contact   → persistent "missing contact" alert; entry cleared.
     Any other failure raises so the job retries; the therapist is alerted on the final attempt.
     """
@@ -344,18 +350,27 @@ async def dispatch_recommendations(row: dict) -> None:
                     _EMAIL_SUBJECT,
                     _recommendations_email_body(patient_name, items),
                 )
-            except email_service.EmailNotConfigured:
-                await asyncio.to_thread(
-                    notification_service.alert_send_failed,
+            except email_service.EmailNotConfigured as e:
+                if e.reason == email_service.TOKEN_INVALID:
+                    raise  # send_email asked for a reconnect; retry, then dead-letter
+                from bot.services.followup_jobs import GOOGLE_RECHECK_HOURS
+
+                await _best_effort(
+                    notification_service.alert_waiting_for_google,
                     therapist_id,
                     apt_id,
                     pat_id,
                     patient_name,
-                    "Gmail is not connected — connect Google in Settings, then use Send Now.",
                 )
-                logger.warning(f"recommendations not emailed (Gmail not connected): appt={apt_id}")
-                return  # keep the queue entry; retrying cannot help until the therapist connects
+                logger.warning(f"recommendations wait for Google to be connected: appt={apt_id}")
+                raise JobDeferred(
+                    clock.hours_ahead(GOOGLE_RECHECK_HOURS),
+                    "waiting for the therapist to connect Google",
+                ) from e
             await asyncio.to_thread(clear_pending_recommendations, apt_id)  # delivered
+            await _best_effort(
+                notification_service.resolve_waiting_for_google, therapist_id, apt_id
+            )
             await _best_effort(
                 notification_service.alert_recommendations_sent,
                 therapist_id,
@@ -398,6 +413,8 @@ async def dispatch_recommendations(row: dict) -> None:
             )
             logger.info(f"pending recommendations sent: appt={apt_id} patient={pat_id}")
 
+    except JobDeferred:
+        raise  # waiting, not failing
     except Exception as e:
         # Retried by the queue; the therapist is alerted once, when retries are exhausted
         # (followup_jobs.recommendations_dead — covers timeouts too).
