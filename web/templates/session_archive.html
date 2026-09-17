@@ -9,6 +9,10 @@
 </a>
 {% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/followup.css" />
+{% endblock %}
+
 {% block content %}
 {% set rating_colors = {1: '#DC2626', 2: '#EA580C', 3: '#D97706', 4: '#16A34A', 5: '#0D9488'} %}
 {% set rating_labels = {1: t['chart_much_worse'] if t else 'Much worse', 2: t['chart_slightly_worse'] if t else 'Slightly worse', 3: t['chart_same'] if t else 'About the same', 4: t['chart_noticeably_better'] if t else 'Noticeably better', 5: t['chart_much_better'] if t else 'Much better'} %}
@@ -230,46 +234,9 @@
   </div>
   {% endif %}
 
-  <!-- Follow-up Data -->
-  {% set fc = session.followup_conversation %}
-  {% set manual_rating = session.manual_feedback_rating %}
-  {% if fc or manual_rating %}
-  <div class="zf-card" style="margin-bottom:20px;">
-    <div class="ehr-section-header" style="margin-bottom:14px;">
-      <span class="ehr-section-icon" style="background:#FEE2E2;">💌</span>
-      <span class="ehr-section-title">{{ t['archive_followup'] if t else 'Follow-up Response' }}</span>
-      {% if session.followup_sent_at %}
-      <span style="margin-inline-start:auto;font-size:11px;color:#6B7280;">{{ session.followup_sent_at | clinic_date }}</span>
-      {% endif %}
-    </div>
-    {% if fc is mapping %}
-      {% set rating = fc.improvement_rating or session.followup_rating %}
-      {% if rating %}
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <span style="font-size:13px;color:#6B7280;">{{ t['archive_improvement'] if t else 'Patient improvement:' }}</span>
-        <span style="font-size:14px;font-weight:800;color:{{ rating_colors[rating] }};">{{ rating }}/5 — {{ rating_labels[rating] }}</span>
-      </div>
-      {% endif %}
-      {% if fc.pain_rating %}
-      <div style="font-size:13px;color:#374151;margin-bottom:6px;">{{ t['archive_pain_level'] if t else 'Pain level:' }} <strong>{{ fc.pain_rating }}/10</strong></div>
-      {% endif %}
-      {% if fc.notes %}
-      <div style="background:#F9FAFB;border-radius:8px;padding:10px 14px;font-size:13px;color:#374151;line-height:1.6;margin-top:6px;">
-        💬 "{{ fc.notes }}"
-      </div>
-      {% endif %}
-    {% elif manual_rating %}
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:{% if session.manual_feedback_notes %}10{% else %}0{% endif %}px;">
-      <span style="font-size:13px;color:#6B7280;">{{ t['archive_therapist_feedback'] if t else 'Therapist feedback:' }}</span>
-      <span style="font-size:14px;font-weight:800;color:{{ rating_colors[manual_rating] }};">{{ manual_rating }}/5 — {{ rating_labels[manual_rating] }}</span>
-    </div>
-    {% if session.manual_feedback_notes %}
-    <div style="background:#FEF3C7;border-radius:8px;padding:10px 14px;font-size:13px;color:#374151;line-height:1.6;">
-      📝 {{ session.manual_feedback_notes }}
-    </div>
-    {% endif %}
-    {% endif %}
-  </div>
+  <!-- 24h follow-up (Phase 6.5): the same card as the treatment page -->
+  {% if fu %}
+  {% include "partials/followup_card.html" %}
   {% endif %}
 
 </div>

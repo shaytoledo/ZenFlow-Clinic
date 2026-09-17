@@ -80,10 +80,7 @@ async function loadTreatment() {
     applyGooglePreflight();  // email-only patient + Google not connected (email-dialog.js)
     resumeAfterGoogle();     // back from "Connect Google" with the send to restore
 
-    // Render follow-up conversation if it exists
-    if (notes?.followup_conversation) {
-      renderFollowupResults(notes.followup_conversation);
-    }
+    // The 24h follow-up card is rendered on the server (partials/followup_card.html, Phase 6.5).
 
     const hasDiagnosis = Boolean(notes?.tcm_pattern);
     const hasIntake    = Boolean(data.summary || (data.intake_history && data.intake_history.length > 0));

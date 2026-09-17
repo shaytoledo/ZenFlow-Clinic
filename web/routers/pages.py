@@ -107,7 +107,7 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
     if redirect:
         return RedirectResponse(redirect)
     try:
-        resolve_owned_appointment(request, patient_id, apt_date, apt_time)
+        apt = resolve_owned_appointment(request, patient_id, apt_date, apt_time)
     except HTTPException:  # not found / not this therapist's → back to the list, like other pages
         return RedirectResponse("/patients")
     from web.repositories import therapist_repo
@@ -117,6 +117,10 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
     prefs = await asyncio.to_thread(therapist_repo.get_ui_prefs, therapist["id"])
     google = await asyncio.to_thread(google_connection, therapist["id"])
     t = get_t(therapist.get("language"))
+    from web.repositories import followup_repo
+    from web.services.followup_view import followup_view
+
+    checkin = await asyncio.to_thread(followup_repo.get, int(apt["id"]))
     return _page(
         request,
         "treatment.html",
@@ -125,6 +129,7 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
         point_density=prefs["point_density"],
         google=google.as_dict(),
         email_text={key: t[key] for key in EMAIL_DIALOG_KEYS},
+        fu=followup_view(checkin, therapist.get("language")),
     )
 
 

@@ -47,8 +47,6 @@ REVIEWED = {
     "msgs",  # joined from escHtml()-ed parts
     # CSS class names from literal maps (Phase 4.1c; checked against treatment.css below)
     "tone",  # _certaintyTone()
-    "painTone",
-    "improvementTone",
     "themeClass",  # channelThemeClass()
     # point cards (Phase 4.2): SVG constants, and markup assembled from escHtml()-ed parts
     "ICON_ADD",

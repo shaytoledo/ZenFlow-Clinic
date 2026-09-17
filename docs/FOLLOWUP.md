@@ -185,3 +185,37 @@ patient has no Telegram. Their check-in becomes a phone call.
   - The banner is built from DOM nodes: patient names come from Telegram profiles and are never
     parsed as markup. The old code wrote them into `innerHTML`.
   - Dismissing the banner hides it for this visit only. It returns while calls are still due.
+
+## 5. The follow-up card (task 6.5)
+
+**One renderer, two pages.**
+
+- `web/services/followup_view.py` turns a `followups` row into translated text values.
+- `templates/partials/followup_card.html` renders them, styled by `static/css/followup.css`
+  (`fu-*` classes, design tokens, logical properties).
+- The **treatment page** (at the bottom, above the Manual Patient Feedback form) and the
+  **session archive** both include the partial.
+- It is rendered on the server and escaped by Jinja. The old client renderer
+  (`renderFollowupResults`, which read the `treatment_notes` JSON) is gone.
+
+| State (row status) | Badge | What the card says |
+|---|---|---|
+| `scheduled` | Scheduled | "The check-in goes out <clinic time>." |
+| `sent` / `in_progress` | Awaiting reply | "Sent <time> — waiting…", or "— N of 6 questions answered so far", with the answers given so far |
+| `completed` | Completed | "Answered <time>" (or "Recorded by the therapist <time>"), then the answers, summary, note and transcript |
+| `expired` | No reply | "Sent <time>; the patient did not finish within 48 hours" (or "was not sent in time"), with any partial answers |
+| `no_channel` | Phone follow-up | "This patient cannot be messaged — call them and record the outcome. Due <time>", plus a **Record the outcome** link to the form |
+
+**Contents:**
+
+- **Pain:** a native `<meter>` (0–10, low 4, high 7, optimum 0) with the value next to it.
+- **Chips:** change, side effects, sleep and advice followed. Each has a tone: good / fair /
+  poor / neutral.
+- **Summary** (6.2) and the **note**, labelled "Therapist's note" for a manual entry.
+- **Transcript:** a collapsed `<details>`. The bot's Telegram Markdown markers are dropped; the
+  patient's words are shown as typed.
+- **Red flag:** when `needs_attention` is set, a `role="alert"` banner comes first, with the
+  reasons spelled out ("pain 9/10", "much worse since the treatment", "reported fainting").
+
+Times are shown in the clinic's time zone. Every string is in `locales/{en,he}.json` (`fu_*`),
+and Hebrew mirrors from `dir="rtl"` alone.

@@ -52,7 +52,6 @@ SECTION_IDS = (
     "send-later-btn",
     "complete-btn",
     "followup-card",
-    "followup-body",
     "manual-feedback-card",
     "mf-stars",
     "mf-save-btn",
@@ -101,8 +100,10 @@ def _page_css() -> str:
 
 
 #: page-scoped class names: tp-* (Phase 4.1c), pc-* (point cards), ps-* (point states, 4.2),
-#: pl-* (point lightbox, 4.3d) and ed-* (email dialog, 5.3)
-CLASS_NAME = r"(?:tp|pc|ps|pl|ed)-[a-z0-9-]+"
+#: pl-* (point lightbox, 4.3d), ed-* (email dialog, 5.3) and fu-* (follow-up card, 6.5)
+CLASS_NAME = r"(?:tp|pc|ps|pl|ed|fu)-[a-z0-9-]+"
+#: class names finished at render time from a known list (see the checks below)
+COMPUTED_PREFIXES = {"tp-tone-", "tp-ch-", "fu-state-", "fu-tone-", "fu-msg-"}
 
 
 def _defined_classes() -> set[str]:
@@ -127,12 +128,12 @@ def test_every_page_class_is_defined_in_the_stylesheet() -> None:
     defined = _defined_classes()
     used = _used_classes()
     prefixes = {name for name in used if name.endswith("-")}
-    assert prefixes == {"tp-tone-", "tp-ch-"}, "a new computed class name needs a check below"
+    assert prefixes == COMPUTED_PREFIXES, "a new computed class name needs a check below"
     assert sorted(used - prefixes - defined) == []
 
 
 def test_the_stylesheet_has_no_dead_classes() -> None:
-    computed = {name for name in _defined_classes() if name.startswith(("tp-tone-", "tp-ch-"))}
+    computed = {name for name in _defined_classes() if name.startswith(tuple(COMPUTED_PREFIXES))}
     assert sorted(_defined_classes() - _used_classes() - computed) == []
 
 
@@ -145,18 +146,25 @@ def test_every_computed_class_is_defined_in_the_stylesheet() -> None:
         assert found is not None, pattern
         return re.findall(r"'([a-z-]+)'", found.group(1))
 
-    tones = {
-        *literals(r"function _certaintyTone\(pct\) \{(.*?)\n\}"),
-        *literals(r"const improvementTones = \{(.*?)\};"),
-        *literals(r"const improvementTone = (.*?);"),
-        *literals(r"const painTone = (.*?);"),
-    }
+    # (the follow-up's tones moved to the server-rendered card in Phase 6.5: fu-tone-*, below)
+    tones = set(literals(r"function _certaintyTone\(pct\) \{(.*?)\n\}"))
     # the map's keys are channel names ('Large Intestine'); only its lowercase values match
     channels = {*literals(r"const CHANNEL_THEMES = \{(.*?)\};"), "default"}
 
-    assert len(tones) >= 5 and len(channels) == 15
+    assert tones == {"teal", "amber", "red"} and len(channels) == 15
     missing = {f"tp-tone-{t}" for t in tones} | {f"tp-ch-{c}" for c in channels}
     assert sorted(missing - _defined_classes()) == []
+
+    from web.services.followup_view import STATES, TONES
+
+    assert sorted({f"fu-tone-{t}" for t in TONES} - _defined_classes()) == []
+    used_states = {f"fu-state-{s.replace('_', '-')}" for s in STATES}
+    assert sorted(used_states & _defined_classes()) == [
+        "fu-state-completed",
+        "fu-state-expired",
+        "fu-state-no-channel",
+    ]
+    assert "fu-msg-patient" in _defined_classes()
 
 
 def test_the_scripts_start_the_page_last() -> None:
