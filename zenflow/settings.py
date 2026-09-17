@@ -102,6 +102,9 @@ class Settings(BaseSettings):
     telegram_token: str = ""
     therapist_bot_token: str = ""
     messaging_channel: str = "telegram"
+    # TELEGRAM_WEBHOOK_SECRET — the secret_token Telegram echoes on webhook calls (7.1); empty ⇒
+    # every webhook is refused. Polling (today's mode) does not use it.
+    telegram_webhook_secret: str = ""
 
     # ── ai ──
     use_ai: AIProvider = "ollama"  # legacy name; ZF_AI_PROVIDER wins when set

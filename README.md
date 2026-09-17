@@ -71,7 +71,7 @@ Both bots run in the same Python process via `asyncio.run(_run(patient_app, ther
 
 ### Two-bot relay
 
-The patient bot (`TELEGRAM_TOKEN`) forwards patient messages to therapists via `Bot(THERAPIST_BOT_TOKEN)`. When the therapist replies-to the forwarded message, the therapist bot routes it back to the patient via `Bot(TELEGRAM_TOKEN)`. The routing key is stored in Redis: `zenflow:relay:msg:{forwarded_msg_id}`.
+The patient bot (`TELEGRAM_TOKEN`) forwards patient messages to therapists through the therapist bot's channel adapter. When the therapist replies-to the forwarded message, the therapist bot routes it back to the patient through the patient bot's channel (`bot/interfaces/`, `docs/CHANNELS.md`). The routing key is stored in Redis: `zenflow:relay:msg:{forwarded_msg_id}`.
 
 ---
 

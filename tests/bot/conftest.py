@@ -117,8 +117,9 @@ def fake_bot() -> FakeBot:
 def therapist_bot(monkeypatch: pytest.MonkeyPatch, fake_bot: FakeBot) -> FakeBot:
     """The Bot instance the patient bot uses to forward messages to the therapist."""
     import bot.patient_bot.therapist as pt
+    from bot.interfaces import TelegramChannel
 
-    monkeypatch.setattr(pt, "_therapist_bot", fake_bot)
+    monkeypatch.setattr(pt, "_therapist_channel", TelegramChannel(bot=fake_bot))
     return fake_bot
 
 
@@ -126,7 +127,8 @@ def therapist_bot(monkeypatch: pytest.MonkeyPatch, fake_bot: FakeBot) -> FakeBot
 def patient_bot(monkeypatch: pytest.MonkeyPatch) -> FakeBot:
     """The Bot instance the therapist bot uses to deliver replies to patients."""
     import bot.therapist_bot.handlers as th
+    from bot.interfaces import TelegramChannel
 
     bot_ = FakeBot()
-    monkeypatch.setattr(th, "_patient_bot", bot_)
+    monkeypatch.setattr(th, "_patient_channel", TelegramChannel(bot=bot_))
     return bot_

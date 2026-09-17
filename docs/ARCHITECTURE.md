@@ -38,6 +38,11 @@ Clinic/
 │   ├── states.py                  # 10 integer conversation state constants
 │   ├── utils.py                   # get_main_keyboard(show_change_therapist) — 4-button main menu
 │   │
+│   ├── interfaces/                # Messaging channels (Phase 7, docs/CHANNELS.md)
+│   │   ├── channel.py             # ChannelAdapter contract, InboundMessage, SentMessage, ChannelError
+│   │   ├── telegram_channel.py    # TelegramChannel — the ONLY module that calls the Telegram Bot API
+│   │   └── factory.py             # get_channel(name), get_default_channel(), get_staff_channel()
+│   │
 │   ├── patient_bot/               # Patient-facing bot handlers
 │   │   ├── start.py               # start(), back_to_main(), change_therapist()
 │   │   ├── schedule.py            # Booking flow: therapist → week → days → hours → intake
@@ -75,8 +80,8 @@ Clinic/
 │   │   ├── appointment_service.py # list_all(), list_today(), list_by_patient(), aggregate_patients()
 │   │   ├── availability_service.py# list_local(), add_local(), remove_local(), to_fc_events()
 │   │   ├── treatment_service.py   # get_notes(), save_notes(), complete_session(), list_all_sessions()
-│   │   ├── telegram_service.py    # send_to_patient(), get_active_relay_conversations(),
-│   │   │                          #   get_relay_messages(), append_relay_message()
+│   │   ├── telegram_service.py    # echo_to_therapist_chat(), get_bot_info(), check_bot(),
+│   │   │                          #   relay views: get_active_relay_conversations(), get_relay_messages()…
 │   │   ├── therapist_service.py   # Therapist account helpers
 │   │   └── cache_service.py       # prefetch_calendar(), purge_calendar(), get_relay_count()
 │   ├── templates/
@@ -203,7 +208,7 @@ uvicorn starts FastAPI app
 │  - schedule.py       │        │                                  │
 │  - cancel.py         │        └─────────────┬───────────────────┘
 │  - therapist.py      │                      │
-│  - services/         │                      │ reply via Bot(TELEGRAM_TOKEN)
+│  - services/         │                      │ reply via _patient_channel
 └────────┬────────────┘                      │
          │                                    ▼
          │        ┌──────────────────────────────────────────────┐
@@ -279,7 +284,8 @@ app refuse to start with a non-local `http://` URL when `ENV != dev`.
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `USE_AI` | `ollama` | `ollama` or `anthropic` |
 | `ANTHROPIC_API_KEY` | — | Only when `USE_AI=anthropic` |
-| `MESSAGING_CHANNEL` | `telegram` | Outbound channel adapter (`bot/interfaces/`) |
+| `MESSAGING_CHANNEL` | `telegram` | Default patient channel adapter (`bot/interfaces/`, `docs/CHANNELS.md`) |
+| `TELEGRAM_WEBHOOK_SECRET` | — | Secret Telegram echoes on webhook calls; empty ⇒ every webhook refused (polling today) |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
 | `SESSION_SECRET` | — | Signs `zf_session` cookie (web). ≥ 32 chars; the default value is refused outside dev |
 | `TOKEN_ENCRYPTION_KEY` | — | Fernet material for `google_tokens`. Required outside dev, must differ from `SESSION_SECRET` (F7). Unset ⇒ legacy derivation from `SESSION_SECRET` |

@@ -129,6 +129,7 @@ markers = [
   "integration: real SQLite + fakeredis + fake LLM/Telegram/Google",
   "e2e: end-to-end journeys against a live app",
   "security: attack-scenario tests (tests/security/)",
+  "contract: adapter conformance suites (tests/contract/)",
 ]
 
 [tool.coverage.run]

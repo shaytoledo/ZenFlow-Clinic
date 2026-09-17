@@ -298,7 +298,7 @@ async def dispatch_recommendations(row: dict) -> None:
 
             attempt = "telegram"
             sent = await get_default_channel().send_text(
-                recipient_id=pat_id, text=_recommendations_telegram_text(items)
+                pat_id, _recommendations_telegram_text(items), markdown=True
             )
             await asyncio.to_thread(mark_recommendations_delivered, apt_id)
             await _best_effort(log_delivery, "telegram", "recommendations", row, sent)

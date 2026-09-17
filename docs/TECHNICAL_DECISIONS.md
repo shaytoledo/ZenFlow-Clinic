@@ -806,3 +806,53 @@ re-ingested, not copied, into a new store, which re-runs the metadata stripping.
 - **Custom endpoints:** `S3_ENDPOINT_URL` (e.g. MinIO) must be `https://` outside dev (ADR-14).
 - **Tests:** the same contract suite runs on both stores (moto for S3).
 - **Follow-up for Phase 9:** the CSP must allow `img-src` for the bucket's host.
+
+---
+
+## ADR-27: One Channel Adapter per Messaging Provider, Proven by a Shared Conformance Suite
+
+**Date:** 2026-09-17 (Phase 7.1)
+
+**Context.** The clinic will add WhatsApp (7.4). Before 7.1, outbound messaging was an
+outbound-only `MessagingChannel` used by two jobs. Other code called Telegram directly:
+- the web reply path and Send Now;
+- the reply echo, the bot-name lookups and the status check, which posted to api.telegram.org themselves;
+- the relay, which held raw python-telegram-bot `Bot` objects.
+
+Nothing described inbound messages, so a second provider could not be checked against anything.
+
+**Decision.**
+1. **The contract.** `ChannelAdapter` (`bot/interfaces/channel.py`) covers:
+   - outbound: text, buttons, media, edits and typing;
+   - inbound: webhook parsing and verification.
+
+   It returns `SentMessage`, raises `ChannelError` (permanent / `retry_after` / code), and
+   validates content against per-adapter limits before sending. `MessagingChannel` stays as an
+   alias.
+2. **One module per provider.** Telegram is `TelegramChannel`, the only module that names
+   api.telegram.org (a test enforces it). It is reached two ways with identical behaviour:
+   - over httpx with a token (web process, jobs);
+   - through a running application's own `Bot` (the relay), which keeps B14's managed client
+     and rate limiter.
+3. **The conformance suite.** `tests/contract/channel_conformance.py` is written against the
+   contract only. Each adapter supplies a harness for a fake of its provider. Telegram runs it
+   through both ways in, against one offline Bot API.
+4. **Tests never touch the network.** The test guard now sits at the adapter's HTTP transport,
+   so every call — getMe included — is refused or recorded, and the real encoding runs.
+5. **The conversation drivers stay provider-specific.** Replies inside a Telegram conversation
+   remain python-telegram-bot calls. A WhatsApp front end gets its own driver over the booking
+   API (7.3); everything the system initiates goes through an adapter.
+
+**Options rejected:**
+- **Moving the whole conversation engine behind the adapter now.** It would rewrite every
+  handler before the booking API exists to share the logic.
+- **A generic `do_api_request` passthrough.** It would leak Telegram's method names into callers.
+- **Patching the old `_send` seam in tests.** It skipped the encoding and error mapping, and it
+  let direct httpx calls reach the network.
+
+**Consequences.**
+- WhatsApp is "implement the adapter and make the suite green".
+- Error handling can branch on `permanent` / `retry_after` instead of parsing text.
+- `web/services/telegram_service.py` no longer sends anything itself: it keeps the echo (through
+  `get_staff_channel()`), the bot identity helpers and the Redis relay views.
+- Adding a provider method means adding it to the contract and to the suite first.

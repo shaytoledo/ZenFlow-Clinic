@@ -48,7 +48,10 @@ async def test_a_real_send_failure_is_still_reported(
     from bot import config as botcfg
 
     botcfg.reload_therapists()
-    monkeypatch.setattr(pt, "_therapist_bot", FakeBot(fail_with=RuntimeError("telegram is down")))
+    from bot.interfaces import TelegramChannel
+
+    down = FakeBot(fail_with=RuntimeError("telegram is down"))
+    monkeypatch.setattr(pt, "_therapist_channel", TelegramChannel(bot=down))
 
     update = make_update("my back hurts", user_id=PATIENT)
     state = await pt.start_relay(update, make_context({"selected_therapist": t["id"]}))

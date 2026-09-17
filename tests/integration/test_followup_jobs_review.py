@@ -276,9 +276,12 @@ async def test_gmail_not_connected_does_not_realert_on_later_sweeps(
     assert alerts == 1
 
 
-async def test_telegram_failure_is_the_recorded_retry_reason(make_completed_session) -> None:
+async def test_telegram_failure_is_the_recorded_retry_reason(
+    make_completed_session, fake_telegram
+) -> None:
     from bot.services.followup_jobs import enqueue_followup
 
+    fake_telegram.fail_next("Too Many Requests: retry after 30", status=429, retry_after=30)
     with freeze_time(FROZEN) as frozen:
         apt = make_completed_session(completed_at=clock.iso_now())
         enqueue_followup(apt["id"], clock.iso_now())
@@ -286,4 +289,5 @@ async def test_telegram_failure_is_the_recorded_retry_reason(make_completed_sess
         await _worker().run_once()
     (job,) = _jobs()
     assert job["status"] == "pending"
-    assert "real Telegram send attempted" in job["last_error"]
+    assert "Too Many Requests: retry after 30" in job["last_error"]
+    assert "TEST-PATIENT-BOT-TOKEN" not in job["last_error"]

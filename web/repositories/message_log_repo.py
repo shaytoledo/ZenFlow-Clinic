@@ -99,10 +99,16 @@ def for_appointment(therapist_id: str, appointment_id: int) -> list[dict[str, An
 
 
 def provider_id(result: Any) -> str | None:
-    """The provider's message id from a send result (Telegram's JSON, or a plain id)."""
+    """The provider's message id from a send result: a channel's `SentMessage`, Telegram's
+    JSON, or a plain id (Gmail)."""
+    if result is None:
+        return None
     if isinstance(result, dict):
         inner = result.get("result")
         if isinstance(inner, dict) and inner.get("message_id") is not None:
             return str(inner["message_id"])
         return None
-    return None if result is None else str(result)
+    if isinstance(result, str | int):
+        return str(result)
+    message_id = getattr(result, "message_id", None)
+    return None if message_id is None else str(message_id)

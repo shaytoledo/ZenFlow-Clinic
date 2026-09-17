@@ -3,25 +3,25 @@ import logging
 import re
 import threading
 
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.config import THERAPIST_MAP
+from bot.interfaces import TelegramChannel
 from bot.patient_bot.services.relay import append_history
 from bot.therapist_bot.services.relay import get_patient_for_msg, list_active_patients
 from web.i18n import translate as _t
 from zenflow.clock import SQL_NOW
 
-_END_KB = InlineKeyboardMarkup(
-    [[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]]
-)
 _REG_CODE_RE = re.compile(r"^[A-Z0-9]{8}$")
 _reg_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
 
-# The patient application's own Bot client, set by `bot.main.wire_bots()` at startup (B14).
-_patient_bot: Bot | None = None
+# Deliveries to patients: a channel over the patient application's own client, set by
+# `bot.main.wire_bots()` at startup (B14, plan 7.1).
+_patient_channel: TelegramChannel | None = None
+_END_BUTTONS = [[("🔚 End Chat", "therapist_end")]]
 
 
 def _therapist_lang(user_id: int) -> str:
@@ -154,7 +154,7 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
             await msg.reply_text(no_active_msg)
             return
 
-    if _patient_bot is None:  # startup wiring did not run (BOT_AUDIT B14)
+    if _patient_channel is None:  # startup wiring did not run (BOT_AUDIT B14)
         logger.error("relay not wired: no patient bot client")
         await msg.reply_text(
             "⚠️ The patient bot is not connected right now. Please try again shortly."
@@ -166,10 +166,8 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
     try:
         # Plain text: patient and therapist wording is user data, and Markdown parsing made
         # Telegram reject any message containing an underscore or asterisk (BOT_AUDIT B2).
-        await _patient_bot.send_message(
-            chat_id=patient_id,
-            text=f"👨‍⚕️ {therapist_name}:\n{msg.text}",
-            reply_markup=_END_KB,
+        await _patient_channel.send_buttons(
+            patient_id, f"👨‍⚕️ {therapist_name}:\n{msg.text}", _END_BUTTONS
         )
         append_history(patient_id, "therapist", msg.text, therapist_id)
         delivered_msg = "✅ Delivered." if lang == "en" else "✅ נמסר למטופל."

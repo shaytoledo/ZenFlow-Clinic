@@ -175,9 +175,11 @@ if message.reply_to_message:
         await message.reply_text("⚠️ This message belongs to another therapist.")
         return
 
-    await Bot(TELEGRAM_TOKEN).send_message(
-        chat_id=mapping["patient_id"],
-        text=f"Therapist: {message.text}",   # plain text, no parse_mode (B2)
+    # _patient_channel: a TelegramChannel over the patient application's client (7.1, B14)
+    await _patient_channel.send_buttons(
+        mapping["patient_id"],
+        f"Therapist: {message.text}",        # plain text, no parse_mode (B2)
+        [[("🔚 End Chat", "therapist_end")]],
     )
 
 else:
@@ -188,13 +190,16 @@ else:
     elif not active:
         await message.reply_text("No active relay session.")
     else:
-        await Bot(TELEGRAM_TOKEN).send_message(
-            chat_id=active[0],
-            text=f"Therapist: {message.text}",
+        await _patient_channel.send_buttons(
+            active[0], f"Therapist: {message.text}", [[("🔚 End Chat", "therapist_end")]]
         )
 ```
 
 ---
+
+> Since Phase 7.1 the `Bot(...)` sends in these diagrams are `TelegramChannel` calls over the
+> running applications' own clients (`_therapist_channel`, `_patient_channel`, wired by
+> `bot.main.wire_bots()`); see `docs/CHANNELS.md`.
 
 ## Security Model
 

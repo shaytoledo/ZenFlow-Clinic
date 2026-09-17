@@ -125,7 +125,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 7 — Channel & booking API
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 7.1 | Full `ChannelAdapter` (inbound + outbound) + conformance suite | [ ] | | | |
+| 7.1 | Full `ChannelAdapter` (inbound + outbound) + conformance suite | [x] | 2026-09-17 | 3f07c73 (PR #44) | `docs/CHANNELS.md`, ADR-27. `ChannelAdapter`: send_text / send_buttons / send_media / edit_message / set_typing / parse_inbound / verify_webhook, `SentMessage`, `ChannelError` (permanent, retry_after), limits checked before sending. `TelegramChannel` is the only module naming api.telegram.org (enforced), reached over httpx (web, jobs) or through the running application's own client (relay, keeps B14). Moved behind it: web replies, Send Now, the reply echo, bot-name lookups and the status check (these three used to post to Telegram themselves — in tests too, with a fake token), the relay both ways. Webhook secret check ready (`TELEGRAM_WEBHOOK_SECRET`, fail-closed). Conformance suite (43 checks) run twice for Telegram against one offline Bot API speaking httpx and PTB; the test guard now sits at the transport. Tests: 100 contract + 8 integration; older tests moved to the new fake |
 | 7.2 | `patients` + `patient_channels`; kill `patient_id < 0` | [ ] | | | highest-value refactor |
 | 7.3 | `POST /api/v1/appointments` + idempotency + OpenAPI | [ ] | | | |
 | 7.4 | WhatsApp adapter behind `ZF_CHANNEL_WHATSAPP` | [ ] | | | provider ADR first |

@@ -116,15 +116,17 @@ def test_the_running_applications_are_wired_to_each_other(db, monkeypatch) -> No
     from bot.main import wire_bots
 
     patient_bot, therapist_bot = FakeBot(), FakeBot()
-    monkeypatch.setattr(pt, "_therapist_bot", None)
-    monkeypatch.setattr(th, "_patient_bot", None)
+    monkeypatch.setattr(pt, "_therapist_channel", None)
+    monkeypatch.setattr(th, "_patient_channel", None)
 
     wire_bots(patient_bot, therapist_bot)
-    wired_therapist: object = pt._therapist_bot
-    wired_patient: object = th._patient_bot
+    to_therapist = pt._therapist_channel
+    to_patient = th._patient_channel
 
-    assert wired_therapist is therapist_bot, "the patient bot forwards through the therapist app"
-    assert wired_patient is patient_bot, "the therapist bot replies through the patient app"
+    assert to_therapist is not None and to_patient is not None
+    # plan 7.1: through a channel, over the applications' own clients (B14)
+    assert to_therapist.bot is therapist_bot, "the patient bot forwards through the therapist app"
+    assert to_patient.bot is patient_bot, "the therapist bot replies through the patient app"
 
 
 async def test_relay_says_so_when_the_bots_are_not_wired(
@@ -135,7 +137,7 @@ async def test_relay_says_so_when_the_bots_are_not_wired(
 
     t = make_therapist(therapist_id="t1", telegram_id=700_001)
     botcfg.reload_therapists()
-    monkeypatch.setattr(pt, "_therapist_bot", None)
+    monkeypatch.setattr(pt, "_therapist_channel", None)
 
     update = make_update("hello?", user_id=PATIENT)
     state = await pt.start_relay(update, make_context({"selected_therapist": t["id"]}))

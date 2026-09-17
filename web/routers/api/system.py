@@ -29,16 +29,10 @@ logger = logging.getLogger(__name__)
 
 async def _check_bot(token: str, label: str) -> dict:
     """Return a status dict for a Telegram bot token."""
-    if not token:
-        return {"ok": False, "label": label, "detail": "Token not configured"}
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            data = (await client.get(f"https://api.telegram.org/bot{token}/getMe")).json()
-        if data.get("ok"):
-            return {"ok": True, "label": label, "detail": f"@{data['result']['username']}"}
-        return {"ok": False, "label": label, "detail": data.get("description", "Invalid token")}
-    except Exception:
-        return {"ok": False, "label": label, "detail": "Unreachable"}
+    from web.services.telegram_service import check_bot
+
+    ok, detail = await check_bot(token)
+    return {"ok": ok, "label": label, "detail": detail}
 
 
 @router.get("/status")
