@@ -70,13 +70,13 @@ def _sent_key(appointment_id: int) -> str:
     return f"zenflow:followup:sent:{appointment_id}"
 
 
-def _conv_key(patient_id: int) -> str:
-    return f"zenflow:followup:conv:{patient_id}"
+def _conv_key(sender_id: int | str) -> str:
+    return f"zenflow:followup:conv:{sender_id}"
 
 
 # Legacy key used by the old single-rating flow
-def _legacy_awaiting_key(patient_id: int) -> str:
-    return f"zenflow:followup:awaiting:{patient_id}"
+def _legacy_awaiting_key(sender_id: int | str) -> str:
+    return f"zenflow:followup:awaiting:{sender_id}"
 
 
 async def _already_sent(appointment_id: int) -> bool:
@@ -92,7 +92,7 @@ async def _mark_sent(appointment_id: int, patient_id: int) -> None:
 # ── Conversation state ────────────────────────────────────────────────────────
 
 
-async def _get_conv_state(patient_id: int) -> dict | None:
+async def _get_conv_state(patient_id: int | str) -> dict | None:
     r = get_async_redis()
     raw = await r.get(_conv_key(patient_id))
     if not raw:
@@ -103,10 +103,38 @@ async def _get_conv_state(patient_id: int) -> dict | None:
         return None
 
 
-async def _clear_conv_state(patient_id: int) -> None:
+async def _clear_conv_state(patient_id: int | str) -> None:
     r = get_async_redis()
     await r.delete(_conv_key(patient_id))
     await r.delete(_legacy_awaiting_key(patient_id))
+
+
+# ── Who to message ────────────────────────────────────────────────────────────
+
+
+def _contact(row: dict) -> Any:
+    """The patient's messaging contact (`patient_repo.Contact`), or None when they have none.
+
+    Candidate rows carry it (`contact_channel` / `contact_id`); anything else is looked up.
+    """
+    from web.repositories import patient_repo
+
+    if "contact_id" in row:
+        if not row.get("contact_id") or not row.get("contact_channel"):
+            return None
+        return patient_repo.Contact(str(row["contact_channel"]), str(row["contact_id"]))
+    return patient_repo.messaging_contact(int(row["patient_id"]))
+
+
+def _open_checkin(channel: str, sender_id: int | str) -> dict | None:
+    """The open check-in of the patient behind a channel identity, if any."""
+    from web.repositories import followup_repo, patient_repo
+
+    try:
+        patient_id = patient_repo.find_by_channel(channel, sender_id)
+    except ValueError:  # not a valid channel identity
+        return None
+    return None if patient_id is None else followup_repo.open_for_patient(patient_id)
 
 
 # ── Sender ────────────────────────────────────────────────────────────────────
@@ -126,10 +154,14 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
             await asyncio.to_thread(_stamp_sent, appt_id)
         return
 
-    from bot.interfaces import get_default_channel
+    from bot.interfaces import get_channel
     from bot.interfaces.channel import OutboundMessage
 
-    channel = get_default_channel()
+    contact = await asyncio.to_thread(_contact, appt)
+    if contact is None:
+        logger.info(f"follow-up not sent: appt={appt_id} has no messaging channel")
+        return
+    channel = get_channel(contact.channel)
     first_name = (appt.get("patient_name") or "there").split()[0]
     lang = await asyncio.to_thread(_get_therapist_lang, appt.get("therapist_id", ""))
     prompt = checkin.question(1, appt_id, lang, name=first_name)
@@ -138,14 +170,14 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
     try:
         sent = await channel.send(
             OutboundMessage(
-                recipient_id=str(appt["patient_id"]),
+                recipient_id=contact.external_id,
                 text=text,
                 extra={"buttons": prompt.buttons},
             )
         )
     except Exception as e:
         logger.warning(f"follow-up send failed for appt={appt_id}: {e}")
-        await _best_effort(log_delivery, "telegram", "followup", appt, None, str(e))
+        await _best_effort(log_delivery, contact.channel, "followup", appt, None, str(e))
         if raise_errors:
             raise
         return
@@ -162,7 +194,7 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
         return
     with contextlib.suppress(Exception):
         await _mark_sent(appt_id, patient_id)
-    await _best_effort(log_delivery, "telegram", "followup", appt, sent)
+    await _best_effort(log_delivery, contact.channel, "followup", appt, sent)
 
     # Open the conversation at step 1 (awaiting pain level) — in the database (Phase 6.3)
     from web.repositories import followup_repo
@@ -215,7 +247,7 @@ async def dispatch_recommendations(row: dict) -> None:
                                             the next recheck (Phase 5.4).
           * token refused / revoked       → send_email raised one reconnect alert; the job
                                             retries, then dead-letters with one "send failed".
-      - Manual patient without contact   → persistent "missing contact" alert; entry cleared.
+      - No messaging channel, no email   → persistent "missing contact" alert; entry cleared.
     Any other failure raises so the job retries; the therapist is alerted on the final attempt.
     """
     from web.repositories.treatment_repo import (
@@ -229,12 +261,12 @@ async def dispatch_recommendations(row: dict) -> None:
     items = row.get("pending_recommendations") or []
     therapist_id = row.get("therapist_id", "") or ""
     patient_name = row.get("patient_name", "Patient") or "Patient"
-    is_manual = (row.get("source") == "manual") or (pat_id < 0)
+    contact = await asyncio.to_thread(_contact, row)
     patient_email = (row.get("patient_email") or "").strip()
     attempt = ""  # the channel being tried, for the delivery log (Phase 6.6)
 
     try:
-        if is_manual and patient_email:
+        if contact is None and patient_email:
             from web.services import email_service
 
             try:
@@ -280,7 +312,7 @@ async def dispatch_recommendations(row: dict) -> None:
             )
             logger.info(f"pending recommendations EMAILED: appt={apt_id}")
 
-        elif is_manual:
+        elif contact is None:
             await asyncio.to_thread(
                 notification_service.alert_missing_contact,
                 therapist_id,
@@ -289,27 +321,25 @@ async def dispatch_recommendations(row: dict) -> None:
                 patient_name,
             )
             await asyncio.to_thread(clear_pending_recommendations, apt_id)
-            logger.info(
-                f"pending recs for manual patient (appt={apt_id}) — no contact, alert raised"
-            )
+            logger.info(f"pending recs for appt={apt_id}: the patient has no contact, alert raised")
 
         else:
-            from bot.interfaces import get_default_channel
+            from bot.interfaces import get_channel
 
-            attempt = "telegram"
-            sent = await get_default_channel().send_text(
-                pat_id, _recommendations_telegram_text(items), markdown=True
+            attempt = contact.channel
+            sent = await get_channel(contact.channel).send_text(
+                contact.external_id, _recommendations_telegram_text(items), markdown=True
             )
             await asyncio.to_thread(mark_recommendations_delivered, apt_id)
-            await _best_effort(log_delivery, "telegram", "recommendations", row, sent)
+            await _best_effort(log_delivery, contact.channel, "recommendations", row, sent)
             await _best_effort(
                 notification_service.alert_recommendations_sent,
                 therapist_id,
                 apt_id,
                 pat_id,
                 patient_name,
-                "telegram",
-                str(pat_id),
+                contact.channel,
+                contact.external_id,
             )
             logger.info(f"pending recommendations sent: appt={apt_id} patient={pat_id}")
 
@@ -462,8 +492,13 @@ def start_followup_scheduler() -> asyncio.Task:
 # ── Conversation handler (called from bot/patient_bot/start.py) ───────────────
 
 
-async def consume_followup_conversation(patient_id: int, text: str) -> tuple[bool, Any]:
+async def consume_followup_conversation(
+    sender_id: int | str, text: str, channel: str = "telegram"
+) -> tuple[bool, Any]:
     """Handle a typed patient message as part of the check-in (Phase 6.2).
+
+    `sender_id` is the channel identity (a Telegram user id); the patient behind it is looked up
+    in `patient_channels` (Phase 7.2).
 
     The open check-in and its answers live in the `followups` table (Phase 6.3). A conversation
     opened in Redis before 6.3 is adopted into the table on its next answer.
@@ -472,14 +507,13 @@ async def consume_followup_conversation(patient_id: int, text: str) -> tuple[boo
     question, an error with the same buttons, or the thank-you); (False, None) means the message
     is not part of a check-in and the normal flow continues.
     """
-    from web.repositories import followup_repo
 
     try:
-        state = await asyncio.to_thread(followup_repo.open_for_patient, patient_id)
+        state = await asyncio.to_thread(_open_checkin, channel, sender_id)
         if state is None:
-            state = await _adopt_legacy_conversation(patient_id)
+            state = await _adopt_legacy_conversation(sender_id)
         if state is None:
-            consumed = await _consume_legacy_rating(patient_id, text)
+            consumed = await _consume_legacy_rating(sender_id, text)
             return (consumed, checkin.completion("en") if consumed else None)
 
         lang = await asyncio.to_thread(_get_therapist_lang, state.get("therapist_id", ""))
@@ -510,8 +544,10 @@ class ButtonResult:
     prompt: Any = None
 
 
-async def consume_followup_button(patient_id: int, data: str) -> ButtonResult:
-    """Handle a tapped check-in button (`fu:<appointment>:<step>:<value>`)."""
+async def consume_followup_button(
+    sender_id: int | str, data: str, channel: str = "telegram"
+) -> ButtonResult:
+    """Handle a tapped check-in button (`fu:<appointment>:<step>:<value>`) from `sender_id`."""
     from web.repositories import followup_repo
 
     parsed = checkin.parse_callback(data)
@@ -519,7 +555,7 @@ async def consume_followup_button(patient_id: int, data: str) -> ButtonResult:
         return ButtonResult(consumed=False)
     apt_id, step, value = parsed
     try:
-        state = await asyncio.to_thread(followup_repo.open_for_patient, patient_id)
+        state = await asyncio.to_thread(_open_checkin, channel, sender_id)
         lang = "en"
         if state is not None:
             lang = await asyncio.to_thread(_get_therapist_lang, state.get("therapist_id", ""))
@@ -721,13 +757,14 @@ async def summarize_checkin(answers: dict[str, Any], lang: str) -> str:
     return "\n".join(lines)
 
 
-async def _adopt_legacy_conversation(patient_id: int) -> dict | None:
-    """A check-in opened in Redis before Phase 6.3: copy it into its `followups` row."""
+async def _adopt_legacy_conversation(sender_id: int | str) -> dict | None:
+    """A check-in opened in Redis before Phase 6.3 (keyed by the Telegram user id): copy it into
+    its `followups` row."""
     from web.repositories import followup_repo
 
     legacy = None
     with contextlib.suppress(Exception):
-        legacy = await _get_conv_state(patient_id)
+        legacy = await _get_conv_state(sender_id)
     if not legacy or not legacy.get("appointment_id"):
         return None
     apt_id = int(legacy["appointment_id"])
@@ -753,16 +790,16 @@ async def _adopt_legacy_conversation(patient_id: int) -> dict | None:
 
     adopted = await asyncio.to_thread(_adopt)
     with contextlib.suppress(Exception):
-        await _clear_conv_state(patient_id)
+        await _clear_conv_state(sender_id)
     if adopted:
         logger.info(f"legacy follow-up conversation adopted: appt={apt_id}")
     return adopted
 
 
-async def _consume_legacy_rating(patient_id: int, text: str) -> bool:
+async def _consume_legacy_rating(sender_id: int | str, text: str) -> bool:
     """The single-rating flow that predates the conversation: a 1–5 reply to an old prompt."""
     r = get_async_redis()
-    legacy_raw = await r.get(_legacy_awaiting_key(patient_id))
+    legacy_raw = await r.get(_legacy_awaiting_key(sender_id))
     if not legacy_raw:
         return False
     try:
@@ -778,5 +815,5 @@ async def _consume_legacy_rating(patient_id: int, text: str) -> bool:
             (n, clock.iso_now(), apt_id),
         )
     )
-    await r.delete(_legacy_awaiting_key(patient_id))
+    await r.delete(_legacy_awaiting_key(sender_id))
     return True

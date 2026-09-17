@@ -140,7 +140,8 @@ def test_hebrew_strings() -> None:
 def test_only_email_only_patients_are_blocked() -> None:
     assert run_dialog("[isEmailOnly(), isGoogleBlocked()]") == [True, True]
     assert run_dialog("isEmailOnly()", manual=False, path="/treatment/7/2026-03-02/10-00") is False
-    assert run_dialog("isEmailOnly()", manual=False) is True, "a negative id is a manual booking"
+    # Phase 7.2: the server's flag alone decides — an id's sign means nothing any more
+    assert run_dialog("isEmailOnly()", manual=False) is False
     assert run_dialog("isGoogleBlocked()", google={"connected": None}) is False, "unknown ≠ blocked"
 
 

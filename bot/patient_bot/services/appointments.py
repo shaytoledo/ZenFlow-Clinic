@@ -139,6 +139,20 @@ def update_appointment_summary(appointment_id: int, summary: str, history: list[
     )
 
 
+def telegram_patient(user_id: int, full_name: str = "") -> int:
+    """The patient behind a Telegram user — created on their first booking (Phase 7.2)."""
+    from web.repositories import patient_repo
+
+    return patient_repo.for_channel("telegram", user_id, full_name)
+
+
+def find_telegram_patient(user_id: int) -> int | None:
+    """The patient behind a Telegram user, or None if they never booked."""
+    from web.repositories import patient_repo
+
+    return patient_repo.find_by_channel("telegram", user_id)
+
+
 def get_patient_appointments(patient_id: int) -> list[dict]:
     """Return all active appointments for a patient, sorted by date/time."""
     from bot.db import get_db

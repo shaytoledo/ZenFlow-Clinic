@@ -17,6 +17,7 @@ from bot.patient_bot.services.appointments import (
     save_appointment,
     save_treatment_notes,
     set_gcal_event_id,
+    telegram_patient,
 )
 from bot.patient_bot.services.availability import book_slot, get_available_days, get_available_hours
 from bot.states import (
@@ -263,7 +264,7 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     # deciding, nothing has been removed from the availability calendar yet (BOT_AUDIT B4).
     try:
         appointment_id = save_appointment(
-            patient_id=user.id,
+            patient_id=telegram_patient(user.id, user.full_name or user.first_name or ""),
             patient_name=user.full_name or user.first_name,
             day=day,
             time_slot=time_slot,
@@ -401,7 +402,7 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         history = _intake_snapshot(user_id, user_answer)
         try:
             appointment_id = save_appointment(
-                patient_id=user_id,
+                patient_id=telegram_patient(user_id, patient_name or ""),
                 patient_name=patient_name,
                 day=day,
                 time_slot=time_slot,

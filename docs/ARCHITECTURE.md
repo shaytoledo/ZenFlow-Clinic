@@ -63,6 +63,7 @@ Clinic/
 ├── web/                           # Therapist web dashboard (FastAPI — multi-page)
 │   ├── app.py                     # FastAPI app factory: middleware + static files + router wiring
 │   ├── deps.py                    # Session helpers, auth helpers, data loaders
+│   ├── legacy_patient_ids.py      # Pre-7.2 patient ids in API paths → internal ids (one release)
 │   ├── gcal.py                    # Google Calendar OAuth + API wrapper
 │   ├── routers/
 │   │   ├── pages.py               # HTML page routes: /, /schedule, /patients, /messages,

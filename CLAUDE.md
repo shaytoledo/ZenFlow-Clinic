@@ -61,7 +61,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/POINT_IMAGE_SOURCING.md` | Phase 4.3d shortlist of point-image sources with licences (owner decision Q4) |
 | `docs/GOOGLE_CONNECTION_UX.md` | Phase 5: recovered prior work, the `google_not_connected` 409 contract, client + background behaviour |
 | `docs/FOLLOWUP.md` | Phase 6: 24h follow-up and recommendation delivery — root causes, storage, conversation, alerts |
-| `docs/CHANNELS.md` | Phase 7: the `ChannelAdapter` contract, Telegram adapter, conformance suite, adding a channel |
+| `docs/CHANNELS.md` | Phase 7: the `ChannelAdapter` contract, Telegram adapter, conformance suite, adding a channel; patient identity (`patients` + `patient_channels`) |
 
 > Start guide: `startup/START.md`
 
@@ -95,6 +95,7 @@ bot/
 web/                         # Therapist web dashboard (FastAPI — multi-page)
 ├── app.py                   # FastAPI app factory: middleware + static files + router wiring
 ├── deps.py                  # Session helpers, auth helpers, data loaders
+├── legacy_patient_ids.py    # pre-7.2 patient ids in API paths → internal ids (remove next release)
 ├── gcal.py                  # Google Calendar OAuth + API wrapper
 ├── routers/
 │   ├── pages.py             # HTML page routes (/, /schedule, /patients, /messages, /sessions, /settings, /treatment/...)
@@ -188,7 +189,7 @@ Any message / /start → SELECTING (main menu)
 ## Tests (Phase 0.3)
 - `tests/conftest.py` pins the environment *before* any project import (`bot/config.py` opens the DB at import time).
 - Every test gets a fresh SQLite file via `ZENFLOW_DB_PATH`; fakeredis is patched into `bot.redis_client`; never touch `data/zenflow.db` or a real Redis.
-- Fixtures: `client`, `authenticated_client` (signs in through the real form), `frozen_clock`, `fake_telegram`, `fake_llm`, `make_therapist/patient/appointment/treatment_notes/completed_session`.
+- Fixtures: `client`, `authenticated_client` (signs in through the real form), `frozen_clock`, `fake_telegram`, `fake_llm`, `make_therapist/patient/appointment/treatment_notes/completed_session`. `make_patient(telegram_id=…)` returns the internal `patient_id` and a different `telegram_id` — compare sends with `telegram_id`.
 - `tests/unit` (no I/O), `tests/integration` (ASGI client + SQLite + fakes), `tests/security` (attack scenarios), `tests/contract` (adapter conformance), `tests/e2e`. Markers: `slow`, `integration`, `e2e`, `security`, `contract`.
 - `tests/e2e` serves the app on a local port and drives the installed Chrome with Playwright (`ZF_E2E_BROWSER=msedge` for Edge); visual baselines live in `tests/e2e/snapshots/` per platform — after an intended UI change run `ZF_UPDATE_SNAPSHOTS=1 python -m pytest tests/e2e` and look at the images before committing.
 - Known-open API routes are *strict* xfails in `tests/integration/test_smoke_web.py` — delete the entry when you fix the route.
@@ -200,6 +201,7 @@ Any message / /start → SELECTING (main menu)
 - The patient conversation is persistent (`name="patient"`). A new `user_data` key is NOT persisted unless added to `PERSISTED_USER_KEYS` in `bot/persistence.py` — only add scheduling data, never clinical free text.
 - Email (Phase 5): anything that sends mail goes through `web/services/email_service.send_email` and turns `EmailNotConfigured` / `EmailSendError(token_invalid=True)` into the 409 `google_not_connected` contract (`docs/GOOGLE_CONNECTION_UX.md`); pages learn the state up front from `google_connection()`. Never answer a failed send with 200. On the treatment page, email goes through `static/js/treatment/email-dialog.js` (`openEmailDialog()`, `handleGoogleRefusal(result, kind)`); its strings are `EMAIL_DIALOG_KEYS` in `web/routers/pages.py`, served in the JSON island.
 - Outbound patient messages are logged in `message_log` via `followup_scheduler.log_delivery()` — best-effort after a successful send (never a reason to retry); errors are stored redacted.
+- Patients (ADR-28): `patient_id` everywhere in SQLite is `patients.id`, never a Telegram id. Find or create the patient behind a channel identity with `patient_repo.for_channel(channel, external_id, name)`; whether and where to message them is `patient_repo.messaging_contact(patient_id)` — never decide from the id's sign or from `source='manual'` (a test fails on `patient_id < 0`). Telegram-keyed state (relay, intake history) stays keyed by the Telegram user id.
 - Cancelled appointments are **soft-deleted** (`status='cancelled'`). Records preserved for clinical history.
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.

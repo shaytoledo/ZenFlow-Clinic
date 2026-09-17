@@ -120,12 +120,26 @@ def _google_not_connected(
     return JSONResponse(content, status_code=409)
 
 
-def _is_email_only(apt_id: int, patient_id: int) -> bool:
-    """A manual booking has no messaging channel: email is the only way to reach the patient."""
+def _messaging_contact(apt_id: int) -> Any:
+    """The appointment's patient's messaging contact, or None (Phase 7.2: a property of the
+    patient, never of the id or of how the session was booked)."""
+    from bot.db import get_db
+    from web.repositories import patient_repo
+
+    row = get_db().execute("SELECT patient_id FROM appointments WHERE id=?", (apt_id,)).fetchone()
+    return patient_repo.messaging_contact(int(row["patient_id"])) if row else None
+
+
+def _is_email_only(apt_id: int) -> bool:
+    """A patient with no messaging channel can only be reached by email."""
+    return _messaging_contact(apt_id) is None
+
+
+def _booking_source(apt_id: int) -> str:
     from bot.db import get_db
 
     row = get_db().execute("SELECT source FROM appointments WHERE id=?", (apt_id,)).fetchone()
-    return patient_id < 0 or bool(row and row["source"] == "manual")
+    return str((row["source"] if row else None) or "telegram")
 
 
 def _fail_unless_cancelled(apt_id: int) -> None:
@@ -189,42 +203,13 @@ async def get_treatment_notes(patient_id: int, apt_date: str, apt_time: str, req
     therapist = _require_auth(request)
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
     notes = await asyncio.to_thread(treatment_service.get_notes, apt_id)
+    src = await asyncio.to_thread(_booking_source, apt_id)
+    # `is_manual` tells the page the patient cannot be messaged (the no-Telegram alert)
+    email_only = await asyncio.to_thread(_is_email_only, apt_id)
     if not notes:
-        # Also return source so the UI can show the no-Telegram alert
-        time_str = apt_time.replace("-", ":")
-        from bot.db import get_db
-
-        row = await asyncio.to_thread(
-            lambda: get_db()
-            .execute(
-                "SELECT source FROM appointments WHERE patient_id=? AND date=? AND time=? ORDER BY created_at DESC LIMIT 1",
-                (patient_id, apt_date, time_str),
-            )
-            .fetchone()
-        )
-        src = (dict(row).get("source") if row else None) or "telegram"
-        return JSONResponse(
-            {
-                "appointment_id": apt_id,
-                "source": src,
-                "is_manual": src == "manual" or patient_id < 0,
-            }
-        )
-    # Augment with source flag
-    time_str = apt_time.replace("-", ":")
-    from bot.db import get_db
-
-    row = await asyncio.to_thread(
-        lambda: get_db()
-        .execute(
-            "SELECT source FROM appointments WHERE patient_id=? AND date=? AND time=? ORDER BY created_at DESC LIMIT 1",
-            (patient_id, apt_date, time_str),
-        )
-        .fetchone()
-    )
-    src = (dict(row).get("source") if row else None) or "telegram"
+        return JSONResponse({"appointment_id": apt_id, "source": src, "is_manual": email_only})
     notes["source"] = src
-    notes["is_manual"] = (src == "manual") or (patient_id < 0)
+    notes["is_manual"] = email_only
     from web.repositories import followup_repo
 
     checkin = await asyncio.to_thread(followup_repo.get, apt_id)
@@ -400,9 +385,8 @@ async def complete_session(
                 )
                 ar = dict(apt_row) if apt_row else {}
                 patient_name = ar.get("patient_name") or "Patient"
-                source = ar.get("source") or "telegram"
                 has_email = bool((ar.get("patient_email") or "").strip())
-                is_manual = (source == "manual") or (patient_id < 0)
+                is_manual = await asyncio.to_thread(_is_email_only, apt_id)
 
                 from web.services import notification_service
 
@@ -518,10 +502,9 @@ async def send_recommendations(
     Routing:
       - schedule_hours >= 24 (and no explicit email) → queue in DB for auto-send
       - explicit `email` in the body → send via SMTP immediately
-      - Telegram-source patient (positive id) → send via patient bot immediately
-      - Manual patient (negative id):
-          * has phone but no email → 422 "needs_email" so the frontend can ask
-          * has neither phone nor email → 400 "no_contact"
+      - a patient with a messaging channel → send there immediately
+      - a patient without one (Phase 7.2: `patient_channels`) → 422 "needs_email" so the
+        frontend asks for an address
     """
     therapist = _require_auth(request)
     # Tenant check BEFORE any branch: the immediate-send path used to message the patient id
@@ -534,7 +517,7 @@ async def send_recommendations(
 
     # ── Delayed queue: schedule_hours >= 24 without an email override → store for later
     if body.schedule_hours >= 24 and not body.email:
-        if await asyncio.to_thread(_is_email_only, apt_id, patient_id):
+        if await asyncio.to_thread(_is_email_only, apt_id):
             # The queued send would go out through Gmail — refuse one that is bound to fail.
             from web.services.email_service import NOT_CONNECTED, google_connection
 
@@ -582,27 +565,20 @@ async def send_recommendations(
             }
         )
 
-    # Look up the appointment so we know patient_phone + name + source
-    time_str = apt_time.replace("-", ":")
+    # The appointment (already resolved above) gives the name and phone; the patient gives
+    # the messaging contact.
     from bot.db import get_db
 
     row = await asyncio.to_thread(
         lambda: get_db()
-        .execute(
-            """SELECT id, patient_name, patient_phone, source
-               FROM appointments
-               WHERE patient_id=? AND date=? AND time=? AND therapist_id=?
-               ORDER BY created_at DESC LIMIT 1""",
-            (patient_id, apt_date, time_str, therapist["id"]),
-        )
+        .execute("SELECT patient_name, patient_phone FROM appointments WHERE id=?", (apt_id,))
         .fetchone()
     )
     if not row:
         raise HTTPException(status_code=404, detail="Appointment not found")
-    apt_id = row["id"]
     patient_name = row["patient_name"] or "Patient"
     patient_phone = (row["patient_phone"] or "").strip()
-    is_manual = (row["source"] == "manual") or patient_id < 0
+    contact = await asyncio.to_thread(_messaging_contact, apt_id)
 
     sent_via: str
     sent_to: str
@@ -652,8 +628,8 @@ async def send_recommendations(
         sent_via = "email"
         sent_to = body.email.strip()
 
-    # ── 2) manual patient — bot can't reach them; always redirect to email popup
-    elif is_manual:
+    # ── 2) no messaging channel — the bot can't reach them; always ask for an email address
+    elif contact is None:
         detail = (
             "This patient was booked manually and has no Telegram account linked. "
             "Enter their email address to send the recommendations."
@@ -674,7 +650,7 @@ async def send_recommendations(
             },
         )
 
-    # ── 3) Telegram-source patient — original happy path
+    # ── 3) the patient's messaging channel
     else:
         log_row = {
             "therapist_id": therapist["id"],
@@ -682,16 +658,16 @@ async def send_recommendations(
             "appointment_id": apt_id,
         }
         try:
-            sent = await get_channel("telegram").send_text(
-                patient_id, _format_recommendations_for_telegram(enabled), markdown=True
+            sent = await get_channel(contact.channel).send_text(
+                contact.external_id, _format_recommendations_for_telegram(enabled), markdown=True
             )
         except Exception as e:
-            logger.error(f"send_recommendations(telegram) error: {e}")
-            await _log_send("telegram", log_row, error=str(e))
+            logger.error(f"send_recommendations({contact.channel}) error: {e}")
+            await _log_send(contact.channel, log_row, error=str(e))
             raise HTTPException(status_code=500, detail=str(e))
-        await _log_send("telegram", log_row, result=sent)
-        sent_via = "telegram"
-        sent_to = str(patient_id)
+        await _log_send(contact.channel, log_row, result=sent)
+        sent_via = contact.channel
+        sent_to = contact.external_id
 
     # Stamp delivery time on the treatment row (best-effort)
 

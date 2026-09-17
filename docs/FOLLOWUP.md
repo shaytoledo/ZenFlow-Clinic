@@ -58,7 +58,7 @@ repository is `web/repositories/followup_repo.py`, and its schema is created by
 | Column | Meaning |
 |---|---|
 | `patient_id`, `therapist_id` | copied from the appointment |
-| `channel` | `telegram`, or `none` for a manual booking or a negative patient id |
+| `channel` | the patient's messaging channel (`telegram`), or `none` when they have none (`patient_channels`, Phase 7.2) |
 | `status` | `scheduled` → `sent` → `in_progress` → `completed`. Also `expired` (step 1 never went out in time, or no answer within 48 h) and `no_channel` (cannot be messaged; alert in 6.4) |
 | `auto` | 1 for the Q7 option (a session that was never completed); 0 today |
 | `scheduled_for`, `sent_at`, `completed_at` | canonical UTC |
@@ -169,8 +169,9 @@ timeout, an error, a longer reply) keeps the fixed wording. The result is stored
 
 ## 4. When the patient cannot be messaged (task 6.4)
 
-**Unreachable** means a manual booking (`source = manual`) or a negative patient id. Such a
-patient has no Telegram. Their check-in becomes a phone call.
+**Unreachable** means the patient has no messaging channel (`patient_repo.messaging_contact()`
+is `None`; since Phase 7.2 this is a property of the patient, not of a manual booking or the id).
+Their check-in becomes a phone call.
 
 - **Row:** at enqueue time ("Complete Session", or the reconcile sweep), `followup_repo.schedule()`
   stores the row as `channel = none`, `status = no_channel`. At T+24h the job skips the send, so

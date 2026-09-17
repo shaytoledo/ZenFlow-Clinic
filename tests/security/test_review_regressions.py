@@ -92,7 +92,7 @@ async def test_send_recommendations_uses_the_callers_row_not_a_newer_twin(
     make_treatment_notes(apt_a)
     make_treatment_notes(apt_b)
     client_a = await login_as(a)
-    url = f"/api/treatment-notes/{patient['patient_id']}/2026-03-03/11-00/send-recommendations"
+    url = f"/api/treatment-notes/{apt_a['patient_id']}/2026-03-03/11-00/send-recommendations"
     resp = await client_a.post(
         url, json={"items": [{"enabled": True, "text": "Drink warm water"}], "schedule_hours": 0}
     )

@@ -14,7 +14,7 @@ import pytest
 # Imported at module load: freezegun replaces `datetime.date`, and importing the LangChain stack
 # (pulled in by cancel.py) under a frozen clock raises a metaclass conflict.
 from bot.patient_bot.cancel import confirm_cancel, show_appointments
-from bot.patient_bot.services.appointments import save_appointment
+from bot.patient_bot.services.appointments import save_appointment, telegram_patient
 from bot.states import CANCEL_SELECT, SELECTING
 from tests.bot.conftest import FakeQuery, make_context, make_update
 
@@ -45,7 +45,7 @@ def _query(data: str, user_data: dict[str, Any]):
 async def test_upcoming_appointments_are_listed(db, fake_redis, make_therapist, frozen_clock):
     t = make_therapist(therapist_id="t1")
     save_appointment(
-        patient_id=PATIENT,
+        patient_id=telegram_patient(PATIENT),
         patient_name="Test Patient",
         day=DAY,
         time_slot="10:00",
@@ -68,7 +68,7 @@ async def test_cancelling_frees_the_hour_and_keeps_the_record(
 
     t = make_therapist(therapist_id="t1")
     apt_id = save_appointment(
-        patient_id=PATIENT,
+        patient_id=telegram_patient(PATIENT),
         patient_name="Test Patient",
         day=DAY,
         time_slot="10:00",

@@ -26,11 +26,14 @@ async def patient_profile(request: Request, patient_id: int):
 
     from web.repositories import patient_repo
 
+    canonical = await asyncio.to_thread(patient_repo.canonical_id, patient_id)
     history = await asyncio.to_thread(
-        patient_repo.get_full_history, patient_id, therapist["id"] if therapist else None
+        patient_repo.get_full_history, canonical, therapist["id"] if therapist else None
     )
     if not history:
         return RedirectResponse("/patients")
+    if canonical != patient_id:  # a pre-7.2 link (one release of compatibility)
+        return RedirectResponse(f"/patients/{canonical}", status_code=308)
 
     t = get_t(therapist.get("language") if therapist else None)
     return templates.TemplateResponse(
@@ -53,11 +56,16 @@ async def session_archive(request: Request, patient_id: int, appointment_id: int
 
     from web.repositories import patient_repo
 
+    canonical = await asyncio.to_thread(patient_repo.canonical_id, patient_id)
     history = await asyncio.to_thread(
-        patient_repo.get_full_history, patient_id, therapist["id"] if therapist else None
+        patient_repo.get_full_history, canonical, therapist["id"] if therapist else None
     )
     if not history:
         return RedirectResponse("/patients")
+    if canonical != patient_id:  # a pre-7.2 link (one release of compatibility)
+        return RedirectResponse(
+            f"/patients/{canonical}/session/{int(appointment_id)}", status_code=308
+        )
 
     session = next(
         (a for a in history["appointments"] if a["appointment_id"] == appointment_id),

@@ -10,7 +10,8 @@ the database (a job may run more than once — at-least-once delivery):
 
 * followup.send_step1        skip if the session is gone, not completed, already followed up
                              (`followup_sent_at` / conversation / rating), older than
-                             FOLLOWUP_EXPIRE_HOURS, or the patient has no messaging channel.
+                             FOLLOWUP_EXPIRE_HOURS, or the patient has no messaging channel
+                             (`patient_channels`, Phase 7.2).
 * recommendations.dispatch   skip if nothing is queued any more (sent/cleared) or the queue entry
                              was rescheduled (payload `send_at` no longer matches).
 """
@@ -188,8 +189,8 @@ async def handle_followup(payload: dict[str, Any]) -> None:
         )
         await asyncio.to_thread(followup_repo.expire_unsent, apt_id)
         return
-    if row.get("source") == "manual" or int(row["patient_id"]) < 0:
-        # No messaging channel. Phase 6.4 turns this into a persistent therapist alert.
+    if not row.get("contact_id"):
+        # No messaging channel (Phase 7.2). Phase 6.4 turned this into a therapist alert.
         logger.info("follow-up skipped: patient has no messaging channel")
         return
     await fs._send_followup(row, raise_errors=True)

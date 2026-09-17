@@ -139,20 +139,22 @@ def list_due_no_channel(therapist_id: str, now_iso: str | None = None) -> list[d
 def schedule(appointment_id: int, scheduled_for: str, *, auto: bool = False) -> None:
     """Record (or move) the check-in for a completed session.
 
-    The channel comes from the appointment: a manual booking (or negative patient id) cannot be
-    messaged, so its row is `no_channel` from the start (Phase 6.4 raises the alert). A row that
-    already went out is never reset — completing a session twice only moves a pending schedule.
+    The channel is the patient's messaging contact (`patient_contacts`, Phase 7.2): a patient
+    with none cannot be messaged, so their row is `no_channel` from the start (Phase 6.4 raises
+    the alert). A row that already went out is never reset — completing a session twice only
+    moves a pending schedule.
     """
     now = clock.iso_now()
     _conn().execute(
         """INSERT INTO followups (appointment_id, patient_id, therapist_id, channel, status, auto,
                                   scheduled_for, created_at, updated_at)
            SELECT a.id, a.patient_id, COALESCE(a.therapist_id, ''),
-                  CASE WHEN a.source = 'manual' OR a.patient_id < 0 THEN 'none' ELSE 'telegram' END,
-                  CASE WHEN a.source = 'manual' OR a.patient_id < 0 THEN 'no_channel'
-                       ELSE 'scheduled' END,
+                  COALESCE(c.channel, 'none'),
+                  CASE WHEN c.channel IS NULL THEN 'no_channel' ELSE 'scheduled' END,
                   ?, ?, ?, ?
-           FROM appointments a WHERE a.id = ?
+           FROM appointments a
+           LEFT JOIN patient_contacts c ON c.patient_id = a.patient_id
+           WHERE a.id = ?
            ON CONFLICT(appointment_id) DO UPDATE SET
                scheduled_for = excluded.scheduled_for,
                auto = excluded.auto,
@@ -281,9 +283,11 @@ def record_manual(appointment_id: int, rating: int | None, notes: str) -> None:
                                   source, improvement_rating, free_text, completed_at,
                                   created_at, updated_at)
            SELECT a.id, a.patient_id, COALESCE(a.therapist_id, ''),
-                  CASE WHEN a.source = 'manual' OR a.patient_id < 0 THEN 'none' ELSE 'telegram' END,
+                  COALESCE(c.channel, 'none'),
                   'completed', 'therapist_manual', ?, ?, ?, ?, ?
-           FROM appointments a WHERE a.id = ?
+           FROM appointments a
+           LEFT JOIN patient_contacts c ON c.patient_id = a.patient_id
+           WHERE a.id = ?
            ON CONFLICT(appointment_id) DO UPDATE SET
                status='completed', source='therapist_manual',
                improvement_rating=excluded.improvement_rating, free_text=excluded.free_text,
@@ -303,7 +307,7 @@ def backfill_from_treatment_notes(conn: sqlite3.Connection, now_iso: str | None 
     - sent, unanswered                                 → `sent` if inside the answer window,
                                                          else `expired`;
     - completed, not sent                              → `scheduled` for completed_at + 24h
-                                                         (`no_channel` for manual bookings),
+                                                         (`no_channel` without a contact),
                                                          `expired` once the send window passed.
     Idempotent: `INSERT OR IGNORE` on the unique appointment id.
     """
@@ -317,8 +321,8 @@ def backfill_from_treatment_notes(conn: sqlite3.Connection, now_iso: str | None 
                scheduled_for, sent_at, completed_at,
                pain_level, improvement_rating, free_text, conversation_json,
                created_at, updated_at)
-           SELECT t.appointment_id, t.patient_id, COALESCE(a.therapist_id, ''),
-                  CASE WHEN a.source = 'manual' OR t.patient_id < 0 THEN 'none' ELSE 'telegram' END,
+           SELECT t.appointment_id, a.patient_id, COALESCE(a.therapist_id, ''),
+                  COALESCE(c.channel, 'none'),
                   CASE
                     WHEN t.followup_conversation IS NOT NULL OR COALESCE(t.followup_rating, 0) > 0
                          OR COALESCE(t.manual_feedback_rating, 0) > 0
@@ -326,7 +330,7 @@ def backfill_from_treatment_notes(conn: sqlite3.Connection, now_iso: str | None 
                     WHEN t.followup_sent_at IS NOT NULL AND t.followup_sent_at >= ? THEN 'sent'
                     WHEN t.followup_sent_at IS NOT NULL THEN 'expired'
                     WHEN t.completed_at < ? THEN 'expired'
-                    WHEN a.source = 'manual' OR t.patient_id < 0 THEN 'no_channel'
+                    WHEN c.channel IS NULL THEN 'no_channel'
                     ELSE 'scheduled'
                   END,
                   CASE WHEN t.followup_conversation IS NULL AND COALESCE(t.followup_rating, 0) = 0
@@ -356,6 +360,7 @@ def backfill_from_treatment_notes(conn: sqlite3.Connection, now_iso: str | None 
                   ?, ?
            FROM treatment_notes t
            JOIN appointments a ON a.id = t.appointment_id
+           LEFT JOIN patient_contacts c ON c.patient_id = a.patient_id
            WHERE t.completed_at IS NOT NULL
               OR t.followup_sent_at IS NOT NULL
               OR t.followup_conversation IS NOT NULL

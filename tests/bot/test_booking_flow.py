@@ -114,8 +114,11 @@ async def test_the_whole_booking_walk(db, fake_redis, make_therapist, availabili
     assert await schedule.skip_intake(update, context) == SELECTING
 
     from bot.db import get_db
+    from web.repositories import patient_repo
 
-    row = get_db().execute("SELECT * FROM appointments WHERE patient_id=?", (PATIENT,)).fetchone()
+    # Phase 7.2: the Telegram user became a patient; the appointment holds the patient's id
+    pid = patient_repo.find_by_channel("telegram", PATIENT)
+    row = get_db().execute("SELECT * FROM appointments WHERE patient_id=?", (pid,)).fetchone()
     assert row["date"] == DAY.isoformat() and row["time"] == "10:00"
     assert row["therapist_id"] == t["id"]
     assert row["gcal_apt_event_id"] == "gcal-evt-1", "the calendar event is linked to the booking"

@@ -856,3 +856,55 @@ Nothing described inbound messages, so a second provider could not be checked ag
 - `web/services/telegram_service.py` no longer sends anything itself: it keeps the echo (through
   `get_staff_channel()`), the bot identity helpers and the Redis relay views.
 - Adding a provider method means adding it to the contract and to the suite first.
+
+---
+
+## ADR-28: Patients Have Internal Ids; Channel Identities Live in `patient_channels`
+
+**Date:** 2026-09-17 (Phase 7.2)
+
+**Context.** `appointments.patient_id` was a Telegram user id, and a manual booking was a
+negative millisecond stamp. Whether a patient could be messaged was decided in about a dozen
+places from the id's sign or from `source = 'manual'`, both in Python and in the page's
+JavaScript. A WhatsApp patient (7.4) would have no Telegram id to use at all.
+
+**Decision.**
+
+1. **Internal ids.** `patients` has an internal id. Every table that stores a patient id stores
+   that id.
+2. **Channel identities.** `patient_channels(channel, external_id)` is unique per identity and
+   has one primary per patient. A view, `patient_contacts`, gives each patient's messaging
+   contact.
+3. **Reachability.** Whether a patient can be messaged is `messaging_contact(patient_id)`, and
+   nothing else. It is a property of the patient, not of a booking. A therapist booking a
+   Telegram patient by hand no longer makes them unreachable.
+4. **Where rows come from.** The bot creates a patient on first contact (`for_channel`); the
+   dashboard creates one without a channel. Attaching a booking to an existing patient requires
+   an earlier appointment with the same therapist (SF-013).
+5. **Telegram-keyed state stays as it is.** Conversation state that is Telegram's own — the
+   relay, intake history and pre-6.3 follow-up keys — stays keyed by the Telegram user id until
+   the channels are generalised in 7.4.
+6. **The migration.**
+   - It runs once, is recorded in `schema_migrations`, and is atomic, after a backup.
+   - It refuses to start the process on failure.
+   - `patients.legacy_id` keeps the old value for one release: pages redirect (308) after
+     their tenant check, and API paths are rewritten before routing.
+
+**Options rejected:**
+
+- **A new `appointments.patient_ref` column beside the old one.** Two ids with overlapping
+  meanings in every query, forever.
+- **Keeping Telegram ids as patient ids and adding a "channel" column to appointments.** A
+  patient on two channels would be two patients.
+- **Treating a failed migration as a warning.** New bookings would get internal ids while old
+  rows kept Telegram ids.
+
+**Consequences:**
+
+- WhatsApp needs a channel row, not a new id scheme.
+- A patient's sessions stay grouped across channels.
+- Every sender resolves a contact first.
+- Telegram-shaped data (`patient_id == telegram id`) no longer works anywhere. Tests create
+  patients through `make_patient(telegram_id=…)`, whose internal id deliberately differs from
+  the Telegram id.
+- The compatibility layer, and the `legacy_id` column, are to be removed one release later.

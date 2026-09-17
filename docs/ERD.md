@@ -18,9 +18,31 @@ erDiagram
         TEXT    created_at            "datetime('now')"
     }
 
+    PATIENTS {
+        INTEGER id                PK  AUTOINCREMENT "Phase 7.2"
+        TEXT    full_name
+        TEXT    phone
+        TEXT    email
+        TEXT    lang
+        TEXT    notes
+        INTEGER legacy_id             "pre-7.2 id, UNIQUE (one release)"
+        TEXT    created_at
+        TEXT    updated_at
+    }
+
+    PATIENT_CHANNELS {
+        INTEGER id                PK  AUTOINCREMENT
+        INTEGER patient_id        FK  "→ patients.id ON DELETE CASCADE"
+        TEXT    channel               "telegram | whatsapp"
+        TEXT    external_id           "e.g. Telegram user id; UNIQUE(channel, external_id)"
+        INTEGER is_primary
+        TEXT    verified_at
+        TEXT    created_at
+    }
+
     APPOINTMENTS {
         INTEGER id                PK  AUTOINCREMENT
-        INTEGER patient_id            "Telegram user_id"
+        INTEGER patient_id        FK  "→ patients.id"
         TEXT    patient_name
         TEXT    therapist_id      FK  "→ therapists.id"
         TEXT    date                  "YYYY-MM-DD"
@@ -103,6 +125,8 @@ erDiagram
         TEXT    error                 "redacted, ≤ 300 chars"
     }
 
+    PATIENTS      ||--o{ PATIENT_CHANNELS   : "reachable on"
+    PATIENTS      ||--o{ APPOINTMENTS       : "books"
     THERAPISTS    ||--o{ APPOINTMENTS       : "treats"
     THERAPISTS    ||--o{ INTAKE_SESSIONS    : "reviews"
     THERAPISTS    ||--o{ AVAILABILITY       : "has slots"

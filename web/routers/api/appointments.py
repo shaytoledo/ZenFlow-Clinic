@@ -83,9 +83,9 @@ async def get_today_appointments(request: Request):
 async def create_manual_appointment(body: ManualAppointmentIn, request: Request):
     """Create an appointment from the dashboard (no Telegram intake).
 
-    The appointment gets a unique negative `patient_id` so it never collides
-    with real Telegram user IDs. Source is marked 'manual' so we know to skip
-    intake-history lookups when rendering the treatment screen for it.
+    A new patient gets an internal id and no messaging channel (Phase 7.2); an existing one must
+    be the therapist's own. Source is marked 'manual' so we know to skip intake-history lookups
+    when rendering the treatment screen for it.
     """
     therapist = require_active_therapist(request)
 
@@ -98,6 +98,16 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
         raise HTTPException(status_code=400, detail="Time must be HH:MM")
 
     therapist_id = therapist["id"]
+    if body.existing_patient_id is not None:
+        # A guessed id must not attach a booking — and its follow-up messages — to another
+        # therapist's patient (ADR-17): unknown and foreign ids are the same 404.
+        from web.repositories import patient_repo
+
+        owned = await asyncio.to_thread(
+            patient_repo.belongs_to_therapist, body.existing_patient_id, therapist_id
+        )
+        if not owned:
+            raise HTTPException(status_code=404, detail="Patient not found")
     try:
         appt_id, patient_id = await asyncio.to_thread(
             appointment_repo.insert_manual,
