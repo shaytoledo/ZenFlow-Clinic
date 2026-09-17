@@ -114,12 +114,14 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │   └── cache_service.py
 ├── templates/               # Jinja2 templates (all extend base.html)
 │   ├── treatment.html       # treatment page entry (<400 lines): layout + includes + script tags
+│   ├── partials/followup_card.html  # the 24h follow-up card (Phase 6.5), shared with session_archive.html
 │   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_lightbox, email_dialog
 └── static/
     ├── style.css            # zf- prefixed styles
     ├── css/tokens.css       # design tokens (--zf-*), loaded on every page; dark theme = <html data-theme="dark"> (ADR-25)
     ├── css/shell.css        # responsive app shell (sidebar drawer < 900px) + print rules, every page
     ├── js/shell.js          # the drawer's menu button (every page)
+    ├── css/followup.css     # the follow-up card (fu-* classes), treatment page + session archive
     ├── css/treatment.css    # treatment page styles: page-scoped tp-* / pc-* (point card) classes under a .tp root
     ├── js/treatment/        # treatment page: classic scripts sharing globals, loaded IN ORDER (main.js last);
     │                        #   server values come from the JSON island #treatment-config, never Jinja inside JS

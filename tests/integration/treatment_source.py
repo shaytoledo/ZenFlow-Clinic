@@ -15,8 +15,17 @@ ENTRY = WEB / "templates" / "treatment.html"
 
 
 def includes() -> list[Path]:
-    names = re.findall(r'{%\s*include\s+"([^"]+)"\s*%}', ENTRY.read_text(encoding="utf-8"))
-    return [WEB / "templates" / name for name in names]
+    """Every partial the page includes, nested ones too, in the order they are met."""
+    found: list[Path] = []
+    pending = [ENTRY]
+    while pending:
+        text = pending.pop(0).read_text(encoding="utf-8")
+        for name in re.findall(r'{%\s*include\s+"([^"]+)"\s*%}', text):
+            path = WEB / "templates" / name
+            if path not in found:
+                found.append(path)
+                pending.append(path)
+    return found
 
 
 def scripts() -> list[Path]:

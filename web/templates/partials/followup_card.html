@@ -1,0 +1,62 @@
+{#- The session's 24h follow-up (Phase 6.5). `fu` comes from web/services/followup_view.py and holds
+    translated text only; this partial is shared by the treatment page and the session archive
+    and is styled by static/css/followup.css (fu-* classes, logical properties, design tokens). -#}
+{% if fu %}
+<section id="followup-card" class="zf-card fu fu-state-{{ fu.state | replace('_', '-') }}" aria-labelledby="fu-title">
+  <header class="fu-head">
+    <h2 class="fu-title" id="fu-title">{{ fu.title }}</h2>
+    <span class="fu-badge">{{ fu.state_label }}</span>
+  </header>
+  {% if fu.flags %}
+  <p class="fu-alert" role="alert"><strong>{{ fu.attention }}:</strong> {{ fu.flags | join(" · ") }}</p>
+  {% endif %}
+  <p class="fu-detail">
+    {{ fu.detail }}
+    {% if fu.record_link %}<a class="fu-link" href="#manual-feedback-card">{{ fu.record_link }}</a>{% endif %}
+  </p>
+  {% if fu.pain is not none %}
+  <div class="fu-pain">
+    <span class="fu-label" id="followup-pain-label">{{ fu.pain_label }}</span>
+    <meter class="fu-meter" aria-labelledby="followup-pain-label" min="0" max="10" low="4" high="7" optimum="0" value="{{ fu.pain }}">{{ fu.pain }}/10</meter>
+    <strong class="fu-value fu-tone-{{ fu.pain_tone }}">{{ fu.pain }}/10</strong>
+  </div>
+  {% endif %}
+  {% if fu.chips %}
+  <dl class="fu-chips">
+    {% for chip in fu.chips %}
+    <div class="fu-chip fu-tone-{{ chip.tone }}">
+      <dt class="fu-label">{{ chip.label }}</dt>
+      <dd class="fu-chip-value">{{ chip.value }}</dd>
+    </div>
+    {% endfor %}
+  </dl>
+  {% endif %}
+  {% if fu.summary %}
+  <div class="fu-block">
+    <h3 class="fu-label">{{ fu.summary_label }}</h3>
+    <p class="fu-summary">{{ fu.summary }}</p>
+  </div>
+  {% endif %}
+  {% if fu.note %}
+  <div class="fu-block">
+    <h3 class="fu-label">{{ fu.note_label }}</h3>
+    <blockquote class="fu-note">{{ fu.note }}</blockquote>
+  </div>
+  {% endif %}
+  {% if fu.transcript %}
+  <details class="fu-transcript">
+    <summary class="fu-summary-toggle">{{ fu.transcript_label }} ({{ fu.transcript | length }})</summary>
+    <ol class="fu-messages">
+      {% for message in fu.transcript %}
+      <li class="fu-msg fu-msg-{{ message.side }}">
+        <span class="fu-who">{{ message.who }}</span>
+        <p class="fu-text">{{ message.text }}</p>
+      </li>
+      {% endfor %}
+    </ol>
+  </details>
+  {% endif %}
+</section>
+{% else %}
+<section id="followup-card" class="fu" hidden></section>
+{% endif %}

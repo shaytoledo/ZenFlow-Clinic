@@ -79,7 +79,6 @@
 .tp.tp-topbar-btn { font-size: 12px; padding: 6px 12px; }
 
 /* ── Shared helpers ────────────────────────────────────────────────────────── */
-.tp .tp-mt-6 { margin-top: 6px; }
 .tp .tp-mt-8 { margin-top: 8px; }
 .tp .tp-mt-12 { margin-top: 12px; }
 .tp .tp-mt-14 { margin-top: 14px; }
@@ -87,7 +86,6 @@
 .tp .tp-mb-10 { margin-bottom: 10px; }
 .tp .tp-mb-12 { margin-bottom: 12px; }
 .tp .tp-mb-14 { margin-bottom: 14px; }
-.tp .tp-hidden { display: none; }
 .tp .tp-strong { font-weight: 600; }
 .tp .tp-muted { font-size: 13px; color: #9CA3AF; }
 .tp .tp-spin { animation: spin 1s linear infinite; }
@@ -101,13 +99,11 @@
 .tp .tp-icon-teal { background: #CCFBF1; color: #0D9488; }
 .tp .tp-icon-teal-gradient { background: linear-gradient(135deg,#CCFBF1,#A7F3D0); color: #0D9488; }
 .tp .tp-icon-pink { background: #FDF2F8; color: #9D174D; }
-.tp .tp-icon-green { background: #ECFDF5; color: #059669; }
 .tp .tp-icon-purple { background: #F3E8FF; color: #9333EA; }
 .tp .tp-icon-indigo { background: #EEF2FF; color: #4F46E5; }
 .tp .tp-icon-blue { background: #DBEAFE; color: #2563EB; }
 .tp .tp-pill-green { margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #DCFCE7; color: #16A34A; padding: 2px 8px; border-radius: 999px; }
 .tp .tp-pill-teal { margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #CCFBF1; color: #0D9488; padding: 3px 10px; border-radius: 999px; }
-.tp .tp-pill-emerald { margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #ECFDF5; color: #059669; padding: 2px 8px; border-radius: 999px; }
 .tp .tp-pill-purple { margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #F3E8FF; color: #9333EA; padding: 2px 8px; border-radius: 999px; }
 .tp .tp-pill-blue { display: none; margin-inline-start: auto; font-size: 11px; font-weight: 500; background: #DBEAFE; color: #2563EB; padding: 2px 8px; border-radius: 999px; }
 .tp .tp-title-aside { margin-inline-start: auto; font-size: 11px; color: #9CA3AF; }
@@ -164,7 +160,6 @@
 .tp .tp-tag-remove { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.8); padding: 0; padding-inline-start: 4px; line-height: 1; border-radius: 3px; }
 
 /* ── Follow-up notes text ──────────────────────────────────────────────────── */
-.tp .tp-note-text { font-size: 13px; color: #065F46; line-height: 1.6; margin: 0; }
 
 /* ── Lifestyle advice, email fallback dialog, Complete button ──────────────── */
 .tp .tp-advice-hint { font-size: 12px; color: #9CA3AF; margin-top: 8px; }
@@ -181,12 +176,6 @@
 /* ── Follow-up ─────────────────────────────────────────────────────────────── */
 .tp .tp-stars { display: flex; gap: 6px; margin-top: 6px; }
 .tp .tp-rating-label { font-size: 11px; color: #9CA3AF; margin-top: 4px; }
-.tp .tp-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.tp .tp-metric-hint { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-.tp .tp-followup-notes { background: #F0FDF4; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
-.tp .tp-followup-notes-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 0.6px; margin-bottom: 4px; }
-.tp .tp-conversation-toggle { cursor: pointer; font-size: 12px; font-weight: 600; color: #6B7280; padding: 4px 0; user-select: none; }
-.tp .tp-conversation { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 
 /* ── Hover and focus (were JS handlers) ────────────────────────────────── */
 .tp .tp-patient-link:hover { color: #0D9488; }
@@ -194,15 +183,11 @@
 
 /* ── Status tones: --tone for text, --tone-fade (60% alpha) for a gradient's far end ── */
 .tp-tone-red { --tone: #DC2626; --tone-fade: #DC262699; }
-.tp-tone-orange { --tone: #EA580C; --tone-fade: #EA580C99; }
 .tp-tone-amber { --tone: #D97706; --tone-fade: #D9770699; }
-.tp-tone-green { --tone: #16A34A; --tone-fade: #16A34A99; }
 .tp-tone-teal { --tone: #0D9488; --tone-fade: #0D948899; }
-.tp-tone-grey { --tone: #6B7280; --tone-fade: #6B728099; }
 .tp .tp-confidence-level { color: var(--tone); font-weight: 600; }
 .tp .tp-confidence-value { font-size: 17px; font-weight: 800; color: var(--tone); }
 .tp .tp-confidence-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--tone) 0%, var(--tone-fade) 100%); transition: width .7s ease; }  /* width: set from the data by render-diagnosis.js */
-.tp .tp-metric-value { color: var(--tone); }
 
 /* ══ Point cards (Phase 4.2 — docs/POINT_CARD_DESIGN.md) ═══════════════════════
    Built on css/tokens.css. Logical properties only (inline/block, never left/right), so the

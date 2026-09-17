@@ -1,0 +1,90 @@
+/* The session's 24h follow-up card (Phase 6.5) — templates/partials/followup_card.html.
+   Shared by the treatment page and the session archive. Design tokens only (tokens.css, dark mode
+   included); logical properties only, so Hebrew mirrors from dir="rtl" alone. */
+
+.fu[hidden] { display: none; }
+.fu { display: grid; gap: var(--zf-space-3); }
+.fu-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--zf-space-2); }
+.fu-title { margin: 0; color: var(--zf-text); font-size: var(--zf-text-lg); font-weight: var(--zf-weight-bold); }
+.fu-badge {
+  margin-inline-start: auto;
+  padding: 2px var(--zf-space-2);
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-pill);
+  background: var(--zf-surface-muted);
+  color: var(--zf-text-2);
+  font-size: var(--zf-text-xs);
+  font-weight: var(--zf-weight-semibold);
+}
+.fu-state-completed .fu-badge { border-color: var(--zf-accent-border); background: var(--zf-accent-soft); color: var(--zf-accent-text); }
+.fu-state-expired .fu-badge,
+.fu-state-no-channel .fu-badge { border-color: var(--zf-caution-border); background: var(--zf-caution-soft); color: var(--zf-caution-text); }
+
+.fu-alert {
+  margin: 0;
+  padding: var(--zf-space-2) var(--zf-space-3);
+  border: 1px solid var(--zf-danger-border);
+  border-inline-start-width: 4px;
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-danger-soft);
+  color: var(--zf-danger-text);
+  font-size: var(--zf-text-sm);
+}
+.fu-detail { margin: 0; color: var(--zf-text-2); font-size: var(--zf-text-sm); line-height: var(--zf-leading-normal); }
+.fu-link { color: var(--zf-accent-text); font-weight: var(--zf-weight-semibold); }
+.fu-label {
+  margin: 0;
+  color: var(--zf-text-muted);
+  font-size: var(--zf-text-2xs);
+  font-weight: var(--zf-weight-bold);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+
+.fu-pain { display: flex; flex-wrap: wrap; align-items: center; gap: var(--zf-space-2); }
+.fu-meter { flex: 1; min-inline-size: 120px; block-size: 12px; }
+.fu-value { font-size: var(--zf-text-lg); }
+
+.fu-chips { display: flex; flex-wrap: wrap; gap: var(--zf-space-2); margin: 0; }
+.fu-chip {
+  display: grid;
+  gap: 2px;
+  padding: var(--zf-space-2) var(--zf-space-3);
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-surface);
+}
+.fu-chip-value { margin: 0; color: var(--zf-text); font-size: var(--zf-text-sm); font-weight: var(--zf-weight-semibold); }
+.fu-chip.fu-tone-good { border-color: var(--zf-accent-border); background: var(--zf-accent-soft); }
+.fu-chip.fu-tone-fair { border-color: var(--zf-caution-border); background: var(--zf-caution-soft); }
+.fu-chip.fu-tone-poor { border-color: var(--zf-danger-border); background: var(--zf-danger-soft); }
+.fu-chip.fu-tone-neutral { background: var(--zf-surface-muted); }
+.fu-value.fu-tone-good { color: var(--zf-accent-text); }
+.fu-value.fu-tone-fair { color: var(--zf-caution-text); }
+.fu-value.fu-tone-poor { color: var(--zf-danger-text); }
+.fu-value.fu-tone-neutral { color: var(--zf-text); }
+
+.fu-block { display: grid; gap: var(--zf-space-1); }
+.fu-summary { margin: 0; color: var(--zf-text); font-size: var(--zf-text-md); line-height: var(--zf-leading-normal); white-space: pre-line; }
+.fu-note {
+  margin: 0;
+  padding: var(--zf-space-2) var(--zf-space-3);
+  border-inline-start: 3px solid var(--zf-border);
+  background: var(--zf-surface-muted);
+  color: var(--zf-text-2);
+  white-space: pre-wrap;
+}
+
+.fu-transcript { border-block-start: 1px solid var(--zf-border-subtle); padding-block-start: var(--zf-space-2); }
+.fu-summary-toggle { color: var(--zf-text-2); font-size: var(--zf-text-sm); font-weight: var(--zf-weight-semibold); cursor: pointer; }
+.fu-summary-toggle:focus-visible { outline: none; border-radius: 4px; box-shadow: var(--zf-focus-ring); }
+.fu-messages { display: grid; gap: var(--zf-space-2); margin: var(--zf-space-2) 0 0; padding: 0; list-style: none; }
+.fu-msg {
+  max-inline-size: 85%;
+  padding: var(--zf-space-2) var(--zf-space-3);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-surface-muted);
+}
+.fu-msg-patient { justify-self: end; background: var(--zf-accent-soft); }
+.fu-who { color: var(--zf-text-muted); font-size: var(--zf-text-2xs); font-weight: var(--zf-weight-bold); }
+.fu-text { margin: 2px 0 0; color: var(--zf-text); font-size: var(--zf-text-sm); white-space: pre-wrap; }
