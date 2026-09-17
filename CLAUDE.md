@@ -27,6 +27,10 @@ python tasks.py lock        # recompile requirements*.txt from requirements*.in
 
 # Rotate the Google-token encryption key (F7) — preview first
 python -m zenflow.rotate_token_key --dry-run
+
+# Booking API (Phase 7.3)
+python -m zenflow.api_keys create <name>    # a machine client's key, printed once
+python -m zenflow.export_openapi            # re-publish docs/api/booking-v1.openapi.json
 ```
 
 > Work follows `docs/MASTER_PLAN_EN.md`; the living checklist is `docs/PROGRESS.md`.
@@ -61,6 +65,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/POINT_IMAGE_SOURCING.md` | Phase 4.3d shortlist of point-image sources with licences (owner decision Q4) |
 | `docs/GOOGLE_CONNECTION_UX.md` | Phase 5: recovered prior work, the `google_not_connected` 409 contract, client + background behaviour |
 | `docs/FOLLOWUP.md` | Phase 6: 24h follow-up and recommendation delivery — root causes, storage, conversation, alerts |
+| `docs/BOOKING_API.md` | Phase 7.3: `/api/v1` booking — API keys, idempotency, errors, the published OpenAPI schema |
 | `docs/CHANNELS.md` | Phase 7: the `ChannelAdapter` contract, Telegram adapter, conformance suite, adding a channel; patient identity (`patients` + `patient_channels`) |
 
 > Start guide: `startup/START.md`
@@ -201,6 +206,7 @@ Any message / /start → SELECTING (main menu)
 - The patient conversation is persistent (`name="patient"`). A new `user_data` key is NOT persisted unless added to `PERSISTED_USER_KEYS` in `bot/persistence.py` — only add scheduling data, never clinical free text.
 - Email (Phase 5): anything that sends mail goes through `web/services/email_service.send_email` and turns `EmailNotConfigured` / `EmailSendError(token_invalid=True)` into the 409 `google_not_connected` contract (`docs/GOOGLE_CONNECTION_UX.md`); pages learn the state up front from `google_connection()`. Never answer a failed send with 200. On the treatment page, email goes through `static/js/treatment/email-dialog.js` (`openEmailDialog()`, `handleGoogleRefusal(result, kind)`); its strings are `EMAIL_DIALOG_KEYS` in `web/routers/pages.py`, served in the JSON island.
 - Outbound patient messages are logged in `message_log` via `followup_scheduler.log_delivery()` — best-effort after a successful send (never a reason to retry); errors are stored redacted.
+- Booking (ADR-29): every appointment is created and cancelled through `web/services/booking_service.py` — never a second `INSERT INTO appointments`. `/api/v1` (`web/routers/api/v1.py`) is the same service over HTTP for machine clients; its routes declare the `_guard` dependency (API key or session) and answer `{"code", "detail"}`. After changing the API run `python -m zenflow.export_openapi` (a contract test compares the committed schema).
 - Patients (ADR-28): `patient_id` everywhere in SQLite is `patients.id`, never a Telegram id. Find or create the patient behind a channel identity with `patient_repo.for_channel(channel, external_id, name)`; whether and where to message them is `patient_repo.messaging_contact(patient_id)` — never decide from the id's sign or from `source='manual'` (a test fails on `patient_id < 0`). Telegram-keyed state (relay, intake history) stays keyed by the Telegram user id.
 - Cancelled appointments are **soft-deleted** (`status='cancelled'`). Records preserved for clinical history.
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
@@ -243,6 +249,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `ZF_CONV_TIMEOUT_MINUTES` | `30` | Idle minutes before a patient flow is closed; `0` = never |
 | `TELEGRAM_WEBHOOK_SECRET` | — | Secret Telegram echoes on webhook calls (7.1); empty ⇒ every webhook refused |
+| `ZF_API_RATE_PER_MINUTE` | `60` | Booking API requests per minute per caller (`0` = no limit) |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |

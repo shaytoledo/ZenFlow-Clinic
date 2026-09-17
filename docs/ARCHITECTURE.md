@@ -76,8 +76,12 @@ Clinic/
 │   │       ├── treatment.py       # /api/treatment-notes/* (get, save, rediagnose, send, complete)
 │   │       ├── availability.py    # /api/calendars, /api/events, /api/availability (POST/DELETE)
 │   │       ├── messages.py        # /api/messages/active, /conversations, /history/{pid}, /send
-│   │       └── system.py          # /api/status, /api/my/status, /api/my/activation-code
+│   │       ├── system.py          # /api/status, /api/my/status, /api/my/activation-code
+│   │       └── v1.py              # /api/v1 booking API: key or session, idempotency, OpenAPI (7.3)
 │   ├── services/                  # Domain service layer (CRUD, caching, Telegram helpers)
+│   │   ├── booking_service.py     # THE booking implementation: create / cancel / availability (7.3)
+│   │   ├── idempotency.py         # Idempotency-Key storage for the booking API
+│   │   ├── rate_limit.py          # Per-caller request budget (Redis, fails open)
 │   │   ├── appointment_service.py # list_all(), list_today(), list_by_patient(), aggregate_patients()
 │   │   ├── availability_service.py# list_local(), add_local(), remove_local(), to_fc_events()
 │   │   ├── treatment_service.py   # get_notes(), save_notes(), complete_session(), list_all_sessions()

@@ -48,6 +48,7 @@ FLAG_NAMES: tuple[str, ...] = (
     "POINT_IMAGES",
     "CONV_TIMEOUT_MINUTES",
     "AUTO_FOLLOWUP",
+    "API_RATE_PER_MINUTE",
 )
 
 
@@ -74,6 +75,8 @@ class FeatureFlags(BaseSettings):
     conv_timeout_minutes: int = 30
     # ZF_AUTO_FOLLOWUP — also check in on sessions never marked complete (owner decision Q7, 6.1)
     auto_followup: bool = False
+    # ZF_API_RATE_PER_MINUTE — booking API requests per minute per caller; 0 = no limit (7.3)
+    api_rate_per_minute: int = 60
 
     @field_validator("ai_provider", mode="before")
     @classmethod

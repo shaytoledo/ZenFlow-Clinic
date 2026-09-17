@@ -30,6 +30,9 @@ def save_appointment(
     summary: str,
     gcal_apt_event_id: str | None = None,
     therapist_id: str = "",
+    source: str = "telegram",
+    patient_phone: str = "",
+    patient_email: str = "",
 ) -> int:
     """Save appointment to SQLite. Returns the appointment row ID.
 
@@ -60,8 +63,8 @@ def save_appointment(
         cur = conn.execute(
             f"""INSERT INTO appointments
                (patient_id, patient_name, therapist_id, date, time, status, gcal_apt_event_id,
-                summary, created_at)
-               VALUES (?, ?, ?, ?, ?, 'active', ?, ?, {SQL_NOW})""",
+                summary, source, patient_phone, patient_email, created_at)
+               VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, {SQL_NOW})""",
             (
                 patient_id,
                 patient_name,
@@ -70,6 +73,9 @@ def save_appointment(
                 time_slot,
                 gcal_apt_event_id,
                 summary,
+                source,
+                patient_phone,
+                patient_email,
             ),
         )
         appointment_id = cur.lastrowid
