@@ -309,6 +309,7 @@
   "dl_channel_email": "אימייל",
   "dl_status_sent": "נשלח",
   "dl_status_failed": "נכשל",
+  "fu_auto_note": "(אוטומטי: הטיפול לא סומן כהושלם.)",
   "settings_open_schedule": "פתח לוח זמינות",
   "settings_telegram_title": "בוט טלגרם",
   "settings_status_unknown": "סטטוס לא ידוע",

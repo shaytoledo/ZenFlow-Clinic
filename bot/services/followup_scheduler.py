@@ -389,6 +389,12 @@ def reconcile() -> dict[str, int]:
             logger.error(
                 f"reconcile: recommendations enqueue failed for appt={row['appointment_id']}: {e}"
             )
+    auto = 0
+    from zenflow.settings import get_settings
+
+    if get_settings().flags.auto_followup:  # Q7, off until the owner decides
+        auto, auto_errors = _reconcile_auto_followups(fj)
+        errors += auto_errors
     try:
         from web.repositories import followup_repo
 
@@ -401,8 +407,34 @@ def reconcile() -> dict[str, int]:
         "followups": followups,
         "recommendations": recommendations,
         "expired": expired,
+        "auto": auto,
         "errors": errors,
     }
+
+
+def _reconcile_auto_followups(fj: Any) -> tuple[int, int]:
+    """Enqueue the automatic check-in of every session that ended within the send window and
+    was never completed (ZF_AUTO_FOLLOWUP). Idempotent: one job per appointment."""
+    from datetime import timedelta
+
+    from web.repositories import treatment_repo
+
+    now = clock.now_utc()
+    earliest = now - timedelta(hours=fj.FOLLOWUP_EXPIRE_HOURS)
+    first_date = (earliest - timedelta(days=1)).astimezone(clock.clinic_tz()).date().isoformat()
+    enqueued = errors = 0
+    for row in treatment_repo.list_uncompleted_since(first_date):
+        try:
+            ended = fj.appointment_end(str(row["date"]), str(row["time"]))
+            if earliest <= ended <= now:
+                fj.enqueue_auto_followup(int(row["appointment_id"]), clock.to_iso(ended))
+                enqueued += 1
+        except Exception as e:  # one odd row (a bad time string) must not stop the sweep
+            errors += 1
+            logger.error(
+                f"reconcile: automatic follow-up failed for appt={row['appointment_id']}: {e}"
+            )
+    return enqueued, errors
 
 
 async def _scheduler_loop() -> None:

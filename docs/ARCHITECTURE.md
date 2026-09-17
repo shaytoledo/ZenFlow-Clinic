@@ -356,7 +356,7 @@ completes exactly once.
 
 | Job | Enqueued by | Runs at | Idempotency key | Skips when |
 |---|---|---|---|---|
-| `followup.send_step1` | `POST …/complete` | `completed_at + 24h` | `followup:{appointment_id}` | session gone/cancelled, already followed up (`followup_sent_at`, conversation or rating), fired > 48 h after completion, patient has no messaging channel |
+| `followup.send_step1` | `POST …/complete`; with `ZF_AUTO_FOLLOWUP`, also the reconcile sweep for sessions never completed (`followup:{appointment_id}:auto`, 24 h after the session ended) | `completed_at + 24h` | `followup:{appointment_id}` | session gone/cancelled, already followed up (`followup_sent_at`, conversation or rating), fired > 48 h after completion, patient has no messaging channel |
 | `recommendations.dispatch` | `POST …/complete` (auto-queue) and `POST …/send-recommendations` with `schedule_hours >= 24` | queued `pending_rec_send_at` | `recommendations:{appointment_id}:{send_at}` | nothing queued any more, or the queue entry was rescheduled. An email send whose therapist has not connected Google is **deferred** (6 h rechecks, no attempt charged, one alert) and woken by `resume_after_google_connected()` when Google is connected (Phase 5.4). A delivery stamps `recommendations_sent_at` (5.5), so completing the session again does not queue them twice |
 
 `followup_scheduler.reconcile()` runs every 30 min as a safety net: it enqueues jobs for sessions

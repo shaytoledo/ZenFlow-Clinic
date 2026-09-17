@@ -28,11 +28,26 @@ Removed as dead code:
 ### Q7: sessions that were never marked complete
 
 The plan recommends **yes**: send a follow-up *N* hours after the appointment's end time, marked
-`auto`, for sessions the therapist never completed.
+`auto`, for sessions the therapist never completed. The option is built behind
+**`ZF_AUTO_FOLLOWUP`** and is **off** until the owner decides.
 
-Until the owner decides, the behaviour is unchanged: only a completed session gets a follow-up.
-After 6.3, the option will be built behind `ZF_AUTO_FOLLOWUP` (off by default). The reconcile
-sweep would then enqueue a follow-up for past, active, uncompleted appointments.
+**When it is on:**
+
+- **Enqueue:** the reconcile sweep (every 30 min) finds each active appointment that:
+  - ended within the last 48 h (its clinic-local start plus `AUTO_SESSION_MINUTES` = 60);
+  - was never completed.
+
+  For each one, `enqueue_auto_followup()` schedules the check-in 24 h after the end, with key
+  `followup:{appointment}:auto` and the row marked `auto`. Patients who cannot be messaged get the
+  6.4 call alert instead.
+- **Send:** the job sends step 1 **unless** the session was completed meanwhile. Completing it
+  clears `auto` and schedules the usual job, so the automatic one skips itself.
+- **No second check-in:** an automatic check-in that already went out is never followed by a
+  second one after a late completion. The regular job now also skips any check-in that is past
+  `scheduled`.
+- **The card** says "(Automatic: the session was not marked complete.)"
+
+With the flag **off**, nothing changes; both paths are tested (`tests/integration/test_auto_followup.py`).
 
 ## 2. Storage: the `followups` table (task 6.3)
 
