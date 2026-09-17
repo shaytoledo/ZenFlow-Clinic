@@ -104,7 +104,7 @@ function lightboxHtml({ code, info = {}, rationale = '', images = [], index = 0 
   }
   const detailHtml = detail.join('');
 
-  return `<div class="pl-card ${themeClass}">
+  return `<div class="${themeClass}">
     <header class="pl-head">
       <span class="pc-code">${escHtml(code)}</span>
       <div class="pl-names">

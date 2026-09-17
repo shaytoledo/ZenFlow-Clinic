@@ -57,6 +57,9 @@ SECTION_IDS = (
     "mf-stars",
     "mf-save-btn",
     "point-lightbox",
+    "email-dialog",
+    "google-hint",
+    "google-status",
     "treatment-config",
     "print-handout",
 )
@@ -97,8 +100,9 @@ def _page_css() -> str:
     return "\n".join(p.read_text(encoding="utf-8") for p in ts.stylesheets())
 
 
-#: page-scoped class names: tp-* (Phase 4.1c), pc-* (point cards) and ps-* (point states, 4.2)
-CLASS_NAME = r"(?:tp|pc|ps)-[a-z0-9-]+"
+#: page-scoped class names: tp-* (Phase 4.1c), pc-* (point cards), ps-* (point states, 4.2),
+#: pl-* (point lightbox, 4.3d) and ed-* (email dialog, 5.3)
+CLASS_NAME = r"(?:tp|pc|ps|pl|ed)-[a-z0-9-]+"
 
 
 def _defined_classes() -> set[str]:

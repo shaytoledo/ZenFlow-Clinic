@@ -176,19 +176,6 @@
 .tp .tp-advice-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .tp .tp-btn-grow { flex: 1; justify-content: center; }
 .tp .tp-send-later-status { display: none; font-size: 12px; color: #16A34A; margin-top: 6px; text-align: center; }
-.tp .tp-dialog { background: #fff; border-radius: 16px; width: 100%; max-width: 460px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
-.tp .tp-dialog-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.tp .tp-dialog-icon-red { width: 34px; height: 34px; background: #FEE2E2; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #DC2626; flex-shrink: 0; }
-.tp .tp-dialog-icon-amber { width: 34px; height: 34px; background: #FEF3C7; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #B45309; flex-shrink: 0; }
-.tp .tp-dialog-title { font-size: 16px; font-weight: 700; color: #111827; }
-.tp .tp-dialog-text { font-size: 13px; color: #374151; line-height: 1.6; margin-bottom: 16px; }
-.tp .tp-dialog-note { font-size: 13px; color: #6B7280; margin-bottom: 12px; }
-.tp .tp-dialog-error { display: none; color: #DC2626; font-size: 12px; margin-top: 8px; }
-.tp .tp-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-.tp .tp-dialog-actions-tight { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
-.tp .tp-dialog-btn { padding: 9px 16px; }
-.tp .tp-dialog-btn-main { padding: 9px 18px; }
-.tp .tp-copy-text { width: 100%; height: 180px; font-size: 12px; font-family: monospace; border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px; resize: vertical; color: #374151; background: #F9FAFB; box-sizing: border-box; }
 .tp .tp-complete-btn { width: 100%; justify-content: center; padding: 14px; font-size: 15px; border-radius: 14px; gap: 8px; }
 
 /* ── Follow-up ─────────────────────────────────────────────────────────────── */
@@ -204,9 +191,6 @@
 /* ── Hover and focus (were JS handlers) ────────────────────────────────── */
 .tp .tp-patient-link:hover { color: #0D9488; }
 .tp .tp-advice-text:focus { background: #F9FAFB; }
-
-/* ── Email fallback overlay (appended to <body>, so it is its own .tp root) ── */
-.tp.tp-overlay { position: fixed; inset: 0; background: rgba(17,24,39,.55); z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 20px; }
 
 /* ── Status tones: --tone for text, --tone-fade (60% alpha) for a gradient's far end ── */
 .tp-tone-red { --tone: #DC2626; --tone-fade: #DC262699; }
@@ -747,6 +731,89 @@
 
 /* ══ end point cards ══ */
 
+/* ══ Sending by email (Phase 5.3): a native <dialog>, filled by email-dialog.js ══ */
+.tp .zf-btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+.tp .tp-google-hint {
+  margin-block-start: var(--zf-space-2);
+  padding: var(--zf-space-2) var(--zf-space-3);
+  border: 1px solid var(--zf-caution-border);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-caution-soft);
+  color: var(--zf-caution-text);
+  font-size: var(--zf-text-sm);
+  line-height: var(--zf-leading-normal);
+}
+.tp .tp-google-hint-link { border-radius: 2px; color: inherit; font-weight: var(--zf-weight-bold); text-decoration: underline; }
+.tp .tp-google-status { margin-block-start: var(--zf-space-2); color: var(--zf-text-2); font-size: var(--zf-text-sm); text-align: center; }
+.tp.ed {
+  margin: auto;  /* style.css resets every margin to 0 */
+  width: min(480px, calc(100% - 2 * var(--zf-space-4)));
+  max-height: calc(100% - 2 * var(--zf-space-6));
+  padding: 0;
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-lg);
+  background: var(--zf-surface);
+  color: var(--zf-text-2);
+  box-shadow: var(--zf-shadow-lg);
+}
+.tp.ed::backdrop { background: rgba(17, 24, 39, .55); }
+.tp .ed-card { display: grid; gap: var(--zf-space-3); padding: var(--zf-space-5); }
+.tp .ed-head { display: flex; align-items: center; gap: var(--zf-space-3); }
+.tp .ed-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-accent-soft);
+  color: var(--zf-accent-text);
+}
+.tp .ed-icon-caution { background: var(--zf-caution-soft); color: var(--zf-caution-text); }
+.tp .ed-title { color: var(--zf-text); font-size: var(--zf-text-lg); font-weight: var(--zf-weight-bold); line-height: var(--zf-leading-tight); }
+.tp .ed-text { color: var(--zf-text-2); font-size: var(--zf-text-md); line-height: var(--zf-leading-normal); }
+.tp .ed-hint { color: var(--zf-text-muted); font-size: var(--zf-text-sm); }
+.tp .ed-status {
+  padding: var(--zf-space-2) var(--zf-space-3);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-accent-soft);
+  color: var(--zf-accent-text);
+  font-size: var(--zf-text-sm);
+  font-weight: var(--zf-weight-semibold);
+}
+.tp .ed-label { color: var(--zf-text-2); font-size: var(--zf-text-sm); font-weight: var(--zf-weight-semibold); }
+.tp .ed-error { color: var(--zf-danger-text); font-size: var(--zf-text-sm); }
+.tp .ed-notice {
+  display: grid;
+  gap: var(--zf-space-2);
+  padding: var(--zf-space-3);
+  border: 1px solid var(--zf-caution-border);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-caution-soft);
+  color: var(--zf-caution-text);
+}
+.tp .ed-notice-title { font-weight: var(--zf-weight-bold); }
+.tp .ed-notice-text { font-size: var(--zf-text-sm); line-height: var(--zf-leading-normal); }
+.tp .ed-notice-actions { display: flex; flex-wrap: wrap; gap: var(--zf-space-2); }
+.tp .ed-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--zf-space-2); margin-block-start: var(--zf-space-2); }
+.tp .ed-btn { justify-content: center; padding: var(--zf-space-2) var(--zf-space-4); text-decoration: none; }
+.tp .ed-copy {
+  width: 100%;
+  min-height: 180px;
+  padding: var(--zf-space-3);
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-surface-muted);
+  color: var(--zf-text-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--zf-text-sm);
+  resize: vertical;
+}
+.tp .ed-btn:focus-visible,
+.tp .ed-copy:focus-visible,
+.tp .tp-google-hint-link:focus-visible { outline: none; box-shadow: var(--zf-focus-ring); }
+
 /* ══ Patient handout (Phase 4.2c): printed instead of the page ═══════════════ */
 .tp .tp-handout { display: none; }
 
@@ -755,7 +822,7 @@
   /* The page's own sections carry inline display values set by script, hence !important. */
   .tp.tp-page > :not(.tp-handout),
   .tp.pl,
-  .tp.tp-overlay,
+  .tp.ed,
   .tp .pc-undo { display: none !important; }
   .tp.tp-page { padding: 0; }
   .tp .tp-handout {

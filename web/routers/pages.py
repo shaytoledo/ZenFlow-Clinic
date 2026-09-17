@@ -71,6 +71,36 @@ async def sessions_history_page(request: Request):
     return _page(request, "sessions.html", "sessions")
 
 
+#: strings the treatment page's email dialog shows (static/js/treatment/email-dialog.js, Phase 5.3)
+EMAIL_DIALOG_KEYS = (
+    "btn_cancel",
+    "btn_close",
+    "email_not_connected_title",
+    "email_not_connected_body",
+    "email_token_expired_title",
+    "email_token_expired_body",
+    "email_connect_google_btn",
+    "email_reconnect_google_btn",
+    "email_copy_instead_btn",
+    "email_google_hint",
+    "email_only_patient_hint",
+    "email_google_connected_banner",
+    "email_google_cancelled_banner",
+    "email_dialog_no_telegram_title",
+    "email_dialog_ask_text",
+    "email_dialog_address_label",
+    "email_dialog_send",
+    "email_dialog_sending",
+    "email_dialog_invalid",
+    "email_dialog_failed",
+    "email_dialog_copy_title",
+    "email_dialog_copy_hint",
+    "email_dialog_copy_btn",
+    "email_dialog_copied",
+    "email_dialog_copy_failed",
+)
+
+
 @router.get("/treatment/{patient_id}/{apt_date}/{apt_time}", response_class=HTMLResponse)
 async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_time: str):
     therapist, redirect = _active_therapist_or_redirect(request)
@@ -86,6 +116,7 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
 
     prefs = await asyncio.to_thread(therapist_repo.get_ui_prefs, therapist["id"])
     google = await asyncio.to_thread(google_connection, therapist["id"])
+    t = get_t(therapist.get("language"))
     return _page(
         request,
         "treatment.html",
@@ -93,6 +124,7 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
         sse_updates=get_settings().flags.sse_updates,
         point_density=prefs["point_density"],
         google=google.as_dict(),
+        email_text={key: t[key] for key in EMAIL_DIALOG_KEYS},
     )
 
 

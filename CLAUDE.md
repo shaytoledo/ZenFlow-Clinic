@@ -113,7 +113,7 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │   └── cache_service.py
 ├── templates/               # Jinja2 templates (all extend base.html)
 │   ├── treatment.html       # treatment page entry (<400 lines): layout + includes + script tags
-│   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_lightbox
+│   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_lightbox, email_dialog
 └── static/
     ├── style.css            # zf- prefixed styles
     ├── css/tokens.css       # design tokens (--zf-*), loaded on every page; dark theme = <html data-theme="dark"> (ADR-25)
@@ -192,7 +192,7 @@ Any message / /start → SELECTING (main menu)
 - `context.user_data` holds in-flight booking state (`selected_therapist`, `selected_day`, `selected_time`, `intake_count`). Cleared on completion, skip, or cancellation.
 - `allow_reentry=False` is critical — setting it True breaks INTAKE and THERAPIST_INPUT states.
 - The patient conversation is persistent (`name="patient"`). A new `user_data` key is NOT persisted unless added to `PERSISTED_USER_KEYS` in `bot/persistence.py` — only add scheduling data, never clinical free text.
-- Email (Phase 5): anything that sends mail goes through `web/services/email_service.send_email` and turns `EmailNotConfigured` / `EmailSendError(token_invalid=True)` into the 409 `google_not_connected` contract (`docs/GOOGLE_CONNECTION_UX.md`); pages learn the state up front from `google_connection()`. Never answer a failed send with 200.
+- Email (Phase 5): anything that sends mail goes through `web/services/email_service.send_email` and turns `EmailNotConfigured` / `EmailSendError(token_invalid=True)` into the 409 `google_not_connected` contract (`docs/GOOGLE_CONNECTION_UX.md`); pages learn the state up front from `google_connection()`. Never answer a failed send with 200. On the treatment page, email goes through `static/js/treatment/email-dialog.js` (`openEmailDialog()`, `handleGoogleRefusal(result, kind)`); its strings are `EMAIL_DIALOG_KEYS` in `web/routers/pages.py`, served in the JSON island.
 - Cancelled appointments are **soft-deleted** (`status='cancelled'`). Records preserved for clinical history.
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
