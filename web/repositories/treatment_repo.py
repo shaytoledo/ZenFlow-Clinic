@@ -377,6 +377,40 @@ def list_completed_for_followup(window_start_iso: str, window_end_iso: str) -> l
     return [dict(r) for r in rows]
 
 
+def list_uncompleted_since(first_date: str) -> list[dict[str, Any]]:
+    """Active appointments on or after `first_date` (clinic-local YYYY-MM-DD) that were never
+    marked complete — candidates for an automatic check-in (Q7, ZF_AUTO_FOLLOWUP)."""
+    rows = (
+        _conn()
+        .execute(
+            """SELECT a.id AS appointment_id, a.date, a.time
+           FROM appointments a
+           LEFT JOIN treatment_notes t ON t.appointment_id = a.id
+           WHERE a.status = 'active' AND a.date >= ? AND t.completed_at IS NULL""",
+            (first_date,),
+        )
+        .fetchall()
+    )
+    return [dict(r) for r in rows]
+
+
+def get_auto_followup_candidate(appointment_id: int) -> dict[str, Any] | None:
+    """An active appointment for an automatic check-in, with or without treatment notes."""
+    row = (
+        _conn()
+        .execute(
+            """SELECT a.id AS appointment_id, a.patient_id, a.patient_name, a.therapist_id,
+                  a.source, t.completed_at
+           FROM appointments a
+           LEFT JOIN treatment_notes t ON t.appointment_id = a.id
+           WHERE a.id = ? AND a.status = 'active'""",
+            (appointment_id,),
+        )
+        .fetchone()
+    )
+    return dict(row) if row else None
+
+
 def get_followup_candidate(appointment_id: int) -> dict[str, Any] | None:
     """The completed session behind a follow-up job, or None if it is gone or cancelled."""
     row = (

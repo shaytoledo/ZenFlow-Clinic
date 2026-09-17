@@ -155,6 +155,7 @@ def schedule(appointment_id: int, scheduled_for: str, *, auto: bool = False) -> 
            FROM appointments a WHERE a.id = ?
            ON CONFLICT(appointment_id) DO UPDATE SET
                scheduled_for = excluded.scheduled_for,
+               auto = excluded.auto,
                updated_at = excluded.updated_at
            WHERE followups.status IN ('scheduled', 'no_channel')""",
         (1 if auto else 0, clock.normalize(scheduled_for), now, now, appointment_id),

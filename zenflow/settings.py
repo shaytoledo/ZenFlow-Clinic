@@ -47,6 +47,7 @@ FLAG_NAMES: tuple[str, ...] = (
     "SSE_UPDATES",
     "POINT_IMAGES",
     "CONV_TIMEOUT_MINUTES",
+    "AUTO_FOLLOWUP",
 )
 
 
@@ -71,6 +72,8 @@ class FeatureFlags(BaseSettings):
     point_images: bool = False  # ZF_POINT_IMAGES — acupoint image store (4.3)
     # ZF_CONV_TIMEOUT_MINUTES — how long a patient flow may sit idle; 0 = never expire (2.2d)
     conv_timeout_minutes: int = 30
+    # ZF_AUTO_FOLLOWUP — also check in on sessions never marked complete (owner decision Q7, 6.1)
+    auto_followup: bool = False
 
     @field_validator("ai_provider", mode="before")
     @classmethod

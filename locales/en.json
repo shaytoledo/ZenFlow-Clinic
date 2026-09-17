@@ -326,6 +326,7 @@
   "dl_channel_email": "Email",
   "dl_status_sent": "Sent",
   "dl_status_failed": "Failed",
+  "fu_auto_note": "(Automatic: the session was not marked complete.)",
   "settings_open_schedule": "Open Availability Schedule →",
   "settings_telegram_title": "Telegram Bot",
   "settings_status_unknown": "Status Unknown",

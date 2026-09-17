@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from zenflow import clock
@@ -37,6 +37,8 @@ FOLLOWUP_EXPIRE_HOURS = 48
 #: an email send waiting for the therapist's Google looks again this often (connecting Google
 #: wakes it at once — `resume_after_google_connected`); a safety net, not the main path
 GOOGLE_RECHECK_HOURS = 6
+#: Q7 (ZF_AUTO_FOLLOWUP): a session with no end time is taken to last this long
+AUTO_SESSION_MINUTES = 60
 
 
 def followup_key(appointment_id: int, completed_at: str) -> str:
@@ -91,6 +93,36 @@ def _alert_if_unreachable(appointment_id: int, due_at: str) -> None:
         logger.exception("no-channel follow-up alert failed")
 
 
+def auto_followup_key(appointment_id: int) -> str:
+    return f"followup:{int(appointment_id)}:auto"
+
+
+def appointment_end(apt_date: str, apt_time: str) -> datetime:
+    """When a session ended, in UTC: its clinic-local start plus AUTO_SESSION_MINUTES."""
+    start = clock.parse_iso(f"{apt_date}T{apt_time}", naive_tz=clock.clinic_tz())
+    return start + timedelta(minutes=AUTO_SESSION_MINUTES)
+
+
+def enqueue_auto_followup(appointment_id: int, ended_at: str) -> int:
+    """Q7: a session nobody marked complete still gets its check-in, 24 h after it ended.
+
+    The row is marked `auto`; completing the session before then takes the check-in over
+    (its own job, `auto` cleared) and this job skips itself.
+    """
+    from web.repositories import followup_repo
+
+    ended_at = clock.normalize(ended_at)
+    run_at = clock.to_iso(clock.parse_iso(ended_at) + timedelta(hours=FOLLOWUP_DELAY_HOURS))
+    followup_repo.schedule(appointment_id, run_at, auto=True)
+    _alert_if_unreachable(appointment_id, run_at)
+    return get_default_queue().enqueue(
+        FOLLOWUP_JOB,
+        {"appointment_id": int(appointment_id), "auto": True, "ended_at": ended_at},
+        run_at=run_at,
+        idempotency_key=auto_followup_key(appointment_id),
+    )
+
+
 def enqueue_recommendations(appointment_id: int, send_at: str) -> int:
     """Schedule delivery of the queued recommendations at `send_at` (once per send time)."""
     send_at = clock.normalize(send_at)
@@ -118,6 +150,9 @@ async def handle_followup(payload: dict[str, Any]) -> None:
     from web.repositories import followup_repo, treatment_repo
 
     apt_id = int(payload["appointment_id"])
+    if payload.get("auto"):
+        await _handle_auto_followup(apt_id, str(payload.get("ended_at") or ""))
+        return
     row = await asyncio.to_thread(treatment_repo.get_followup_candidate, apt_id)
     if not row or not row.get("completed_at"):
         logger.info("follow-up skipped: session missing, cancelled or not completed")
@@ -141,6 +176,11 @@ async def handle_followup(payload: dict[str, Any]) -> None:
         apt_id,
         clock.to_iso(completed + timedelta(hours=FOLLOWUP_DELAY_HOURS)),
     )
+    checkin = await asyncio.to_thread(followup_repo.get, apt_id)
+    if checkin and checkin["status"] not in ("scheduled", "no_channel"):
+        # e.g. an automatic check-in (Q7) already went out before the session was completed
+        logger.info("follow-up skipped: the check-in is already %s", checkin["status"])
+        return
     if clock.now_utc() > completed + timedelta(hours=FOLLOWUP_EXPIRE_HOURS):
         logger.warning(
             "follow-up skipped: expired (fired more than %sh after completion)",
@@ -151,6 +191,30 @@ async def handle_followup(payload: dict[str, Any]) -> None:
     if row.get("source") == "manual" or int(row["patient_id"]) < 0:
         # No messaging channel. Phase 6.4 turns this into a persistent therapist alert.
         logger.info("follow-up skipped: patient has no messaging channel")
+        return
+    await fs._send_followup(row, raise_errors=True)
+
+
+async def _handle_auto_followup(apt_id: int, ended_at: str) -> None:
+    """The Q7 path: send step 1 for a session that was never completed — unless it was since."""
+    from bot.services import followup_scheduler as fs
+    from web.repositories import followup_repo, treatment_repo
+
+    row = await asyncio.to_thread(treatment_repo.get_auto_followup_candidate, apt_id)
+    checkin = await asyncio.to_thread(followup_repo.get, apt_id)
+    if not row or not checkin:
+        logger.info("automatic follow-up skipped: session missing or cancelled")
+        return
+    if row.get("completed_at") or not checkin.get("auto"):
+        logger.info("automatic follow-up skipped: the session was completed meanwhile")
+        return
+    if checkin["status"] != "scheduled":
+        logger.info("automatic follow-up skipped: status %s", checkin["status"])
+        return
+    ended = clock.parse_iso(ended_at) if ended_at else None
+    if ended and clock.now_utc() > ended + timedelta(hours=FOLLOWUP_EXPIRE_HOURS):
+        logger.warning("automatic follow-up skipped: expired")
+        await asyncio.to_thread(followup_repo.expire_unsent, apt_id)
         return
     await fs._send_followup(row, raise_errors=True)
 

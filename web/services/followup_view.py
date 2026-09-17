@@ -102,6 +102,9 @@ def followup_view(row: dict[str, Any] | None, lang: str | None) -> dict[str, Any
     else:
         detail = t["fu_detail_no_channel"].format(time=_when(row.get("scheduled_for")))
 
+    if row.get("auto") and not manual:
+        detail = f"{detail} {t['fu_auto_note']}"
+
     chips = []
     rating = answers.get("improvement_rating")
     if rating:
