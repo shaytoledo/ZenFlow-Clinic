@@ -105,7 +105,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 5 — Google / Gmail connection UX (item 2)
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 5.1 | Recover prior branches, summarise, decide cherry-picks | [ ] | | | do this first |
+| 5.1 | Recover prior branches, summarise, decide cherry-picks | [x] | 2026-09-17 | a98a7e0 (PR #32) | `docs/GOOGLE_CONNECTION_UX.md` §1: both branches have **no commits** (tips = `12a230d`, already on master); the work is uncommitted in their worktrees (`inspiring-edison-1bb306`: 7 files +314/−40; main checkout: treatment.html +62/−3), so nothing can be cherry-picked — ported by hand in 5.2–5.4. Port: `EmailNotConfigured.reason`, a never-raising connection check, the 409 (reshaped to the plan's contract), refusing a 24h queue for email-only patients, `/auth/login?next=` (its `_safe_next` let `/\evil` through — the port also rejects backslashes), 9 locale keys. Superseded: scheduler edits (Phase 1.3), the monolith-template modal/toast (Phase 4.1 rules). Worktrees left untouched for the owner |
 | 5.2 | Typed 409 `google_not_connected` error contract | [ ] | | | |
 | 5.3 | Preflight UI: disabled controls + modal + copy fallback | [ ] | | | |
 | 5.4 | Background sends: one notification, keep job queued | [ ] | | | |
