@@ -51,5 +51,6 @@ function escHtml(value) {
 }
 
 // Init
+applyPointDensity(pointDensity);
 renderAdvice();
 loadTreatment();

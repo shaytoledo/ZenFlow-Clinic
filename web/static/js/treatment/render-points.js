@@ -64,6 +64,9 @@ const POINT_TEXT = {
     undo: 'Undo',
     remove: 'Remove {code}',
     showInfo: 'Show {code} details',
+    density: 'Card detail',
+    detailed: 'Detailed',
+    compact: 'Compact',
   },
   he: {
     add: 'הוסף',
@@ -80,6 +83,9 @@ const POINT_TEXT = {
     undo: 'בטל',
     remove: 'הסר את {code}',
     showInfo: 'פרטי {code}',
+    density: 'רמת פירוט',
+    detailed: 'מפורט',
+    compact: 'תמציתי',
   },
 };
 
@@ -191,5 +197,34 @@ function syncPointSelection() {
   if (countEl && cards.length) {
     const n = cards.filter((card) => chosen.has(card.dataset.pointCard)).length;
     countEl.textContent = pointText('selected', { n, total: cards.length });
+  }
+}
+
+// ── Density (Phase 4.2d): detailed or compact cards, saved per therapist ───────
+
+function applyPointDensity(density) {
+  pointDensity = density === 'compact' ? 'compact' : 'detailed';
+  const section = document.getElementById('ai-points-section');
+  if (!section) return;
+  section.dataset.density = pointDensity;
+  const group = section.querySelector('.pc-density');
+  group.setAttribute('aria-label', pointText('density'));
+  group.querySelectorAll('[data-density]').forEach((button) => {
+    button.setAttribute('aria-pressed', button.dataset.density === pointDensity ? 'true' : 'false');
+    button.textContent = pointText(button.dataset.density);
+  });
+}
+
+async function setPointDensity(density) {
+  if (density === pointDensity) return;
+  applyPointDensity(density);
+  try {
+    const r = await fetch('/api/my/preferences', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ point_density: pointDensity }),
+    });
+    if (!r.ok) throw new Error(`saving the density failed (${r.status})`);
+  } catch (e) {
+    console.warn('setPointDensity:', e.message);  // the choice still applies to this page
   }
 }

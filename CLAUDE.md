@@ -99,7 +99,7 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │       ├── treatment.py     # /api/treatment-notes/* (get, save, rediagnose, send, complete)
 │       ├── availability.py  # /api/calendars, /api/events, /api/availability
 │       ├── messages.py      # /api/messages/active, /conversations, /history/{pid}, /send
-│       └── system.py        # /api/status, /api/my/status, /api/my/activation-code
+│       └── system.py        # /api/status, /api/my/status, /api/my/activation-code, /api/my/language, /api/my/preferences
 ├── services/                # Domain service layer
 │   ├── appointment_service.py
 │   ├── availability_service.py

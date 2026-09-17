@@ -19,8 +19,12 @@ const patientId = pathParts[1];
 const aptDate   = pathParts[2];
 const aptTimeSlug = pathParts[3] || '';
 const aptTime   = aptTimeSlug.replace('-', ':');
+// Server values for this page (the JSON island in treatment.html).
+const ZF_CONFIG = JSON.parse(document.getElementById('treatment-config').textContent || '{}');
 // Live updates (Phase 3.4): stream status changes instead of polling when the server offers it.
-const ZF_SSE_UPDATES = Boolean(JSON.parse(document.getElementById('treatment-config').textContent || '{}').sse_updates);
+const ZF_SSE_UPDATES = Boolean(ZF_CONFIG.sse_updates);
+// Point-card density, saved per therapist (Phase 4.2d).
+let pointDensity = ZF_CONFIG.point_density === 'compact' ? 'compact' : 'detailed';
 
 // ── Auto-save ─────────────────────────────────────────────────────────────────
 
