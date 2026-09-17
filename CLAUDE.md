@@ -177,6 +177,7 @@ Any message / /start → SELECTING (main menu)
 - Every test gets a fresh SQLite file via `ZENFLOW_DB_PATH`; fakeredis is patched into `bot.redis_client`; never touch `data/zenflow.db` or a real Redis.
 - Fixtures: `client`, `authenticated_client` (signs in through the real form), `frozen_clock`, `fake_telegram`, `fake_llm`, `make_therapist/patient/appointment/treatment_notes/completed_session`.
 - `tests/unit` (no I/O), `tests/integration` (ASGI client + SQLite + fakes), `tests/security` (attack scenarios), `tests/e2e`. Markers: `slow`, `integration`, `e2e`, `security`.
+- `tests/e2e` serves the app on a local port and drives the installed Chrome with Playwright (`ZF_E2E_BROWSER=msedge` for Edge); visual baselines live in `tests/e2e/snapshots/` per platform — after an intended UI change run `ZF_UPDATE_SNAPSHOTS=1 python -m pytest tests/e2e` and look at the images before committing.
 - Known-open API routes are *strict* xfails in `tests/integration/test_smoke_web.py` — delete the entry when you fix the route.
 
 ## Key conventions

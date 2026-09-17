@@ -210,8 +210,15 @@ print (the topbar "Print handout" button or Ctrl+P). It contains:
 `handoutPoints()` takes codes only, so nothing therapist-facing can reach the patient's copy: no
 AI rationale, no diagnosis certainty, no notes.
 
-## Later parts of 4.2
+## 7. Visual snapshots (Phase 4.2e)
 
-- **4.2e:** Playwright visual snapshots at 3 breakpoints × LTR/RTL × light/dark. This needs the
-  `playwright` package. Using the installed Edge or Chrome (`channel=`) avoids the browser
-  download.
+`tests/e2e/test_visual_snapshots.py` photographs the AI points section at 375, 768 and 1280 px,
+in English and Hebrew, in light and dark tokens. It also captures the whole viewport at each
+width, plus the phone with the drawer open.
+
+- **Baselines:** per-platform PNGs in `tests/e2e/snapshots/`, compared with a 0.2 % pixel
+  tolerance.
+- **Updating:** `ZF_UPDATE_SNAPSHOTS=1 python -m pytest tests/e2e`, then review the images before
+  committing.
+- **What they have caught:** the first run showed the section header squeezing into three lines
+  on a Hebrew phone. The header now wraps (title on one line, pill and density toggle under it).
