@@ -15,6 +15,20 @@
         </div>
         <span class="tp-pill-teal">{{ t['treatment_personalised_formula'] if t else 'Personalised Formula' }}</span>
       </div>
+      <!-- A run in progress: its real stage (Phase 4.2b) -->
+      <div id="ai-points-status" class="ps-status" hidden>
+        <ol class="ps-steps" aria-hidden="true">
+          <li data-step="summary"></li>
+          <li data-step="diagnosis"></li>
+          <li data-step="batch-a"></li>
+          <li data-step="batch-b"></li>
+        </ol>
+        <p id="ai-points-step" class="ps-step-label" role="status"></p>
+        <button id="cancel-generation-btn" type="button" data-action="cancel-generation"
+          class="zf-btn zf-btn-outline ps-cancel" title="Stop this AI generation">Cancel</button>
+      </div>
       <div id="ai-points-grid" class="tp-ai-grid"></div>
+      <!-- Empty, failed, cancelled and stalled states -->
+      <div id="ai-points-message" class="ps-message" hidden></div>
     </div>
   </section>

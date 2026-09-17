@@ -12,21 +12,6 @@
           </button>
         </div>
 
-        <!-- Progress bar shown while AI is computing the formula -->
-        <div id="points-progress" class="tp-progress">
-          <div class="tp-progress-head">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" class="tp-spin-slow"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            <span id="points-progress-label" class="tp-progress-label">{{ t['treatment_diagnosing'] if t else 'Diagnosing…' }}</span>
-            <button id="cancel-generation-btn" type="button" data-action="cancel-generation"
-              class="zf-btn zf-btn-outline tp-cancel-btn" title="Stop this AI generation">
-              Cancel
-            </button>
-          </div>
-          <div class="tp-progress-track">
-            <div id="points-progress-bar" class="tp-progress-bar"></div>
-          </div>
-        </div>
-
         <div class="tp-mt-14">
           <div id="suggested-points" class="tp-chips"></div>
           <div class="zf-points-input-wrap" id="points-wrap">

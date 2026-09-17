@@ -128,10 +128,50 @@ From that, the order of importance on a card is:
   (4.3) carries `contraindications` from a vetted dataset. It is a traditional caution shown
   to a licensed therapist, not medical advice.
 
-### Later parts of 4.2
+## 4. States of the AI points area (Phase 4.2b)
 
-- **4.2b:** designed empty, loading (skeleton cards instead of the timed progress bar),
-  partial (batch A shown, batch B loading) and failed states; a compact/detailed density
-  toggle saved per therapist.
-- **4.2c:** a print stylesheet for the patient handout; Playwright visual snapshots at 3
-  breakpoints × LTR/RTL × light/dark.
+Before this change the AI points area had no single owner:
+
+- a progress bar that moved on timers (25 % at 2.2 s, 55 % at 5 s…) whatever the run was
+  actually doing;
+- a Generate prompt and a Retry prompt, each drawn into the chip row of another card;
+- a hidden section that appeared only once points existed;
+- seven copies of the "remember the rationales" loop, one per code path.
+
+Now `static/js/treatment/point-states.js` owns the area. Every code path (page load,
+Generate, Update Diagnosis, Regenerate, Cancel, the follower) calls `showPointState(state)`.
+
+| State | When | Shows |
+|---|---|---|
+| `idle` | nothing generated yet | empty panel ("No AI formula yet", or "No intake on file") + **Generate** |
+| `loading` | a run is working, no point yet | step list + 6 skeleton cards |
+| `partial` | batch A is in, batch B is working | the cards + 2 skeletons ("Selecting more points…") |
+| `ready` | the formula is complete | the cards; "AI Formula" badge |
+| `failed` | FAILED, or a run that finished with nothing | the cards it saved, if any + an alert panel + **Retry** |
+| `cancelled` | the therapist cancelled | the cards that arrived before, if any + **Generate** |
+| `stalled` | no result after 15 min of following | the cards shown + an alert panel + **Retry** (may override a stale status) |
+
+- **Progress is real:**
+  - the step list (Intake summary → TCM diagnosis → First points → More points) follows
+    `points_status` (`GENERATING_STAGE_0/1/2A/2B`);
+  - there are no timers and no percentages;
+  - the list itself is decorative (`aria-hidden`);
+  - "Step 2 of 4: TCM diagnosis…" is a live `role=status` line;
+  - the section carries `aria-busy` while a run works;
+  - failures use `role=alert`;
+  - skeletons are `aria-hidden` and stop shimmering under `prefers-reduced-motion`.
+- **Single mapping:** `stateOfNotes(notes)` is the one mapping from a notes object to a state,
+  and it is unit-tested for every status.
+- **Follower:**
+  - `_pollForPoints` applies the notes it was given immediately, so opening a generating
+    session no longer waits 2 s for the first poll;
+  - it re-renders only when the state, stage or points change, so open details and focus stay
+    where they are;
+  - responses that arrive after a Cancel or a new run are dropped (a follow token).
+- **Cancel:** re-reads the notes, because points from batch A are kept by the server.
+
+## Later parts of 4.2
+
+- **4.2d:** a compact/detailed density toggle saved per therapist.
+- **4.2c:** a responsive app shell, a print stylesheet for the patient handout, and Playwright
+  visual snapshots at 3 breakpoints × LTR/RTL × light/dark.

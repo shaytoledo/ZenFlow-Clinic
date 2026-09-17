@@ -1648,7 +1648,6 @@ body {
 [dir="rtl"] .zf-advice-item { text-align: right; }
 
 /* ── Points section right column flip ── */
-[dir="rtl"] #points-progress { direction: rtl; }
 /* Natural RTL row handles point progress item layout — no override needed */
 
 /* ── Directional arrows (chevron-left ← becomes → in RTL) ─────────────────── */

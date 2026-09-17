@@ -39,15 +39,7 @@ async function loadTreatment() {
 
     renderDiagnosisBlock(notes, data.summary);
 
-    if (notes && Array.isArray(notes.ai_suggested_points)) {
-      aiPointRationale = {};
-      notes.ai_suggested_points.forEach(p => {
-        if (typeof p === 'object' && p.code) aiPointRationale[p.code] = p.rationale || '';
-        else if (typeof p === 'string') aiPointRationale[p] = '';
-      });
-    }
-
-    renderSuggestedPoints(notes, data.summary);
+    rememberRationales(notes);
 
     if (notes) {
       if (notes.tongue_observation) document.getElementById('tongue-input').value = notes.tongue_observation;
@@ -88,27 +80,22 @@ async function loadTreatment() {
       renderFollowupResults(notes.followup_conversation);
     }
 
-    const hasSavedPoints = notes && Array.isArray(notes.ai_suggested_points) && notes.ai_suggested_points.length > 0;
-    const hasDiagnosis   = Boolean(notes?.tcm_pattern);
-    const hasIntake      = Boolean(data.summary || (data.intake_history && data.intake_history.length > 0));
-    const status         = notes?.points_status || '';
-    const botPipelineRunning = status.startsWith('GENERATING');
+    const hasDiagnosis = Boolean(notes?.tcm_pattern);
+    const hasIntake    = Boolean(data.summary || (data.intake_history && data.intake_history.length > 0));
+    const status       = String(notes?.points_status || '');
+    // The AI's list, or for old notes without one, the reference points the summary names.
+    const points       = normalizeSuggestedPoints(notes, data.summary);
 
     // Opening a session never starts a generation (plan 3.2). The queued pipeline owns the
     // automatic run; the therapist starts any other run with an explicit click.
-    if (botPipelineRunning) {
-      // The pipeline is working — poll the DB and render each stage as it lands.
-      _pollForPoints();
-      if (!data.summary) _startSummaryPoller();
-    } else if (!hasSavedPoints) {
-      _showGenerateButton({
-        failed: status === 'FAILED',
-        cancelled: status === 'CANCELLED',
-        hasInput: hasDiagnosis || hasIntake,
-      });
-    } else if (!data.summary) {
-      // Points are already rendered but summary hasn't arrived from the bot yet
-      _startSummaryPoller();
+    if (status.startsWith('GENERATING')) {
+      // The pipeline is working — show where it is now, then follow it stage by stage.
+      _pollForPoints(notes);
+    } else {
+      showPointState(restingState(status, points.length > 0), { points, hasInput: hasDiagnosis || hasIntake });
+    }
+    if (!data.summary && (points.length || status.startsWith('GENERATING'))) {
+      _startSummaryPoller();  // the bot's intake summary is still on its way
     }
 
   } catch(e) {
