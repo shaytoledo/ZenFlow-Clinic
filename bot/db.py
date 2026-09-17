@@ -245,13 +245,17 @@ def init_db() -> None:
 def _create_acupoints(conn: sqlite3.Connection) -> None:
     """Acupoint reference data (Phase 4.3a): created here, filled from the repo's seed when empty.
 
-    Updates to the seed are applied with `python -m zenflow.seed acupoints`.
+    Updates to the seed are applied with `python -m zenflow.seed acupoints`; images are added with
+    `python -m zenflow.ingest_images <folder>` (Phase 4.3b).
     """
+    from zenflow.ingest_images import CREATE_ACUPOINT_IMAGES, CREATE_ACUPOINT_IMAGES_INDEX
     from zenflow.seed import CREATE_ACUPOINTS, seed_acupoints
 
     conn.execute(CREATE_ACUPOINTS)
     if conn.execute("SELECT COUNT(*) FROM acupoints").fetchone()[0] == 0:
         seed_acupoints(conn)
+    conn.execute(CREATE_ACUPOINT_IMAGES)
+    conn.execute(CREATE_ACUPOINT_IMAGES_INDEX)
 
 
 def _create_active_slot_index(conn: sqlite3.Connection) -> None:

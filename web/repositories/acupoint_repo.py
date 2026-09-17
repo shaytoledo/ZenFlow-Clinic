@@ -41,9 +41,29 @@ def all_points() -> list[dict[str, Any]]:
     return [_decode(r) for r in rows]
 
 
-def reference(points: Iterable[Mapping[str, Any]], lang: str) -> dict[str, Any]:
+def images_by_code() -> dict[str, list[dict[str, Any]]]:
+    """Stored image rows per point code, primary first (Phase 4.3b)."""
+    rows = (
+        _conn()
+        .execute("""SELECT point_code, storage_key, thumb_key, kind, width, height, credit, licence,
+                      licence_url, source_url, is_primary
+               FROM acupoint_images ORDER BY point_code, is_primary DESC, id""")
+        .fetchall()
+    )
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(str(row["point_code"]), []).append(dict(row))
+    return grouped
+
+
+def reference(
+    points: Iterable[Mapping[str, Any]],
+    lang: str,
+    images: Mapping[str, list[dict[str, Any]]] | None = None,
+) -> dict[str, Any]:
     """The page's view of the reference data: text in `lang` (falling back to English), the
-    English channel for colour themes, and an alias → code map."""
+    English channel for colour themes, an alias → code map, and each point's `images` (already
+    turned into links by the caller; empty when images are off)."""
     lang = lang if lang in LANGUAGES else "en"
     by_code: dict[str, dict[str, Any]] = {}
     aliases: dict[str, str] = {}
@@ -65,6 +85,7 @@ def reference(points: Iterable[Mapping[str, Any]], lang: str) -> dict[str, Any]:
             "contraindications": list(point["contraindications"]),
             "source": point["source"],
             "licence": point["licence"],
+            "images": list((images or {}).get(point["code"], [])),
         }
         for alias in point["aliases"]:
             aliases[str(alias)] = point["code"]

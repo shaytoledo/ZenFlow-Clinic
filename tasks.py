@@ -8,11 +8,32 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from collections.abc import Callable
+from pathlib import Path
 
 SRC = ["bot", "web", "startup", "zenflow", "tests"]
 PY = [sys.executable, "-m"]
+LOCKS = (("requirements.txt", "requirements.in"), ("requirements-dev.txt", "requirements-dev.in"))
+LOCK_HEADER = (
+    "# Locked by pip-compile from {src}. Do not edit by hand: make lock / python tasks.py lock\n"
+    "--index-url https://pypi.org/simple\n\n"
+)
 
-TARGETS: dict[str, list[list[str]]] = {
+
+def stamp_lock_headers() -> int:
+    """pip-compile runs with --no-header (no machine-specific noise); put our fixed header back,
+    including the explicit HTTPS index (Phase 0.2)."""
+    for out, src in LOCKS:
+        path = Path(out)
+        text = path.read_text(encoding="utf-8")
+        if text.startswith("# Locked by pip-compile"):
+            text = text.split("\n\n", 1)[1]
+        path.write_text(LOCK_HEADER.format(src=src) + text, encoding="utf-8")
+    return 0
+
+
+Step = list[str] | Callable[[], int]
+TARGETS: dict[str, list[Step]] = {
     "install": [PY + ["pip", "install", "-r", "requirements.txt", "-r", "requirements-dev.txt"]],
     "fmt": [PY + ["black", *SRC], PY + ["ruff", "check", "--fix", *SRC]],
     "lint": [PY + ["black", "--check", *SRC], PY + ["ruff", "check", *SRC]],
@@ -44,6 +65,7 @@ TARGETS: dict[str, list[list[str]]] = {
             "requirements-dev.txt",
             "requirements-dev.in",
         ],
+        stamp_lock_headers,
     ],
     "hooks": [PY + ["pre_commit", "install"]],
 }
@@ -55,9 +77,13 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     for target in argv:
-        for cmd in TARGETS[target]:
-            print("+", " ".join(cmd[2:] if cmd[:2] == PY else cmd), flush=True)
-            rc = subprocess.run(cmd, check=False).returncode  # noqa: S603
+        for step in TARGETS[target]:
+            if callable(step):
+                print("+", step.__name__, flush=True)
+                rc = step()
+            else:
+                print("+", " ".join(step[2:] if step[:2] == PY else step), flush=True)
+                rc = subprocess.run(step, check=False).returncode  # noqa: S603
             if rc:
                 return rc
     return 0

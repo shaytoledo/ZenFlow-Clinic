@@ -34,6 +34,7 @@ from web.routers.api.treatment import router as treatment_router
 from web.routers.auth import router as auth_router
 
 # ── Routers────────────────────────────────────────────────────────────────────
+from web.routers.media import router as media_router
 from web.routers.pages import router as pages_router
 from web.routers.patients import router as patients_router
 from zenflow import logging as zlog
@@ -132,6 +133,7 @@ async def no_cache_static(request: Request, call_next):
 app.include_router(pages_router)
 app.include_router(auth_router)
 app.include_router(patients_router)
+app.include_router(media_router)  # /media/* — signed-in only (router dependency)
 
 # Every /api/* router requires a session at ROUTER level so the check runs before body
 # validation (SF-005 / F11). Endpoints add object-level checks on top (F6).

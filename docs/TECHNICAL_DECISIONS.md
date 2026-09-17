@@ -745,3 +745,36 @@ out of script, and variables let one rule serve every channel).
 **Consequences.** New UI should use tokens; old rules migrate page by page. Turning dark mode on
 for real (a setting, then `data-theme` on `<html>`) waits until the shell and the remaining
 components are on tokens.
+
+---
+
+## ADR-26: Media Lives Behind a Storage Interface; Images Enter Only Through a Licence-Checking Ingester
+
+**Date:** 2026-09-17 (Phase 4.3b)
+
+**Context.** Point images are the first binary content the app stores. They will move to S3
+when the app runs on AWS (Phase 12), and every image needs a traceable licence (plan 4.3: "no
+scraping copyrighted atlases").
+
+**Decision.**
+1. **Storage interface.** `zenflow/storage.py` defines `Storage` (put, get, exists, delete, url)
+   and `get_storage()` picks the implementation: `LocalStorage` (files under `MEDIA_ROOT`) now,
+   and `S3Storage` behind `ZF_STORAGE_S3` in 4.3c. Callers only ever hold keys and links.
+2. **Key rules.** Keys are validated in one place before any disk or bucket call: relative,
+   lower-case segments, a known image extension, and a content type that matches the extension.
+   `LocalStorage` also checks that the resolved path stays under its root.
+3. **Serving local files.** They are served by `/media/<key>` to signed-in therapists only.
+   S3 will hand out presigned links instead, so the page code does not change.
+4. **Ingestion.** The only way in is `python -m zenflow.ingest_images`. It refuses a file without a
+   credit and a licence, re-encodes every image (which drops EXIF, GPS and other metadata), and
+   names objects by content hash, so re-running updates rows instead of duplicating them.
+5. **Visibility flag.** `ZF_POINT_IMAGES` decides whether `/api/acupoints` lists images, so the
+   code can ship before any licensed image exists (Q4).
+
+**Options rejected.** Storing images as BLOBs in SQLite (grows the database and its backups, and
+has no path to a CDN or S3); public static serving from `web/static` (no access control, and
+images would sit in the repo); accepting uploads through the web UI now (it needs a licence
+workflow and review that nobody has asked for yet).
+
+**Consequences.** Swapping in S3 touches only `get_storage()` and the new class. Images must be
+re-ingested, not copied, into a new store, which re-runs the metadata stripping.

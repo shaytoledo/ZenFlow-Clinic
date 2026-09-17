@@ -124,6 +124,37 @@ CREATE TABLE IF NOT EXISTS acupoints (
 Deviation from the plan's column list: `aliases` (the AI and old notes use non-WHO codes such as
 `KD3`) and `translations` (the page is bilingual) were added.
 
+### Table: `acupoint_images` (Phase 4.3b)
+
+Images of a point, added only by `python -m zenflow.ingest_images <folder>` (which refuses any
+file without a credit and a licence). The bytes live in the media store (`zenflow/storage.py`);
+the row keeps the keys and the attribution.
+
+```sql
+CREATE TABLE IF NOT EXISTS acupoint_images (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    point_code    TEXT NOT NULL REFERENCES acupoints(code) ON DELETE CASCADE,
+    storage_key   TEXT NOT NULL UNIQUE,     -- acupoints/<code>/<sha256[:16]>.webp (≤1600 px)
+    thumb_key     TEXT NOT NULL,            -- …-thumb.webp (≤320 px)
+    kind          TEXT NOT NULL DEFAULT 'diagram' CHECK (kind IN ('diagram', 'photo', '3d')),
+    width         INTEGER NOT NULL,         -- of the web copy
+    height        INTEGER NOT NULL,
+    sha256        TEXT NOT NULL,            -- of the original file; makes re-ingesting idempotent
+    original_name TEXT NOT NULL DEFAULT '',
+    credit        TEXT NOT NULL,
+    licence       TEXT NOT NULL,
+    licence_url   TEXT NOT NULL DEFAULT '',
+    source_url    TEXT NOT NULL DEFAULT '',
+    is_primary    INTEGER NOT NULL DEFAULT 0, -- the first image ingested for a point
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_acupoint_images_code ON acupoint_images(point_code);
+```
+
+`GET /api/acupoints` lists a point's images (links, kind, size, attribution — never the storage
+keys) only when `ZF_POINT_IMAGES=1`.
+
 ### Table: `leases` (Phase 3.1)
 
 ```sql

@@ -109,6 +109,9 @@ class Settings(BaseSettings):
     # ── redis ──
     redis_url: str = "redis://localhost:6379/0"
 
+    # ── media (Phase 4.3b) ──
+    media_root: str = ""  # MEDIA_ROOT — LocalStorage directory; empty ⇒ data/media
+
     # ── web / secrets ──
     session_secret: str = DEFAULT_SESSION_SECRET
     token_encryption_key: str | None = None

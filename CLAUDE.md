@@ -94,6 +94,7 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 ├── routers/
 │   ├── pages.py             # HTML page routes (/, /schedule, /patients, /messages, /sessions, /settings, /treatment/...)
 │   ├── auth.py              # Auth routes (/register, /signin, /logout, Google OAuth, /register/activate)
+│   ├── media.py             # /media/<key> — LocalStorage files, signed-in therapists only
 │   └── api/
 │       ├── appointments.py  # /api/appointments/today, /api/patients, /api/patients/{id}
 │       ├── treatment.py     # /api/treatment-notes/* (get, save, rediagnose, send, complete)
@@ -136,6 +137,8 @@ zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── events.py                # Live-page wake-ups: notify_treatment() / subscribe_treatment() (Redis pub/sub, best effort)
 ├── migrate_timestamps.py    # python -m zenflow.migrate_timestamps [--dry-run] — legacy timestamps → canonical UTC
 ├── seed.py                  # python -m zenflow.seed acupoints [--dry-run] — reference data from zenflow/seed_data/*.json
+├── storage.py               # Storage ABC (put/get/exists/delete/url) + LocalStorage (MEDIA_ROOT, served at /media); S3 in 4.3c
+├── ingest_images.py         # python -m zenflow.ingest_images <folder> [--dry-run] — licensed images → WebP + thumb + acupoint_images
 ├── db_backup.py             # backup_database() via SQLite online backup (WAL-safe)
 ├── logging.py               # Structured logging: context (request_id…), redaction, console/JSON formatters, timed()
 ├── token_key.py             # Fernet derivation for google_tokens + rotate()
@@ -226,6 +229,8 @@ Any message / /start → SELECTING (main menu)
 | `CLINIC_TZ` | `Asia/Jerusalem` | clinic zone for `today()`; stored instants are always UTC |
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `ZF_CONV_TIMEOUT_MINUTES` | `30` | Idle minutes before a patient flow is closed; `0` = never |
+| `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
+| `ZF_POINT_IMAGES` | `0` | `1` = `/api/acupoints` lists point images (needs licensed images, Q4) |
 | `ZF_SSE_UPDATES` | `0` | `1` = the treatment page follows a generation over server-sent events instead of 2 s polling |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
