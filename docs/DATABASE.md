@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS therapists (
     calendar_name    TEXT DEFAULT 'ZenFlow Availability',
     active           INTEGER DEFAULT 0,           -- 0=false, 1=true
     created_at       TEXT DEFAULT (datetime('now'))
+    -- added by migrations in init_db():
+    -- language      TEXT DEFAULT 'en'            -- UI language, 'en' | 'he'
+    -- ui_prefs      TEXT                         -- JSON, whitelisted UI preferences (Phase 4.2d)
 );
 ```
 
@@ -82,6 +85,7 @@ CREATE TABLE IF NOT EXISTS therapists (
 | `password_hash` | `NULL` for Google-only accounts. Format: `"{64-hex-salt}:{64-hex-hash}"` |
 | `google_id` | Google's unique stable identifier for the user (from `id_token.sub`) |
 | `calendar_name` | Name of the therapist's Google Calendar that holds "✅ Available" events |
+| `ui_prefs` | JSON object, e.g. `{"point_density": "compact"}`. Only keys and values in `therapist_repo.UI_PREF_CHOICES` are ever written; anything else reads as the default. API: `GET`/`PATCH /api/my/preferences` |
 
 **Write operations:**
 - `_register_web_therapist()` → `INSERT` with `telegram_id=0, active=0`

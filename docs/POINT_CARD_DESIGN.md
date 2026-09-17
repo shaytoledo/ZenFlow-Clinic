@@ -170,8 +170,20 @@ Generate, Update Diagnosis, Regenerate, Cancel, the follower) calls `showPointSt
   - responses that arrive after a Cancel or a new run are dropped (a follow token).
 - **Cancel:** re-reads the notes, because points from batch A are kept by the server.
 
+## 5. Density (Phase 4.2d)
+
+A segmented **Detailed / Compact** toggle sits in the section header (`role=group`, buttons
+with `aria-pressed`).
+
+- **Compact cards:** they keep the code, name, toggle, channel and pregnancy caution. They hide
+  the location, the rationale and the details. The grid switches to 180 px `auto-fill`, so
+  compact cards stay narrow.
+- **Saving:** the choice is saved per therapist in `therapists.ui_prefs`
+  (`PATCH /api/my/preferences`, whitelisted values only). It reaches the page in the config
+  island, so the first paint is already right.
+- **Tests:** a test keeps compact from ever hiding identity, selection or cautions.
+
 ## Later parts of 4.2
 
-- **4.2d:** a compact/detailed density toggle saved per therapist.
 - **4.2c:** a responsive app shell, a print stylesheet for the patient handout, and Playwright
   visual snapshots at 3 breakpoints × LTR/RTL × light/dark.

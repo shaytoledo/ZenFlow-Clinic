@@ -4,6 +4,8 @@ web/routers/pages.py
 All HTML page routes for the ZenFlow therapist web app.
 """
 
+import asyncio
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -78,10 +80,16 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
         resolve_owned_appointment(request, patient_id, apt_date, apt_time)
     except HTTPException:  # not found / not this therapist's → back to the list, like other pages
         return RedirectResponse("/patients")
+    from web.repositories import therapist_repo
     from zenflow.settings import get_settings
 
+    prefs = await asyncio.to_thread(therapist_repo.get_ui_prefs, therapist["id"])
     return _page(
-        request, "treatment.html", "patients", sse_updates=get_settings().flags.sse_updates
+        request,
+        "treatment.html",
+        "patients",
+        sse_updates=get_settings().flags.sse_updates,
+        point_density=prefs["point_density"],
     )
 
 

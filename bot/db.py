@@ -164,6 +164,8 @@ def init_db() -> None:
         "ALTER TABLE treatment_notes ADD COLUMN points_status TEXT",
         # Email contact for manual patients (used by SMTP fallback)
         "ALTER TABLE appointments ADD COLUMN patient_email TEXT",
+        # Per-therapist UI preferences, a whitelisted JSON object (Phase 4.2d, therapist_repo)
+        "ALTER TABLE therapists ADD COLUMN ui_prefs TEXT",
     ]
     # Per-therapist Google OAuth2 tokens (Calendar + Gmail) — Fernet-encrypted at rest
     conn.execute("""CREATE TABLE IF NOT EXISTS google_tokens (

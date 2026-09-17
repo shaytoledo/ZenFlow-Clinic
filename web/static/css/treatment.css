@@ -598,4 +598,45 @@
   .tp .ps-steps li::before { animation: none; }
 }
 
+/* ── Density (Phase 4.2d): a segmented toggle; compact trims detail, never identity or cautions ── */
+.tp .pc-density {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 2px;
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-pill);
+  background: var(--zf-surface-muted);
+}
+.tp .pc-density button {
+  padding: 3px var(--zf-space-3);
+  border: 0;
+  border-radius: var(--zf-radius-pill);
+  background: none;
+  color: var(--zf-text-muted);
+  font: inherit;
+  font-size: var(--zf-text-xs);
+  font-weight: var(--zf-weight-semibold);
+  cursor: pointer;
+}
+.tp .pc-density button:hover { color: var(--zf-text); }
+.tp .pc-density button[aria-pressed="true"] {
+  background: var(--zf-surface);
+  color: var(--zf-text);
+  box-shadow: var(--zf-shadow-sm);
+}
+.tp .pc-density button:focus-visible { outline: none; box-shadow: var(--zf-focus-ring); }
+
+.tp [data-density="compact"] .tp-ai-grid {
+  /* auto-fill keeps compact cards narrow; auto-fit would stretch three of them across the row */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+  gap: var(--zf-space-2);
+}
+.tp [data-density="compact"] .pc { gap: var(--zf-space-1); padding: var(--zf-space-3); }
+.tp [data-density="compact"] .pc-code { font-size: var(--zf-text-lg); }
+.tp [data-density="compact"] .pc-location,
+.tp [data-density="compact"] .pc-why,
+.tp [data-density="compact"] .pc-more { display: none; }
+.tp [data-density="compact"] .ps-skeleton { min-height: 96px; }
+.tp [data-density="compact"] .ps-bar-block { display: none; }
+
 /* ══ end point cards ══ */

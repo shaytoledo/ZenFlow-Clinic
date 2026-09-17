@@ -243,6 +243,39 @@ async def set_my_language(request: Request):
     return JSONResponse({"ok": True, "language": lang})
 
 
+@router.get("/my/preferences")
+async def get_my_preferences(request: Request):
+    """The therapist's UI preferences (Phase 4.2d), defaults filled in."""
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from web.repositories import therapist_repo
+
+    prefs = await asyncio.to_thread(therapist_repo.get_ui_prefs, therapist["id"])
+    return JSONResponse(prefs)
+
+
+@router.patch("/my/preferences")
+async def update_my_preferences(request: Request):
+    """Change whitelisted UI preferences, e.g. {"point_density": "compact"}; 422 otherwise."""
+    therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from web.repositories import therapist_repo
+
+    try:
+        body = await request.json()
+    except ValueError:
+        body = None
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=422, detail="Send a JSON object of preferences")
+    try:
+        prefs = await asyncio.to_thread(therapist_repo.update_ui_prefs, therapist["id"], body)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return JSONResponse(prefs)
+
+
 @router.get("/my/activation-code")
 async def get_my_activation_code(request: Request):
     therapist = _get_session_therapist(request)

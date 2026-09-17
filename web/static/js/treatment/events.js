@@ -22,6 +22,7 @@ const CLICK_ACTIONS = {
     togglePoint(el.dataset.code);
   },
   'undo-point-removal': () => undoPointRemoval(),
+  'set-point-density': (el) => setPointDensity(el.dataset.density),
   'remove-point': (el) => removePoint(el.dataset.code),
   'open-point-panel': (el) => openPointPanel(el.dataset.code, el),
   'close-point-panel': () => closePointPanel(),

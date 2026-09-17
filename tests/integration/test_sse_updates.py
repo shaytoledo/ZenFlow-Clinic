@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any
 
 import pytest
@@ -170,9 +171,14 @@ async def test_another_therapist_cannot_subscribe(
 async def test_the_page_knows_whether_to_stream(session, fake_redis, monkeypatch) -> None:
     import zenflow.settings as settings_mod
 
+    def config(html: str) -> dict:
+        found = re.search(r'id="treatment-config">(.*?)</script>', html)
+        assert found is not None
+        return json.loads(found.group(1))
+
     page = f"/treatment/{session['slug']}"
     off = await session["client"].get(page)
-    assert 'id="treatment-config">{"sse_updates": false}' in off.text
+    assert config(off.text)["sse_updates"] is False
 
     monkeypatch.setenv("ZF_SSE_UPDATES", "1")
     settings_mod.reset_settings()
@@ -180,7 +186,7 @@ async def test_the_page_knows_whether_to_stream(session, fake_redis, monkeypatch
         on = await session["client"].get(page)
     finally:
         settings_mod.reset_settings()
-    assert 'id="treatment-config">{"sse_updates": true}' in on.text
+    assert config(on.text)["sse_updates"] is True
 
 
 def test_the_page_falls_back_to_polling() -> None:

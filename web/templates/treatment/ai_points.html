@@ -14,6 +14,11 @@
           <span class="tp-section-count" id="ai-points-count" aria-live="polite"></span>
         </div>
         <span class="tp-pill-teal">{{ t['treatment_personalised_formula'] if t else 'Personalised Formula' }}</span>
+        <!-- Card density, saved per therapist (Phase 4.2d); labels are set by render-points.js -->
+        <div class="pc-density" role="group" aria-label="Card detail">
+          <button type="button" data-action="set-point-density" data-density="detailed" aria-pressed="true">Detailed</button>
+          <button type="button" data-action="set-point-density" data-density="compact" aria-pressed="false">Compact</button>
+        </div>
       </div>
       <!-- A run in progress: its real stage (Phase 4.2b) -->
       <div id="ai-points-status" class="ps-status" hidden>
