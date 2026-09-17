@@ -33,6 +33,7 @@ def aws(monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
         "AWS_DEFAULT_REGION": REGION,
     }.items():
         monkeypatch.setenv(name, value)
+    s3_client.cache_clear()  # a client built with other credentials must not leak in
     with moto.mock_aws():
         client = s3_client(region=REGION)
         client.create_bucket(
@@ -223,3 +224,8 @@ async def test_ingested_images_are_linked_from_s3(
     assert "-thumb.webp" in image["thumb_url"]
     media_key = keys[0].removeprefix("media/")
     assert (await client.get(f"/media/{media_key}")).status_code == 404, "S3 links, not /media"
+
+
+def test_the_client_is_built_once_per_region(aws: Any) -> None:
+    assert s3_client(region=REGION) is aws
+    assert s3_client(region="us-east-1") is not aws

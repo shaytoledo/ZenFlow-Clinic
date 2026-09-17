@@ -15,6 +15,7 @@ which the web app serves to signed-in therapists. With ``ZF_STORAGE_S3=1``, `S3S
 
 from __future__ import annotations
 
+import functools
 import os
 import re
 import tempfile
@@ -166,8 +167,12 @@ class S3Storage(Storage):
         return link
 
 
+@functools.lru_cache(maxsize=4)
 def s3_client(region: str = "", endpoint_url: str = "") -> Any:
-    """A boto3 S3 client (SigV4, so presigned links work with KMS-encrypted objects)."""
+    """A boto3 S3 client (SigV4, so presigned links work with KMS-encrypted objects).
+
+    Cached: building a client costs tens of milliseconds, and clients are thread-safe.
+    """
     import boto3
     from botocore.config import Config
 
