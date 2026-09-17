@@ -216,3 +216,31 @@ def test_cancelling_google_keeps_the_explanation(
         assert page.get_attribute("#email-send", "aria-disabled") == "true"
     finally:
         page.context.close()
+
+
+def test_a_refused_send_shows_the_servers_explanation(browser, live_server, email_page) -> None:
+    """Phase 5.5: no token → the server's 409 → the dialog explains it and offers its text."""
+    page, s = email_page(browser, live_server)
+    try:
+        page.click("#send-advice-btn", **TRY_ANYWAY)
+        page.fill("#email-address", "not an address")
+        page.keyboard.press("Enter")  # the form submits on Enter
+        page.wait_for_selector("#email-error:not([hidden])")
+        assert "valid email address" in page.inner_text("#email-error")
+
+        requests: list[str] = []
+        page.on("request", lambda r: requests.append(r.url))
+        page.fill("#email-address", EMAIL)
+        page.keyboard.press("Enter")
+        # the blocked form has a Connect link too: wait for the refusal view itself
+        page.wait_for_selector("#email-dialog[open] .ed-icon-caution")
+        assert page.inner_text("#email-title") == "Not connected to Google"
+        assert "cannot send emails on your behalf" in page.inner_text("#email-dialog .ed-text")
+        page.click('#email-dialog [data-action="show-email-copy"]')
+        text = page.input_value("#email-copy-text")
+        assert text.startswith("Your post-treatment recommendations") and "Hi Dana," in text
+        assert any(u.endswith("/send-recommendations") for u in requests)
+        assert not any(u.endswith("/recommendations-text") for u in requests), "the 409 had it"
+        assert s["path"] in page.url
+    finally:
+        page.context.close()

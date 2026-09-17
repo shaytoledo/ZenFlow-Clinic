@@ -216,6 +216,10 @@ async def test_happy_path_sends_base64_mime_and_clears_a_stale_alert(clinic, mon
     payload = mime.get_payload(decode=True)
     assert isinstance(payload, bytes) and "Warm, cooked food" in payload.decode("utf-8")
     assert _reconnect_alerts(tid) == 0, "a working token resolves the reconnect alert"
+    from web.repositories import treatment_repo
+
+    notes = treatment_repo.get_by_appointment(c["telegram"]["id"])
+    assert notes is not None and notes["recommendations_sent_at"], "the session row is stamped"
 
 
 # ── the 24h queue ──

@@ -174,3 +174,21 @@ Implemented in `bot/services/followup_scheduler.dispatch_recommendations` and
   - the queue entry is kept for "Send Now". Reconnecting also pulls any backoff wait forward.
 - **Google unreachable**, or a refresh marked retryable: an ordinary failure. It retries and then
   dead-letters, with no reconnect alert.
+
+## 5. What proves it (task 5.5)
+
+| The plan asks | Covered by |
+|---|---|
+| No token → 409 with the typed payload | `tests/integration/test_google_connection.py::test_no_google_account_is_a_typed_409_with_the_text_to_copy` (exact body), `…::test_an_email_only_patient_is_not_queued_while_google_is_disconnected` |
+| …and the UI shows the modal | `tests/e2e/test_email_flow.py::test_a_refused_send_shows_the_servers_explanation` (Enter → the server's 409 → the explanation and its text, with no extra request), `…::test_email_controls_explain_a_missing_google_account` (preflight, en/he) |
+| Token present, Gmail says `invalid_grant` → reconnect alert exactly once | the web path: `test_google_connection.py::test_a_revoked_token_asks_to_reconnect_and_alerts_once` and `…::test_gmail_refusing_the_credentials_is_token_invalid_too`. The queued path: `tests/integration/test_background_email.py::test_a_refused_token_retries_then_dead_letters_with_one_alert_each` (at refresh and at send) |
+| Happy path → Gmail called with the right base64 MIME, row stamped | the web path: `test_google_connection.py::test_happy_path_sends_base64_mime_and_clears_a_stale_alert`. The queued path: `tests/integration/test_recommendations_delivered.py::test_an_emailed_queue_is_stamped_and_not_sent_again` (To, `text/plain; charset=utf-8`, body, `recommendations_sent_at`) |
+
+**Bug found while writing these tests:**
+
+- **Before:** a queued delivery (email or Telegram) cleared the queue entry but never stamped
+  `recommendations_sent_at`.
+- **Consequence:** completing the session again queued the same recommendations again, so the
+  patient received them twice. The test reproduced two emails on the old code.
+- **Fix:** `treatment_repo.mark_recommendations_delivered()` stamps the row and clears the queue
+  in one statement.

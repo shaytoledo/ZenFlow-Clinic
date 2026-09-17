@@ -326,7 +326,10 @@ async def dispatch_recommendations(row: dict) -> None:
       - Manual patient without contact   → persistent "missing contact" alert; entry cleared.
     Any other failure raises so the job retries; the therapist is alerted on the final attempt.
     """
-    from web.repositories.treatment_repo import clear_pending_recommendations
+    from web.repositories.treatment_repo import (
+        clear_pending_recommendations,
+        mark_recommendations_delivered,
+    )
     from web.services import notification_service
 
     apt_id = int(row["appointment_id"])
@@ -367,7 +370,7 @@ async def dispatch_recommendations(row: dict) -> None:
                     clock.hours_ahead(GOOGLE_RECHECK_HOURS),
                     "waiting for the therapist to connect Google",
                 ) from e
-            await asyncio.to_thread(clear_pending_recommendations, apt_id)  # delivered
+            await asyncio.to_thread(mark_recommendations_delivered, apt_id)
             await _best_effort(
                 notification_service.resolve_waiting_for_google, therapist_id, apt_id
             )
@@ -401,7 +404,7 @@ async def dispatch_recommendations(row: dict) -> None:
             await get_default_channel().send_text(
                 recipient_id=pat_id, text=_recommendations_telegram_text(items)
             )
-            await asyncio.to_thread(clear_pending_recommendations, apt_id)  # delivered
+            await asyncio.to_thread(mark_recommendations_delivered, apt_id)
             await _best_effort(
                 notification_service.alert_recommendations_sent,
                 therapist_id,

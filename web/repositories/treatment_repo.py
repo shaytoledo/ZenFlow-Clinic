@@ -315,6 +315,21 @@ def clear_pending_recommendations(appointment_id: int) -> None:
     )
 
 
+def mark_recommendations_delivered(appointment_id: int) -> None:
+    """The queued recommendations went out: stamp `recommendations_sent_at` and drop the queue
+    entry in one statement (Phase 5.5). Without the stamp, completing the session again would
+    queue — and send — them a second time."""
+    from zenflow import clock
+
+    _conn().execute(
+        """UPDATE treatment_notes
+           SET recommendations_sent_at=?, pending_recommendations=NULL, pending_rec_send_at=NULL,
+               updated_at=?
+           WHERE appointment_id=?""",
+        (clock.iso_now(), clock.iso_now(), appointment_id),
+    )
+
+
 def list_due_pending_recommendations(now_iso: str) -> list[dict[str, Any]]:
     """Return sessions whose pending recommendations are due to send."""
     rows = (
