@@ -1028,3 +1028,48 @@ remains a contained change — the owner can still answer Q2 the other way.
 - The adapter is the only module that names graph.facebook.com (a test enforces it).
 - `ZF_CHANNEL_WHATSAPP` stays off until the clinic has an account, so nothing above affects a
   running clinic today.
+
+---
+
+## ADR-31: The Audit Trail Is Append-Only in the Database, and Names an Actor from Context
+
+**Date:** 2026-09-18 (Phase 8.1)
+
+**Context.** Plan 8.1 asks for one table that answers "what happened to this patient's data,
+when, and who did it", written on every clinical mutation. Two questions had to be settled: how
+the trail resists being rewritten, and how a repository three calls below a request knows who is
+acting.
+
+**Decision.**
+
+1. **Append-only in SQLite.** Two triggers raise on UPDATE and DELETE. The guarantee belongs to
+   the database, not to a convention: an application that can rewrite its own trail has no trail.
+2. **The actor comes from a context variable**, set where the identity is actually known — the
+   request middleware (therapist, with IP and user agent), the booking API's guard (the API
+   key's client), the bot (the patient), the pipeline (the AI), the worker (the job). The default
+   is `system`, so an unnamed write is honest rather than wrong.
+3. **Rows carry the diff, not the record.** `audit.changes()` drops `created_at`, `updated_at`
+   and `id`, so a row shows the edit. Secret-looking fields are `<redacted>`, the payload passes
+   through the log redactor, and it is capped.
+4. **Recording is best effort.** A failed insert is logged and swallowed. Evidence is worth a
+   great deal, but not the appointment it describes.
+5. **The endpoint list is a test.** `tests/integration/test_audit_log.py` names the endpoints
+   that change clinical data; adding one without recording fails the suite.
+
+**Options rejected:**
+
+- **A repository-level decorator on every write.** It would record mechanical writes (a cache
+  stamp, a status poll) as clinical events and still not know the actor.
+- **Passing the actor down as an argument.** Every service signature would grow one, and the bot
+  and jobs would keep forgetting it.
+- **Making the write transactional with the change.** A failed audit insert would then roll back
+  a patient's booking; the trail must not be able to take the clinic down.
+- **Storing before/after in full.** Larger rows, and clinical text duplicated into a table with a
+  different retention story.
+
+**Consequences.**
+
+- The trail can be read per entity (8.5 will surface it on the session page) and per actor.
+- Anything that needs to delete audit rows (a retention policy, a legal erasure request) has to
+  drop the triggers deliberately — which is the point, and is left to plan 9.9 / Q5.
+- Actions are named `entity.verb`, so new ones are self-describing.

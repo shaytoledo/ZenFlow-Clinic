@@ -243,8 +243,12 @@ def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> N
     import json as _json
 
     from bot.db import get_db
+    from web.services import audit
 
     conn = get_db()
+    before = conn.execute(
+        "SELECT * FROM treatment_notes WHERE appointment_id=?", (appointment_id,)
+    ).fetchone()
     conn.execute(
         """INSERT INTO treatment_notes
            (appointment_id, patient_id, tcm_pattern, treatment_principles,
@@ -300,6 +304,18 @@ def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> N
             notes.get("completed_at"),
         ),
     )
+    after = conn.execute(
+        "SELECT * FROM treatment_notes WHERE appointment_id=?", (appointment_id,)
+    ).fetchone()
+    was, now = audit.changes(dict(before) if before else {}, dict(after) if after else {})
+    if now:  # whoever is acting — the AI pipeline names itself (8.1)
+        audit.record(
+            "treatment_notes.updated",
+            "treatment_notes",
+            appointment_id,
+            before=was or None,
+            after=now,
+        )
 
 
 def get_treatment_notes(appointment_id: int) -> dict | None:

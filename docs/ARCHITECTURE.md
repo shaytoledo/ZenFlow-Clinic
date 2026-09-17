@@ -81,6 +81,7 @@ Clinic/
 │   │       ├── v1.py              # /api/v1 booking API: key or session, idempotency, OpenAPI (7.3)
 │   │       └── whatsapp.py        # /api/webhooks/whatsapp — inbound + receipts (7.4b)
 │   ├── services/                  # Domain service layer (CRUD, caching, Telegram helpers)
+│   │   ├── audit.py               # THE audit trail: record(), acting_as(); append-only (8.1)
 │   │   ├── booking_service.py     # THE booking implementation: create / cancel / availability (7.3)
 │   │   ├── idempotency.py         # Idempotency-Key storage for the booking API
 │   │   ├── rate_limit.py          # Per-caller request budget (Redis, fails open)

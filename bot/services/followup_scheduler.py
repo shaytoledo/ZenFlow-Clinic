@@ -624,6 +624,14 @@ def _chosen(state: dict) -> list[str]:
     return [e for e in (state.get("side_effects") or []) if e in checkin.SIDE_EFFECTS]
 
 
+def _audit_answer(state: dict, answers: dict) -> None:
+    """The patient answered a check-in question (8.1) — recorded in their own name."""
+    from web.services import audit
+
+    with audit.acting_as("patient", state.get("patient_id", "")):
+        audit.record("followup.answered", "followup", int(state["appointment_id"]), after=answers)
+
+
 async def _take_answer(state: dict, step: int, value: Any, shown: str, lang: str) -> Any:
     """Store one answer, apply the red-flag rule, and return the next prompt."""
     from web.repositories import followup_repo
@@ -633,6 +641,8 @@ async def _take_answer(state: dict, step: int, value: Any, shown: str, lang: str
     conversation = list(state.get("conversation") or [])
     conversation.append({"role": "user", "content": shown})
     merged = {**{k: state.get(k) for k in _ANSWER_KEYS}, **answers}
+
+    await asyncio.to_thread(_audit_answer, state, answers)
 
     flags = checkin.red_flags(merged)
     if flags and not state.get("needs_attention"):

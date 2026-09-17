@@ -23,6 +23,7 @@ from typing import Any
 
 from bot.patient_bot.services.appointments import SlotTaken, save_appointment, set_gcal_event_id
 from bot.patient_bot.services.availability import book_slot, get_available_hours, restore_slot
+from web.services import audit
 from zenflow import clock
 
 logger = logging.getLogger(__name__)
@@ -224,8 +225,12 @@ async def create(request: BookingRequest) -> dict[str, Any]:
     if request.send_confirmation:
         await asyncio.to_thread(_queue_confirmation, appointment_id)
 
-    await asyncio.to_thread(_invalidate_caches)
     appointment = await asyncio.to_thread(get, appointment_id)
+    await asyncio.to_thread(
+        audit.record, "appointment.created", "appointment", appointment_id, after=appointment
+    )
+
+    await asyncio.to_thread(_invalidate_caches)
     if appointment is None:  # pragma: no cover — the row was just inserted
         raise BookingError("booking_failed", "the appointment disappeared", status=500)
     logger.info(
@@ -261,7 +266,16 @@ async def cancel(appointment_id: int) -> dict[str, Any]:
         logger.warning(f"cancel {appointment_id}: calendar not updated: {e}")
     await asyncio.to_thread(_invalidate_caches)
     updated = await asyncio.to_thread(appointment_repo.get_by_id, appointment_id)
-    return as_appointment(updated or row)
+    appointment = as_appointment(updated or row)
+    await asyncio.to_thread(
+        audit.record,
+        "appointment.cancelled",
+        "appointment",
+        appointment_id,
+        before=as_appointment(dict(row)),
+        after=appointment,
+    )
+    return appointment
 
 
 # ── helpers ──

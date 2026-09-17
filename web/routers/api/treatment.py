@@ -6,6 +6,7 @@ Treatment notes CRUD, re-diagnosis, session completion, and Telegram recommendat
 
 import asyncio
 import contextlib
+import functools
 import json
 import logging
 import re as _re
@@ -326,7 +327,12 @@ async def complete_session(
 
     notes = body.model_dump()
     notes["completed_at"] = clock.iso_now()
-    await asyncio.to_thread(treatment_service.save_notes, apt_id, patient_id, notes)
+    # The therapist's last edits and the completion are one act: one audit row, named for it.
+    await asyncio.to_thread(
+        functools.partial(
+            treatment_service.save_notes, apt_id, patient_id, notes, action="session.completed"
+        )
+    )
 
     # Phase 1.3: schedule the 24h follow-up now (durable job) instead of waiting for a poll.
     from bot.services.followup_jobs import (
@@ -720,8 +726,15 @@ async def save_manual_feedback(
     await asyncio.to_thread(_save, apt_id, body.rating, body.notes)
     if body.rating is not None or body.notes.strip():  # an empty form records no outcome
         await asyncio.to_thread(followup_repo.record_manual, apt_id, body.rating, body.notes)
-        from web.services import notification_service
+        from web.services import audit, notification_service
 
+        await asyncio.to_thread(
+            audit.record,
+            "followup.recorded",
+            "followup",
+            apt_id,
+            after={"rating": body.rating, "notes": body.notes.strip()},
+        )
         await asyncio.to_thread(
             notification_service.resolve_followup_no_channel, therapist["id"], apt_id
         )
