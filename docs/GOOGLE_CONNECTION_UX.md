@@ -92,7 +92,7 @@ HTTP/1.1 409 Conflict
   refreshed. A refused refresh is `token_invalid`.
 - **`EmailSendError(token_invalid=True)`:** Gmail refused the credentials (HTTP 401,
   `invalid_grant`, revoked).
-- **Plain `EmailSendError`:** Google was unreachable, or another error occurred. That is worth a
+- **Plain `EmailSendError`:** Google was unreachable, the token refresh failed in a way Google marks retryable (`RefreshError.retryable`, e.g. a 5xx), or another error occurred. That is worth a
   retry, never a reconnect prompt. The immediate send answers 502 with a generic message; the
   details stay in the log.
 

@@ -170,8 +170,9 @@ async def test_gmail_refusing_the_credentials_is_token_invalid_too(clinic, monke
     assert _reconnect_alerts(tid) == 1
 
 
-async def test_a_network_failure_is_not_a_reconnect(clinic, monkeypatch) -> None:
-    from google.auth.exceptions import TransportError
+@pytest.mark.parametrize("kind", ["offline", "google-5xx"])
+async def test_a_transient_failure_is_not_a_reconnect(clinic, monkeypatch, kind: str) -> None:
+    from google.auth.exceptions import RefreshError, TransportError
 
     import web.gcal as gcal
 
@@ -179,14 +180,17 @@ async def test_a_network_failure_is_not_a_reconnect(clinic, monkeypatch) -> None
     tid = c["therapist"]["id"]
     _connect(tid)
 
-    def _offline(_tid: str) -> Any:
-        raise TransportError("connection reset")
+    def _unavailable(_tid: str) -> Any:
+        if kind == "offline":
+            raise TransportError("connection reset")
+        raise RefreshError("internal_failure", retryable=True)
 
-    monkeypatch.setattr(gcal, "get_gmail_service", _offline)
+    monkeypatch.setattr(gcal, "get_gmail_service", _unavailable)
     resp = await c["client"].post(
         _url(c["telegram"]), json={"items": ITEMS, "schedule_hours": 2, "email": "p@example.com"}
     )
     assert resp.status_code == 502
+    assert "internal_failure" not in resp.text and "connection reset" not in resp.text
     assert _reconnect_alerts(tid) == 0
 
 

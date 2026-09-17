@@ -99,7 +99,16 @@ def google_connection(therapist_id: str) -> GoogleConnection:
         return GoogleConnection(None)
 
 
+def _is_transient(error: Exception) -> bool:
+    """Google could not be reached or asked us to retry — the token itself may be fine."""
+    return isinstance(error, TransportError) or (
+        isinstance(error, RefreshError) and bool(getattr(error, "retryable", False))
+    )
+
+
 def _is_auth_error(error: Exception) -> bool:
+    if _is_transient(error):
+        return False
     if isinstance(error, RefreshError):
         return True
     status = getattr(getattr(error, "resp", None), "status", None)
@@ -138,9 +147,9 @@ def send_email(
 
     try:
         service = get_gmail_service(therapist_id)
-    except TransportError as e:  # Google unreachable: the token may be fine, so retry later
-        raise EmailSendError(f"Could not reach Google for {therapist_id!r}: {e}") from e
     except Exception as e:
+        if _is_transient(e):  # retry later; no reconnect prompt
+            raise EmailSendError(f"Could not reach Google for {therapist_id!r}: {e}") from e
         _notify_reconnect(therapist_id)
         raise EmailNotConfigured(
             f"Could not load Gmail credentials for {therapist_id!r}: {e}",
