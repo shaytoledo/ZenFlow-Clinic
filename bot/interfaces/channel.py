@@ -69,6 +69,15 @@ class OutboundMedia:
 
 
 @dataclass(frozen=True)
+class Template:
+    """A pre-approved message, for channels that only allow those outside a session window."""
+
+    name: str
+    language: str = "en"
+    params: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class SentMessage:
     channel: str
     recipient_id: str
@@ -114,6 +123,20 @@ def header(headers: Mapping[str, str], name: str) -> str | None:
     return None
 
 
+class Scrubber:
+    """Removes this channel's own secrets from any text that leaves it."""
+
+    def __init__(self, secrets: tuple[str, ...]) -> None:
+        self._secrets = tuple(s for s in secrets if s)
+
+    def __call__(self, text: str) -> str:
+        from zenflow.logging import redact
+
+        for secret in self._secrets:
+            text = text.replace(secret, "***")
+        return redact(text)
+
+
 class ChannelAdapter(ABC):
     """Outbound + inbound messaging contract."""
 
@@ -122,6 +145,11 @@ class ChannelAdapter(ABC):
     max_caption_len: int = 1024
     max_button_data_len: int = 64  # bytes
     max_buttons: int = 100
+    #: can a sent message be replaced? (WhatsApp cannot; Telegram can)
+    supports_edit: bool = True
+    #: hours after a patient's last message during which free-form text is allowed;
+    #: None = no such window. Outside it, only `send_template` gets through.
+    session_window_hours: int | None = None
 
     # ── outbound ──
     @abstractmethod
@@ -162,6 +190,12 @@ class ChannelAdapter(ABC):
     @abstractmethod
     async def set_typing(self, recipient_id: str | int) -> None:
         """Show a typing indicator. Best effort: never raises."""
+
+    async def send_template(self, recipient_id: str | int, template: Template) -> SentMessage:
+        """Send a pre-approved template. Channels without templates refuse, permanently."""
+        raise ChannelError(
+            f"{self.name} has no message templates", permanent=True, code="unsupported"
+        )
 
     # ── inbound ──
     @abstractmethod

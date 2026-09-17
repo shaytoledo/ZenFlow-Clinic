@@ -54,6 +54,11 @@ class Edited:
     buttons: list[list[tuple[str, str]]] | None
 
 
+def _flat(buttons: Any) -> list[tuple[str, str]]:
+    """Buttons in order, without the row layout each channel chooses for itself."""
+    return [button for row in (buttons or []) for button in row]
+
+
 class ChannelHarness(ABC):
     """What an adapter's test module provides to the suite."""
 
@@ -62,6 +67,10 @@ class ChannelHarness(ABC):
     recipient: str
     #: secrets configured on the adapter — none may ever appear in an error message
     secrets: tuple[str, ...]
+    #: a template this channel would accept, or None when it has no templates
+    template: Any = None
+    #: does the provider have a distinct formatting mode? (WhatsApp formats inline instead)
+    marks_markdown: bool = True
 
     # ── what the provider saw ──
     @abstractmethod
@@ -135,8 +144,10 @@ class ChannelConformance:
         await harness.adapter.send_text(harness.recipient, "a_b *c*")
         await harness.adapter.send_text(harness.recipient, "*bold*", markdown=True)
         plain, marked = harness.delivered()
-        assert (plain.text, plain.markdown) == ("a_b *c*", False)
-        assert (marked.text, marked.markdown) == ("*bold*", True)
+        assert (plain.text, plain.markdown) == ("a_b *c*", False), "never parsed by default (B2)"
+        assert marked.text == "*bold*", "the text is delivered as written"
+        if harness.marks_markdown:
+            assert marked.markdown is True, "the provider is told to parse it"
 
     async def test_a_reply_names_the_message_it_answers(self, harness: ChannelHarness) -> None:
         first = await harness.adapter.send_text(harness.recipient, "question")
@@ -174,7 +185,8 @@ class ChannelConformance:
         sent = await harness.adapter.send_buttons(harness.recipient, "Did it help?", rows)
         assert sent.message_id
         (got,) = harness.delivered()
-        assert (got.text, got.buttons) == ("Did it help?", rows)
+        assert got.text == "Did it help?"
+        assert _flat(got.buttons) == _flat(rows), "every option, in order (rows are the channel's)"
 
     async def test_button_data_over_the_limit_is_refused(self, harness: ChannelHarness) -> None:
         too_long = "d" * (harness.adapter.max_button_data_len + 1)
@@ -209,7 +221,7 @@ class ChannelConformance:
             OutboundMessage(recipient_id=harness.recipient, text="Pain?", extra={"buttons": rows})
         )
         assert sent.message_id
-        assert harness.delivered()[0].buttons == rows
+        assert _flat(harness.delivered()[0].buttons) == _flat(rows)
 
     # ── media ──
     async def test_media_by_url(self, harness: ChannelHarness) -> None:
@@ -251,6 +263,8 @@ class ChannelConformance:
 
     # ── edits and typing ──
     async def test_edit_replaces_text_and_buttons(self, harness: ChannelHarness) -> None:
+        if not harness.adapter.supports_edit:
+            pytest.skip("this channel cannot replace a sent message")
         sent = await harness.adapter.send_buttons(harness.recipient, "Pick", [[("A", "a")]])
         assert sent.message_id is not None
         edited = await harness.adapter.edit_message(
@@ -265,6 +279,32 @@ class ChannelConformance:
             [[("Undo", "u")]],
         )
         assert (second.text, second.buttons) == ("Done", None), "no buttons = buttons removed"
+
+    async def test_an_unsupported_edit_is_refused(self, harness: ChannelHarness) -> None:
+        if harness.adapter.supports_edit:
+            pytest.skip("this channel can replace a sent message")
+        sent = await harness.adapter.send_text(harness.recipient, "hello")
+        assert sent.message_id is not None
+        with pytest.raises(ChannelError) as err:
+            await harness.adapter.edit_message(harness.recipient, sent.message_id, "changed")
+        assert err.value.permanent and err.value.code == "unsupported"
+
+    async def test_templates_are_declared_or_refused(self, harness: ChannelHarness) -> None:
+        """A channel with a session window must have templates; one without refuses them."""
+        from bot.interfaces.channel import Template
+
+        template = harness.template
+        if template is None:
+            assert (
+                harness.adapter.session_window_hours is None
+            ), "a channel with a session window needs templates to reach anyone outside it"
+            with pytest.raises(ChannelError) as err:
+                await harness.adapter.send_template(harness.recipient, Template(name="whatever"))
+            assert err.value.permanent and err.value.code == "unsupported"
+            return
+        sent = await harness.adapter.send_template(harness.recipient, template)
+        assert sent.message_id
+        assert harness.delivered(), "the template went out"
 
     async def test_typing_is_shown(self, harness: ChannelHarness) -> None:
         await harness.adapter.set_typing(harness.recipient)

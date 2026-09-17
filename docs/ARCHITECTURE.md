@@ -41,6 +41,7 @@ Clinic/
 │   ├── interfaces/                # Messaging channels (Phase 7, docs/CHANNELS.md)
 │   │   ├── channel.py             # ChannelAdapter contract, InboundMessage, SentMessage, ChannelError
 │   │   ├── telegram_channel.py    # TelegramChannel — the ONLY module that calls the Telegram Bot API
+│   │   ├── whatsapp_channel.py    # WhatsAppChannel — Meta Cloud API, behind ZF_CHANNEL_WHATSAPP (7.4)
 │   │   └── factory.py             # get_channel(name), get_default_channel(), get_staff_channel()
 │   │
 │   ├── patient_bot/               # Patient-facing bot handlers

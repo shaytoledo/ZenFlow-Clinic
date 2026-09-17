@@ -978,3 +978,53 @@ booking.
 - **Cancelling from the bot** goes through the service too, so the hour and the calendar event
   are handled the same way everywhere. Clearing the intake cache is now guarded: a Redis outage
   used to break the patient's cancellation (BOT_AUDIT B9's rule, applied where it was missing).
+
+---
+
+## ADR-30: WhatsApp Through Meta's Cloud API, Not Twilio (owner decision Q2)
+
+**Date:** 2026-09-18 (Phase 7.4)
+
+**Context.** Plan 7.4 asks for a WhatsApp channel and for the provider to be decided first. Two
+realistic options: Meta's own WhatsApp Cloud API, or Twilio's WhatsApp API in front of it. Both
+end at the same place — a WhatsApp Business Account, Meta's approval of every template, and the
+same 24-hour rule — so the difference is the layer in between.
+
+**The comparison.**
+
+| | Meta Cloud API | Twilio |
+|---|---|---|
+| Who hosts | Meta, free of per-message platform fees; you pay Meta's conversation price | Twilio hosts and adds a per-message fee on top of Meta's |
+| Onboarding | Meta app + Business verification + a phone number | Twilio account, plus the same Meta verification |
+| Trying it out | a test number with a handful of allowed recipients | a shared sandbox number, joined by a keyword |
+| API shape | one messages endpoint; JSON that mirrors WhatsApp's own concepts | Twilio's Messages API, with WhatsApp folded into its own model |
+| Webhooks | signed with the app secret (HMAC-SHA256) | signed with the Twilio auth token (its own scheme) |
+| Interactive messages | reply buttons and lists, first class | supported, with Twilio's own payload shape and some lag behind Meta's features |
+| Lock-in | the provider is WhatsApp itself | a second vendor to leave later |
+| Other channels | WhatsApp only | SMS and voice from the same account |
+
+**Decision: Meta's Cloud API**, behind `ZF_CHANNEL_WHATSAPP`.
+
+1. **One fewer intermediary** between a clinic and its patients' clinical messages, and one fewer
+   contract, price list and status page to reason about.
+2. **No per-message platform fee** on top of Meta's conversation charge, which matters for a
+   single-clinic budget (Q3 is still open on hosting cost).
+3. **The API mirrors WhatsApp's own model** — service window, templates, interactive messages —
+   so the adapter's code reads like the rules it has to obey.
+4. **Features land there first**, including the interactive messages the check-in needs.
+5. **The cost of being wrong is small**: everything provider-specific is one module behind the
+   `ChannelAdapter` contract, and the conformance suite is the acceptance test for a replacement.
+   Moving to Twilio means writing `TwilioWhatsAppChannel` and making the same suite green.
+
+**What would change the answer.** Twilio becomes the better choice if the clinic also wants SMS
+or voice from one vendor, if Meta's Business verification proves impractical, or if someone wants
+a single support contract more than they want the lower per-message cost. Because of (5), that
+remains a contained change — the owner can still answer Q2 the other way.
+
+**Consequences.**
+- `WHATSAPP_*` settings name Meta's concepts (phone number id, app secret, verify token).
+- Templates must be approved in the Meta console before the 24-hour check-in can reach anyone
+  outside the service window; the template names belong in configuration (7.4b).
+- The adapter is the only module that names graph.facebook.com (a test enforces it).
+- `ZF_CHANNEL_WHATSAPP` stays off until the clinic has an account, so nothing above affects a
+  running clinic today.

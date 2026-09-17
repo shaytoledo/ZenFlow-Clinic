@@ -105,6 +105,13 @@ class Settings(BaseSettings):
     telegram_token: str = ""
     therapist_bot_token: str = ""
     messaging_channel: str = "telegram"
+
+    # ── whatsapp (Phase 7.4, only with ZF_CHANNEL_WHATSAPP=1) ──
+    whatsapp_phone_number_id: str = ""  # WHATSAPP_PHONE_NUMBER_ID — the clinic's sender
+    whatsapp_token: str = ""  # WHATSAPP_TOKEN — system-user access token
+    whatsapp_app_secret: str = ""  # WHATSAPP_APP_SECRET — signs the webhook; empty ⇒ all refused
+    whatsapp_verify_token: str = ""  # WHATSAPP_VERIFY_TOKEN — Meta's subscription handshake
+    whatsapp_api_version: str = "v23.0"  # WHATSAPP_API_VERSION — Graph API version
     # TELEGRAM_WEBHOOK_SECRET — the secret_token Telegram echoes on webhook calls (7.1); empty ⇒
     # every webhook is refused. Polling (today's mode) does not use it.
     telegram_webhook_secret: str = ""
