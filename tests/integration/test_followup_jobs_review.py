@@ -113,8 +113,13 @@ async def test_redis_failure_after_send_does_not_resend(
     async def _redis_down(*_a: Any, **_k: Any) -> None:
         raise ConnectionError("redis timeout")
 
+    from web.repositories import followup_repo
+
+    def _db_write_down(*_a: Any, **_k: Any) -> None:
+        raise ConnectionError("database is locked")
+
     monkeypatch.setattr(fs, "_mark_sent", _redis_down)
-    monkeypatch.setattr(fs, "_set_conv_state", _redis_down)
+    monkeypatch.setattr(followup_repo, "mark_sent", _db_write_down)  # opening the conversation
     with freeze_time(FROZEN) as frozen:
         apt = make_completed_session(completed_at=clock.iso_now())
         enqueue_followup(apt["id"], clock.iso_now())

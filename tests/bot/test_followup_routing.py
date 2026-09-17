@@ -18,17 +18,14 @@ PATIENT = {"patient_id": PID, "name": "Followup Patient", "source": "telegram"}
 
 
 async def _open_conversation(appointment_id: int, therapist_id: str, step: int = 1) -> None:
-    from bot.services.followup_scheduler import _set_conv_state
+    """Step 1 went out (the check-in is open in the `followups` table, Phase 6.3)."""
+    from web.repositories import followup_repo
+    from zenflow import clock
 
-    await _set_conv_state(
-        PID,
-        {
-            "appointment_id": appointment_id,
-            "therapist_id": therapist_id,
-            "step": step,
-            "conversation": [],
-        },
-    )
+    followup_repo.schedule(appointment_id, clock.iso_now())
+    followup_repo.mark_sent(appointment_id, [])
+    if step > 1:
+        followup_repo.save_progress(appointment_id, step=step, conversation=[], answers={})
 
 
 async def test_followup_answer_is_consumed_in_any_state(db, fake_redis, make_completed_session):
@@ -43,11 +40,11 @@ async def test_followup_answer_is_consumed_in_any_state(db, fake_redis, make_com
 
     assert update.message.reply_texts(), "the patient gets the next follow-up question"
 
-    from bot.services.followup_scheduler import _get_conv_state
+    from web.repositories import followup_repo
 
-    state = await _get_conv_state(PID)
+    state = followup_repo.get(apt["id"])
     assert state is not None and state["step"] == 2, "the follow-up advanced"
-    assert state["pain_level"] == 4
+    assert state["pain_level"] == 4 and state["status"] == "in_progress"
 
 
 async def test_followup_answer_never_reaches_the_therapist(

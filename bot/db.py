@@ -240,6 +240,22 @@ def init_db() -> None:
             pass  # Column already exists — safe to ignore
     _create_active_slot_index(conn)
     _create_acupoints(conn)
+    _create_followups(conn)
+
+
+def _create_followups(conn: sqlite3.Connection) -> None:
+    """The 24h check-ins (Phase 6.3), backfilled from `treatment_notes` — inserts only, so a
+    restart is idempotent and older columns stay untouched."""
+    from web.repositories import followup_repo
+
+    followup_repo.create_schema(conn)
+    try:
+        added = followup_repo.backfill_from_treatment_notes(conn)
+    except sqlite3.Error:
+        logger.exception("followups backfill failed; sessions keep their treatment_notes data")
+        return
+    if added:
+        logger.info("followups: %d row(s) backfilled from treatment_notes", added)
 
 
 def _create_acupoints(conn: sqlite3.Connection) -> None:

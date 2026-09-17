@@ -33,7 +33,6 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SECONDS = 1800
 SENT_TTL_SECONDS = 7 * 86400
-CONV_TTL_SECONDS = 48 * 3600  # patient has 48h to finish the conversation
 
 # ── Message templates ────────────────────────────────────────────────────────
 
@@ -187,11 +186,6 @@ async def _get_conv_state(patient_id: int) -> dict | None:
         return None
 
 
-async def _set_conv_state(patient_id: int, state: dict) -> None:
-    r = get_async_redis()
-    await r.set(_conv_key(patient_id), json.dumps(state), ex=CONV_TTL_SECONDS)
-
-
 async def _clear_conv_state(patient_id: int) -> None:
     r = get_async_redis()
     await r.delete(_conv_key(patient_id))
@@ -243,21 +237,15 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
     with contextlib.suppress(Exception):
         await _mark_sent(appt_id, patient_id)
 
-    # Initialise conversation state at step 1 (awaiting pain level)
-    state = {
-        "appointment_id": appt_id,
-        "step": 1,
-        "first_name": first_name,
-        "therapist_id": appt.get("therapist_id", ""),
-        "pain_level": None,
-        "improvement_rating": None,
-        "notes": None,
-        "conversation": [{"role": "ai", "content": text}],
-    }
+    # Open the conversation at step 1 (awaiting pain level) — in the database (Phase 6.3)
+    from web.repositories import followup_repo
+
     try:
-        await _set_conv_state(patient_id, state)
+        await asyncio.to_thread(
+            followup_repo.mark_sent, appt_id, [{"role": "ai", "content": text}], 1
+        )
     except Exception as e:  # message already delivered; answers fall back to the normal flow
-        logger.error(f"follow-up conversation state not saved for appt={appt_id}: {e}")
+        logger.error(f"follow-up conversation not opened for appt={appt_id}: {e}")
 
     logger.info(f"follow-up step-1 sent: appt={appt_id} patient={appt['patient_id']}")
 
@@ -445,7 +433,20 @@ def reconcile() -> dict[str, int]:
             logger.error(
                 f"reconcile: recommendations enqueue failed for appt={row['appointment_id']}: {e}"
             )
-    return {"followups": followups, "recommendations": recommendations, "errors": errors}
+    try:
+        from web.repositories import followup_repo
+
+        expired = followup_repo.expire_stale()
+    except Exception as e:
+        errors += 1
+        expired = 0
+        logger.error(f"reconcile: expiring unanswered follow-ups failed: {e}")
+    return {
+        "followups": followups,
+        "recommendations": recommendations,
+        "expired": expired,
+        "errors": errors,
+    }
 
 
 async def _scheduler_loop() -> None:
@@ -476,126 +477,151 @@ def start_followup_scheduler() -> asyncio.Task:
 async def consume_followup_conversation(patient_id: int, text: str) -> tuple[bool, str | None]:
     """Handle an incoming patient message as part of the follow-up conversation.
 
+    The open check-in and its answers live in the `followups` table (Phase 6.3), so a restart or
+    a Redis flush mid-conversation loses nothing. A conversation that was opened in Redis before
+    6.3 is adopted into the table on its next answer.
+
     Returns (consumed, reply_text):
       - (True, reply)  — message was part of the follow-up; send `reply` to patient
       - (True, None)   — conversation complete; caller should send a thank-you
       - (False, None)  — not part of a follow-up; caller continues normal flow
     """
+    from web.repositories import followup_repo
+
     try:
-        state = await _get_conv_state(patient_id)
-
-        # Legacy single-rating flow compatibility
+        state = await asyncio.to_thread(followup_repo.open_for_patient, patient_id)
         if state is None:
-            r = get_async_redis()
-            legacy_raw = await r.get(_legacy_awaiting_key(patient_id))
-            if legacy_raw:
-                try:
-                    n = int((text or "").strip())
-                    if 1 <= n <= 5:
-                        apt_id = int(legacy_raw)
-                        from bot.db import get_db
+            state = await _adopt_legacy_conversation(patient_id)
+        if state is None:
+            return await _consume_legacy_rating(patient_id, text)
 
-                        await asyncio.to_thread(
-                            lambda: get_db().execute(
-                                "UPDATE treatment_notes SET followup_rating=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
-                                (n, apt_id),
-                            )
-                        )
-                        await r.delete(_legacy_awaiting_key(patient_id))
-                        return (True, None)
-                except (ValueError, TypeError):
-                    pass
-            return (False, None)
-
-        step = state.get("step", 1)
+        apt_id = int(state["appointment_id"])
+        step = int(state.get("step") or 1)
         txt = (text or "").strip()
-        conv = state.get("conversation", [])
+        conv = list(state.get("conversation") or [])
         conv.append({"role": "user", "content": txt})
         tmpl = _tmpl(state.get("therapist_id", ""))
 
-        if step == 1:
-            # Expecting pain level 1–10
-            try:
-                n = int(txt)
-                if 1 <= n <= 10:
-                    state["pain_level"] = n
-                    state["step"] = 2
-                    state["conversation"] = conv + [{"role": "ai", "content": tmpl["step2"]}]
-                    await _set_conv_state(patient_id, state)
-                    return (True, tmpl["step2"])
-                else:
-                    return (True, tmpl["err_pain"])
-            except (ValueError, TypeError):
+        if step == 1:  # pain level 1–10
+            n = _int_in(txt, 1, 10)
+            if n is None:
                 return (True, tmpl["err_pain"])
-
-        elif step == 2:
-            # Expecting improvement 1–5
-            try:
-                n = int(txt)
-                if 1 <= n <= 5:
-                    state["improvement_rating"] = n
-                    state["step"] = 3
-                    state["conversation"] = conv + [{"role": "ai", "content": tmpl["step3"]}]
-                    await _set_conv_state(patient_id, state)
-                    return (True, tmpl["step3"])
-                else:
-                    return (True, tmpl["err_improvement"])
-            except (ValueError, TypeError):
-                return (True, tmpl["err_improvement"])
-
-        elif step == 3:
-            # Expecting free-text notes or "skip" / "דלג"
-            skip_words = {"skip", "s", "no", "none", "-", "דלג", "לא"}
-            notes = None if txt.lower() in skip_words else txt
-            state["notes"] = notes
-            state["step"] = 4  # done
-            improvement_label = tmpl["improvement_labels"].get(state.get("improvement_rating"), "")
-            state["improvement_label"] = improvement_label
-
-            conv_final = conv + [{"role": "ai", "content": tmpl["complete"]}]
-            state["conversation"] = conv_final
-
-            # Persist to DB
-            apt_id = state["appointment_id"]
-            save_data = {
-                "pain_level": state.get("pain_level"),
-                "improvement_rating": state.get("improvement_rating"),
-                "improvement_label": improvement_label,
-                "notes": notes,
-                "conversation": conv_final,
-            }
-            try:
-                from web.repositories.treatment_repo import save_followup_conversation
-
-                await asyncio.to_thread(save_followup_conversation, apt_id, save_data)
-            except Exception as e:
-                logger.error(f"save_followup_conversation failed: {e}")
-                # Fallback: at least save the simple rating
-                try:
-                    if state.get("improvement_rating"):
-                        from bot.db import get_db
-
-                        await asyncio.to_thread(
-                            lambda: get_db().execute(
-                                "UPDATE treatment_notes SET followup_rating=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE appointment_id=?",
-                                (state["improvement_rating"], apt_id),
-                            )
-                        )
-                except Exception:
-                    pass
-
-            await _clear_conv_state(patient_id)
-            logger.info(
-                f"follow-up complete: appt={apt_id} patient={patient_id} "
-                f"pain={state.get('pain_level')} improvement={state.get('improvement_rating')}"
+            await asyncio.to_thread(
+                followup_repo.save_progress,
+                apt_id,
+                step=2,
+                conversation=conv + [{"role": "ai", "content": tmpl["step2"]}],
+                answers={"pain_level": n},
             )
-            return (True, tmpl["complete"])
+            return (True, tmpl["step2"])
 
-        else:
-            # Conversation already done or in unknown state — clear and fall through
+        if step == 2:  # improvement 1–5
+            n = _int_in(txt, 1, 5)
+            if n is None:
+                return (True, tmpl["err_improvement"])
+            await asyncio.to_thread(
+                followup_repo.save_progress,
+                apt_id,
+                step=3,
+                conversation=conv + [{"role": "ai", "content": tmpl["step3"]}],
+                answers={"improvement_rating": n},
+            )
+            return (True, tmpl["step3"])
+
+        # step 3: free-text notes, or "skip" / "דלג"
+        skip_words = {"skip", "s", "no", "none", "-", "דלג", "לא"}
+        notes = None if txt.lower() in skip_words else txt
+        conv_final = conv + [{"role": "ai", "content": tmpl["complete"]}]
+        improvement = state.get("improvement_rating")
+        await asyncio.to_thread(
+            followup_repo.complete, apt_id, conversation=conv_final, answers={"free_text": notes}
+        )
+        # Parallel write for one release (plan 6.3): pages still read treatment_notes.
+        save_data = {
+            "pain_level": state.get("pain_level"),
+            "improvement_rating": improvement,
+            "improvement_label": tmpl["improvement_labels"].get(improvement, ""),
+            "notes": notes,
+            "conversation": conv_final,
+        }
+        try:
+            from web.repositories.treatment_repo import save_followup_conversation
+
+            await asyncio.to_thread(save_followup_conversation, apt_id, save_data)
+        except Exception as e:  # the followups row already holds the answers
+            logger.error(f"save_followup_conversation failed: {e}")
+        with contextlib.suppress(Exception):
             await _clear_conv_state(patient_id)
-            return (False, None)
+        logger.info(
+            f"follow-up complete: appt={apt_id} patient={patient_id} "
+            f"pain={state.get('pain_level')} improvement={improvement}"
+        )
+        return (True, tmpl["complete"])
 
     except Exception as e:
         logger.warning(f"consume_followup_conversation failed: {e}")
         return (False, None)
+
+
+def _int_in(text: str, low: int, high: int) -> int | None:
+    try:
+        n = int(text)
+    except (TypeError, ValueError):
+        return None
+    return n if low <= n <= high else None
+
+
+async def _adopt_legacy_conversation(patient_id: int) -> dict | None:
+    """A check-in opened in Redis before Phase 6.3: copy it into its `followups` row."""
+    from web.repositories import followup_repo
+
+    legacy = None
+    with contextlib.suppress(Exception):
+        legacy = await _get_conv_state(patient_id)
+    if not legacy or not legacy.get("appointment_id"):
+        return None
+    apt_id = int(legacy["appointment_id"])
+    answers = {
+        key: legacy[key]
+        for key in ("pain_level", "improvement_rating")
+        if legacy.get(key) is not None
+    }
+
+    def _adopt() -> dict | None:
+        followup_repo.schedule(apt_id, clock.iso_now())
+        followup_repo.mark_sent(apt_id, list(legacy.get("conversation") or []))
+        followup_repo.save_progress(
+            apt_id,
+            step=int(legacy.get("step") or 1),
+            conversation=list(legacy.get("conversation") or []),
+            answers=answers,
+        )
+        row = followup_repo.get(apt_id)
+        return row if row and row["status"] in followup_repo.OPEN_STATUSES else None
+
+    adopted = await asyncio.to_thread(_adopt)
+    with contextlib.suppress(Exception):
+        await _clear_conv_state(patient_id)
+    if adopted:
+        logger.info(f"legacy follow-up conversation adopted: appt={apt_id}")
+    return adopted
+
+
+async def _consume_legacy_rating(patient_id: int, text: str) -> tuple[bool, str | None]:
+    """The single-rating flow that predates the conversation: a 1–5 reply to an old prompt."""
+    r = get_async_redis()
+    legacy_raw = await r.get(_legacy_awaiting_key(patient_id))
+    if not legacy_raw:
+        return (False, None)
+    n = _int_in((text or "").strip(), 1, 5)
+    if n is None:
+        return (False, None)
+    apt_id = int(legacy_raw)
+    await asyncio.to_thread(
+        lambda: get_db().execute(
+            "UPDATE treatment_notes SET followup_rating=?, updated_at=? WHERE appointment_id=?",
+            (n, clock.iso_now(), apt_id),
+        )
+    )
+    await r.delete(_legacy_awaiting_key(patient_id))
+    return (True, None)

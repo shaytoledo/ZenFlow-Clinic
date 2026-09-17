@@ -51,10 +51,13 @@ async def handle_followup_reply(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def _followup_lang(patient_id: int) -> str:
     """The therapist's language for this follow-up, or English."""
-    try:
-        from bot.services.followup_scheduler import _get_conv_state
+    import asyncio
 
-        state = await _get_conv_state(patient_id)
-    except Exception:  # Redis unavailable — the reply still has to go out
+    from web.repositories import followup_repo
+
+    try:
+        # The check-in just answered may already be completed: take the newest row either way.
+        row = await asyncio.to_thread(followup_repo.latest_for_patient, patient_id)
+    except Exception:  # the reply still has to go out
         return "en"
-    return get_lang(state.get("therapist_id")) if state else "en"
+    return get_lang(row.get("therapist_id")) if row else "en"

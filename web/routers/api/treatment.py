@@ -701,9 +701,12 @@ async def save_manual_feedback(
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
     if body.rating is not None and not (1 <= body.rating <= 5):
         raise HTTPException(status_code=400, detail="Rating must be 1–5")
+    from web.repositories import followup_repo
     from web.repositories.treatment_repo import save_manual_feedback as _save
 
     await asyncio.to_thread(_save, apt_id, body.rating, body.notes)
+    if body.rating is not None or body.notes.strip():  # an empty form records no outcome
+        await asyncio.to_thread(followup_repo.record_manual, apt_id, body.rating, body.notes)
     return JSONResponse({"ok": True})
 
 

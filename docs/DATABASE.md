@@ -169,6 +169,15 @@ Named, expiring locks (`zenflow/leases.py`). Acquire is one `INSERT … ON CONFL
 WHERE holder matches OR expired`, so two processes cannot both win; expiry frees a lease whose
 holder crashed. Used for `generation:{appointment_id}` so two generations never overlap.
 
+### Table: `followups` (Phase 6.3)
+
+One row per appointment for its 24h check-in: the schedule, the delivery, the answers and the
+open conversation. The schema, statuses, lifecycle and start-up backfill are in
+`docs/FOLLOWUP.md` §2 (`web/repositories/followup_repo.py`, `CREATE_FOLLOWUPS`). Timestamps are
+canonical UTC. CHECK constraints guard `status`, `pain_level` (0–10), `improvement_rating` (1–5),
+`sleep_quality`, `adherence` and `source`. Indexes: `(patient_id, status)` and
+`(status, sent_at)`.
+
 ### Table: `bot_persistence` (Phase 2.3)
 
 ```sql

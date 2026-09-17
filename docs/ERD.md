@@ -66,11 +66,35 @@ erDiagram
         TEXT    updated_at
     }
 
+    FOLLOWUPS {
+        INTEGER id                PK  AUTOINCREMENT
+        INTEGER appointment_id    FK  UNIQUE "→ appointments.id (1:1, Phase 6.3)"
+        INTEGER patient_id
+        TEXT    therapist_id
+        TEXT    channel               "telegram | none"
+        TEXT    status                "scheduled | sent | in_progress | completed | expired | no_channel"
+        TEXT    scheduled_for         "canonical UTC"
+        TEXT    sent_at
+        TEXT    completed_at
+        INTEGER step                  "open question while in progress"
+        INTEGER pain_level            "0–10"
+        INTEGER improvement_rating    "1–5"
+        TEXT    side_effects          "JSON list"
+        TEXT    sleep_quality         "worse | same | better"
+        TEXT    adherence             "yes | partly | no"
+        TEXT    free_text
+        TEXT    ai_summary
+        INTEGER needs_attention       "red flag"
+        TEXT    conversation_json     "JSON transcript"
+        TEXT    source                "patient | therapist_manual"
+    }
+
     THERAPISTS    ||--o{ APPOINTMENTS       : "treats"
     THERAPISTS    ||--o{ INTAKE_SESSIONS    : "reviews"
     THERAPISTS    ||--o{ AVAILABILITY       : "has slots"
     APPOINTMENTS  ||--o| INTAKE_SESSIONS    : "has one"
     APPOINTMENTS  ||--o| TREATMENT_NOTES   : "has one"
+    APPOINTMENTS  ||--o| FOLLOWUPS         : "has one check-in"
 ```
 
 ---
@@ -84,6 +108,7 @@ erDiagram
 | `intake_sessions` | INTEGER AUTOINCREMENT | 1:1 with appointments | `save_appointment()` |
 | `availability` | UUID hex | Tens–hundreds | Web `/api/availability`, `book_slot()`, `restore_slot()` |
 | `treatment_notes` | INTEGER AUTOINCREMENT | 1:1 with appointments | `save_treatment_notes()`, web `/complete` |
+| `followups` | INTEGER AUTOINCREMENT | 1:1 with completed appointments | `followup_repo` (enqueue, send, answers, manual entry, start-up backfill) |
 
 ---
 
@@ -96,6 +121,7 @@ intake_sessions.appointment_id → appointments.id
 intake_sessions.therapist_id   → therapists.id
 availability.therapist_id      → therapists.id
 treatment_notes.appointment_id → appointments.id UNIQUE
+followups.appointment_id       → appointments.id UNIQUE ON DELETE CASCADE
 
 -- No hard deletes on clinical tables
 -- appointments.status = 'cancelled' (soft delete)
