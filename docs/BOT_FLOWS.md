@@ -31,6 +31,7 @@ Two handler groups are registered on the patient application:
 | Group | Handler | Why |
 |---|---|---|
 | **-1** | `handle_followup_reply` (text, non-command) | The 24h follow-up arrives on its own schedule. This gate answers it wherever the patient is and raises `ApplicationHandlerStop`, so the message never reaches the conversation and the patient's state is left untouched (BOT_AUDIT B3). Anything that is not an open follow-up falls through. |
+| **-1** | `handle_followup_button` (callback data `^fu:`) | The check-in's inline buttons (Phase 6.2): an answer removes the question's buttons and sends the next question, a side-effect toggle redraws them, a button from an older message only gets a toast. Always stops the update. Script and red-flag rule: `docs/FOLLOWUP.md` §3. |
 | **0** | the `ConversationHandler` | Everything else: the booking, cancel and therapist-chat flows below. |
 
 The application also has an **error handler** (`bot/errors.py:on_error`): any exception a

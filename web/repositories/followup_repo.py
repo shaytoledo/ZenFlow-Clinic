@@ -117,19 +117,6 @@ def open_for_patient(patient_id: int, now_iso: str | None = None) -> dict[str, A
     return _decode(row)
 
 
-def latest_for_patient(patient_id: int) -> dict[str, Any] | None:
-    """The patient's most recently updated check-in, whatever its status."""
-    row = (
-        _conn()
-        .execute(
-            "SELECT * FROM followups WHERE patient_id=? ORDER BY updated_at DESC, id DESC LIMIT 1",
-            (patient_id,),
-        )
-        .fetchone()
-    )
-    return _decode(row)
-
-
 # ── the lifecycle ──
 def schedule(appointment_id: int, scheduled_for: str, *, auto: bool = False) -> None:
     """Record (or move) the check-in for a completed session.
@@ -189,7 +176,8 @@ def complete(
     now = clock.iso_now()
     _write_answers(appointment_id, "completed", None, conversation, answers)
     _conn().execute(
-        """UPDATE followups SET completed_at=COALESCE(completed_at, ?), needs_attention=?,
+        """UPDATE followups SET completed_at=COALESCE(completed_at, ?),
+                                needs_attention=MAX(needs_attention, ?),
                                 ai_summary=COALESCE(?, ai_summary), updated_at=?
            WHERE appointment_id=? AND status='completed'""",
         (now, 1 if needs_attention else 0, ai_summary, now, appointment_id),
@@ -233,6 +221,14 @@ def _write_answers(
             *values.values(),
             appointment_id,
         ),
+    )
+
+
+def flag_attention(appointment_id: int) -> None:
+    """The red-flag rule fired (Phase 6.2): the therapist has to look at this check-in."""
+    _conn().execute(
+        "UPDATE followups SET needs_attention=1, updated_at=? WHERE appointment_id=?",
+        (clock.iso_now(), appointment_id),
     )
 
 

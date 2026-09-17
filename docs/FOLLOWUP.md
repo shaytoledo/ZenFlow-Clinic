@@ -88,3 +88,66 @@ gets a row:
 | completed, not sent, older | `expired` |
 
 A legacy row that breaks a CHECK constraint is skipped, not fatal.
+
+## 3. The check-in (task 6.2)
+
+The script lives in `bot/services/followup_checkin.py`. It is deterministic and does no I/O; the
+questions and scores never come from the AI. English and Hebrew wording follow the therapist's
+language.
+
+| Step | Question | Answer | Buttons | Typed fallback |
+|---|---|---|---|---|
+| 1 | Pain or discomfort now | 0–10, required | 0…10 | a number |
+| 2 | Change since treatment | 1–5 with labels, required | "1 — Much worse" … "5 — Much better" | a number |
+| 3 | Side effects | none / soreness / bruising / dizziness / fatigue / **fainting** / other, several allowed | toggles marked ✓, then **Done**; **None** answers at once | words in either language ("sore, tired", "סחרחורת") or the option numbers |
+| 4 | Sleep since treatment | worse / same / better, optional | three choices + **Skip** | words or 1–3 |
+| 5 | Followed the lifestyle advice | yes / partly / no | three choices | words or 1–3 |
+| 6 | Anything for the therapist | free text, optional | **Skip** | any text; "skip" / "דלג" |
+
+**Buttons** carry `fu:<appointment>:<step>:<value>`, at most 64 bytes.
+
+- A handler in group −1 (`bot/patient_bot/followup.py`) answers the button before any other
+  handler sees it.
+- It removes an answered question's buttons, and redraws them after a toggle.
+- A button from an older message, or from another check-in, only gets a toast: "That question
+  was already answered." It changes nothing.
+- A typed answer that doesn't fit gets a short correction together with the same buttons, and
+  the step does not move.
+
+**Red-flag rule** (safety first):
+
+- **Triggers:** pain **≥ 8**, change **= 1** (much worse), or **fainting** reported.
+- **Evaluated on each answer, not at the end.** The first match:
+  - sets `followups.needs_attention`;
+  - creates **one** persistent `followup_red_flag` notification (severity `error`, "<patient>
+    needs attention after their treatment", with the reasons), deduplicated per appointment.
+- Later matches add nothing.
+- `needs_attention` is never cleared by later answers.
+
+**Summary:** `followup_checkin.summary()` writes two fixed lines from the answers, for example:
+
+```
+Pain 3/10 · Much better (5/5) · advice followed: Partly
+side effects: Soreness · no note
+```
+
+At the end, `summarize_checkin()` asks the AI to reword those two lines and nothing else. The
+prompt holds only the fixed summary, with "use only the facts below". The reply is kept only if it
+arrives within 20 s and is at most two non-empty lines and 300 characters. Anything else (a
+timeout, an error, a longer reply) keeps the fixed wording. The result is stored in
+`followups.ai_summary`.
+
+**Delivery:**
+
+- Step 1 goes out through the channel interface with `extra={"buttons": …}`.
+- `TelegramChannel` turns that into `reply_markup.inline_keyboard`, and `send_to_patient` accepts
+  `reply_markup`.
+- The parallel `treatment_notes.followup_conversation` JSON also carries `side_effects`,
+  `sleep_quality`, `adherence`, `summary` and `needs_attention`.
+
+**Owner check (Q11):**
+
+- Please confirm the questions.
+- Please confirm the red-flag thresholds.
+- "Fainting" was added as its own option so that the rule stays deterministic. The plan said
+  "severe dizziness/fainting", and "dizziness" alone does not raise the flag.

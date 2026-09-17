@@ -23,10 +23,18 @@ logger = logging.getLogger(__name__)
 _TIMEOUT = httpx.Timeout(10.0)
 
 
-async def _send(token: str, chat_id: int, text: str, parse_mode: str | None) -> dict:
+async def _send(
+    token: str,
+    chat_id: int,
+    text: str,
+    parse_mode: str | None,
+    reply_markup: dict[str, Any] | None = None,
+) -> dict:
     payload: dict[str, Any] = {"chat_id": chat_id, "text": text}
     if parse_mode:  # None / "" = plain text: user-typed words must not be parsed (B2)
         payload["parse_mode"] = parse_mode
+    if reply_markup:  # inline buttons (the 24h check-in, Phase 6.2)
+        payload["reply_markup"] = reply_markup
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         resp = await client.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
@@ -38,10 +46,17 @@ async def _send(token: str, chat_id: int, text: str, parse_mode: str | None) -> 
         return data
 
 
-async def send_to_patient(patient_id: int, text: str, parse_mode: str | None = "Markdown") -> dict:
+async def send_to_patient(
+    patient_id: int,
+    text: str,
+    parse_mode: str | None = "Markdown",
+    reply_markup: dict[str, Any] | None = None,
+) -> dict:
     """Send a message to a patient via the patient bot token."""
     from bot.config import TELEGRAM_TOKEN
 
+    if reply_markup:
+        return await _send(TELEGRAM_TOKEN, patient_id, text, parse_mode, reply_markup)
     return await _send(TELEGRAM_TOKEN, patient_id, text, parse_mode)
 
 

@@ -33,7 +33,7 @@ def _worker() -> w.Worker:
 
 
 def _step1(calls: list[dict]) -> int:
-    return sum("1–10" in c["text"] for c in calls)
+    return sum("0–10" in c["text"] for c in calls)
 
 
 @pytest.mark.parametrize("clinic_tz", ["UTC", "Asia/Jerusalem", "America/Los_Angeles"])
