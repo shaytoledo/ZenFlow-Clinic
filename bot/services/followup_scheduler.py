@@ -440,8 +440,10 @@ class ButtonResult:
 
     consumed: bool
     toast: str = ""
-    #: new buttons for the tapped message (a toggle); None = remove them (answered)
+    #: new buttons for the tapped message (a toggle)
     keep_buttons: list | None = None
+    #: the tapped question is answered or out of date: take its buttons away
+    remove_buttons: bool = False
     prompt: Any = None
 
 
@@ -460,7 +462,7 @@ async def consume_followup_button(patient_id: int, data: str) -> ButtonResult:
             lang = await asyncio.to_thread(_get_therapist_lang, state.get("therapist_id", ""))
         current = int(state.get("step") or 1) if state else None
         if state is None or int(state["appointment_id"]) != apt_id or current != step:
-            return ButtonResult(consumed=True, toast=checkin.stale(lang))
+            return ButtonResult(consumed=True, toast=checkin.stale(lang), remove_buttons=True)
 
         if step == 3 and value.startswith("t:"):  # a side effect switched on or off
             effect = value[2:]
@@ -486,10 +488,10 @@ async def consume_followup_button(patient_id: int, data: str) -> ButtonResult:
             return ButtonResult(consumed=True, toast=checkin.error(step, lang))
         typed = checkin.label(step, answer_value, lang)
         prompt = await _take_answer(state, step, answer_value, typed, lang)
-        return ButtonResult(consumed=True, prompt=prompt)
-    except Exception as e:
+        return ButtonResult(consumed=True, prompt=prompt, remove_buttons=True)
+    except Exception as e:  # keep the question's buttons so the patient can tap again
         logger.warning(f"consume_followup_button failed: {e}")
-        return ButtonResult(consumed=True, toast="")
+        return ButtonResult(consumed=True)
 
 
 def _chosen(state: dict) -> list[str]:

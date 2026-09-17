@@ -69,11 +69,12 @@ async def handle_followup_button(update: Update, context: ContextTypes.DEFAULT_T
     if not result.consumed:
         return
     await query.answer(result.toast or None)
-    try:
-        # A toggle redraws the buttons; an answered question loses them (no double answers).
-        await query.edit_message_reply_markup(reply_markup=_markup(result.keep_buttons))
-    except Exception as e:  # an unchanged or too-old message — the answer still counts
-        logger.debug(f"follow-up buttons not updated: {e}")
+    if result.keep_buttons is not None or result.remove_buttons:
+        try:
+            # A toggle redraws the buttons; an answered question loses them (no double answers).
+            await query.edit_message_reply_markup(reply_markup=_markup(result.keep_buttons))
+        except Exception as e:  # an unchanged or too-old message — the answer still counts
+            logger.debug(f"follow-up buttons not updated: {e}")
     if result.prompt is not None and query.message is not None:
         await _send_prompt(query.message, result.prompt)
     logger.info(f"[{user.id}] follow-up button consumed")

@@ -268,6 +268,13 @@ async def test_the_telegram_button_handler(checkin) -> None:
     with pytest.raises(ApplicationHandlerStop):
         await handle_followup_button(update(stale), context)
     assert stale.answered == ["That question was already answered."]
+    assert stale.markups == [None], "an out-of-date question loses its buttons"
+
+    invalid = _Query(fc.callback(apt["id"], 3, "t:none"))
+    with pytest.raises(ApplicationHandlerStop):
+        await handle_followup_button(update(invalid), context)
+    assert invalid.answered == ["Please choose one of the options. 🙏"]
+    assert invalid.markups == [], "a refused tap keeps the question's buttons"
 
 
 async def test_the_button_handler_is_registered_before_the_conversation() -> None:
