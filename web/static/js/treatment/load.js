@@ -5,6 +5,7 @@
 
 async function loadTreatment() {
   if (!patientId || !aptDate) return;
+  await pointInfoReady;  // cards need the reference data (point-info.js)
   try {
     const data = await fetch(`/api/appointment/${patientId}/${aptDate}/${aptTimeSlug}`).then(r => r.json());
 

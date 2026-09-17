@@ -94,6 +94,36 @@ CREATE TABLE IF NOT EXISTS therapists (
 
 ---
 
+### Table: `acupoints` (Phase 4.3a)
+
+Reference data for the treatment page. Created by `init_db()`, which fills an empty table from
+`zenflow/seed_data/acupoints.json`; later changes to that file are applied with
+`python -m zenflow.seed acupoints [--dry-run]` (idempotent upsert by code; rows not in the file
+are kept). Read through `web/repositories/acupoint_repo.py` and served by `GET /api/acupoints`.
+
+```sql
+CREATE TABLE IF NOT EXISTS acupoints (
+    code              TEXT PRIMARY KEY,           -- WHO alphanumeric code: LI4, KI3, … (YINTANG for the extra point)
+    aliases           TEXT NOT NULL DEFAULT '[]', -- JSON list of other spellings, normalised: ["KD3"]
+    name_pinyin       TEXT NOT NULL DEFAULT '',
+    name_cn           TEXT NOT NULL DEFAULT '',   -- Han characters (simplified)
+    name_en           TEXT NOT NULL DEFAULT '',   -- usual English translation
+    channel           TEXT NOT NULL DEFAULT '',   -- English channel name; picks the card colour
+    location          TEXT NOT NULL DEFAULT '',
+    actions           TEXT NOT NULL DEFAULT '',
+    needle_depth      TEXT NOT NULL DEFAULT '',
+    needle_angle      TEXT NOT NULL DEFAULT '',
+    contraindications TEXT NOT NULL DEFAULT '[]', -- JSON list; only "pregnancy" today
+    translations      TEXT NOT NULL DEFAULT '{}', -- JSON {"he": {"name", "channel", "location", "actions"}}
+    source            TEXT NOT NULL DEFAULT '',
+    licence           TEXT NOT NULL DEFAULT '',
+    updated_at        TEXT NOT NULL
+);
+```
+
+Deviation from the plan's column list: `aliases` (the AI and old notes use non-WHO codes such as
+`KD3`) and `translations` (the page is bilingual) were added.
+
 ### Table: `leases` (Phase 3.1)
 
 ```sql

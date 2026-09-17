@@ -1,0 +1,623 @@
+{
+  "version": 1,
+  "points": [
+    {
+      "code": "ST36",
+      "aliases": [],
+      "name_pinyin": "Zusanli",
+      "name_cn": "足三里",
+      "name_en": "Leg Three Miles",
+      "channel": "Stomach",
+      "location": "3 cun below ST35, one finger-width lateral to the anterior crest of the tibia",
+      "actions": "Tonifies Qi and Blood, strengthens digestion, boosts immunity, calms Shen",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "זוסנלי",
+          "channel": "קיבה",
+          "location": "3 צון מתחת ל-ST35, רוחב אצבע לרוחב הקצה הקדמי של הטיביה",
+          "actions": "מחזק צ׳י ודם, מחזק עיכול, מעלה חסינות, מרגיע שן"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "LI4",
+      "aliases": [],
+      "name_pinyin": "Hegu",
+      "name_cn": "合谷",
+      "name_en": "Joining Valley",
+      "channel": "Large Intestine",
+      "location": "Dorsum of the hand, between 1st and 2nd metacarpal bones, midpoint of 2nd metacarpal",
+      "actions": "Clears Wind and Heat, stops pain, promotes labour (contraindicated in pregnancy)",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [
+        "pregnancy"
+      ],
+      "translations": {
+        "he": {
+          "name": "הגו",
+          "channel": "המעי הגדול",
+          "location": "גב היד, בין עצמות המטקרפל הראשונה לשנייה, אמצע המטקרפל השנייה",
+          "actions": "מנקה רוח וחום, עוצר כאב, מזרז לידה (אסור בהריון)"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "PC6",
+      "aliases": [],
+      "name_pinyin": "Neiguan",
+      "name_cn": "内关",
+      "name_en": "Inner Pass",
+      "channel": "Pericardium",
+      "location": "2 cun above the wrist crease, between palmaris longus and flexor carpi radialis",
+      "actions": "Regulates Heart, calms the mind, stops nausea, opens the chest",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "ניגואן",
+          "channel": "קרום הלב",
+          "location": "2 צון מעל פרק כף היד, בין גידי הפלמריס לונגוס ופלקסור קרפי רדיאליס",
+          "actions": "מווסת לב, מרגיע נפש, עוצר בחילה, פותח חזה"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "LR3",
+      "aliases": [],
+      "name_pinyin": "Taichong",
+      "name_cn": "太冲",
+      "name_en": "Great Rushing",
+      "channel": "Liver",
+      "location": "Dorsum of foot, depression between 1st and 2nd metatarsal bones",
+      "actions": "Moves Liver Qi, subdues Liver Yang, regulates menstruation, calms Wind",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "טאיצ׳ונג",
+          "channel": "כבד",
+          "location": "גב כף הרגל, שקע בין עצמות המטטרסל הראשונה לשנייה",
+          "actions": "מזיז צ׳י כבד, מדכא יאנג כבד, מווסת מחזור, מרגיע רוח"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "SP6",
+      "aliases": [],
+      "name_pinyin": "Sanyinjiao",
+      "name_cn": "三阴交",
+      "name_en": "Three Yin Intersection",
+      "channel": "Spleen",
+      "location": "3 cun above the medial malleolus, on the posterior border of the tibia",
+      "actions": "Strengthens Spleen and Stomach, nourishes Blood and Yin, regulates menstruation",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [
+        "pregnancy"
+      ],
+      "translations": {
+        "he": {
+          "name": "סניינג׳יאו",
+          "channel": "טחול",
+          "location": "3 צון מעל הקרסול המדיאלי, לאורך הגבול האחורי של הטיביה",
+          "actions": "מחזק טחול וקיבה, מזין דם ויין, מווסת מחזור"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "GV20",
+      "aliases": [],
+      "name_pinyin": "Baihui",
+      "name_cn": "百会",
+      "name_en": "Hundred Meetings",
+      "channel": "Governing Vessel",
+      "location": "On the midline of the head, at the intersection with the line connecting the ear apices",
+      "actions": "Clears the mind, lifts the spirit, raises Yang Qi, benefits the brain",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "בייהוי",
+          "channel": "כלי השלטון",
+          "location": "על קו האמצע של הראש, בצומת עם הקו המחבר את קצות האוזניים",
+          "actions": "מנקה נפש, מרים רוח, מעלה יאנג צ׳י, מועיל למוח"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "HT7",
+      "aliases": [],
+      "name_pinyin": "Shenmen",
+      "name_cn": "神门",
+      "name_en": "Spirit Gate",
+      "channel": "Heart",
+      "location": "Wrist, radial side of flexor carpi ulnaris tendon, at the proximal border of the pisiform",
+      "actions": "Calms Shen, tonifies Heart Qi and Blood, treats insomnia and anxiety",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "שנמן",
+          "channel": "לב",
+          "location": "פרק כף היד, צד רדיאלי של גיד פלקסור קרפי אולנריס, גבול פרוקסימלי של עצם הפיזיפורם",
+          "actions": "מרגיע שן, מחזק צ׳י ודם של הלב, מטפל בנדודי שינה וחרדה"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "KI3",
+      "aliases": [
+        "KD3"
+      ],
+      "name_pinyin": "Taixi",
+      "name_cn": "太溪",
+      "name_en": "Great Ravine",
+      "channel": "Kidney",
+      "location": "Depression between the medial malleolus and the Achilles tendon",
+      "actions": "Tonifies Kidney Yin and Yang, strengthens the lower back, benefits the brain",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "טאישי",
+          "channel": "כליה",
+          "location": "שקע בין הקרסול המדיאלי לגיד אכילס",
+          "actions": "מחזק יין ויאנג של הכליה, מחזק גב תחתון, מועיל למוח"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "GB20",
+      "aliases": [],
+      "name_pinyin": "Fengchi",
+      "name_cn": "风池",
+      "name_en": "Wind Pool",
+      "channel": "Gallbladder",
+      "location": "Depression between upper sternocleidomastoid and trapezius, level with GV16",
+      "actions": "Expels Wind, clears the head and eyes, relieves headache",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "פנגצ׳י",
+          "channel": "כיס המרה",
+          "location": "שקע בין שרירי SCM לטרפז, ברמת GV16",
+          "actions": "מגרש רוח, מנקה ראש ועיניים, מקל על כאב ראש"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "GB21",
+      "aliases": [],
+      "name_pinyin": "Jianjing",
+      "name_cn": "肩井",
+      "name_en": "Shoulder Well",
+      "channel": "Gallbladder",
+      "location": "Highest point of the shoulder, midway between GV14 and the acromion",
+      "actions": "Relaxes sinews, descends rebellious Qi, relieves shoulder/neck tension (avoid in pregnancy)",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [
+        "pregnancy"
+      ],
+      "translations": {
+        "he": {
+          "name": "ג׳יאנג׳ינג",
+          "channel": "כיס המרה",
+          "location": "נקודת השיא של הכתף, אמצע בין GV14 לאקרומיון",
+          "actions": "מרפה גידים, מוריד צ׳י מורד, מקל על מתח כתף וצוואר (הימנע בהריון)"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "TE5",
+      "aliases": [],
+      "name_pinyin": "Waiguan",
+      "name_cn": "外关",
+      "name_en": "Outer Pass",
+      "channel": "Triple Energizer",
+      "location": "2 cun above wrist crease on dorsum of forearm, between radius and ulna",
+      "actions": "Releases Exterior Wind-Heat, opens Yang Linking Vessel, relieves earache and migraines",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "וואיגואן",
+          "channel": "שלושת האנרגיזרים",
+          "location": "2 צון מעל פרק כף היד על גב הזרוע, בין הרדיוס לאולנה",
+          "actions": "משחרר רוח-חום חיצוני, פותח כלי יאנג מחבר, מקל על כאב אוזניים ומיגרנות"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "BL23",
+      "aliases": [],
+      "name_pinyin": "Shenshu",
+      "name_cn": "肾俞",
+      "name_en": "Kidney Shu",
+      "channel": "Bladder",
+      "location": "1.5 cun lateral to GV4, level with lower border of L2 spinous process",
+      "actions": "Tonifies Kidney Qi/Yang, strengthens lumbar region, benefits ears and bones",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "שנשו",
+          "channel": "שלפוחית השתן",
+          "location": "1.5 צון לרוחב GV4, ברמת הגבול התחתון של עמוד שדרה L2",
+          "actions": "מחזק צ׳י/יאנג של הכליה, מחזק אזור המותניים, מועיל לאוזניים ולעצמות"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "BL40",
+      "aliases": [],
+      "name_pinyin": "Weizhong",
+      "name_cn": "委中",
+      "name_en": "Bend Middle",
+      "channel": "Bladder",
+      "location": "Midpoint of popliteal crease, between biceps femoris and semitendinosus",
+      "actions": "Activates the channel, relieves lower back pain and sciatica, clears summer heat",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "ווייז׳ונג",
+          "channel": "שלפוחית השתן",
+          "location": "אמצע קפל הפופליאל, בין ביצפס פמוריס לסמיטנדינוסוס",
+          "actions": "מפעיל ערוץ, מקל על כאב גב תחתון וסיאטיקה, מנקה חום קיץ"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "CV6",
+      "aliases": [],
+      "name_pinyin": "Qihai",
+      "name_cn": "气海",
+      "name_en": "Sea of Qi",
+      "channel": "Conception Vessel",
+      "location": "1.5 cun below the umbilicus",
+      "actions": "Tonifies Original Qi, warms and strengthens Yang, regulates menstruation",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "צ׳יהאי",
+          "channel": "כלי ההריון",
+          "location": "1.5 צון מתחת לטבור",
+          "actions": "מחזק צ׳י המקור, מחמם ומחזק יאנג, מווסת מחזור"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "CV12",
+      "aliases": [],
+      "name_pinyin": "Zhongwan",
+      "name_cn": "中脘",
+      "name_en": "Middle Cavity",
+      "channel": "Conception Vessel",
+      "location": "4 cun above the umbilicus (midway between CV8 and xiphoid)",
+      "actions": "Tonifies Spleen and Stomach, resolves Damp, descends rebellious Stomach Qi",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "ג׳ונגוואן",
+          "channel": "כלי ההריון",
+          "location": "4 צון מעל הטבור (אמצע בין CV8 ל-xiphoid)",
+          "actions": "מחזק טחול וקיבה, פותר לחות, מוריד צ׳י קיבה מורד"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "CV17",
+      "aliases": [],
+      "name_pinyin": "Shanzhong",
+      "name_cn": "膻中",
+      "name_en": "Chest Centre",
+      "channel": "Conception Vessel",
+      "location": "Anterior midline at the 4th intercostal space, between the nipples",
+      "actions": "Opens the chest, regulates Qi, descends rebellious Lung Qi, calms the Shen",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "שנג׳ונג",
+          "channel": "כלי ההריון",
+          "location": "קו אמצע קדמי ברמת הרווח הבין-צלעי הרביעי, בין הפטמות",
+          "actions": "פותח חזה, מווסת צ׳י, מוריד צ׳י ריאה מורד, מרגיע שן"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "GV14",
+      "aliases": [],
+      "name_pinyin": "Dazhui",
+      "name_cn": "大椎",
+      "name_en": "Great Vertebra",
+      "channel": "Governing Vessel",
+      "location": "Midline below C7 spinous process",
+      "actions": "Releases Exterior, clears Heat, regulates Yang of the whole body",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "דאז׳וי",
+          "channel": "כלי השלטון",
+          "location": "קו אמצע מתחת לעמוד שדרה C7",
+          "actions": "משחרר חיצוני, מנקה חום, מווסת יאנג של כל הגוף"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "LU7",
+      "aliases": [],
+      "name_pinyin": "Lieque",
+      "name_cn": "列缺",
+      "name_en": "Broken Sequence",
+      "channel": "Lung",
+      "location": "1.5 cun above wrist crease on radial side, cleft above styloid process",
+      "actions": "Releases Exterior Wind, descends and disseminates Lung Qi, opens Conception Vessel",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "ליקווה",
+          "channel": "ריאה",
+          "location": "1.5 צון מעל פרק כף היד על הצד הרדיאלי, מעל תהליך הסטילואיד",
+          "actions": "משחרר רוח חיצוני, מוריד ומפיץ צ׳י ריאה, פותח כלי ההריון"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "LI11",
+      "aliases": [],
+      "name_pinyin": "Quchi",
+      "name_cn": "曲池",
+      "name_en": "Pool at the Crook",
+      "channel": "Large Intestine",
+      "location": "Lateral end of cubital crease, midway between LU5 and lateral epicondyle",
+      "actions": "Clears Heat, cools Blood, resolves Damp, regulates Qi and Blood",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "צ׳וצ׳י",
+          "channel": "המעי הגדול",
+          "location": "קצה לרוחב של קפל המרפק, אמצע בין LU5 לאפיקונדיל לרוחב",
+          "actions": "מנקה חום, מצנן דם, פותר לחות, מווסת צ׳י ודם"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "SP9",
+      "aliases": [],
+      "name_pinyin": "Yinlingquan",
+      "name_cn": "阴陵泉",
+      "name_en": "Yin Mound Spring",
+      "channel": "Spleen",
+      "location": "Depression on lower border of medial condyle of the tibia",
+      "actions": "Resolves Dampness, regulates the Lower Burner, opens water passages",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "יינלינגצ׳ואן",
+          "channel": "טחול",
+          "location": "שקע על הגבול התחתון של הקונדיל המדיאלי של הטיביה",
+          "actions": "פותר לחות, מווסת בורר תחתון, פותח ערוצי מים"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "ST40",
+      "aliases": [],
+      "name_pinyin": "Fenglong",
+      "name_cn": "丰隆",
+      "name_en": "Abundant Bulge",
+      "channel": "Stomach",
+      "location": "8 cun below ST35, two finger-widths lateral to anterior crest of tibia",
+      "actions": "Resolves Phlegm and Damp, calms the Shen, opens the chest, clears Heat",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "פנגלונג",
+          "channel": "קיבה",
+          "location": "8 צון מתחת ל-ST35, שני רוחבי אצבע לרוחב קצה הטיביה הקדמית",
+          "actions": "פותר ליחה ולחות, מרגיע שן, פותח חזה, מנקה חום"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "YINTANG",
+      "aliases": [
+        "YIN",
+        "EXHN3",
+        "GV29"
+      ],
+      "name_pinyin": "Yintang",
+      "name_cn": "印堂",
+      "name_en": "Hall of Impression",
+      "channel": "Extra Point",
+      "location": "Midline of forehead, midway between medial ends of eyebrows",
+      "actions": "Calms the Shen, brightens the eyes, relieves frontal headache, supports sleep",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [],
+      "translations": {
+        "he": {
+          "name": "יינטנג",
+          "channel": "נקודה נוספת",
+          "location": "קו אמצע המצח, אמצע בין הקצות המדיאליות של הגבות",
+          "actions": "מרגיע שן, מאיר עיניים, מקל על כאב ראש חזיתי, תומך בשינה"
+        }
+      },
+      "source": "ZenFlow treatment page reference (POINT_INFO, 2026-09)",
+      "licence": "internal"
+    },
+    {
+      "code": "BL60",
+      "aliases": [],
+      "name_pinyin": "Kunlun",
+      "name_cn": "昆仑",
+      "name_en": "Kunlun Mountains",
+      "channel": "Bladder",
+      "location": "Behind the lateral malleolus, in the depression between its prominence and the calcaneal tendon",
+      "actions": "Clears Heat, calms the mind, relaxes the sinews, promotes labour (contraindicated in pregnancy)",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [
+        "pregnancy"
+      ],
+      "translations": {
+        "he": {
+          "name": "קונלון",
+          "channel": "שלפוחית השתן",
+          "location": "מאחורי הקרסול החיצוני, בשקע שבין בליטת הקרסול לגיד אכילס",
+          "actions": "מנקה חום, מרגיע את הנפש, מרפה גידים, מקדם לידה (אסור בהריון)"
+        }
+      },
+      "source": "ZenFlow reference, Phase 4.3a (WHO standard locations)",
+      "licence": "internal"
+    },
+    {
+      "code": "BL67",
+      "aliases": [],
+      "name_pinyin": "Zhiyin",
+      "name_cn": "至阴",
+      "name_en": "Reaching Yin",
+      "channel": "Bladder",
+      "location": "Lateral side of the little toe, 0.1 cun proximal to the corner of the nail",
+      "actions": "Expels Wind, clears the head and eyes; traditionally used with moxibustion to turn a breech presentation",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [
+        "pregnancy"
+      ],
+      "translations": {
+        "he": {
+          "name": "ג׳ייין",
+          "channel": "שלפוחית השתן",
+          "location": "בצד החיצוני של הבוהן הקטנה, 0.1 צון מפינת הציפורן",
+          "actions": "מפזר רוח, מבהיר את הראש והעיניים; משמש באופן מסורתי עם מוקסה להיפוך מצג עכוז"
+        }
+      },
+      "source": "ZenFlow reference, Phase 4.3a (WHO standard locations)",
+      "licence": "internal"
+    },
+    {
+      "code": "CV3",
+      "aliases": [],
+      "name_pinyin": "Zhongji",
+      "name_cn": "中极",
+      "name_en": "Middle Pole",
+      "channel": "Conception Vessel",
+      "location": "On the anterior midline, 4 cun below the centre of the umbilicus",
+      "actions": "Benefits the Bladder, regulates the Lower Burner and the uterus",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [
+        "pregnancy"
+      ],
+      "translations": {
+        "he": {
+          "name": "ג׳ונג׳י",
+          "channel": "כלי ההריון",
+          "location": "על קו האמצע הקדמי, 4 צון מתחת למרכז הטבור",
+          "actions": "מיטיב עם שלפוחית השתן, מווסת את המחמם התחתון ואת הרחם"
+        }
+      },
+      "source": "ZenFlow reference, Phase 4.3a (WHO standard locations)",
+      "licence": "internal"
+    },
+    {
+      "code": "CV4",
+      "aliases": [],
+      "name_pinyin": "Guanyuan",
+      "name_cn": "关元",
+      "name_en": "Gate of Origin",
+      "channel": "Conception Vessel",
+      "location": "On the anterior midline, 3 cun below the centre of the umbilicus",
+      "actions": "Tonifies Original Qi and the Kidneys, regulates the uterus",
+      "needle_depth": "",
+      "needle_angle": "",
+      "contraindications": [
+        "pregnancy"
+      ],
+      "translations": {
+        "he": {
+          "name": "גואניואן",
+          "channel": "כלי ההריון",
+          "location": "על קו האמצע הקדמי, 3 צון מתחת למרכז הטבור",
+          "actions": "מחזק את הצ׳י המקורי ואת הכליות, מווסת את הרחם"
+        }
+      },
+      "source": "ZenFlow reference, Phase 4.3a (WHO standard locations)",
+      "licence": "internal"
+    }
+  ]
+}

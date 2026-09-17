@@ -97,6 +97,7 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │   └── api/
 │       ├── appointments.py  # /api/appointments/today, /api/patients, /api/patients/{id}
 │       ├── treatment.py     # /api/treatment-notes/* (get, save, rediagnose, send, complete)
+│       ├── acupoints.py     # /api/acupoints — point reference data in the therapist's language (ETag)
 │       ├── availability.py  # /api/calendars, /api/events, /api/availability
 │       ├── messages.py      # /api/messages/active, /conversations, /history/{pid}, /send
 │       └── system.py        # /api/status, /api/my/status, /api/my/activation-code, /api/my/language, /api/my/preferences
@@ -134,6 +135,7 @@ zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── leases.py                # Named expiring DB locks: acquire/release/held (one generation per appointment)
 ├── events.py                # Live-page wake-ups: notify_treatment() / subscribe_treatment() (Redis pub/sub, best effort)
 ├── migrate_timestamps.py    # python -m zenflow.migrate_timestamps [--dry-run] — legacy timestamps → canonical UTC
+├── seed.py                  # python -m zenflow.seed acupoints [--dry-run] — reference data from zenflow/seed_data/*.json
 ├── db_backup.py             # backup_database() via SQLite online backup (WAL-safe)
 ├── logging.py               # Structured logging: context (request_id…), redaction, console/JSON formatters, timed()
 ├── token_key.py             # Fernet derivation for google_tokens + rotate()
