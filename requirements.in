@@ -42,3 +42,6 @@ cryptography==46.0.5
 
 # Images (Phase 4.3b): acupoint image ingestion — resize, thumbnails, EXIF stripping
 pillow==12.3.0
+
+# S3 media store (Phase 4.3c) — imported only when ZF_STORAGE_S3=1
+boto3==1.43.96

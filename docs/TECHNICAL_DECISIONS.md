@@ -778,3 +778,17 @@ workflow and review that nobody has asked for yet).
 
 **Consequences.** Swapping in S3 touches only `get_storage()` and the new class. Images must be
 re-ingested, not copied, into a new store, which re-runs the metadata stripping.
+
+**Addendum — S3 (Phase 4.3c).**
+- **Configuration:** `S3Storage` is selected by `ZF_STORAGE_S3=1`. The boot fails without
+  `S3_BUCKET`, in every environment.
+- **Writes:** every object goes under `S3_PREFIX` with `ServerSideEncryption=aws:kms`, using
+  `S3_KMS_KEY_ID` or the bucket's AWS-managed key, plus its content type and a private cache
+  header.
+- **Links:** SigV4 presigned GETs, valid for 1 hour, which is longer than the 10-minute client
+  cache of `/api/acupoints`. `/media` answers 404 under S3.
+- **Credentials:** they come only from the standard AWS chain (profile or instance role); the
+  settings never hold keys.
+- **Custom endpoints:** `S3_ENDPOINT_URL` (e.g. MinIO) must be `https://` outside dev (ADR-14).
+- **Tests:** the same contract suite runs on both stores (moto for S3).
+- **Follow-up for Phase 9:** the CSP must allow `img-src` for the bucket's host.

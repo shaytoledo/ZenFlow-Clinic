@@ -109,8 +109,15 @@ class Settings(BaseSettings):
     # ── redis ──
     redis_url: str = "redis://localhost:6379/0"
 
-    # ── media (Phase 4.3b) ──
+    # ── media (Phase 4.3b/c) ──
     media_root: str = ""  # MEDIA_ROOT — LocalStorage directory; empty ⇒ data/media
+    # S3 store, used when ZF_STORAGE_S3=1. Credentials come from the standard AWS chain
+    # (environment, profile or instance role) — boto3 reads them itself.
+    s3_bucket: str = ""  # S3_BUCKET — required with ZF_STORAGE_S3
+    s3_prefix: str = "media/"  # S3_PREFIX — prepended to every key in the bucket
+    s3_region: str = ""  # S3_REGION — empty ⇒ the AWS default region
+    s3_kms_key_id: str = ""  # S3_KMS_KEY_ID — empty ⇒ the bucket's AWS-managed key (still SSE-KMS)
+    s3_endpoint_url: str = ""  # S3_ENDPOINT_URL — an S3-compatible endpoint (MinIO); empty ⇒ AWS
 
     # ── web / secrets ──
     session_secret: str = DEFAULT_SESSION_SECRET
@@ -161,6 +168,8 @@ class Settings(BaseSettings):
     def _validate(self) -> Settings:
         if self.flags.ai_provider is None:
             self.flags.ai_provider = self.use_ai
+        if self.flags.storage_s3 and not self.s3_bucket.strip():
+            raise ValueError("S3_BUCKET is required when ZF_STORAGE_S3=1")
         if self.is_dev:
             return self
         problems: list[str] = []
@@ -187,6 +196,8 @@ class Settings(BaseSettings):
             ("GOOGLE_REG_REDIRECT_URI", self.google_reg_redirect_uri, frozenset({"https"})),
             ("GOOGLE_GMAIL_REDIRECT_URI", self.google_gmail_redirect_uri, frozenset({"https"})),
         ]
+        if self.s3_endpoint_url:
+            checks.append(("S3_ENDPOINT_URL", self.s3_endpoint_url, frozenset({"https"})))
         out: list[str] = []
         for name, value, schemes in checks:
             parts = urlsplit(value)

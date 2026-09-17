@@ -279,5 +279,6 @@ async def test_media_is_not_served_when_a_remote_store_is_configured(
     key = _rows()[0]["storage_key"]
     client = await login_as(make_therapist(email="media-s3@example.com", password=PW))
     monkeypatch.setenv("ZF_STORAGE_S3", "1")
+    monkeypatch.setenv("S3_BUCKET", "any-bucket")
     reset_settings()
     assert (await client.get(f"/media/{key}")).status_code == 404

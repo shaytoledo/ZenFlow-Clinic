@@ -137,7 +137,7 @@ zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── events.py                # Live-page wake-ups: notify_treatment() / subscribe_treatment() (Redis pub/sub, best effort)
 ├── migrate_timestamps.py    # python -m zenflow.migrate_timestamps [--dry-run] — legacy timestamps → canonical UTC
 ├── seed.py                  # python -m zenflow.seed acupoints [--dry-run] — reference data from zenflow/seed_data/*.json
-├── storage.py               # Storage ABC (put/get/exists/delete/url) + LocalStorage (MEDIA_ROOT, served at /media); S3 in 4.3c
+├── storage.py               # Storage ABC (put/get/exists/delete/url): LocalStorage (MEDIA_ROOT, served at /media) | S3Storage (ZF_STORAGE_S3; SSE-KMS, presigned links)
 ├── ingest_images.py         # python -m zenflow.ingest_images <folder> [--dry-run] — licensed images → WebP + thumb + acupoint_images
 ├── db_backup.py             # backup_database() via SQLite online backup (WAL-safe)
 ├── logging.py               # Structured logging: context (request_id…), redaction, console/JSON formatters, timed()
@@ -230,6 +230,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `ZF_CONV_TIMEOUT_MINUTES` | `30` | Idle minutes before a patient flow is closed; `0` = never |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
+| `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |
 | `ZF_POINT_IMAGES` | `0` | `1` = `/api/acupoints` lists point images (needs licensed images, Q4) |
 | `ZF_SSE_UPDATES` | `0` | `1` = the treatment page follows a generation over server-sent events instead of 2 s polling |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
