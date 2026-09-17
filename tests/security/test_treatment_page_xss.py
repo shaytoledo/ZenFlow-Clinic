@@ -66,6 +66,18 @@ REVIEWED = {
     "items",
     "adviceHtml",
     "signature",
+    # point lightbox (Phase 4.3d): SVG constants and markup assembled from escHtml()-ed parts;
+    # every URL passes safeUrl() (http(s) or /media/ only) before escHtml()
+    "ICON_CLOSE",
+    "ICON_IMAGE",
+    "hanziHtml",
+    "figureHtml",
+    "creditHtml",
+    "licenceHtml",
+    "sourceHtml",
+    "thumbsHtml",
+    "zoomHtml",
+    "detailHtml",
     # inside an escHtml(`…`) template — escaped as a whole
     "phone",
 }

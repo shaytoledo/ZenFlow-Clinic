@@ -25,8 +25,10 @@ const CLICK_ACTIONS = {
   'set-point-density': (el) => setPointDensity(el.dataset.density),
   'print-handout': () => printHandout(),
   'remove-point': (el) => removePoint(el.dataset.code),
-  'open-point-panel': (el) => openPointPanel(el.dataset.code, el),
-  'close-point-panel': () => closePointPanel(),
+  'open-point-lightbox': (el) => openPointLightbox(el.dataset.code),
+  'close-point-lightbox': () => closePointLightbox(),
+  'lightbox-show-image': (el) => showLightboxImage(el.dataset.index),
+  'lightbox-zoom': (el) => toggleLightboxZoom(el),
   'send-advice': () => sendAdvice(),
   'send-advice-later': () => sendAdviceLater(),
   'toggle-advice': (el) => toggleAdvice(el.dataset.adviceId),
@@ -54,10 +56,6 @@ document.addEventListener('input', (e) => {
   const el = e.target.closest('[data-input-action]');
   const run = el && INPUT_ACTIONS[el.dataset.inputAction];
   if (run) run(el, e);
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closePointPanel();
 });
 
 document.addEventListener('focusout', (e) => {

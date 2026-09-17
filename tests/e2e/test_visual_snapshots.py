@@ -140,3 +140,79 @@ def test_app_shell(browser, live_server, session_page, width: str) -> None:
             assert_matches_baseline("shell-phone-drawer", page.screenshot())
     finally:
         page.context.close()
+
+
+# ── the point lightbox (Phase 4.3d) ──
+@pytest.mark.parametrize("lang", ["en", "he"])
+def test_point_lightbox_opens_and_closes(browser, live_server, session_page, lang: str) -> None:
+    page = session_page(browser, live_server, lang, "desktop")
+    try:
+        dialog = page.locator("#point-lightbox")
+        page.click('[data-point-card="LI4"] .pc-code')
+        assert dialog.evaluate("d => d.open")
+        assert page.evaluate("document.activeElement.classList.contains('pl-close')")
+        assert dialog.locator(".pl-placeholder").is_visible(), "images are off: a placeholder"
+        assert dialog.locator(".pc-caution").is_visible()
+        assert_matches_baseline(f"lightbox-desktop-{lang}", page.screenshot())
+
+        page.keyboard.press("Escape")
+        assert not dialog.evaluate("d => d.open")
+        assert page.evaluate(
+            "document.activeElement.matches('[data-point-card=\"LI4\"] .pc-code')"
+        ), "focus returns to the badge"
+        toggle = '[data-point-card="LI4"] .pc-toggle'
+        assert page.get_attribute(toggle, "aria-pressed") == "false", "opening is not selecting"
+
+        page.click('.pc-tag-label[data-code="LR3"]')
+        assert dialog.evaluate("d => d.open")
+        assert dialog.locator(".pl-head .pc-code").inner_text() == "LR3"
+        dialog.locator(".pl-close").click()
+        assert not dialog.evaluate("d => d.open")
+    finally:
+        page.context.close()
+
+
+def test_point_lightbox_shows_an_ingested_image(
+    browser, live_server, session_page, tmp_path, monkeypatch
+) -> None:
+    import json as _json
+
+    from PIL import Image
+
+    from bot.db import get_db
+    from zenflow import ingest_images
+    from zenflow.settings import reset_settings
+    from zenflow.storage import get_storage
+
+    monkeypatch.setenv("MEDIA_ROOT", str(tmp_path / "media"))
+    monkeypatch.setenv("ZF_POINT_IMAGES", "1")
+    reset_settings()
+    folder = tmp_path / "in"
+    folder.mkdir()
+    (folder / "credits.json").write_text(
+        _json.dumps({"default": {"credit": "Drawn for the e2e test", "licence": "CC0 1.0"}}),
+        encoding="utf-8",
+    )
+    out = io.BytesIO()
+    Image.new("RGB", (1200, 800), (13, 148, 136)).save(out, "PNG")
+    (folder / "LI4.png").write_bytes(out.getvalue())
+    page = session_page(browser, live_server, "en", "desktop")
+    try:
+        assert ingest_images.ingest_folder(folder, get_db(), get_storage()).added == 1
+        page.reload()
+        page.wait_for_selector(".pc >> nth=2")
+        page.click('[data-point-card="LI4"] .pc-code')
+        page.wait_for_function(
+            "() => { const i = document.querySelector('#point-lightbox .pl-image');"
+            " return i && i.complete && i.naturalWidth > 0; }"
+        )
+        image = page.locator("#point-lightbox .pl-image")
+        assert image.evaluate("img => img.naturalWidth") == 1200, "the web copy, served from /media"
+        assert "Drawn for the e2e test" in page.inner_text("#point-lightbox .pl-credit")
+        page.click("#point-lightbox .pl-zoom")
+        assert page.get_attribute("#point-lightbox .pl-zoom", "aria-pressed") == "true"
+        assert page.evaluate(
+            "document.querySelector('#point-lightbox .pl-frame').classList.contains('is-zoomed')"
+        )
+    finally:
+        page.context.close()

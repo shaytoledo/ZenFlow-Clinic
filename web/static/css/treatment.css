@@ -65,7 +65,7 @@
 /* ══ Page-scoped classes (Phase 4.1c) ═══════════════════════════════════════
    Every style that used to sit in a style="…" attribute on this page lives here, so a strict
    CSP (no 'unsafe-inline', Phase 9) can apply. `.tp` marks the page roots: #treatment-root,
-   #point-panel, the email overlay and the back link. `.tp .x` (0,2,0) outranks the shared
+   #point-lightbox, the email overlay and the topbar buttons. `.tp .x` (0,2,0) outranks the shared
    zf-* component rules and their :hover states, as the inline styles did; this file loads
    after style.css, so ties go to these rules. Values that depend on data use variables:
    tp-ch-* (acupuncture channel colours) and tp-tone-* (status colours). */
@@ -163,16 +163,8 @@
 .tp .tp-input-hint { font-size: 11px; color: #9CA3AF; margin-top: 6px; }
 .tp .tp-tag-remove { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.8); padding: 0; padding-inline-start: 4px; line-height: 1; border-radius: 3px; }
 
-/* ── Point info panel ──────────────────────────────────────────────────────── */
-.tp .tp-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.tp .tp-panel-code { font-size: 20px; font-weight: 700; color: #0D9488; }
-.tp .tp-icon-btn { background: none; border: none; cursor: pointer; color: #9CA3AF; }
-.tp .tp-panel-note { background: #CCFBF1; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
-.tp .tp-panel-note-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #0D9488; letter-spacing: 0.6px; margin-bottom: 5px; }
+/* ── Follow-up notes text ──────────────────────────────────────────────────── */
 .tp .tp-note-text { font-size: 13px; color: #065F46; line-height: 1.6; margin: 0; }
-.tp .tp-panel-name { font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 8px; }
-.tp .tp-panel-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #9CA3AF; letter-spacing: 0.5px; }
-.tp .tp-panel-text { font-size: 13px; color: #374151; margin-top: 4px; line-height: 1.6; }
 
 /* ── Lifestyle advice, email fallback dialog, Complete button ──────────────── */
 .tp .tp-advice-hint { font-size: 12px; color: #9CA3AF; margin-top: 8px; }
@@ -441,7 +433,11 @@
 .tp .pc-tag-label:focus-visible,
 .tp .tp-tag-remove:focus-visible,
 .tp .pc-undo-btn:focus-visible,
-.tp .tp-icon-btn:focus-visible {
+.tp .pc-code:focus-visible,
+.tp .pl-close:focus-visible,
+.tp .pl-thumb:focus-visible,
+.tp .pl-zoom:focus-visible,
+.tp .pl-credit a:focus-visible {
   outline: none;
   box-shadow: var(--zf-focus-ring);
 }
@@ -641,6 +637,114 @@
 .tp [data-density="compact"] .ps-skeleton { min-height: 96px; }
 .tp [data-density="compact"] .ps-bar-block { display: none; }
 
+/* ── Point lightbox (Phase 4.3d): a native <dialog>, filled by lightbox.js ── */
+.tp .pc-code { font-family: inherit; cursor: pointer; }  /* the badge is a button that opens it */
+.tp .pc-code:hover { border-color: var(--ch-ink); }
+.tp.pl {
+  margin: auto;  /* style.css resets every margin to 0, which would pin the modal to a corner */
+  width: min(720px, calc(100% - 2 * var(--zf-space-4)));
+  max-height: calc(100% - 2 * var(--zf-space-6));
+  padding: 0;
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-lg);
+  background: var(--zf-surface);
+  color: var(--zf-text-2);
+  box-shadow: var(--zf-shadow-lg);
+}
+.tp.pl::backdrop { background: rgba(17, 24, 39, .55); }
+.tp .pl-head {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--zf-space-3);
+  padding: var(--zf-space-4) var(--zf-space-5);
+  border-block-end: 1px solid var(--zf-border-subtle);
+  background: var(--zf-surface);
+}
+.tp .pl-names { flex: 1; min-width: 0; }
+.tp .pl-title { color: var(--zf-text); font-size: var(--zf-text-lg); font-weight: var(--zf-weight-bold); line-height: var(--zf-leading-tight); }
+.tp .pl-hanzi { margin-inline-start: var(--zf-space-1); color: var(--zf-text-muted); font-weight: var(--zf-weight-medium); }
+.tp .pl-sub { color: var(--zf-text-muted); font-size: var(--zf-text-sm); }
+.tp .pl-close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-pill);
+  background: var(--zf-surface);
+  color: var(--zf-text-2);
+  cursor: pointer;
+}
+.tp .pl-close:hover { background: var(--zf-surface-muted); }
+.tp .pl-body { display: grid; gap: var(--zf-space-4); padding: var(--zf-space-5); }
+.tp .pl-figure { display: grid; gap: var(--zf-space-2); }
+.tp .pl-frame {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  max-height: 60vh;
+  overflow: hidden;
+  border: 1px solid var(--zf-border-subtle);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-surface-muted);
+}
+.tp .pl-frame.is-zoomed { place-items: start; overflow: auto; }
+.tp .pl-image { display: block; max-width: 100%; max-height: 60vh; height: auto; object-fit: contain; }
+.tp .pl-frame.is-zoomed .pl-image { max-width: none; max-height: none; }
+.tp .pl-placeholder {
+  display: grid;
+  justify-items: center;
+  gap: var(--zf-space-2);
+  padding: var(--zf-space-6);
+  color: var(--zf-text-muted);
+  font-size: var(--zf-text-sm);
+  text-align: center;
+}
+.tp .pl-credit { color: var(--zf-text-muted); font-size: var(--zf-text-xs); }
+.tp .pl-credit a { border-radius: 2px; color: var(--zf-accent-text); }
+.tp .pl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--zf-space-2); }
+.tp .pl-tools:empty { display: none; }
+.tp .pl-thumbs { display: flex; flex-wrap: wrap; gap: var(--zf-space-2); }
+.tp .pl-thumb {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--zf-border);
+  border-radius: var(--zf-radius-sm);
+  background: var(--zf-surface-muted);
+  cursor: pointer;
+}
+.tp .pl-thumb[aria-pressed="true"] { border-color: var(--zf-accent-fill); }
+.tp .pl-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.tp .pl-zoom {
+  margin-inline-start: auto;
+  padding: var(--zf-space-1) var(--zf-space-3);
+  border: 1px solid var(--zf-border);
+  border-radius: var(--zf-radius-pill);
+  background: var(--zf-surface);
+  color: var(--zf-text-2);
+  font: inherit;
+  font-size: var(--zf-text-sm);
+  font-weight: var(--zf-weight-semibold);
+  cursor: pointer;
+}
+.tp .pl-zoom[aria-pressed="true"] { border-color: var(--zf-accent-fill); color: var(--zf-accent-text); }
+.tp .pl-detail { display: grid; gap: var(--zf-space-2); }
+.tp .pl-label {
+  color: var(--zf-text-muted);
+  font-size: var(--zf-text-2xs);
+  font-weight: var(--zf-weight-bold);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.tp .pl-text { color: var(--zf-text-2); font-size: var(--zf-text-md); line-height: var(--zf-leading-normal); }
+
 /* ══ end point cards ══ */
 
 /* ══ Patient handout (Phase 4.2c): printed instead of the page ═══════════════ */
@@ -650,7 +754,7 @@
   @page { margin: 16mm; }
   /* The page's own sections carry inline display values set by script, hence !important. */
   .tp.tp-page > :not(.tp-handout),
-  .tp.zf-point-panel,
+  .tp.pl,
   .tp.tp-overlay,
   .tp .pc-undo { display: none !important; }
   .tp.tp-page { padding: 0; }

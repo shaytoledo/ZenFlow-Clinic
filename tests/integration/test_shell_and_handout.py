@@ -151,7 +151,7 @@ def test_printing_the_page_prints_only_the_handout() -> None:
     assert ".tp .tp-handout { display: none; }" in css
     printed = css[css.index("@media print") :]
     assert ".tp.tp-page > :not(.tp-handout)" in printed
-    assert ".tp.zf-point-panel" in printed and ".tp .pc-undo" in printed
+    assert ".tp.pl," in printed and ".tp .pc-undo" in printed
     assert 'id="print-handout"' in ts.markup()
     assert "window.addEventListener('beforeprint', renderHandout)" in (JS / "handout.js").read_text(
         encoding="utf-8"
