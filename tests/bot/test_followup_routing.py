@@ -67,7 +67,7 @@ async def test_finished_followup_thanks_the_patient(db, fake_redis, make_complet
     from bot.patient_bot.followup import handle_followup_reply
 
     apt = make_completed_session(patient=PATIENT)
-    await _open_conversation(apt["id"], apt["therapist_id"], step=3)
+    await _open_conversation(apt["id"], apt["therapist_id"], step=6)
 
     update = make_update("much better, thanks", user_id=PID)
     with pytest.raises(ApplicationHandlerStop):

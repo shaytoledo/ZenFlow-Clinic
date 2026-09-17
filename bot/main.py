@@ -20,7 +20,7 @@ from bot.config import OLLAMA_HOST, OLLAMA_MODEL, TELEGRAM_TOKEN
 from bot.errors import on_error, stale_button
 from bot.patient_bot.cancel import confirm_cancel, show_appointments
 from bot.patient_bot.commands import cancel_command, help_command
-from bot.patient_bot.followup import handle_followup_reply
+from bot.patient_bot.followup import handle_followup_button, handle_followup_reply
 from bot.patient_bot.schedule import (
     confirm_appointment,
     handle_intake_answer,
@@ -259,6 +259,8 @@ def build_patient_app(*, request: BaseRequest | None = None) -> Application:
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_followup_reply), group=-1
     )
+    # …and the check-in's buttons (Phase 6.2), before any stale-button fallback sees them.
+    app.add_handler(CallbackQueryHandler(handle_followup_button, pattern=r"^fu:"), group=-1)
     app.add_handler(conv)
     # Without this an exception reaches only the log; the patient gets silence (B8).
     app.add_error_handler(on_error)

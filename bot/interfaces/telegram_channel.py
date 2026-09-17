@@ -26,12 +26,24 @@ class TelegramChannel(MessagingChannel):
     async def send(self, message: OutboundMessage) -> dict[str, Any]:
         from web.services.telegram_service import send_to_patient
 
-        parse_mode = (message.extra or {}).get("parse_mode", "Markdown")
+        extra = message.extra or {}
         return await send_to_patient(
             patient_id=int(message.recipient_id),
             text=message.text,
-            parse_mode=parse_mode,
+            parse_mode=extra.get("parse_mode", "Markdown"),
+            reply_markup=inline_keyboard(extra.get("buttons")),
         )
+
+
+def inline_keyboard(buttons: list[list[tuple[str, str]]] | None) -> dict[str, Any] | None:
+    """`[[(label, callback_data), …], …]` → Telegram's `reply_markup`, or None without buttons."""
+    if not buttons:
+        return None
+    return {
+        "inline_keyboard": [
+            [{"text": label, "callback_data": data} for label, data in row] for row in buttons
+        ]
+    }
 
 
 class TelegramTherapistChannel(MessagingChannel):

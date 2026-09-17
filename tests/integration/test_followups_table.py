@@ -39,12 +39,12 @@ async def _complete(client: Any, apt: dict[str, Any]) -> None:
     assert (await client.post(url, json={"session_notes": "x"})).status_code == 200
 
 
-async def _answer(text: str, patient_id: int = PID) -> str | None:
+async def _answer(text: str, patient_id: int = PID) -> str:
     from bot.services.followup_scheduler import consume_followup_conversation
 
-    consumed, reply = await consume_followup_conversation(patient_id, text)
-    assert consumed, f"{text!r} was not taken as a follow-up answer"
-    return reply
+    consumed, prompt = await consume_followup_conversation(patient_id, text)
+    assert consumed and prompt is not None, f"{text!r} was not taken as a follow-up answer"
+    return str(prompt.text)
 
 
 @pytest.fixture
@@ -119,7 +119,7 @@ async def test_a_checkin_goes_from_scheduled_to_completed_in_the_database(
         row = followup_repo.get(apt["id"])
         assert row is not None and row["status"] == "sent" and row["step"] == 1
         assert row["sent_at"] == "2026-03-02T12:00:00Z"
-        assert "1–10" in row["conversation"][0]["content"]
+        assert "0–10" in row["conversation"][0]["content"]
 
         await _answer("6")
         fake_redis.sync.flushall()  # plan 6.1: a flush mid-check-in used to lose the answers
@@ -128,6 +128,9 @@ async def test_a_checkin_goes_from_scheduled_to_completed_in_the_database(
         assert row is not None and row["status"] == "in_progress" and row["step"] == 3
         assert (row["pain_level"], row["improvement_rating"]) == (6, 4)
 
+        await _answer("none")  # side effects
+        await _answer("better")  # sleep
+        await _answer("yes")  # followed the advice
         frozen.tick(timedelta(minutes=5))
         reply = await _answer("Slept much better")
 
@@ -137,15 +140,9 @@ async def test_a_checkin_goes_from_scheduled_to_completed_in_the_database(
     assert row["status"] == "completed" and row["step"] is None
     assert row["completed_at"] == "2026-03-02T12:05:00Z"
     assert row["free_text"] == "Slept much better" and row["source"] == "patient"
-    assert [m["role"] for m in row["conversation"]] == [
-        "ai",
-        "user",
-        "ai",
-        "user",
-        "ai",
-        "user",
-        "ai",
-    ]
+    assert [m["role"] for m in row["conversation"]] == ["ai"] + ["user", "ai"] * 6
+    assert (row["side_effects"], row["sleep_quality"], row["adherence"]) == ([], "better", "yes")
+    assert row["ai_summary"] and "6/10" in row["ai_summary"] and not row["needs_attention"]
     notes = treatment_repo.get_by_appointment(apt["id"])
     assert notes is not None, "parallel write for one release"
     assert notes["followup_rating"] == 4

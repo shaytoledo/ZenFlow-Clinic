@@ -33,7 +33,7 @@ def _worker(**kw: Any) -> w.Worker:
 
 
 def _step1_sends(calls: list[dict[str, Any]]) -> int:
-    return sum("1–10" in c["text"] for c in calls)
+    return sum("0–10" in c["text"] for c in calls)
 
 
 def _rec_sends(calls: list[dict[str, Any]]) -> int:
@@ -174,7 +174,7 @@ async def test_send_now_clears_the_auto_queued_recommendations(clinic, fake_tele
     notes = treatment_repo.get_by_appointment(apt["id"])
     assert notes is not None and not notes.get("pending_recommendations")
     # exactly one delivery of recommendations reached the patient
-    assert len([c for c in fake_telegram.calls if "1–10" not in c["text"]]) == 1
+    assert len([c for c in fake_telegram.calls if "0–10" not in c["text"]]) == 1
 
 
 # ── finding 6: a job that dead-letters on timeout still alerts the therapist ──

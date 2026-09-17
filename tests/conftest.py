@@ -203,10 +203,23 @@ class FakeTelegram:
             return "therapist"
         return "unknown"
 
-    async def send(self, token: str, chat_id: int, text: str, parse_mode: str) -> dict[str, Any]:
-        self.calls.append(
-            {"bot": self._label(token), "chat_id": chat_id, "text": text, "parse_mode": parse_mode}
-        )
+    async def send(
+        self,
+        token: str,
+        chat_id: int,
+        text: str,
+        parse_mode: str,
+        reply_markup: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        call: dict[str, Any] = {
+            "bot": self._label(token),
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": parse_mode,
+        }
+        if reply_markup is not None:  # inline buttons (Phase 6.2)
+            call["reply_markup"] = reply_markup
+        self.calls.append(call)
         self._next_id += 1
         return {"ok": True, "result": {"message_id": self._next_id, "chat": {"id": chat_id}}}
 
@@ -216,7 +229,9 @@ def block_real_telegram(monkeypatch: pytest.MonkeyPatch) -> None:
     """No test may reach api.telegram.org. Request `fake_telegram` to record sends instead."""
     import web.services.telegram_service as ts
 
-    async def _blocked(token: str, chat_id: int, text: str, parse_mode: str) -> dict[str, Any]:
+    async def _blocked(
+        token: str, chat_id: int, text: str, parse_mode: str, reply_markup: Any = None
+    ) -> dict[str, Any]:
         raise RuntimeError(
             "real Telegram send attempted in a test — use the `fake_telegram` fixture"
         )

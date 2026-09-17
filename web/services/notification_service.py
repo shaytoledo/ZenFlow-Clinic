@@ -105,6 +105,38 @@ def alert_send_failed(
     )
 
 
+#: a check-in answer met the red-flag rule (Phase 6.2)
+FOLLOWUP_RED_FLAG = "followup_red_flag"
+
+
+def alert_followup_red_flag(
+    therapist_id: str,
+    appointment_id: int,
+    patient_id: int,
+    patient_name: str,
+    reasons: list[str],
+) -> int:
+    """High-severity, persistent, once per appointment: a patient's check-in needs attention."""
+    existing = notification_repo.find_active(therapist_id, FOLLOWUP_RED_FLAG, appointment_id)
+    if existing:
+        return int(existing["id"])
+    return notification_repo.create(
+        therapist_id=therapist_id,
+        kind=FOLLOWUP_RED_FLAG,
+        severity="error",
+        title=f"{patient_name} needs attention after their treatment",
+        body=(
+            "From the 24h check-in: "
+            + "; ".join(reasons)
+            + ". Please contact the patient and open the session."
+        ),
+        appointment_id=appointment_id,
+        patient_id=patient_id,
+        patient_name=patient_name,
+        persistent=True,
+    )
+
+
 #: queued recommendations for an email-only patient, waiting for the therapist's Google (5.4)
 WAITING_FOR_GOOGLE = "recommendations_waiting_google"
 

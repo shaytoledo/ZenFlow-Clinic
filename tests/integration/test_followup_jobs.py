@@ -81,7 +81,7 @@ async def test_jobs_fire_at_24h_exactly_once(clinic, fake_telegram) -> None:
         assert await worker.run_once() == 2
         texts = [c["text"] for c in fake_telegram.calls]
         assert len(texts) == 2
-        assert any("1–10" in t for t in texts), "follow-up step 1 was sent"
+        assert any("0–10" in t for t in texts), "follow-up step 1 was sent"
         assert any("recommendations" in t.lower() for t in texts), "recommendations were sent"
         assert all(c["chat_id"] == apt["patient_id"] for c in fake_telegram.calls)
 
