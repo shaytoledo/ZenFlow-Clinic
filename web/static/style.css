@@ -656,6 +656,29 @@ body {
   gap: 9px;
   padding: 8px 6px;
   border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+/* Phase 4.4: the card is a link to Settings, highlighted like the nav items */
+.zf-user-card:hover { background: #F3F4F6; }
+.zf-user-card:focus-visible { outline: none; box-shadow: var(--zf-focus-ring); }
+.zf-user-card.active { background: #0F766E; }
+.zf-user-card.active .zf-user-name,
+.zf-user-card.active .zf-user-role,
+.zf-user-card.active .zf-user-chevron { color: #FFFFFF; }
+.zf-user-card.active .zf-user-avatar { background: #FFFFFF; color: #0F766E; }
+.zf-user-meta { flex: 1; min-width: 0; }
+.zf-user-chevron { flex-shrink: 0; color: #9CA3AF; }
+
+/* Text for screen readers only */
+.zf-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .zf-user-avatar {
@@ -682,7 +705,7 @@ body {
 
 .zf-user-role {
   font-size: 11px;
-  color: #9CA3AF;
+  color: #6B7280;  /* AA on white (Phase 4.4) */
   display: block;
   white-space: nowrap;
 }
