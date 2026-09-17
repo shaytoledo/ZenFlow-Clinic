@@ -151,3 +151,37 @@ timeout, an error, a longer reply) keeps the fixed wording. The result is stored
 - Please confirm the red-flag thresholds.
 - "Fainting" was added as its own option so that the rule stays deterministic. The plan said
   "severe dizziness/fainting", and "dizziness" alone does not raise the flag.
+
+## 4. When the patient cannot be messaged (task 6.4)
+
+**Unreachable** means a manual booking (`source = manual`) or a negative patient id. Such a
+patient has no Telegram. Their check-in becomes a phone call.
+
+- **Row:** at enqueue time ("Complete Session", or the reconcile sweep), `followup_repo.schedule()`
+  stores the row as `channel = none`, `status = no_channel`. At T+24h the job skips the send, so
+  no message is attempted.
+- **Alert:** `followup_jobs._alert_if_unreachable()` creates **one** persistent
+  `followup_no_channel` notification (severity `warning`): "Follow-up due for <patient> — no
+  messaging channel", with the due time.
+  - It is raised **once per appointment, ever** (`notification_repo.ever_raised`). Completing the
+    session again, or a sweep, never brings back an alert the therapist already resolved.
+- **Links:** `/api/notifications` gives every alert tied to one of the therapist's sessions a
+  `link` to that session (`notification_service.session_link`, each path part percent-encoded).
+  A no-channel alert links straight to the form (`#manual-feedback-card`). The bell renders the
+  link only when it starts with `/treatment/`, and escapes it for the attribute.
+- **In the session:** the Manual Patient Feedback card is always on the page. For a `no_channel`
+  check-in it also shows "This patient cannot be messaged, so the 24h follow-up is a phone
+  call… Due: <time>" (`#mf-due`). `GET /api/treatment-notes/…` returns
+  `followup: {status, channel, scheduled_for, source}`, and the time is filled in with
+  `textContent`.
+- **Recording the outcome** (a rating or text):
+  - the row becomes `completed` / `therapist_manual` (6.3);
+  - the `followup_no_channel` alert is resolved.
+
+  An empty form records nothing.
+- **Dashboard banner:** "Manual Follow-Up Required" (`GET /api/my/alerts`) now comes from the
+  database: this therapist's `no_channel` check-ins that are due, each with a message and a link.
+  The Redis list it used to read (`zenflow:alerts:*`) had no writer left.
+  - The banner is built from DOM nodes: patient names come from Telegram profiles and are never
+    parsed as markup. The old code wrote them into `innerHTML`.
+  - Dismissing the banner hides it for this visit only. It returns while calls are still due.

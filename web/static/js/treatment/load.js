@@ -65,6 +65,8 @@ async function loadTreatment() {
       }
     }
 
+    showFollowupDue(notes && notes.followup);
+
     // Build advice from AI recommendations
     const aiRecs = notes && notes.ai_recommendations;
     if (aiRecs && (aiRecs.diet || aiRecs.sleep || aiRecs.exercise || aiRecs.stress)) {
@@ -138,4 +140,17 @@ function renderIntakeHistory(history, sessionDate) {
       <p class="tp-empty-hint">Patient booked without completing the AI intake flow.</p>
     </div>`;
   }
+}
+
+// The patient cannot be messaged (Phase 6.4): the manual-feedback card says the follow-up is a call.
+function showFollowupDue(checkin) {
+  const hint = document.getElementById('mf-due');
+  if (!hint || !checkin || checkin.status !== 'no_channel' || !checkin.scheduled_for) return;
+  const when = new Date(checkin.scheduled_for);
+  const time = document.getElementById('mf-due-time');
+  time.dateTime = checkin.scheduled_for;
+  time.textContent = Number.isNaN(when.getTime())
+    ? checkin.scheduled_for
+    : when.toLocaleString(_ZF_LANG === 'he' ? 'he-IL' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+  hint.hidden = false;
 }

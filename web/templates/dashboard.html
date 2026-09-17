@@ -456,14 +456,28 @@ function renderRecentTable(rows) {
 }
 
 // Alerts banner
+// Follow-ups due by phone (Phase 6.4). Built as DOM nodes: patient names come from Telegram
+// profiles and must never be parsed as markup.
+const _ALERT_OPEN_LABEL = {{ (t['notif_open_session'] if t else 'Open session →') | tojson }};
+
 async function loadAlerts() {
   try {
     const d = await fetch('/api/my/alerts').then(r => r.json());
     if (d.count > 0) {
       document.getElementById('alerts-banner').style.display = 'flex';
-      document.getElementById('alerts-list').innerHTML = d.alerts.map(a =>
-        `<div>${a.patient_name} — ${a.message || 'requires follow-up'}</div>`
-      ).join('');
+      document.getElementById('alerts-list').replaceChildren(...d.alerts.map((a) => {
+        const row = document.createElement('div');
+        row.append(`${a.patient_name} — ${a.message || 'requires follow-up'} `);
+        if (typeof a.link === 'string' && a.link.startsWith('/treatment/')) {
+          const link = document.createElement('a');
+          link.href = a.link;
+          link.textContent = _ALERT_OPEN_LABEL;
+          link.style.fontWeight = '700';
+          link.style.color = '#92400E';
+          row.append(link);
+        }
+        return row;
+      }));
     }
   } catch (_) {}
 }

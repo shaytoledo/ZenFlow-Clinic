@@ -5,7 +5,6 @@ System health, activation, and therapist status endpoints.
 """
 
 import asyncio
-import contextlib
 import json
 import logging
 
@@ -167,25 +166,36 @@ async def get_gmail_status(request: Request):
 
 @router.get("/my/alerts")
 async def get_my_alerts(request: Request):
-    """Return pending therapist alerts (e.g. manual patients needing follow-up)."""
+    """Follow-ups that are due and can only be done by phone (Phase 6.4) — the dashboard's
+    "Manual Follow-Up Required" banner. They leave the list once the outcome is recorded."""
     therapist, redirect = _active_therapist_or_redirect(request)
     if redirect:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    therapist_id = therapist["id"]
-    try:
-        from bot.redis_client import get_async_redis
+    from web.i18n import get_t
+    from web.repositories import followup_repo
+    from web.services.notification_service import session_link
 
-        r = get_async_redis()
-        alert_key = f"zenflow:alerts:{therapist_id}"
-        raw_list = await r.lrange(alert_key, 0, 49)
-        alerts = []
-        for raw in raw_list:
-            with contextlib.suppress(Exception):
-                alerts.append(json.loads(raw))
-        return JSONResponse({"alerts": alerts, "count": len(alerts)})
+    try:
+        rows = await asyncio.to_thread(followup_repo.list_due_no_channel, therapist["id"])
     except Exception as e:
         logger.error(f"get_my_alerts error: {e}")
         return JSONResponse({"alerts": [], "count": 0})
+    message = get_t(therapist.get("language")).get(
+        "dashboard_followup_call", "follow-up due — call them and record the outcome"
+    )
+    alerts = [
+        {
+            "appointment_id": r["appointment_id"],
+            "patient_name": r["patient_name"] or "Patient",
+            "due_at": r["scheduled_for"],
+            "message": message,
+            "link": session_link(
+                r["patient_id"], r["apt_date"], r["apt_time"], "#manual-feedback-card"
+            ),
+        }
+        for r in rows
+    ]
+    return JSONResponse({"alerts": alerts, "count": len(alerts)})
 
 
 @router.delete("/my/alerts")

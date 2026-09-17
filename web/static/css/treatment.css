@@ -731,6 +731,19 @@
 
 /* ══ end point cards ══ */
 
+/* ══ A follow-up that has to be a phone call (Phase 6.4) ══ */
+.tp .tp-mf-due {
+  margin-block: var(--zf-space-2) var(--zf-space-3);
+  padding: var(--zf-space-2) var(--zf-space-3);
+  border: 1px solid var(--zf-caution-border);
+  border-radius: var(--zf-radius-md);
+  background: var(--zf-caution-soft);
+  color: var(--zf-caution-text);
+  font-size: var(--zf-text-sm);
+  line-height: var(--zf-leading-normal);
+}
+.tp .tp-mf-due time { font-weight: var(--zf-weight-bold); }
+
 /* ══ Sending by email (Phase 5.3): a native <dialog>, filled by email-dialog.js ══ */
 .tp .zf-btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .tp .tp-google-hint {
