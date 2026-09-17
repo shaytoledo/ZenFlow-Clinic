@@ -1,6 +1,6 @@
 # ZenFlow Clinic — developer targets (Phase 0.2). Windows without `make`: python tasks.py <target>
 PY ?= python
-SRC = bot web startup tests
+SRC = bot web startup zenflow tests
 
 .PHONY: install fmt lint type test test-fast security all lock hooks
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 import subprocess
 import sys
 
-SRC = ["bot", "web", "startup", "tests"]
+SRC = ["bot", "web", "startup", "zenflow", "tests"]
 PY = [sys.executable, "-m"]
 
 TARGETS: dict[str, list[list[str]]] = {
