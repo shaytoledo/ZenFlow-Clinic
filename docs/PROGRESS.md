@@ -199,7 +199,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Known tooling defects
 | # | Defect | Impact | Plan |
 |---|---|---|---|
-| T1 | `python tasks.py all` can never exit 0: `bandit -q` exits 1 on the 66 pre-existing Low/Medium findings (try/except/pass, `f"…{SQL_NOW}"` in SQL strings, …), so the run stops before `pytest tests/security`. Discovered 2026-09-16 on task 2.2a; present on `master` too. | The gate must be read, not trusted — lint/type/test/security were run separately for 2.2a (all green: 285 + 33 tests). | Phase 0.2 follow-up: adopt a bandit baseline file that only ever shrinks (same ratchet rule as ADR-13) and let the step fail on *new* findings only. |
+| T1 | `python tasks.py all` can never exit 0: `bandit -q` exits 1 on the 66 pre-existing Low/Medium findings (try/except/pass, `f"…{SQL_NOW}"` in SQL strings, …), so the run stops before `pytest tests/security`. Discovered 2026-09-16 on task 2.2a; present on `master` too. | The gate must be read, not trusted — lint/type/test/security were run separately for 2.2a (all green: 285 + 33 tests). | Phase 0.2 follow-up: adopt a bandit baseline file that only ever shrinks (same ratchet rule as ADR-13) and let the step fail on *new* findings only. Also: bandit's paths skip `zenflow/` (10 more findings there, all B608/B105 false positives — SQL built from constant column names, redaction patterns); include it when the baseline lands. black/ruff now cover `zenflow/` (2026-09-17). |
 
 ## Open questions awaiting the human / שאלות פתוחות
 | # | Question | Blocks | Answer |

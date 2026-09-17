@@ -40,9 +40,9 @@ def notify_treatment(appointment_id: int) -> None:
 async def subscribe_treatment(
     appointment_id: int,
 ) -> AsyncIterator[Callable[[float], Awaitable[bool]]]:
-    """Yield `wait(timeout) -> bool`: True when a notification arrived within `timeout` seconds.
+    """Yield `wait(seconds) -> bool`: True when a notification arrived within `seconds`.
 
-    Without Redis, `wait` just sleeps for the timeout, so callers degrade to periodic re-checks.
+    Without Redis, `wait` just sleeps that long, so callers degrade to periodic re-checks.
     """
     channel = treatment_channel(appointment_id)
     pubsub: Any = None
@@ -57,15 +57,15 @@ async def subscribe_treatment(
         )
         pubsub = None
 
-    async def wait(timeout: float) -> bool:
+    async def wait(seconds: float) -> bool:
         if pubsub is None:
-            await asyncio.sleep(timeout)
+            await asyncio.sleep(seconds)
             return False
         try:
-            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=timeout)
+            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=seconds)
         except Exception as e:
             logger.info("live update wait failed for %s: %s", appointment_id, e)
-            await asyncio.sleep(timeout)
+            await asyncio.sleep(seconds)
             return False
         return message is not None
 
