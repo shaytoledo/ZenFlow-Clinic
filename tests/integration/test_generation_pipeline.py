@@ -83,7 +83,13 @@ def no_calendar(monkeypatch):
     async def _book(*a: Any, **k: Any) -> str:
         return "gcal-pipeline"
 
-    monkeypatch.setattr(schedule, "book_slot", _book)
+    from web.services import booking_service
+
+    async def _hours(day: Any, therapist_id: Any = None) -> list[str]:
+        return ["10:00"]
+
+    monkeypatch.setattr(booking_service, "book_slot", _book)
+    monkeypatch.setattr(booking_service, "get_available_hours", _hours)
 
 
 async def _finish_intake(therapist: dict[str, Any]) -> int:

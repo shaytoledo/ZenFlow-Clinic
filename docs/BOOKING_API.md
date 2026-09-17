@@ -104,7 +104,20 @@ Every non-success answer is `{"code": …, "detail": …}`:
 
 ## 5. What a booking does
 
-`web/services/booking_service.py` is the one implementation. In order:
+`web/services/booking_service.py` is the one implementation — **every** booking goes through it
+(7.3b), and a test fails if a second `INSERT INTO appointments` appears anywhere:
+
+| Caller | Source | Availability | Confirmation |
+|---|---|---|---|
+| The API (`/api/v1`) | `api` (or what the body says) | enforced | queued, unless `send_confirmation: false` |
+| The Telegram flow | `telegram` | enforced (the patient picked a published hour) | none — the conversation confirms |
+| The dashboard's manual booking | `manual` | **not** enforced: a therapist's own calendar is theirs | none — the therapist is with the patient |
+
+`calendar_note` is what the calendar event says when it differs from the stored summary: the
+Telegram flow stores no summary at booking time (the AI writes it later) but puts "Intake in
+progress" on the calendar.
+
+In order:
 
 1. **Validate** the therapist and the request.
 2. **Resolve the patient** (`patient_channels`, Phase 7.2).

@@ -110,7 +110,13 @@ async def test_a_bot_booking_links_the_telegram_user(
     async def _book(*a: Any, **k: Any) -> str:
         return "evt"
 
-    monkeypatch.setattr(schedule, "book_slot", _book)
+    from web.services import booking_service
+
+    async def _hours(day: Any, therapist_id: Any = None) -> list[str]:
+        return ["10:00", "11:00"]
+
+    monkeypatch.setattr(booking_service, "book_slot", _book)
+    monkeypatch.setattr(booking_service, "get_available_hours", _hours)
     t = make_therapist(therapist_id="t1", telegram_id=700_001)
     day = date(2026, 3, 12)
     for hour in ("10:00", "11:00"):

@@ -113,7 +113,13 @@ async def test_the_patient_is_told_when_the_slot_was_just_taken(
         released.append(a)
         return "gcal-1"
 
-    monkeypatch.setattr(schedule, "book_slot", _fake_book_slot)
+    from web.services import booking_service
+
+    async def _published_hours(day, therapist_id=None):
+        return [TIME]
+
+    monkeypatch.setattr(booking_service, "book_slot", _fake_book_slot)
+    monkeypatch.setattr(booking_service, "get_available_hours", _published_hours)
 
     query = FakeQuery("intake_no", user_id=102)
     update = make_update(None, user_id=102, query=query)
@@ -142,7 +148,13 @@ async def test_a_successful_booking_still_releases_the_hour(
         released.append(a)
         return "gcal-1"
 
-    monkeypatch.setattr(schedule, "book_slot", _fake_book_slot)
+    from web.services import booking_service
+
+    async def _published_hours(day, therapist_id=None):
+        return [TIME]
+
+    monkeypatch.setattr(booking_service, "book_slot", _fake_book_slot)
+    monkeypatch.setattr(booking_service, "get_available_hours", _published_hours)
 
     query = FakeQuery("intake_no", user_id=103)
     update = make_update(None, user_id=103, query=query)

@@ -10,8 +10,6 @@ import json
 import sqlite3
 from typing import Any
 
-from zenflow.clock import SQL_NOW
-
 
 def _conn() -> sqlite3.Connection:
     from bot.db import get_db
@@ -117,55 +115,6 @@ def set_gcal_event_id(appointment_id: int, event_id: str | None) -> None:
         "UPDATE appointments SET gcal_apt_event_id=? WHERE id=?",
         (event_id, appointment_id),
     )
-
-
-def insert_manual(
-    patient_name: str,
-    therapist_id: str,
-    apt_date: str,
-    apt_time: str,
-    patient_phone: str = "",
-    patient_email: str = "",
-    summary: str = "",
-    existing_patient_id: int | None = None,
-) -> tuple[int, int]:
-    """Insert a manually-created appointment (no Telegram intake).
-
-    If `existing_patient_id` is provided, the new appointment is attached to that existing
-    patient (so the EHR groups all sessions together) — the caller has checked it is one of the
-    therapist's own. Otherwise a new patient is created, with no messaging channel (Phase 7.2).
-    Contact details given here are also kept on the patient. Returns
-    (appointment_id, patient_id).
-    """
-    from web.repositories import patient_repo
-
-    conn = _conn()
-    # One unit: a slot that turns out to be taken must not leave a patient behind.
-    with patient_repo.atomic(conn, "manual_booking"):
-        if existing_patient_id is not None:
-            patient_id = int(existing_patient_id)
-            patient_repo.update_contact(patient_id, phone=patient_phone, email=patient_email)
-        else:
-            patient_id = patient_repo.create(patient_name, phone=patient_phone, email=patient_email)
-        cur = conn.execute(
-            f"""INSERT INTO appointments
-               (patient_id, patient_name, therapist_id, date, time, status, summary,
-                source, patient_phone, patient_email, created_at)
-               VALUES (?, ?, ?, ?, ?, 'active', ?, 'manual', ?, ?, {SQL_NOW})""",
-            (
-                patient_id,
-                patient_name,
-                therapist_id,
-                apt_date,
-                apt_time,
-                summary,
-                patient_phone,
-                patient_email,
-            ),
-        )
-    if cur.lastrowid is None:  # pragma: no cover - sqlite always sets it after INSERT
-        raise RuntimeError("INSERT did not return a rowid")
-    return int(cur.lastrowid), patient_id
 
 
 def search_patients(

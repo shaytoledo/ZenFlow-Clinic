@@ -962,3 +962,19 @@ booking.
 - `message_log` now records confirmations, which needed its `kind` and `channel` CHECKs widened —
   migration `0002_message_log_kinds` rebuilds the table once.
 - The exported schema has to be regenerated whenever a model or route changes.
+
+**Addendum — the other two callers (7.3b).**
+- The Telegram flow and the dashboard's manual booking now call the service, so `_release_hour`
+  and `insert_manual` are gone. A test asserts `INSERT INTO appointments` exists in exactly one
+  module, and that `save_appointment` has exactly one caller.
+- **Availability** is enforced for the API and the Telegram flow, and not for the dashboard: a
+  therapist booking their own calendar may take any hour, published or not.
+- **Confirmations** stay off for both: the Telegram flow answers in the conversation, and a
+  therapist booking by hand is with the patient. The option is one field away if the clinic wants
+  it.
+- **`calendar_note`** keeps the calendar's wording apart from the stored clinical summary, which
+  the AI pipeline fills in later. Passing the calendar wording as the summary would have stopped
+  the pipeline summarising at all — a test caught it.
+- **Cancelling from the bot** goes through the service too, so the hour and the calendar event
+  are handled the same way everywhere. Clearing the intake cache is now guarded: a Redis outage
+  used to break the patient's cancellation (BOT_AUDIT B9's rule, applied where it was missing).

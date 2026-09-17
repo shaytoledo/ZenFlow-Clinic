@@ -6,14 +6,10 @@ from telegram.ext import ContextTypes
 
 from bot.locales import get_lang, t
 from bot.patient_bot.services.ai_intake import clear_intake
-from bot.patient_bot.services.appointments import (
-    cancel_appointment,
-    find_telegram_patient,
-    get_patient_appointments,
-)
-from bot.patient_bot.services.availability import restore_slot
+from bot.patient_bot.services.appointments import find_telegram_patient, get_patient_appointments
 from bot.states import CANCEL_SELECT, SELECTING
 from bot.utils import get_main_keyboard
+from web.services.booking_service import cancel as cancel_booking
 from zenflow.clock import today as clinic_today
 
 logger = logging.getLogger(__name__)
@@ -58,20 +54,24 @@ async def show_appointments(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return CANCEL_SELECT
 
 
+def _forget_intake(user_id: int) -> None:
+    """Drop the cached intake history (keyed by the Telegram user), tolerating a Redis outage:
+    the appointment is already cancelled, and a cache must never cost the patient that (B9)."""
+    try:
+        clear_intake(user_id)
+    except Exception as e:
+        logger.error(f"[{user_id}] intake history not cleared: {e}")
+
+
 async def confirm_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
     idx = int(query.data.replace("cancel_apt_", ""))
     apt = context.user_data.get("apts_to_cancel", [])[idx]
-    cancel_appointment(apt["id"])
-    clear_intake(update.effective_user.id)  # the intake history is keyed by the Telegram user
-    await restore_slot(
-        date.fromisoformat(apt["date"]),
-        apt["time"],
-        apt.get("gcal_apt_event_id"),
-        therapist_id=apt.get("therapist_id"),
-    )
+    # One implementation (ADR-29): soft-delete, hand the hour back, delete the calendar event.
+    await cancel_booking(int(apt["id"]))
+    _forget_intake(update.effective_user.id)
 
     day_display = date.fromisoformat(apt["date"]).strftime("%A, %d %b")
     logger.info(f"[{update.effective_user.id}] cancelled appointment {apt['date']} {apt['time']}")

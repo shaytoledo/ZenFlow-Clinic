@@ -7,7 +7,6 @@ REST endpoints for appointments and patient data.
 import asyncio
 import logging
 import re
-import sqlite3
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -108,42 +107,32 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
         )
         if not owned:
             raise HTTPException(status_code=404, detail="Patient not found")
+    # One booking implementation (ADR-29): the service inserts the row, takes the hour out of
+    # the availability calendar and creates the event. A therapist may book any hour of their own
+    # calendar, published or not, and the patient hears from them, not from a queued message.
+    from web.services import booking_service as booking
+
     try:
-        appt_id, patient_id = await asyncio.to_thread(
-            appointment_repo.insert_manual,
-            patient_name=name,
-            therapist_id=therapist_id,
-            apt_date=body.date,
-            apt_time=body.time,
-            patient_phone=body.patient_phone.strip(),
-            patient_email=body.patient_email.strip(),
-            summary=body.notes.strip(),
-            existing_patient_id=body.existing_patient_id,
-        )
-
-        # Mirror the bot's booking flow: consume the availability slot and (if
-        # Google is connected) create the calendar event. Failure here doesn't
-        # roll back the appointment row — the row is the source of truth and
-        # we'd rather show the booking with no GCal mirror than lose it.
-        try:
-            from datetime import date as _date
-
-            from bot.patient_bot.services.availability import book_slot
-
-            day = _date.fromisoformat(body.date)
-            gcal_id = await book_slot(
-                day=day,
-                time_slot=body.time,
-                patient_name=name,
-                summary=body.notes.strip() or f"Manual booking for {name}",
+        appointment = await booking.create(
+            booking.BookingRequest(
                 therapist_id=therapist_id,
+                start_at=booking.clock.parse_iso(
+                    f"{body.date}T{body.time}", naive_tz=booking.clock.clinic_tz()
+                ),
+                patient=booking.PatientSpec(
+                    name=name,
+                    patient_id=body.existing_patient_id,
+                    phone=body.patient_phone.strip(),
+                    email=body.patient_email.strip(),
+                ),
+                summary=body.notes.strip(),
+                calendar_note=body.notes.strip() or f"Manual booking for {name}",
+                source="manual",
+                send_confirmation=False,
+                enforce_availability=False,
             )
-            if gcal_id:
-                await asyncio.to_thread(appointment_repo.set_gcal_event_id, appt_id, gcal_id)
-        except Exception as e:
-            logger.warning(
-                f"create_manual_appointment: book_slot failed (kept appt {appt_id}): {e}"
-            )
+        )
+        appt_id, patient_id = appointment["id"], appointment["patient_id"]
 
         # Bust caches — appointments list + rolling Google-events cache
         try:
@@ -162,16 +151,16 @@ async def create_manual_appointment(body: ManualAppointmentIn, request: Request)
                 "treatment_url": f"/treatment/{patient_id}/{body.date}/{body.time.replace(':','-')}",
             }
         )
-    except sqlite3.IntegrityError as e:
-        # ux_appointments_active_slot: the therapist already has an active appointment then
-        # (BOT_AUDIT B4). The bot may have taken it a second ago.
-        logger.info(
-            f"create_manual_appointment refused, slot taken: {therapist_id} {body.date} {body.time}"
-        )
-        raise HTTPException(
-            status_code=409,
-            detail="That time is already booked for you. Pick another time.",
-        ) from e
+    except booking.BookingError as e:
+        if e.code == "slot_taken":
+            logger.info(
+                f"create_manual_appointment refused, slot taken: "
+                f"{therapist_id} {body.date} {body.time}"
+            )
+            raise HTTPException(
+                status_code=409, detail="That time is already booked for you. Pick another time."
+            ) from e
+        raise HTTPException(status_code=e.status, detail=e.detail) from e
     except Exception as e:
         logger.error(f"create_manual_appointment failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
