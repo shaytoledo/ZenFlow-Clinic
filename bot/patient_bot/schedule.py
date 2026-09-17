@@ -1,5 +1,6 @@
 import logging
 from datetime import date
+from typing import Any
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
@@ -12,14 +13,8 @@ from bot.patient_bot.services.ai_intake import (
     get_next_question,
     initialize_intake,
 )
-from bot.patient_bot.services.appointments import (
-    SlotTaken,
-    save_appointment,
-    save_treatment_notes,
-    set_gcal_event_id,
-    telegram_patient,
-)
-from bot.patient_bot.services.availability import book_slot, get_available_days, get_available_hours
+from bot.patient_bot.services.appointments import save_treatment_notes, telegram_patient
+from bot.patient_bot.services.availability import get_available_days, get_available_hours
 from bot.states import (
     INTAKE,
     INTAKE_CONFIRM,
@@ -31,6 +26,9 @@ from bot.states import (
     THERAPIST_SELECT,
 )
 from bot.utils import get_main_keyboard
+from web.services.booking_service import BookingError, BookingRequest, PatientSpec
+from web.services.booking_service import create as book_appointment
+from zenflow import clock
 
 logger = logging.getLogger(__name__)
 
@@ -260,30 +258,25 @@ async def skip_intake(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     lang = _lang(context)
     selected_therapist = context.user_data.get("selected_therapist")
 
-    # Claim the slot in the database first: if someone else took this hour while the patient was
-    # deciding, nothing has been removed from the availability calendar yet (BOT_AUDIT B4).
+    # One booking implementation (ADR-29): the appointment row claims the hour, then the
+    # calendar follows (BOT_AUDIT B4).
     try:
-        appointment_id = save_appointment(
-            patient_id=telegram_patient(user.id, user.full_name or user.first_name or ""),
-            patient_name=user.full_name or user.first_name,
-            day=day,
-            time_slot=time_slot,
-            intake_history=[],
-            summary="",
-            therapist_id=selected_therapist or "",
+        appointment = await _book(
+            user,
+            day,
+            time_slot,
+            selected_therapist,
+            calendar_note="Patient opted to skip the intake questionnaire.",
         )
-    except SlotTaken:
-        return await _slot_taken(query, context, lang, day, time_slot)
+    except BookingError as e:
+        if e.code in ("slot_taken", "slot_unavailable"):
+            return await _slot_taken(query, context, lang, day, time_slot)
+        logger.error(f"[{user.id}] booking failed: {e.code}: {e.detail}")
+        await query.edit_message_text(t("bot_error", lang), reply_markup=get_main_keyboard(lang))
+        return SELECTING
 
-    await _release_hour(
-        day,
-        time_slot,
-        user.full_name or user.first_name,
-        "Patient opted to skip the intake questionnaire.",
-        selected_therapist,
-        appointment_id,
-    )
-    save_treatment_notes(appointment_id, user.id, {})
+    appointment_id = appointment["id"]
+    save_treatment_notes(appointment_id, appointment["patient_id"], {})
     _forget_intake(user.id)
     logger.info(f"[{user.id}] appointment saved (no intake)")
     context.user_data.clear()
@@ -310,26 +303,32 @@ def _forget_intake(user_id: int) -> None:
         logger.error(f"[{user_id}] intake history not cleared: {e}")
 
 
-async def _release_hour(
+async def _book(
+    user: Any,
     day: date,
     time_slot: str,
-    patient_name: str,
-    summary: str,
     therapist_id: str | None,
-    appointment_id: int,
-) -> str | None:
-    """Remove the booked hour from availability and store the calendar event id.
-
-    Runs after the appointment row exists. A calendar failure must not undo a confirmed booking,
-    so it is logged and the patient still gets their confirmation.
-    """
-    try:
-        gcal_id = await book_slot(day, time_slot, patient_name, summary, therapist_id=therapist_id)
-    except Exception as e:
-        logger.error(f"appointment {appointment_id} saved but the calendar update failed: {e}")
-        return None
-    set_gcal_event_id(appointment_id, gcal_id)
-    return gcal_id
+    *,
+    calendar_note: str,
+    intake_history: list[dict] | None = None,
+) -> dict:
+    """Book through the one booking service (ADR-29). The patient hears from the conversation,
+    so no confirmation job is queued."""
+    name = user.full_name or user.first_name or ""
+    return await book_appointment(
+        BookingRequest(
+            therapist_id=therapist_id or "",
+            start_at=clock.parse_iso(f"{day.isoformat()}T{time_slot}", naive_tz=clock.clinic_tz()),
+            patient=PatientSpec(
+                name=name, patient_id=telegram_patient(user.id, name), channel=None
+            ),
+            summary="",  # the AI summary lands here when the pipeline finishes
+            calendar_note=calendar_note,
+            source="telegram",
+            send_confirmation=False,
+            intake_history=list(intake_history or []),
+        )
+    )
 
 
 async def _slot_taken(query, context, lang: str, day: date, time_slot: str) -> int:
@@ -394,43 +393,41 @@ async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYP
         time_slot = context.user_data["selected_time"]
         selected_therapist = context.user_data.get("selected_therapist")
         lang = get_lang(selected_therapist)
-        patient_name = user.full_name or user.first_name
 
         # The conversation goes into the database with the booking: the generation jobs read
         # it from there, because the Redis intake history expires and does not survive a
         # restart (Phase 3.1).
         history = _intake_snapshot(user_id, user_answer)
         try:
-            appointment_id = save_appointment(
-                patient_id=telegram_patient(user_id, patient_name or ""),
-                patient_name=patient_name,
-                day=day,
-                time_slot=time_slot,
+            appointment = await _book(
+                user,
+                day,
+                time_slot,
+                selected_therapist,
+                calendar_note="Intake in progress — AI summary pending.",
                 intake_history=history,
-                summary="",
-                therapist_id=selected_therapist or "",
             )
-        except SlotTaken:
+        except BookingError as e:
             _forget_intake(user_id)
             context.user_data.clear()
             if selected_therapist:
                 context.user_data["selected_therapist"] = selected_therapist
+            gone = e.code in ("slot_taken", "slot_unavailable")
+            if not gone:
+                logger.error(f"[{user_id}] booking failed: {e.code}: {e.detail}")
             await update.message.reply_text(
-                t("bot_slot_taken", lang, day=day.strftime("%A, %d %b"), time=time_slot),
+                (
+                    t("bot_slot_taken", lang, day=day.strftime("%A, %d %b"), time=time_slot)
+                    if gone
+                    else t("bot_error", lang)
+                ),
                 parse_mode="Markdown",
                 reply_markup=get_main_keyboard(lang),
             )
             return SELECTING
 
-        await _release_hour(
-            day,
-            time_slot,
-            patient_name,
-            "Intake in progress — AI summary pending.",
-            selected_therapist,
-            appointment_id,
-        )
-        save_treatment_notes(appointment_id, user_id, {})
+        appointment_id = appointment["id"]
+        save_treatment_notes(appointment_id, appointment["patient_id"], {})
         _start_generation(appointment_id, user_id)
         _forget_intake(user_id)
 

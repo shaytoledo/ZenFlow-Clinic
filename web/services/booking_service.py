@@ -59,7 +59,10 @@ class BookingRequest:
     start_at: datetime
     patient: PatientSpec
     duration_min: int = SLOT_MINUTES
+    #: the clinical summary stored on the appointment row
     summary: str = ""
+    #: what the calendar event says, when it differs from the stored summary
+    calendar_note: str = ""
     source: str = "api"
     send_confirmation: bool = True
     #: machine clients may only take hours the therapist published
@@ -210,7 +213,7 @@ async def create(request: BookingRequest) -> dict[str, Any]:
             day=day,
             time_slot=local_time,
             patient_name=patient_name,
-            summary=request.summary or f"Appointment for {patient_name}",
+            summary=request.calendar_note or request.summary or f"Appointment for {patient_name}",
             therapist_id=request.therapist_id,
         )
         if event_id:

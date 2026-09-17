@@ -251,9 +251,12 @@ def booking_world(db, fake_redis, make_therapist, monkeypatch):
     async def _book(*a, **k):
         return "gcal-evt-restart"
 
+    from web.services import booking_service
+
     monkeypatch.setattr(schedule, "get_available_days", _days)
     monkeypatch.setattr(schedule, "get_available_hours", _hours)
-    monkeypatch.setattr(schedule, "book_slot", _book)
+    monkeypatch.setattr(booking_service, "get_available_hours", _hours)
+    monkeypatch.setattr(booking_service, "book_slot", _book)
 
 
 async def test_a_booking_survives_a_restart(booking_world) -> None:

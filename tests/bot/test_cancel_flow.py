@@ -26,13 +26,14 @@ DAY = date(2026, 3, 12)
 def restored(monkeypatch):
     """Record the hours handed back to the availability calendar."""
     from bot.patient_bot import cancel
+    from web.services import booking_service
 
     calls: list[tuple] = []
 
     async def _restore(day, time_slot, gcal_id=None, therapist_id=None):
         calls.append((day, time_slot, gcal_id, therapist_id))
 
-    monkeypatch.setattr(cancel, "restore_slot", _restore)
+    monkeypatch.setattr(booking_service, "restore_slot", _restore)
     monkeypatch.setattr(cancel, "clear_intake", lambda *a, **k: None)
     return calls
 

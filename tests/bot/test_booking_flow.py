@@ -48,9 +48,12 @@ def availability(monkeypatch):
         state["booked"].append((a, k))
         return "gcal-evt-1"
 
+    from web.services import booking_service
+
     monkeypatch.setattr(schedule, "get_available_days", _days)
     monkeypatch.setattr(schedule, "get_available_hours", _hours)
-    monkeypatch.setattr(schedule, "book_slot", _book)
+    monkeypatch.setattr(booking_service, "get_available_hours", _hours)
+    monkeypatch.setattr(booking_service, "book_slot", _book)
     return state
 
 
