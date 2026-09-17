@@ -12,6 +12,7 @@ import re as _re
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -83,6 +84,43 @@ async def _resolve_apt_id(
 
 # Single auth helper for the whole codebase (review fix): see web/deps.py.
 _require_auth = require_active_therapist
+
+
+def _google_not_connected(
+    therapist: dict[str, Any], reason: str, page: str, *, message_key: str = "", text: str = ""
+) -> JSONResponse:
+    """409 `google_not_connected` (Phase 5.2, docs/GOOGLE_CONNECTION_UX.md §2).
+
+    The page shows what happened, a "Connect Google" link that comes back to `page`, and — when
+    `text` is given — the message itself so the therapist can copy it instead.
+    """
+    from web.i18n import get_t
+    from web.services.email_service import TOKEN_INVALID
+
+    t = get_t(therapist.get("language"))
+    expired = reason == TOKEN_INVALID
+    content: dict[str, Any] = {
+        "ok": False,
+        "code": "google_not_connected",
+        "reason": reason,
+        "title": t.get("email_token_expired_title" if expired else "email_not_connected_title"),
+        "message": t.get(
+            message_key or ("email_token_expired_body" if expired else "email_not_connected_body")
+        ),
+        "action_url": "/settings#google",
+        "connect_url": "/auth/login?next=" + quote(page, safe="/"),
+    }
+    if text:
+        content["text"] = text
+    return JSONResponse(content, status_code=409)
+
+
+def _is_email_only(apt_id: int, patient_id: int) -> bool:
+    """A manual booking has no messaging channel: email is the only way to reach the patient."""
+    from bot.db import get_db
+
+    row = get_db().execute("SELECT source FROM appointments WHERE id=?", (apt_id,)).fetchone()
+    return patient_id < 0 or bool(row and row["source"] == "manual")
 
 
 def _fail_unless_cancelled(apt_id: int) -> None:
@@ -441,10 +479,22 @@ async def send_recommendations(
     enabled = [item for item in body.items if item.get("enabled")]
     if not enabled:
         raise HTTPException(status_code=400, detail="No recommendations selected")
+    page = f"/treatment/{patient_id}/{apt_date}/{apt_time}"
 
     # ── Delayed queue: schedule_hours >= 24 without an email override → store for later
     if body.schedule_hours >= 24 and not body.email:
-        apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
+        if await asyncio.to_thread(_is_email_only, apt_id, patient_id):
+            # The queued send would go out through Gmail — refuse one that is bound to fail.
+            from web.services.email_service import NOT_CONNECTED, google_connection
+
+            google = await asyncio.to_thread(google_connection, therapist["id"])
+            if google.connected is False:
+                return _google_not_connected(
+                    therapist,
+                    google.reason or NOT_CONNECTED,
+                    page,
+                    message_key="email_queue_needs_google",
+                )
         send_at = clock.hours_ahead(body.schedule_hours)
         from web.repositories.treatment_repo import save_pending_recommendations as _save_pending
 
@@ -508,7 +558,12 @@ async def send_recommendations(
 
     # ── 1) explicit email override (or manual patient defaulting to email)
     if body.email:
-        from web.services.email_service import EmailNotConfigured, send_email
+        from web.services.email_service import (
+            TOKEN_INVALID,
+            EmailNotConfigured,
+            EmailSendError,
+            send_email,
+        )
 
         subject, text = _format_recommendations_for_email(enabled, patient_name)
         try:
@@ -519,19 +574,21 @@ async def send_recommendations(
                 subject,
                 text,
             )
-        except EmailNotConfigured:
-            # Gmail not connected — return the text so the UI can show a copy-paste fallback
-            return JSONResponse(
-                content={
-                    "ok": False,
-                    "status": "no_smtp",
-                    "text": f"{subject}\n\n{text}",
-                    "detail": "Gmail is not connected. Go to Settings → Connect Google, then retry.",
-                }
-            )
+        except EmailNotConfigured as e:
+            # No usable Google account: say so, and hand back the text to copy instead
+            return _google_not_connected(therapist, e.reason, page, text=f"{subject}\n\n{text}")
+        except EmailSendError as e:
+            if e.token_invalid:
+                return _google_not_connected(
+                    therapist, TOKEN_INVALID, page, text=f"{subject}\n\n{text}"
+                )
+            logger.error(f"send_recommendations(email) error: {e}")
+            raise HTTPException(
+                status_code=502, detail="Google did not accept the email. Try again shortly."
+            ) from e
         except Exception as e:
             logger.error(f"send_recommendations(email) error: {e}")
-            raise HTTPException(status_code=502, detail=f"Email send failed: {e}")
+            raise HTTPException(status_code=502, detail="Email send failed.") from e
         sent_via = "email"
         sent_to = body.email.strip()
 

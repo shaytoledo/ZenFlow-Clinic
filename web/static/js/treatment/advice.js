@@ -49,7 +49,7 @@ async function sendAdvice(emailOverride) {
       openEmailFallback(result.phone || '', result.detail || '', result.patient_name || '');
       return;
     }
-    if (!r.ok) throw new Error(result.detail || 'Send failed');
+    if (!r.ok) throw new Error(result.message || result.detail || 'Send failed');
 
     const channel = result.sent_via === 'email' ? 'email' : 'Telegram';
     btn.innerHTML = `✓ Sent via ${channel}`;
@@ -82,7 +82,8 @@ async function sendAdviceLater() {
       openEmailFallback(result.phone || '', result.detail || '', result.patient_name || '');
       return;
     }
-    if (!r.ok) throw new Error(result.detail || 'Schedule failed');
+    // 409 google_not_connected: an email-only patient cannot be scheduled yet (Phase 5.2)
+    if (!r.ok) throw new Error(result.message || result.detail || 'Schedule failed');
 
     btn.innerHTML = '⏰ Scheduled in 24h ✓';
     btn.style.borderColor = '#16A34A'; btn.style.color = '#16A34A';
@@ -144,9 +145,9 @@ async function submitEmailFallback() {
     });
     const result = await r.json();
 
-    // SMTP not configured — show copy-paste fallback instead of error
-    if (result.status === 'no_smtp') {
-      showSmtpCopyFallback(result.text, result.detail);
+    // 409 google_not_connected — say why, and offer the text to copy instead (Phase 5.2)
+    if (result.code === 'google_not_connected') {
+      showSmtpCopyFallback(result.text, result.message);
       return;
     }
 

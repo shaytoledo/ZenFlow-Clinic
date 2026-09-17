@@ -438,8 +438,8 @@ public endpoint is `GET /healthz` → `{"ok": true}`.
 | `POST /register/activate` | No | Submit activation code (sets active=True) |
 | `GET /register/google` | No | Start Google OAuth registration |
 | `GET /register/google/callback` | No | Complete Google OAuth registration |
-| `GET /auth/login` | No | Redirect to Google OAuth (calendar) |
-| `GET /auth/callback` | No | Complete Google Calendar OAuth |
+| `GET /auth/login?next=<path>` | No | Redirect to Google OAuth (Calendar + Gmail); a same-site `next` is kept in the session |
+| `GET /auth/callback` | No | Complete Google OAuth; back to `next` with `?google=connected\|cancelled`, else `/settings` |
 | `POST /auth/disconnect` | Yes | Remove Google Calendar token |
 | `GET /logout` | No | Clear session, redirect to /register |
 
@@ -466,4 +466,5 @@ public endpoint is `GET /healthz` → `{"ok": true}`.
 | `POST /api/messages/send` | Send message to patient via therapist bot |
 | `GET /api/status` | System health snapshot (Redis, Ollama, bots, Google Calendar) |
 | `GET /api/my/status` | Current therapist status (active, name) |
+| `GET /api/gmail-status` | `{connected, reason}` — can email go out through the therapist's Google account (Phase 5.2) |
 | `GET /api/my/activation-code` | Generate new 8-char bot activation code |

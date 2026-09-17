@@ -299,7 +299,11 @@ GOOGLE_REG_REDIRECT_URI=http://localhost:8000/register/google/callback
 Both URIs must be added to **Authorised redirect URIs** in Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID.
 
 Two OAuth flows share the same `GOOGLE_CLIENT_ID`:
-- **Calendar OAuth** (`/auth/callback`) — connects therapist's Google Calendar
+- **Calendar OAuth** (`/auth/callback`) — connects therapist's Google Calendar and Gmail sending.
+  `/auth/login?next=/treatment/…` returns to that page with `?google=connected|cancelled`.
+  Only a same-site path is accepted: no scheme or host, no `//`, no backslash, no control
+  characters, at most 512 characters. Anything else falls back to `/settings`. Reconnecting
+  resolves the "reconnect Google" alert. See `docs/GOOGLE_CONNECTION_UX.md`.
 - **Registration OAuth** (`/register/google/callback`) — sign up / sign in with Google
 
 ---

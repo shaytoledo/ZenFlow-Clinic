@@ -67,7 +67,7 @@
 {% block extra_scripts %}
 <link rel="stylesheet" href="/static/css/treatment.css" />
 
-<script type="application/json" id="treatment-config">{{ {"sse_updates": sse_updates | default(false), "point_density": point_density | default("detailed")} | tojson }}</script>
+<script type="application/json" id="treatment-config">{{ {"sse_updates": sse_updates | default(false), "point_density": point_density | default("detailed"), "google": google | default({"connected": none, "reason": none})} | tojson }}</script>
 <script src="/static/js/treatment/point-info.js"></script>
 <script src="/static/js/treatment/state.js"></script>
 <script src="/static/js/treatment/load.js"></script>
