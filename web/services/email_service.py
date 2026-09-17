@@ -126,7 +126,7 @@ def send_email(
     to: str,
     subject: str,
     body_text: str,
-) -> None:
+) -> str | None:
     """Send *body_text* to *to* via the therapist's Gmail account.
 
     Synchronous — call from ``asyncio.to_thread(...)``.
@@ -162,7 +162,7 @@ def send_email(
     raw = base64.urlsafe_b64encode(mime.as_bytes()).decode("utf-8")
 
     try:
-        service.users().messages().send(userId="me", body={"raw": raw}).execute()
+        response = service.users().messages().send(userId="me", body={"raw": raw}).execute()
     except Exception as e:
         token_invalid = _is_auth_error(e)
         if token_invalid:
@@ -170,6 +170,8 @@ def send_email(
         raise EmailSendError(f"Gmail API send failed: {e}", token_invalid=token_invalid) from e
     logger.info(f"Email sent (Gmail API) to {to!r} — {subject!r}")
     google_reconnected(therapist_id)  # a working token proves any reconnect alert is stale
+    message_id = response.get("id") if isinstance(response, dict) else None
+    return str(message_id) if message_id else None
 
 
 # ── Notification helper ───────────────────────────────────────────────────────

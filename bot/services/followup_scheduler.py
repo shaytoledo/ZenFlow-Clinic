@@ -136,7 +136,7 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
     text = prompt.text
 
     try:
-        await channel.send(
+        sent = await channel.send(
             OutboundMessage(
                 recipient_id=str(appt["patient_id"]),
                 text=text,
@@ -145,6 +145,7 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
         )
     except Exception as e:
         logger.warning(f"follow-up send failed for appt={appt_id}: {e}")
+        await _best_effort(log_delivery, "telegram", "followup", appt, None, str(e))
         if raise_errors:
             raise
         return
@@ -161,6 +162,7 @@ async def _send_followup(appt: dict, *, raise_errors: bool = False) -> None:
         return
     with contextlib.suppress(Exception):
         await _mark_sent(appt_id, patient_id)
+    await _best_effort(log_delivery, "telegram", "followup", appt, sent)
 
     # Open the conversation at step 1 (awaiting pain level) — in the database (Phase 6.3)
     from web.repositories import followup_repo
@@ -229,14 +231,16 @@ async def dispatch_recommendations(row: dict) -> None:
     patient_name = row.get("patient_name", "Patient") or "Patient"
     is_manual = (row.get("source") == "manual") or (pat_id < 0)
     patient_email = (row.get("patient_email") or "").strip()
+    attempt = ""  # the channel being tried, for the delivery log (Phase 6.6)
 
     try:
         if is_manual and patient_email:
             from web.services import email_service
 
             try:
+                attempt = "email"
                 # F1 fix: the therapist id comes first — send_email(therapist_id, to, subject, body).
-                await asyncio.to_thread(
+                sent = await asyncio.to_thread(
                     email_service.send_email,
                     therapist_id,
                     patient_email,
@@ -261,6 +265,7 @@ async def dispatch_recommendations(row: dict) -> None:
                     "waiting for the therapist to connect Google",
                 ) from e
             await asyncio.to_thread(mark_recommendations_delivered, apt_id)
+            await _best_effort(log_delivery, "email", "recommendations", row, sent)
             await _best_effort(
                 notification_service.resolve_waiting_for_google, therapist_id, apt_id
             )
@@ -291,10 +296,12 @@ async def dispatch_recommendations(row: dict) -> None:
         else:
             from bot.interfaces import get_default_channel
 
-            await get_default_channel().send_text(
+            attempt = "telegram"
+            sent = await get_default_channel().send_text(
                 recipient_id=pat_id, text=_recommendations_telegram_text(items)
             )
             await asyncio.to_thread(mark_recommendations_delivered, apt_id)
+            await _best_effort(log_delivery, "telegram", "recommendations", row, sent)
             await _best_effort(
                 notification_service.alert_recommendations_sent,
                 therapist_id,
@@ -312,7 +319,31 @@ async def dispatch_recommendations(row: dict) -> None:
         # Retried by the queue; the therapist is alerted once, when retries are exhausted
         # (followup_jobs.recommendations_dead — covers timeouts too).
         logger.error(f"dispatch_recommendations failed for appt={apt_id}: {e}")
+        if attempt:
+            await _best_effort(log_delivery, attempt, "recommendations", row, None, str(e))
         raise
+
+
+def log_delivery(
+    channel: str,
+    kind: str,
+    row: dict,
+    result: Any = None,
+    error: str | None = None,
+) -> None:
+    """One `message_log` row for an outbound patient message (Phase 6.6, plan 8.3)."""
+    from web.repositories import message_log_repo
+
+    message_log_repo.record(
+        channel=channel,
+        kind=kind,
+        status="failed" if error else "sent",
+        therapist_id=str(row.get("therapist_id") or ""),
+        patient_id=int(row["patient_id"]) if row.get("patient_id") is not None else None,
+        appointment_id=int(row["appointment_id"]) if row.get("appointment_id") else None,
+        provider_message_id=None if error else message_log_repo.provider_id(result),
+        error=error,
+    )
 
 
 async def _best_effort(fn: Any, *args: Any) -> None:

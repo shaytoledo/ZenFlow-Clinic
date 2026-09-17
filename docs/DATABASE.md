@@ -178,6 +178,17 @@ canonical UTC. CHECK constraints guard `status`, `pain_level` (0–10), `improve
 `sleep_quality`, `adherence` and `source`. Indexes: `(patient_id, status)` and
 `(status, sent_at)`.
 
+### Table: `message_log` (plan 8.3, started in Phase 6.6)
+
+One append-only row per outbound patient message attempt: `ts`, `direction`, `channel`
+(`telegram` / `email`), `patient_id`, `therapist_id`, `appointment_id`, `kind`
+(`recommendations` / `followup`), `status` (`sent` / `failed`), `provider_message_id`, and
+`error` (redacted, at most 300 characters).
+
+- CHECK constraints guard the enumerations; the index is `(appointment_id, ts)`.
+- The recipient address is not stored.
+- Repository: `web/repositories/message_log_repo.py`. Details: `docs/FOLLOWUP.md` §6.
+
 ### Table: `bot_persistence` (Phase 2.3)
 
 ```sql
