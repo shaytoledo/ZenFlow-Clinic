@@ -137,3 +137,9 @@ def test_the_page_uses_a_native_dialog_opened_from_cards_and_tags() -> None:
     assert 'class="pc-tag-label" data-action="open-point-lightbox"' in js
     names = [p.name for p in ts.scripts()]
     assert names.index("lightbox.js") > names.index("render-points.js")
+
+
+def test_the_card_badge_says_what_it_opens() -> None:
+    html = run_js('pointCardHtml({ code: "LR3" }, false)')
+    assert 'title="Show LR3 details" aria-haspopup="dialog">LR3</button>' in html
+    assert 'title="פרטי LR3"' in run_js('pointCardHtml({ code: "LR3" }, false)', "he")

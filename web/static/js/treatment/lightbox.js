@@ -15,8 +15,6 @@ const LIGHTBOX_TEXT = {
     zoomOut: 'Zoom out',
     licence: 'Licence',
     source: 'Source',
-    location: 'Location',
-    actions: 'Actions',
     forPatient: 'AI rationale for this session',
     noReference: 'No reference data for {code}.',
   },
@@ -28,8 +26,6 @@ const LIGHTBOX_TEXT = {
     zoomOut: 'הקטן',
     licence: 'רישיון',
     source: 'מקור',
-    location: 'מיקום',
-    actions: 'פעולות',
     forPatient: 'נימוק AI לטיפול זה',
     noReference: 'אין נתוני עזר עבור {code}.',
   },
@@ -98,8 +94,8 @@ function lightboxHtml({ code, info = {}, rationale = '', images = [], index = 0 
     if (hasPregnancyCaution(code)) {
       detail.push(`<p class="pc-caution">${ICON_CAUTION}<span>${escHtml(pointText('pregnancy'))}</span></p>`);
     }
-    detail.push(`<h3 class="pl-label">${escHtml(lightboxText('location'))}</h3><p class="pl-text">${escHtml(info.location)}</p>`);
-    detail.push(`<h3 class="pl-label">${escHtml(lightboxText('actions'))}</h3><p class="pl-text">${escHtml(info.actions)}</p>`);
+    detail.push(`<h3 class="pl-label">${escHtml(pointText('location'))}</h3><p class="pl-text">${escHtml(info.location)}</p>`);
+    detail.push(`<h3 class="pl-label">${escHtml(pointText('actions'))}</h3><p class="pl-text">${escHtml(info.actions)}</p>`);
   } else {
     detail.push(`<p class="pl-text">${escHtml(lightboxText('noReference', { code }))}</p>`);
   }
