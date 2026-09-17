@@ -95,3 +95,28 @@ def test_env_example_has_no_plain_http_outside_localhost() -> None:
     ]
     assert bad == [], f"plain http:// URLs in .env.example values: {bad}"
     assert "SESSION_SECRET=" in text
+
+
+def test_lock_headers_are_restamped_idempotently(tmp_path: Path, monkeypatch) -> None:
+    """`tasks.py lock` runs pip-compile with --no-header, then puts the HTTPS index back."""
+    import sys
+
+    monkeypatch.syspath_prepend(str(REPO_ROOT))
+    sys.modules.pop("tasks", None)
+    import tasks
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "requirements.txt").write_text("pillow==12.3.0\n", encoding="utf-8")
+    (tmp_path / "requirements-dev.txt").write_text(
+        "# Locked by pip-compile from requirements-dev.in. old\n--index-url x\n\nblack==1\n",
+        encoding="utf-8",
+    )
+    assert tasks.stamp_lock_headers() == 0
+    once = (tmp_path / "requirements.txt").read_text(encoding="utf-8")
+    assert tasks.stamp_lock_headers() == 0
+    assert (tmp_path / "requirements.txt").read_text(encoding="utf-8") == once
+    assert once.splitlines()[1] == "--index-url https://pypi.org/simple"
+    assert once.endswith("\n\npillow==12.3.0\n")
+    dev = (tmp_path / "requirements-dev.txt").read_text(encoding="utf-8")
+    assert dev.count("--index-url") == 1 and dev.endswith("\n\nblack==1\n")
+    assert "requirements-dev.in" in dev.splitlines()[0]

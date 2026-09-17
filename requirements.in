@@ -39,3 +39,6 @@ redis==5.1.1
 
 # Crypto: Fernet encryption of stored Google OAuth tokens (web/gcal.py). Was missing before 0.2.
 cryptography==46.0.5
+
+# Images (Phase 4.3b): acupoint image ingestion — resize, thumbnails, EXIF stripping
+pillow==12.3.0

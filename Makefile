@@ -30,9 +30,8 @@ security:       ## static security scan + attack-scenario tests
 
 all: lint type test security   ## the local gate
 
-lock:           ## regenerate pinned lockfiles from requirements*.in
-	$(PY) -m piptools compile --strip-extras --no-header -o requirements.txt requirements.in
-	$(PY) -m piptools compile --strip-extras --no-header -o requirements-dev.txt requirements-dev.in
+lock:           ## regenerate pinned lockfiles from requirements*.in (and restamp their headers)
+	$(PY) tasks.py lock
 
 hooks:          ## install git hooks
 	$(PY) -m pre_commit install
