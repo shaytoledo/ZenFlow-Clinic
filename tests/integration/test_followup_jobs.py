@@ -83,7 +83,8 @@ async def test_jobs_fire_at_24h_exactly_once(clinic, fake_telegram) -> None:
         assert len(texts) == 2
         assert any("0–10" in t for t in texts), "follow-up step 1 was sent"
         assert any("recommendations" in t.lower() for t in texts), "recommendations were sent"
-        assert all(c["chat_id"] == apt["patient_id"] for c in fake_telegram.calls)
+        # to the Telegram identity, not the internal patient id (Phase 7.2)
+        assert all(c["chat_id"] == apt["telegram_id"] for c in fake_telegram.calls)
 
         notes = treatment_repo.get_by_appointment(apt["id"])
         assert notes is not None

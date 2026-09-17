@@ -240,8 +240,21 @@ def init_db() -> None:
             pass  # Column already exists — safe to ignore
     _create_active_slot_index(conn)
     _create_acupoints(conn)
-    _create_followups(conn)
     _create_message_log(conn)
+    _create_followups(conn)
+
+
+def _create_patients(conn: sqlite3.Connection) -> None:
+    """Patients and their channels (Phase 7.2), plus the one-time move to internal ids.
+
+    Runs after every table that stores a patient id exists and before the follow-up backfill,
+    which reads `patient_channels`. A failed migration raises: the process must not start with
+    old and new ids mixed (the database is left unchanged, and a backup was taken first).
+    """
+    from web.repositories import patient_repo
+
+    patient_repo.create_schema(conn)
+    patient_repo.migrate_legacy_ids(conn, db_path())
 
 
 def _create_message_log(conn: sqlite3.Connection) -> None:
@@ -257,6 +270,7 @@ def _create_followups(conn: sqlite3.Connection) -> None:
     from web.repositories import followup_repo
 
     followup_repo.create_schema(conn)
+    _create_patients(conn)
     try:
         added = followup_repo.backfill_from_treatment_notes(conn)
     except sqlite3.Error:

@@ -153,7 +153,9 @@ async def test_a_successful_booking_still_releases_the_hour(
 
     assert len(released) == 1, "the hour is removed from availability exactly once"
     rows = db_rows(t["id"])
-    assert len(rows) == 1 and rows[0]["patient_id"] == 103
+    from web.repositories import patient_repo
+
+    assert len(rows) == 1 and rows[0]["patient_id"] == patient_repo.find_by_channel("telegram", 103)
     assert rows[0]["gcal_apt_event_id"] == "gcal-1", "the calendar event id is stored"
 
 

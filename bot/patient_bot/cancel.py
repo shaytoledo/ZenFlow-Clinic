@@ -6,7 +6,11 @@ from telegram.ext import ContextTypes
 
 from bot.locales import get_lang, t
 from bot.patient_bot.services.ai_intake import clear_intake
-from bot.patient_bot.services.appointments import cancel_appointment, get_patient_appointments
+from bot.patient_bot.services.appointments import (
+    cancel_appointment,
+    find_telegram_patient,
+    get_patient_appointments,
+)
 from bot.patient_bot.services.availability import restore_slot
 from bot.states import CANCEL_SELECT, SELECTING
 from bot.utils import get_main_keyboard
@@ -19,11 +23,12 @@ async def show_appointments(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     query = update.callback_query
     await query.answer()
 
-    patient_id = update.effective_user.id
+    user_id = update.effective_user.id
     lang = get_lang(context.user_data.get("selected_therapist"))
-    logger.info(f"[{patient_id}] cancel: looking up appointments")
+    logger.info(f"[{user_id}] cancel: looking up appointments")
 
-    appointments = get_patient_appointments(patient_id)
+    patient_id = find_telegram_patient(user_id)
+    appointments = get_patient_appointments(patient_id) if patient_id is not None else []
     today_str = clinic_today().isoformat()
     appointments = [apt for apt in appointments if apt.get("date", "") >= today_str]
     if not appointments:
@@ -60,7 +65,7 @@ async def confirm_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     idx = int(query.data.replace("cancel_apt_", ""))
     apt = context.user_data.get("apts_to_cancel", [])[idx]
     cancel_appointment(apt["id"])
-    clear_intake(apt["patient_id"])
+    clear_intake(update.effective_user.id)  # the intake history is keyed by the Telegram user
     await restore_slot(
         date.fromisoformat(apt["date"]),
         apt["time"],

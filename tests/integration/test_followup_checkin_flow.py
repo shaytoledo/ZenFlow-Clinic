@@ -43,7 +43,7 @@ async def checkin(authenticated_client, make_appointment, make_treatment_notes, 
     )
     make_treatment_notes(apt)
     with freeze_time(FROZEN, ignore=["itsdangerous"]) as frozen:  # held for the whole test
-        url = f"/api/treatment-notes/{PID}/2026-03-01/10-00/complete"
+        url = f"/api/treatment-notes/{apt['patient_id']}/2026-03-01/10-00/complete"
         assert (await authenticated_client.post(url, json={})).status_code == 200
         frozen.tick(timedelta(hours=24))
         await _worker().run_once()

@@ -23,6 +23,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from bot.config import SESSION_SECRET
 from web.deps import require_signed_in
+from web.legacy_patient_ids import LegacyPatientIdMiddleware
 from web.routers.api.acupoints import router as acupoints_router
 from web.routers.api.admin import router as admin_router
 from web.routers.api.appointments import router as apts_router
@@ -90,6 +91,8 @@ async def request_context_middleware(request: Request, call_next):  # type: igno
 # middleware is added first so SessionMiddleware (added next) is outside it and the session is
 # already decoded when the request id is bound.
 app.add_middleware(BaseHTTPMiddleware, dispatch=request_context_middleware)
+# Pre-7.2 patient ids in API paths → internal ids, before routing (one release of compatibility).
+app.add_middleware(LegacyPatientIdMiddleware)
 
 
 def session_cookie_kwargs(is_dev: bool) -> dict:

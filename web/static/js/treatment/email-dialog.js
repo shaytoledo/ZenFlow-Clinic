@@ -29,7 +29,7 @@ function emailText(key) {
 }
 
 function isEmailOnly() {
-  return Boolean(_isManual) || Number(patientId) < 0;
+  return Boolean(_isManual);  // the server decides from the patient's channels (Phase 7.2)
 }
 
 function isGoogleBlocked() {

@@ -29,7 +29,8 @@ async function loadTreatment() {
     } catch (_) {}
 
     // Show no-Telegram banner for manual appointments
-    _isManual = notes?.is_manual || data.source === 'manual' || parseInt(patientId) < 0;
+    // the server decides from the patient's channels (Phase 7.2)
+    _isManual = notes ? Boolean(notes.is_manual) : data.source === 'manual';
     if (_isManual) {
       const banner = document.getElementById('no-telegram-banner');
       banner.style.display = 'flex';

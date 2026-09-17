@@ -370,16 +370,43 @@ def make_therapist():
 
 @pytest.fixture
 def make_patient():
-    def _make(name: str = "Test Patient", *, manual: bool = False) -> dict[str, Any]:
+    """A patient row (Phase 7.2): `patient_id` is the internal id; a Telegram patient also has a
+    `telegram_id` (its channel identity, deliberately a different number)."""
+
+    def _make(
+        name: str = "Test Patient", *, manual: bool = False, telegram_id: int | None = None
+    ) -> dict[str, Any]:
+        from web.repositories import patient_repo
+
         if manual:
-            _counter["manual"] += 1
-            pid = -(1_700_000_000_000 + _counter["manual"])  # negative like insert_manual()
-        else:
+            pid = patient_repo.create(name)
+            return {"patient_id": pid, "telegram_id": None, "name": name, "source": "manual"}
+        if telegram_id is None:
             _counter["telegram"] += 1
-            pid = _counter["telegram"]
-        return {"patient_id": pid, "name": name, "source": "manual" if manual else "telegram"}
+            telegram_id = _counter["telegram"]
+        pid = patient_repo.for_channel("telegram", telegram_id, name)
+        return {"patient_id": pid, "telegram_id": telegram_id, "name": name, "source": "telegram"}
 
     return _make
+
+
+def _as_patient(patient: dict[str, Any]) -> dict[str, Any]:
+    """Accept the pre-7.2 literal `{"patient_id": <Telegram id | negative>, "name", "source"}`:
+    a positive id is taken as the Telegram identity of a (found or created) patient."""
+    if "telegram_id" in patient:
+        return patient
+    from web.repositories import patient_repo
+
+    raw = int(patient["patient_id"])
+    name = patient.get("name", "Test Patient")
+    if patient.get("source") == "manual" or raw < 0:
+        conn = dbmod.get_db()
+        row = conn.execute("SELECT id FROM patients WHERE legacy_id=?", (raw,)).fetchone()
+        pid = int(row["id"]) if row else patient_repo.create(name)
+        conn.execute("UPDATE patients SET legacy_id=? WHERE id=?", (raw, pid))
+        return {**patient, "patient_id": pid, "telegram_id": None}
+    pid = patient_repo.for_channel("telegram", raw, name)
+    return {**patient, "patient_id": pid, "telegram_id": raw}
 
 
 @pytest.fixture
@@ -394,7 +421,7 @@ def make_appointment(make_therapist, make_patient):
         intake_history: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         therapist = therapist or make_therapist()
-        patient = patient or make_patient()
+        patient = _as_patient(patient) if patient else make_patient()
         cur = dbmod.get_db().execute(
             """INSERT INTO appointments
                (patient_id, patient_name, therapist_id, date, time, status, summary, source)
@@ -418,6 +445,7 @@ def make_appointment(make_therapist, make_patient):
         return {
             "id": apt_id,
             "patient_id": patient["patient_id"],
+            "telegram_id": patient.get("telegram_id"),
             "patient_name": patient["name"],
             "therapist_id": therapist["id"],
             "date": apt_date,

@@ -106,10 +106,18 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
     therapist, redirect = _active_therapist_or_redirect(request)
     if redirect:
         return RedirectResponse(redirect)
+    from web.repositories import patient_repo
+
+    canonical = await asyncio.to_thread(patient_repo.canonical_id, patient_id)
     try:
-        apt = resolve_owned_appointment(request, patient_id, apt_date, apt_time)
+        apt = resolve_owned_appointment(request, canonical, apt_date, apt_time)
     except HTTPException:  # not found / not this therapist's → back to the list, like other pages
         return RedirectResponse("/patients")
+    if canonical != patient_id:  # a pre-7.2 link, after the tenant check (one release)
+        return RedirectResponse(
+            f"/treatment/{canonical}/{apt['date']}/{str(apt['time']).replace(':', '-')}",
+            status_code=308,
+        )
     from web.repositories import therapist_repo
     from web.services.email_service import google_connection
     from zenflow.settings import get_settings

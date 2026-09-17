@@ -209,12 +209,59 @@ calendar id) — never intake answers, summaries or names. Rows older than
 `ZF_CONV_TIMEOUT_MINUTES` are not restored (the therapist choice is). An ended conversation deletes
 its row.
 
+### Tables: `patients`, `patient_channels` (Phase 7.2)
+
+```sql
+CREATE TABLE IF NOT EXISTS patients (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name   TEXT NOT NULL DEFAULT '',
+    phone       TEXT,
+    email       TEXT,
+    lang        TEXT,
+    notes       TEXT,
+    legacy_id   INTEGER UNIQUE,   -- the pre-7.2 appointments.patient_id (one release)
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS patient_channels (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id   INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    channel      TEXT NOT NULL CHECK (channel IN ('telegram','whatsapp')),
+    external_id  TEXT NOT NULL CHECK (length(external_id) BETWEEN 1 AND 64),
+    is_primary   INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
+    verified_at  TEXT,
+    created_at   TEXT NOT NULL,
+    UNIQUE (channel, external_id)
+);
+-- idx_patient_channels_patient ON patient_channels(patient_id)
+-- VIEW patient_contacts(patient_id, channel, external_id): the primary channel, else the newest
+```
+
+**Contents:**
+
+- A patient is a person with an internal id. `patient_channels` says how to message them.
+- A patient without any channel (a manual booking) cannot be messaged.
+- Every table with a `patient_id` column holds `patients.id`:
+  - `appointments`, `treatment_notes` and `intake_sessions`;
+  - `followups`, `message_log` and `notifications`.
+- SQLite cannot add a foreign key to an existing table, so writers go through `patient_repo`,
+  and `tests/integration/test_patient_migration.py` checks that every appointment points at a
+  patient.
+
+**Code:**
+
+- **Repository:** `web/repositories/patient_repo.py` (`create`, `for_channel`, `link_channel`,
+  `messaging_contact`, `canonical_id`).
+- **Design:** `docs/CHANNELS.md` §6.
+
+---
+
 ### Table: `appointments`
 
 ```sql
 CREATE TABLE IF NOT EXISTS appointments (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    patient_id          INTEGER NOT NULL,     -- Telegram user_id
+    patient_id          INTEGER NOT NULL,     -- → patients.id (Phase 7.2; was the Telegram user id)
     patient_name        TEXT    NOT NULL,
     therapist_id        TEXT    NOT NULL,     -- → therapists.id
     date                TEXT    NOT NULL,     -- "YYYY-MM-DD"
@@ -400,6 +447,17 @@ for migration in _migrations:
 ```
 
 To add a new column: append to `_migrations`. It will be applied on the next startup for any database that doesn't have the column yet.
+
+**Data migrations (Phase 7.2).** A migration that rewrites data must run exactly once. Each one
+is recorded in `schema_migrations(name, applied_at)`.
+
+`0001_patient_identity` (`patient_repo.migrate_legacy_ids`) moves `patient_id` from Telegram and
+negative ids to `patients.id`:
+
+- it takes a backup (`zenflow.db.pre-patient-identity-<stamp>`) when the database has
+  appointments;
+- it runs in one transaction;
+- it raises on failure, so the process does not start with the database half-changed.
 
 ---
 

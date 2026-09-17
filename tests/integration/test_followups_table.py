@@ -206,7 +206,7 @@ async def test_the_therapists_entry_becomes_the_record_unless_the_patient_answer
     session,
 ) -> None:
     client, apt = session
-    url = f"/api/treatment-notes/{PID}/2026-03-01/10-00/manual-feedback"
+    url = f"/api/treatment-notes/{apt['patient_id']}/2026-03-01/10-00/manual-feedback"
     assert (await client.post(url, json={"rating": None, "notes": "  "})).status_code == 200
     assert followup_repo.get(apt["id"]) is None, "an empty form is not an outcome"
     resp = await client.post(url, json={"rating": 2, "notes": "Called: still sore"})

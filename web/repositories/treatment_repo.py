@@ -68,6 +68,9 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
     are serialised here; callers pass them as Python lists/dicts.
     Empty lists/dicts are treated as NULL so COALESCE never overwrites an existing
     non-empty value with an empty placeholder.
+
+    The row's patient is the appointment's (Phase 7.2); `patient_id` is only used for notes whose
+    appointment row does not exist.
     """
     _conn().execute(
         """INSERT INTO treatment_notes
@@ -76,7 +79,9 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
             tongue_observation, pulse_observation, session_notes, used_points,
             recommendations_sent_at, completed_at,
             therapist_diagnosis, therapist_notes, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%SZ','now'),strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+           VALUES (?,COALESCE((SELECT patient_id FROM appointments WHERE id=?), ?),
+                   ?,?,?,?,?,?,?,?,?,?,?,?,?,
+                   strftime('%Y-%m-%dT%H:%M:%SZ','now'),strftime('%Y-%m-%dT%H:%M:%SZ','now'))
            ON CONFLICT(appointment_id) DO UPDATE SET
              tcm_pattern=COALESCE(excluded.tcm_pattern, tcm_pattern),
              treatment_principles=COALESCE(excluded.treatment_principles, treatment_principles),
@@ -93,6 +98,7 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
              therapist_notes=COALESCE(excluded.therapist_notes, therapist_notes),
              updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')""",
         (
+            appointment_id,
             appointment_id,
             patient_id,
             notes.get("tcm_pattern"),
@@ -400,9 +406,10 @@ def get_auto_followup_candidate(appointment_id: int) -> dict[str, Any] | None:
         _conn()
         .execute(
             """SELECT a.id AS appointment_id, a.patient_id, a.patient_name, a.therapist_id,
-                  a.source, t.completed_at
+                  a.source, t.completed_at, c.channel AS contact_channel, c.external_id AS contact_id
            FROM appointments a
            LEFT JOIN treatment_notes t ON t.appointment_id = a.id
+           LEFT JOIN patient_contacts c ON c.patient_id = a.patient_id
            WHERE a.id = ? AND a.status = 'active'""",
             (appointment_id,),
         )
@@ -416,10 +423,12 @@ def get_followup_candidate(appointment_id: int) -> dict[str, Any] | None:
     row = (
         _conn()
         .execute(
-            """SELECT t.appointment_id, t.patient_id, a.patient_name, a.therapist_id, a.source,
-                  t.completed_at, t.followup_sent_at, t.followup_conversation, t.followup_rating
+            """SELECT t.appointment_id, a.patient_id, a.patient_name, a.therapist_id, a.source,
+                  t.completed_at, t.followup_sent_at, t.followup_conversation, t.followup_rating,
+                  c.channel AS contact_channel, c.external_id AS contact_id
            FROM treatment_notes t
            JOIN appointments a ON a.id = t.appointment_id
+           LEFT JOIN patient_contacts c ON c.patient_id = a.patient_id
            WHERE t.appointment_id = ? AND a.status = 'active'""",
             (appointment_id,),
         )
@@ -441,11 +450,12 @@ def get_pending_recommendation(appointment_id: int) -> dict[str, Any] | None:
     row = (
         _conn()
         .execute(
-            """SELECT t.appointment_id, t.patient_id, t.pending_recommendations,
+            """SELECT t.appointment_id, a.patient_id, t.pending_recommendations,
                   t.pending_rec_send_at, a.patient_name, a.patient_phone, a.patient_email,
-                  a.source, a.therapist_id
+                  a.source, a.therapist_id, c.channel AS contact_channel, c.external_id AS contact_id
            FROM treatment_notes t
            JOIN appointments a ON a.id = t.appointment_id
+           LEFT JOIN patient_contacts c ON c.patient_id = a.patient_id
            WHERE t.appointment_id = ? AND t.pending_recommendations IS NOT NULL
              AND a.status = 'active'""",
             (appointment_id,),

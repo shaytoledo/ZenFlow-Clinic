@@ -33,6 +33,10 @@
 **Rule:** Redis is never the source of truth. Every Redis key can be evicted or expire and the
 system will reconstruct the data from SQLite (or Google Calendar) on the next access.
 
+> **Ids in Redis keys (Phase 7.2).** In the relay, intake and legacy follow-up keys,
+> `{patient_id}` is the patient's **Telegram user id** — a channel identity — not `patients.id`.
+> SQLite tables hold `patients.id`; `patient_channels` maps between the two.
+
 ---
 
 ## Complete Data Inventory
@@ -42,6 +46,7 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | Table | Rows grow when | Rows shrink when | Max size concern |
 |---|---|---|---|
 | `therapists` | New therapist registers | Never | Negligible (< 100 rows ever) |
+| `patients` / `patient_channels` | First booking (bot: per Telegram user; dashboard: per new patient) | Never | Small — one row per person / channel identity |
 | `appointments` | Patient books | Never (soft delete only) | Grows forever — clinical record |
 | `intake_sessions` | Patient completes intake | Never | 1:1 with appointments |
 | `availability` | Therapist drags slot on calendar | Slot is booked or deleted | Small — active slots only |
@@ -306,7 +311,8 @@ Shows exactly what gets written where at each step:
 
 ```
 1. Patient cancels appointment
-   └─ READS:  SQLite appointments WHERE patient_id=? AND status='active'
+   └─ READS:  patient_channels (telegram, user id) → patients.id
+   └─ READS:  SQLite appointments WHERE patient_id=<patients.id> AND status='active'
 
 2. Confirmation → cancel
    └─ WRITES: SQLite appointments SET status='cancelled'  (soft delete)

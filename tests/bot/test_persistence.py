@@ -286,9 +286,14 @@ async def test_a_booking_survives_a_restart(booking_world) -> None:
     assert _state(app) == SELECTING
     await app.shutdown()
 
+    from web.repositories import patient_repo
+
     row = (
         get_db()
-        .execute("SELECT * FROM appointments WHERE patient_id=? AND status='active'", (PATIENT,))
+        .execute(
+            "SELECT * FROM appointments WHERE patient_id=? AND status='active'",
+            (patient_repo.find_by_channel("telegram", PATIENT),),
+        )
         .fetchone()
     )
     assert row is not None, "the booking that started before the restart was completed"

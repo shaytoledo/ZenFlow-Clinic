@@ -103,10 +103,14 @@ async def _finish_intake(therapist: dict[str, Any]) -> int:
             make_update(answer, user_id=PATIENT), make_context(user_data)
         )
     from bot.db import get_db
+    from web.repositories import patient_repo
 
     row = (
         get_db()
-        .execute("SELECT id FROM appointments WHERE patient_id=? AND status='active'", (PATIENT,))
+        .execute(
+            "SELECT id FROM appointments WHERE patient_id=? AND status='active'",
+            (patient_repo.find_by_channel("telegram", PATIENT),),
+        )
         .fetchone()
     )
     assert row is not None

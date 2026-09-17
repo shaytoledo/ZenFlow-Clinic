@@ -139,3 +139,86 @@ Before 7.1, three kinds of call went to the real network with a fake token and w
 - the reply echo;
 - the bot-name lookups;
 - the status check.
+
+## 6. Patient identity (7.2)
+
+Before 7.2 a patient **was** a Telegram user id, and a manual booking was a negative millisecond
+stamp. About a dozen places decided "can we message this patient?" from the sign of the id or
+from how the session was booked. Now:
+
+| Table | Holds |
+|---|---|
+| `patients` | one row per person: `id` (internal), `full_name`, `phone`, `email`, `lang`, `notes`, `legacy_id`, timestamps |
+| `patient_channels` | how to message them: `(channel, external_id)` unique, `is_primary`, `verified_at` |
+| `patient_contacts` (view) | each patient's messaging contact: the primary channel, else the newest |
+
+**The rules:**
+
+- `appointments.patient_id` holds `patients.id`, and so do `treatment_notes`, `intake_sessions`,
+  `followups`, `message_log` and `notifications`. `treatment_repo.upsert` always takes the
+  appointment's patient, whatever the caller passes.
+- **Reachability is a property of the patient**, never of the id or of the booking source:
+  `patient_repo.messaging_contact(patient_id)` returns `Contact(channel, external_id)` or `None`.
+  - Follow-ups, queued recommendations and Send Now go to `get_channel(contact.channel)` at
+    `contact.external_id`.
+  - With no contact: the follow-up is `no_channel` (the 6.4 call alert), and recommendations go
+    by email, or raise the missing-contact alert.
+  - A manual booking of a Telegram patient is reachable, which is a change: it used to be treated
+    as unreachable.
+- **Where patient rows come from:**
+  - **A bot booking** calls `patient_repo.for_channel("telegram", user_id, name)`, which creates
+    the patient on first contact. A name the clinic already knows is not overwritten.
+  - **A manual booking** creates a patient with no channel.
+  - **Booking an existing patient** by `existing_patient_id` requires that the patient has an
+    appointment with this therapist. Anything else is a 404 (SF-013).
+- **Incoming messages** name a channel identity: `consume_followup_conversation(sender_id, text,
+  channel)` looks the patient up in `patient_channels`. An internal id is never a sender.
+- **Linking a channel later** (`patient_repo.link_channel`) makes the same patient reachable
+  without changing their id. A channel identity belongs to one patient (`ChannelTaken`).
+- **Still keyed by the Telegram user id**, because they are Telegram conversations: the relay
+  keys and the web messages page, the intake history, and the pre-6.3 follow-up keys. They become
+  channel-agnostic with WhatsApp (7.4).
+
+### The migration
+
+The migration runs once, at start-up (`bot/db.py → _create_patients`), recorded as
+`0001_patient_identity` in `schema_migrations`.
+
+**Steps:**
+
+1. **Backup.** If the database has appointments, it is first copied to
+   `zenflow.db.pre-patient-identity-<UTC stamp>`.
+2. **Transaction.** Everything below runs in one transaction (`BEGIN IMMEDIATE`).
+3. **Patient rows.** Every distinct old id found in the six tables becomes a `patients` row. The
+   old value is kept in `legacy_id`. The name, phone and email come from the newest booking that
+   has them.
+4. **Channels.** Positive old ids get a primary `telegram` channel; negative ones (manual
+   bookings) get none.
+5. **Rewrite.** All six tables are rewritten to the new ids.
+
+**If any step fails:**
+
+- the transaction is rolled back and the process refuses to start;
+- the database is unchanged, and the error names the backup.
+
+Mixing old and new ids would be worse than not starting.
+
+### One release of compatibility
+
+Pages and tabs opened before the upgrade still carry old ids:
+
+- **HTML pages** (`/treatment/<old>/…`, `/patients/<old>[/session/…]`) redirect with **308** to
+  the new id. The redirect happens after the tenant check, so another therapist's patient still
+  goes back to the list.
+- **API paths** (`/api/treatment-notes/<old>/<date>/…`, `/api/appointment/<old>/<date>/…`,
+  `/api/patients/<old>`) are rewritten to the new id before routing
+  (`web/legacy_patient_ids.py`). The routes keep their own tenant checks.
+
+`patient_repo.canonical_id()` prefers an existing internal id; an old id is only used when no
+patient has that id.
+
+**Remove in the next release:**
+
+- `web/legacy_patient_ids.py` and its registration in `web/app.py`;
+- the `canonical_id` calls in the two page routers;
+- the `patients.legacy_id` column, after a backup.
