@@ -1,0 +1,76 @@
+/* App shell (Phase 4.2c): below 900px the sidebar becomes a drawer opened from the topbar;
+   print output drops the app chrome. Loaded by base.html on every page, after style.css. */
+
+.zf-menu-btn,
+.zf-scrim { display: none; }
+
+@media (max-width: 900px) {
+  .zf-menu-btn {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--zf-border);
+    border-radius: var(--zf-radius-md);
+    background: var(--zf-surface);
+    color: var(--zf-text-2);
+    cursor: pointer;
+  }
+  .zf-menu-btn:focus-visible { outline: none; box-shadow: var(--zf-focus-ring); }
+
+  .zf-sidebar {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 1100;
+    width: min(280px, 85vw);
+    box-shadow: var(--zf-shadow-lg);
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition: transform .2s ease, visibility 0s linear .2s;
+  }
+  [dir="rtl"] .zf-sidebar { transform: translateX(100%); }
+  .zf-app.nav-open .zf-sidebar {
+    visibility: visible;
+    transform: none;
+    transition: transform .2s ease;
+  }
+  .zf-app.nav-open .zf-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(17, 24, 39, .45);
+  }
+
+  .zf-topbar { gap: var(--zf-space-2); padding-inline: var(--zf-space-3); }
+  .zf-topbar-left { min-width: 0; gap: var(--zf-space-2); }
+  .zf-page-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .zf-topbar-date { display: none; }
+}
+
+@media (max-width: 600px) {
+  .zf-topbar-actions { display: none; }  /* the same links are in the drawer */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zf-sidebar { transition: none; }
+}
+
+@media print {
+  html,
+  body,
+  .zf-app,
+  .zf-main,
+  .zf-content {
+    display: block;
+    height: auto;
+    overflow: visible;
+    background: #FFFFFF;
+  }
+  .zf-sidebar,
+  .zf-topbar,
+  .zf-scrim { display: none; }
+}

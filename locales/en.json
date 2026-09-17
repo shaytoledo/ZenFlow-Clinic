@@ -5,6 +5,7 @@
   "nav_messages": "Messages",
   "nav_sessions": "Session History",
   "nav_settings": "Settings",
+  "nav_menu": "Menu",
   "role_label": "Acupuncturist · ZenFlow",
 
   "notif_title": "Notifications",
@@ -96,6 +97,7 @@
   "treatment_title": "Treatment Session",
   "treatment_active_session": "Active Treatment Session",
   "treatment_all_patients": "All Patients",
+  "treatment_print_handout": "Print handout",
   "treatment_no_telegram": "No Telegram account linked",
   "treatment_no_telegram_body": "This patient was booked manually — automated follow-up will not be sent. Use the manual feedback section below after the session.",
   "treatment_manual_booking": "Manual Booking",

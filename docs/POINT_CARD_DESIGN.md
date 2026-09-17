@@ -183,7 +183,35 @@ with `aria-pressed`).
   island, so the first paint is already right.
 - **Tests:** a test keeps compact from ever hiding identity, selection or cautions.
 
+## 6. Small screens and print (Phase 4.2c)
+
+**Shell.** The 232 px sidebar never collapsed, so on a phone the page content was less than
+100 px wide. Below 900 px the sidebar is now a drawer (`static/css/shell.css`,
+`static/js/shell.js`, on every page):
+
+- **Menu button:** in the topbar, with `aria-controls` / `aria-expanded` and a translated label.
+- **Opening:** the drawer slides in from the reading side (from the right in RTL), a scrim sits
+  behind it, and focus moves into it.
+- **Closing:** Escape, the scrim, or following a link. Escape returns focus to the button.
+- **Motion:** respects `prefers-reduced-motion`.
+- **Topbar:** it drops the clock below 900 px and the page actions below 600 px (the same links
+  are in the drawer).
+- **Treatment page:** its two columns stack below 900 px, and its padding shrinks below 600 px.
+
+**Print.** Every page prints without the sidebar and topbar, and without the fixed-height,
+`overflow: hidden` layout that used to clip printing to one page. The treatment page prints only
+its **patient handout** (`static/js/treatment/handout.js`), which is rebuilt right before every
+print (the topbar "Print handout" button or Ctrl+P). It contains:
+
+- the patient, date and therapist;
+- the points used today, with reference names and locations in the page language;
+- the recommendations left switched on.
+
+`handoutPoints()` takes codes only, so nothing therapist-facing can reach the patient's copy: no
+AI rationale, no diagnosis certainty, no notes.
+
 ## Later parts of 4.2
 
-- **4.2c:** a responsive app shell, a print stylesheet for the patient handout, and Playwright
-  visual snapshots at 3 breakpoints × LTR/RTL × light/dark.
+- **4.2e:** Playwright visual snapshots at 3 breakpoints × LTR/RTL × light/dark. This needs the
+  `playwright` package. Using the installed Edge or Chrome (`channel=`) avoids the browser
+  download.

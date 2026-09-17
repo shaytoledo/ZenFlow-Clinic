@@ -113,6 +113,8 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 └── static/
     ├── style.css            # zf- prefixed styles
     ├── css/tokens.css       # design tokens (--zf-*), loaded on every page; dark theme = <html data-theme="dark"> (ADR-25)
+    ├── css/shell.css        # responsive app shell (sidebar drawer < 900px) + print rules, every page
+    ├── js/shell.js          # the drawer's menu button (every page)
     ├── css/treatment.css    # treatment page styles: page-scoped tp-* / pc-* (point card) classes under a .tp root
     ├── js/treatment/        # treatment page: classic scripts sharing globals, loaded IN ORDER (main.js last);
     │                        #   server values come from the JSON island #treatment-config, never Jinja inside JS
