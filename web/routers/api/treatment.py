@@ -705,7 +705,8 @@ async def save_manual_feedback(
     from web.repositories.treatment_repo import save_manual_feedback as _save
 
     await asyncio.to_thread(_save, apt_id, body.rating, body.notes)
-    await asyncio.to_thread(followup_repo.record_manual, apt_id, body.rating, body.notes)
+    if body.rating is not None or body.notes.strip():  # an empty form records no outcome
+        await asyncio.to_thread(followup_repo.record_manual, apt_id, body.rating, body.notes)
     return JSONResponse({"ok": True})
 
 
