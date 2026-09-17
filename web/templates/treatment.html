@@ -54,6 +54,8 @@
 
 {% include "treatment/point_lightbox.html" %}
 
+{% include "treatment/email_dialog.html" %}
+
 <!-- "Removed LR3 · Undo" (Phase 4.2); a live region so the removal is announced -->
 <div class="tp" role="status">
   <div id="points-undo" class="pc-undo" hidden>
@@ -67,7 +69,7 @@
 {% block extra_scripts %}
 <link rel="stylesheet" href="/static/css/treatment.css" />
 
-<script type="application/json" id="treatment-config">{{ {"sse_updates": sse_updates | default(false), "point_density": point_density | default("detailed"), "google": google | default({"connected": none, "reason": none})} | tojson }}</script>
+<script type="application/json" id="treatment-config">{{ {"sse_updates": sse_updates | default(false), "point_density": point_density | default("detailed"), "google": google | default({"connected": none, "reason": none}), "email_text": email_text | default({})} | tojson }}</script>
 <script src="/static/js/treatment/point-info.js"></script>
 <script src="/static/js/treatment/state.js"></script>
 <script src="/static/js/treatment/load.js"></script>
@@ -77,6 +79,7 @@
 <script src="/static/js/treatment/point-states.js"></script>
 <script src="/static/js/treatment/pipeline.js"></script>
 <script src="/static/js/treatment/advice.js"></script>
+<script src="/static/js/treatment/email-dialog.js"></script>
 <script src="/static/js/treatment/points-input.js"></script>
 <script src="/static/js/treatment/lightbox.js"></script>
 <script src="/static/js/treatment/handout.js"></script>

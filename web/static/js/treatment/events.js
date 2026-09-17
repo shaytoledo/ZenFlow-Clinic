@@ -35,9 +35,10 @@ const CLICK_ACTIONS = {
   'complete-session': () => completeSession(),
   'set-mf-rating': (el) => setMfRating(Number(el.dataset.val)),
   'save-manual-feedback': () => saveManualFeedback(),
-  'close-email-fallback': () => closeEmailFallback(),
-  'submit-email-fallback': () => submitEmailFallback(),
-  'copy-smtp-text': () => copySmtpText(),
+  'close-email-dialog': () => closeEmailDialog(),
+  'show-email-copy': () => showEmailCopy(),
+  'copy-email-text': (el) => copyEmailText(el),
+  'connect-google': (el) => connectGoogle(el),  // the link then navigates as usual
 };
 
 const INPUT_ACTIONS = {

@@ -39,6 +39,10 @@ class TreatmentNotesIn(BaseModel):
     therapist_notes: str = ""
 
 
+class RecommendationItemsIn(BaseModel):
+    items: list[dict]
+
+
 class RecommendationsIn(BaseModel):
     items: list[dict]
     schedule_hours: int = 2
@@ -452,6 +456,32 @@ def _format_recommendations_for_email(enabled: list[dict], patient_name: str) ->
         lines.append(f"• {icon_map.get(cat, cat)}: {text}")
     lines += ["", "Take care, and see you at your next session.", "", "— ZenFlow Clinic"]
     return subject, "\n".join(lines)
+
+
+def _patient_name(apt_id: int) -> str:
+    from bot.db import get_db
+
+    row = get_db().execute("SELECT patient_name FROM appointments WHERE id=?", (apt_id,)).fetchone()
+    return (row["patient_name"] if row else "") or "Patient"
+
+
+@router.post("/{patient_id}/{apt_date}/{apt_time}/recommendations-text")
+async def recommendations_text(
+    patient_id: int,
+    apt_date: str,
+    apt_time: str,
+    body: RecommendationItemsIn,
+    request: Request,
+):
+    """The email a send would contain, for copying by hand (Phase 5.3). Sends nothing."""
+    therapist = _require_auth(request)
+    apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
+    enabled = [item for item in body.items if item.get("enabled")]
+    if not enabled:
+        raise HTTPException(status_code=400, detail="No recommendations selected")
+    name = await asyncio.to_thread(_patient_name, apt_id)
+    subject, text = _format_recommendations_for_email(enabled, name)
+    return JSONResponse({"text": f"{subject}\n\n{text}"})
 
 
 @router.post("/{patient_id}/{apt_date}/{apt_time}/send-recommendations")

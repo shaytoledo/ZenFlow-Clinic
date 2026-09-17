@@ -109,15 +109,44 @@ The "reconnect Google" alert (`gmail_token_expired`) behaves like this:
 
 ## 3. Client (task 5.3)
 
-- **Controls:** every email-sending control is disabled while Google is not connected. A visible
-  hint says why and links to "Connect Google".
-- **If a send is refused anyway** (a stale page or a revoked token), a dialog explains:
-  - what happened and why;
-  - a **Connect Google** button that returns to this session;
-  - **Copy the text instead**.
-- **Returning** with `?google=connected` restores the pending send: the recipient address and the
-  selected items are kept in `sessionStorage` for that session only.
-- **Strings:** all of them come from `locales/{en,he}.json`.
+Implemented in `static/js/treatment/email-dialog.js` and the `treatment/email_dialog.html`
+partial, a native `<dialog>` like the point lightbox.
+
+- **Controls:** for an **email-only** (manual) patient while `google.connected` is `false`:
+  - "Send Now" and "Send in 24h" get `aria-disabled="true"`, a `title` with the reason, and
+    `aria-describedby` pointing at a visible hint (`#google-hint`) that ends in a "Connect Google"
+    link.
+  - They stay **clickable**. Pressing one anyway asks the server, which explains. An unknown
+    state (`null`) blocks nothing.
+  - Telegram patients are never marked, because their sends do not use Google.
+- **The address dialog** replaces the old overlay.
+  - While Google is not connected, it shows the reason with **Connect Google** and **Copy the
+    text instead**, and its Send button is marked disabled in the same way.
+- **A refusal** (409 `google_not_connected`, from a stale page or a revoked token) switches the
+  dialog to an explanation:
+  - the server's title and message;
+  - a note that the therapist comes back here;
+  - Cancel, **Copy the text instead**, and **Connect Google** or **Reconnect Google**.
+- **Copy the text instead** uses the 409's `text` when there is one. Otherwise it asks
+  `POST …/recommendations-text`, which only formats the email and sends nothing. The text is
+  shown read-only, with a Copy button (Clipboard API, falling back to `execCommand`).
+- **Connect Google** is a normal link to `/auth/login?next=<this page>`. Just before navigating,
+  the page saves the pending send in `sessionStorage` (key `zf:pending-email`):
+  - which control was used;
+  - the typed address;
+  - the on/off state and edited text of each recommendation.
+
+  It is read once, only on the same page, and only within 30 minutes.
+- **Returning** with `?google=connected|cancelled`:
+  - the parameter is removed from the URL;
+  - the recommendations are restored;
+  - for an email send, the address dialog reopens with the address filled in and a status line
+    ("Google is connected…" / "…nothing was sent");
+  - for "Send in 24h", the status appears under the buttons and focus goes back to the button.
+  - Nothing is sent without a new click.
+- **Strings:** every string in the dialog comes from `locales/{en,he}.json` through the page's JSON
+  island (`email_text`, keys listed in `web/routers/pages.py::EMAIL_DIALOG_KEYS`). The dialog's own
+  explanation replaces the server's English `needs_email` detail.
 
 ## 4. Background sends (task 5.4)
 

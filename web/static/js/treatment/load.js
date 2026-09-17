@@ -75,6 +75,8 @@ async function loadTreatment() {
       if (aiRecs.exercise) advice.push({ id: 'exercise', icon: '🏃', category: 'Exercise', text: aiRecs.exercise, enabled: false });
     }
     renderAdvice();
+    applyGooglePreflight();  // email-only patient + Google not connected (email-dialog.js)
+    resumeAfterGoogle();     // back from "Connect Google" with the send to restore
 
     // Render follow-up conversation if it exists
     if (notes?.followup_conversation) {

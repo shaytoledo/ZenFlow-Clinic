@@ -78,8 +78,14 @@ REVIEWED = {
     "thumbsHtml",
     "zoomHtml",
     "detailHtml",
-    # inside an escHtml(`…`) template — escaped as a whole
-    "phone",
+    # email dialog (Phase 5.3): SVG constants, and markup assembled from escHtml()-ed parts;
+    # the only URL is connectGoogleUrl() — our own path, escaped
+    "ICON_MAIL",
+    "ICON_COPY",
+    "linkHtml",
+    "statusHtml",
+    "noticeHtml",
+    "blockedHtml",  # a constant attribute string or ''
 }
 #: `cond ? 'literal' : 'literal'` needs no escaping
 LITERAL_TERNARY = re.compile(

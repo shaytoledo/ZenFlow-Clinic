@@ -454,7 +454,8 @@ public endpoint is `GET /healthz` → `{"ok": true}`.
 | `GET /api/treatment-notes/{pid}/{date}/{time}` | Fetch treatment notes (JSON) |
 | `POST /api/treatment-notes/{pid}/{date}/{time}` | Save treatment notes |
 | `POST /api/treatment-notes/{pid}/{date}/{time}/rediagnose` | Re-generate TCM AI diagnosis |
-| `POST /api/treatment-notes/{pid}/{date}/{time}/send-recommendations` | Send recommendations to patient via Telegram |
+| `POST /api/treatment-notes/{pid}/{date}/{time}/send-recommendations` | Send recommendations now (Telegram, or email through the therapist's Gmail) or queue them (`schedule_hours >= 24`); 409 `google_not_connected` when email cannot go out |
+| `POST /api/treatment-notes/{pid}/{date}/{time}/recommendations-text` | The email those recommendations would make, for copying by hand; sends nothing |
 | `POST /api/treatment-notes/{pid}/{date}/{time}/complete` | Mark session completed |
 | `GET /api/calendars` | List Google Calendar calendars (JSON) |
 | `GET /api/events?start=X&end=Y` | FullCalendar events — Google or local (JSON) |
