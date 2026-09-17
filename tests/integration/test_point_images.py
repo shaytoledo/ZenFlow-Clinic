@@ -254,3 +254,30 @@ async def test_the_api_links_images_only_when_enabled(
     assert "storage_key" not in image and "sha256" not in image
     assert on["points"]["KI3"]["images"][0]["kind"] == "photo"
     assert (await client.get(image["url"])).status_code == 200
+
+
+def test_a_file_that_breaks_during_processing_is_skipped(
+    folder: Path, media_root: Path, monkeypatch
+) -> None:
+    from PIL import ImageOps
+
+    def broken(image: Any) -> Any:
+        raise SyntaxError("corrupt EXIF")
+
+    monkeypatch.setattr(ImageOps, "exif_transpose", broken)
+    report = _run(folder, media_root)
+    assert "LI4.png: skipped — could not process the image: corrupt EXIF" in report.summary()
+    assert report.added == 0
+
+
+async def test_media_is_not_served_when_a_remote_store_is_configured(
+    folder: Path, media_root: Path, make_therapist, login_as, fake_redis, monkeypatch
+) -> None:
+    from zenflow.settings import reset_settings
+
+    _run(folder, media_root)
+    key = _rows()[0]["storage_key"]
+    client = await login_as(make_therapist(email="media-s3@example.com", password=PW))
+    monkeypatch.setenv("ZF_STORAGE_S3", "1")
+    reset_settings()
+    assert (await client.get(f"/media/{key}")).status_code == 404

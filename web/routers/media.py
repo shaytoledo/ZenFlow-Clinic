@@ -16,13 +16,13 @@ router = APIRouter(dependencies=[Depends(require_signed_in)])
 
 @router.get("/media/{key:path}", include_in_schema=False)
 async def media(key: str) -> FileResponse:
-    storage = get_storage()
     try:
+        storage = get_storage()
         if not isinstance(storage, LocalStorage):
             raise StorageError("not a local store")
         path = storage.path(key)
         media_type = content_type_of(key)
-    except StorageError:
+    except (StorageError, NotImplementedError):  # remote stores hand out their own links
         raise HTTPException(status_code=404) from None
     if not path.is_file():
         raise HTTPException(status_code=404)

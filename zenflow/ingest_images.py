@@ -134,11 +134,14 @@ def render(data: bytes) -> Rendition:
         finally:
             Image.MAX_IMAGE_PIXELS = previous
 
-    upright = ImageOps.exif_transpose(image) or image
-    mode = "RGBA" if "A" in upright.getbands() or "transparency" in upright.info else "RGB"
-    # A fresh image from the pixels alone: no EXIF, XMP, ICC or comments survive.
-    clean = Image.new(mode, upright.size)
-    clean.paste(upright.convert(mode))
+    try:
+        upright = ImageOps.exif_transpose(image) or image
+        mode = "RGBA" if "A" in upright.getbands() or "transparency" in upright.info else "RGB"
+        # A fresh image from the pixels alone: no EXIF, XMP, ICC or comments survive.
+        clean = Image.new(mode, upright.size)
+        clean.paste(upright.convert(mode))
+    except Exception as exc:  # e.g. corrupt EXIF: skip the file, never crash the run
+        raise ValueError(f"could not process the image: {exc}") from exc
 
     def encode(size: int) -> bytes:
         copy = clean.copy()
