@@ -73,13 +73,16 @@
     </nav>
 
     <div class="zf-sidebar-footer">
-      <div class="zf-user-card">
-        <div class="zf-user-avatar">{{ (therapist.name[:2] if therapist else 'DR') | upper }}</div>
-        <div style="flex:1;min-width:0;">
+      <!-- The user card opens Settings (Phase 4.4) -->
+      <a href="/settings" class="zf-user-card{% if active == 'settings' %} active{% endif %}"{% if active == 'settings' %} aria-current="page"{% endif %}>
+        <span class="zf-user-avatar" aria-hidden="true">{{ (therapist.name[:2] if therapist else 'DR') | upper }}</span>
+        <span class="zf-user-meta">
           <span class="zf-user-name">{{ therapist.name if therapist else 'Guest' }}</span>
           <span class="zf-user-role">{{ t['role_label'] if t else 'Acupuncturist · ZenFlow' }}</span>
-        </div>
-      </div>
+          <span class="zf-sr-only">{{ t['nav_settings'] if t else 'Settings' }}</span>
+        </span>
+        <svg class="zf-user-chevron zf-rtl-flip" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
     </div>
   </aside>
 
