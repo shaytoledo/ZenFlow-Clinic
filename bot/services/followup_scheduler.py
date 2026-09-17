@@ -32,8 +32,6 @@ from zenflow.worker import JobDeferred
 logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SECONDS = 1800
-WINDOW_HOURS_MIN = 22
-WINDOW_HOURS_MAX = 26
 SENT_TTL_SECONDS = 7 * 86400
 CONV_TTL_SECONDS = 48 * 3600  # patient has 48h to finish the conversation
 
@@ -139,27 +137,6 @@ def _tmpl(therapist_id: str) -> dict:
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
-
-
-def _find_due_followups() -> list[dict]:
-    # Canonical UTC strings compare correctly against canonical completed_at values (F2 fix).
-    cutoff_max = clock.hours_ago(WINDOW_HOURS_MIN)
-    cutoff_min = clock.hours_ago(WINDOW_HOURS_MAX)
-    rows = (
-        get_db()
-        .execute(
-            "SELECT t.appointment_id, t.patient_id, a.patient_name, a.therapist_id "
-            "FROM treatment_notes t "
-            "JOIN appointments a ON a.id = t.appointment_id "
-            "WHERE t.completed_at IS NOT NULL "
-            "  AND t.completed_at >= ? AND t.completed_at <= ? "
-            "  AND (t.followup_rating IS NULL OR t.followup_rating = 0)"
-            "  AND t.followup_conversation IS NULL",
-            (cutoff_min, cutoff_max),
-        )
-        .fetchall()
-    )
-    return [dict(r) for r in rows]
 
 
 def _stamp_sent(appointment_id: int) -> None:
@@ -622,9 +599,3 @@ async def consume_followup_conversation(patient_id: int, text: str) -> tuple[boo
     except Exception as e:
         logger.warning(f"consume_followup_conversation failed: {e}")
         return (False, None)
-
-
-# Keep the old function name as a thin wrapper so any other callers still work
-async def consume_followup_rating(patient_id: int, text: str) -> bool:
-    consumed, _reply = await consume_followup_conversation(patient_id, text)
-    return consumed
