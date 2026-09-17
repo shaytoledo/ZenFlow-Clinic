@@ -44,10 +44,6 @@ function channelThemeClass(channel) {
   return 'tp-ch-' + (CHANNEL_THEMES[channel] || 'default');
 }
 
-// Points traditionally avoided in pregnancy (docs/POINT_CARD_DESIGN.md §1). Shown on the card
-// face, never behind a disclosure. Phase 4.3 moves this into the acupoints table.
-const PREGNANCY_CAUTION = new Set(['LI4', 'SP6', 'GB21', 'BL60', 'BL67', 'CV3', 'CV4']);
-
 const POINT_TEXT = {
   en: {
     add: 'Add',
@@ -141,7 +137,8 @@ function pointCardHtml(pt, selected) {
   if (channel) {
     parts.push(`<p class="pc-channel"><span class="pc-channel-icon" aria-hidden="true">${icon}</span>${escHtml(channel)}</p>`);
   }
-  if (PREGNANCY_CAUTION.has(pointInfoKey(code))) {
+  // A caution is shown on the card face, never behind the disclosure.
+  if (hasPregnancyCaution(code)) {
     parts.push(`<p class="pc-caution">${ICON_CAUTION}<span>${escHtml(pointText('pregnancy'))}</span></p>`);
   }
   if (location) {

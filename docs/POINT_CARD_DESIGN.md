@@ -119,14 +119,18 @@ From that, the order of importance on a card is:
 - **Tags:** the tag label opens the point info panel, which is now reachable. The panel is a
   labelled dialog region that Escape closes. The tag's × button has an `aria-label`.
 
-### Data notes (handled in Phase 4.3)
+### Data notes (Phase 4.3a)
 
-- **Kidney code:** the AI prompt and `POINT_INFO` use `KD3` for Kidney 3, but the WHO code is
-  `KI3`. Lookups now accept both.
-- **Yintang:** `YIN` duplicates `YINTANG` (EX-HN3; GV29 in the 2006 WHO locations).
-- **Cautions:** the pregnancy list lives in `render-points.js` until the `acupoints` table
-  (4.3) carries `contraindications` from a vetted dataset. It is a traditional caution shown
-  to a licensed therapist, not medical advice.
+- **Kidney code:** the AI prompt and the old `POINT_INFO` used `KD3` for Kidney 3, but the WHO
+  code is `KI3`. The `acupoints` table stores `KI3` with the alias `KD3`, and lookups accept
+  both.
+- **Yintang:** `YIN` duplicated `YINTANG` (EX-HN3; GV29 in the 2006 WHO locations). It is now
+  one row with those aliases.
+- **Cautions:** pregnancy cautions come from the table's `contraindications` column. BL60, BL67,
+  CV3 and CV4 were given reference rows so their caution has a source. A caution is traditional
+  guidance shown to a licensed therapist, not medical advice. The texts are the clinic's own
+  summaries (`source`, `licence` columns); a vetted dataset can replace them through the seed
+  file.
 
 ## 4. States of the AI points area (Phase 4.2b)
 

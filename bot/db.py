@@ -239,6 +239,19 @@ def init_db() -> None:
         except Exception:
             pass  # Column already exists — safe to ignore
     _create_active_slot_index(conn)
+    _create_acupoints(conn)
+
+
+def _create_acupoints(conn: sqlite3.Connection) -> None:
+    """Acupoint reference data (Phase 4.3a): created here, filled from the repo's seed when empty.
+
+    Updates to the seed are applied with `python -m zenflow.seed acupoints`.
+    """
+    from zenflow.seed import CREATE_ACUPOINTS, seed_acupoints
+
+    conn.execute(CREATE_ACUPOINTS)
+    if conn.execute("SELECT COUNT(*) FROM acupoints").fetchone()[0] == 0:
+        seed_acupoints(conn)
 
 
 def _create_active_slot_index(conn: sqlite3.Connection) -> None:

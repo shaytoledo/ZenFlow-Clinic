@@ -25,8 +25,17 @@ pytestmark = [
 JS = ts.WEB / "static/js/treatment"
 
 
+def reference_data(lang: str) -> dict[str, Any]:
+    """What GET /api/acupoints returns for the repo's seed (Phase 4.3a)."""
+    from web.repositories.acupoint_repo import reference
+    from zenflow.seed import load_acupoints_seed
+
+    return reference(load_acupoints_seed(), lang)
+
+
 def run_js(expression: str, lang: str = "en") -> Any:
     """Evaluate `expression` after the page's point scripts; return its JSON value."""
+    data = reference_data(lang)
     main = (JS / "main.js").read_text(encoding="utf-8")
     esc = re.search(r"function escHtml\(value\) \{.*?\n\}", main, re.DOTALL)
     assert esc is not None
@@ -38,6 +47,8 @@ def run_js(expression: str, lang: str = "en") -> Any:
             "let usedPoints = []; let aiPointRationale = {}; let advice = [];",
             esc.group(0),
             (JS / "point-info.js").read_text(encoding="utf-8"),
+            f"POINT_INFO = {json.dumps(data['points'])};",
+            f"POINT_ALIASES = {json.dumps(data['aliases'])};",
             (JS / "render-points.js").read_text(encoding="utf-8"),
             (JS / "point-states.js").read_text(encoding="utf-8"),
             (JS / "points-input.js").read_text(encoding="utf-8"),
@@ -116,6 +127,9 @@ def test_pregnancy_cautions_are_on_the_card_face() -> None:
 def test_the_who_kidney_code_finds_the_reference_data() -> None:
     html = card({"code": "KI3"})
     assert "tp-ch-kidney" in html and "Taixi" in html and 'class="pc-code">KI3<' in html
+    old_spelling = card({"code": "KD3"})
+    assert "tp-ch-kidney" in old_spelling and "Taixi" in old_spelling, "KD3 is an alias of KI3"
+    assert 'class="pc-code">KD3<' in old_spelling, "the card shows the code the AI used"
 
 
 def test_an_unknown_point_still_renders_plainly() -> None:

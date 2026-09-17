@@ -128,7 +128,7 @@ function openPointPanel(code, opener) {
     html += `
       <div class="tp-mb-10 ${themeClass}"><p class="pc-channel">${escHtml(info.channel)}</p></div>
       <div class="tp-panel-name">${escHtml(info.name)}</div>
-      ${PREGNANCY_CAUTION.has(pointInfoKey(c)) ? `<p class="pc-caution tp-mb-12">${ICON_CAUTION}<span>${escHtml(pointText('pregnancy'))}</span></p>` : ''}
+      ${hasPregnancyCaution(c) ? `<p class="pc-caution tp-mb-12">${ICON_CAUTION}<span>${escHtml(pointText('pregnancy'))}</span></p>` : ''}
       <div class="tp-mb-12">
         <span class="tp-panel-label">${escHtml(pointText('location'))}</span>
         <p class="tp-panel-text">${escHtml(info.location)}</p>

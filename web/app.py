@@ -23,6 +23,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from bot.config import SESSION_SECRET
 from web.deps import require_signed_in
+from web.routers.api.acupoints import router as acupoints_router
 from web.routers.api.admin import router as admin_router
 from web.routers.api.appointments import router as apts_router
 from web.routers.api.availability import router as avail_router
@@ -142,3 +143,4 @@ app.include_router(messages_router, dependencies=_API_AUTH)
 app.include_router(system_router, dependencies=_API_AUTH)
 app.include_router(notifications_router, dependencies=_API_AUTH)
 app.include_router(admin_router, dependencies=_API_AUTH)
+app.include_router(acupoints_router, dependencies=_API_AUTH)
