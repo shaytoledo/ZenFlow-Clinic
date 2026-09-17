@@ -5,12 +5,15 @@
   const button = document.getElementById('zf-menu-btn');
   const sidebar = document.getElementById('zf-sidebar');
   const scrim = document.getElementById('zf-scrim');
-  if (!app || !button || !sidebar || !scrim) return;
+  const main = document.querySelector('.zf-main');
+  if (!app || !button || !sidebar || !scrim || !main) return;
 
   const isOpen = () => app.classList.contains('nav-open');
   const setOpen = (open) => {
     app.classList.toggle('nav-open', open);
     button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    // While the drawer is open the page behind the scrim takes no focus or clicks.
+    main.inert = open;
     if (open) {
       const first = sidebar.querySelector('a, button');
       if (first) first.focus();

@@ -50,6 +50,7 @@ def test_the_drawer_script_is_keyboard_friendly() -> None:
     js = (ts.WEB / "static/js/shell.js").read_text(encoding="utf-8")
     assert "aria-expanded" in js
     assert "'Escape'" in js and "button.focus()" in js
+    assert "main.inert = open" in js, "the page behind the open drawer takes no focus"
 
 
 def test_printing_drops_the_app_chrome() -> None:
