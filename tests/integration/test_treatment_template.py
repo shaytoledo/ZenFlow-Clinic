@@ -60,6 +60,7 @@ SECTION_IDS = (
     "panel-code",
     "panel-body",
     "treatment-config",
+    "print-handout",
 )
 
 

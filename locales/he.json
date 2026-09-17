@@ -5,6 +5,7 @@
   "nav_messages": "הודעות",
   "nav_sessions": "היסטוריית טיפולים",
   "nav_settings": "הגדרות",
+  "nav_menu": "תפריט",
   "role_label": "דיקור סיני · ZenFlow",
 
   "notif_title": "התראות",
@@ -96,6 +97,7 @@
   "treatment_title": "פגישת טיפול",
   "treatment_active_session": "טיפול פעיל",
   "treatment_all_patients": "כל המטופלים",
+  "treatment_print_handout": "הדפס דף למטופל",
   "treatment_no_telegram": "חשבון טלגרם לא מקושר",
   "treatment_no_telegram_body": "מטופל זה נרשם ידנית — מעקב אוטומטי לא יישלח. השתמש בסעיף המשוב הידני לאחר הטיפול.",
   "treatment_manual_booking": "קביעה ידנית",

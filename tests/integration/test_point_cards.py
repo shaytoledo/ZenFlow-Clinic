@@ -34,12 +34,14 @@ def run_js(expression: str, lang: str = "en") -> Any:
         [
             f"const _ZF_LANG = {json.dumps(lang)};",
             "const document = { addEventListener() {} };",
-            "let usedPoints = []; let aiPointRationale = {};",
+            "const window = { addEventListener() {} };",
+            "let usedPoints = []; let aiPointRationale = {}; let advice = [];",
             esc.group(0),
             (JS / "point-info.js").read_text(encoding="utf-8"),
             (JS / "render-points.js").read_text(encoding="utf-8"),
             (JS / "point-states.js").read_text(encoding="utf-8"),
             (JS / "points-input.js").read_text(encoding="utf-8"),
+            (JS / "handout.js").read_text(encoding="utf-8"),
             f"process.stdout.write(JSON.stringify({expression}));",
         ]
     )

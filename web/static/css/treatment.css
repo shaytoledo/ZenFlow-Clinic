@@ -75,7 +75,8 @@
 .tp .tp-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
 .tp .tp-column { display: flex; flex-direction: column; gap: 16px; }
 @media (max-width: 900px) { .tp .tp-columns { grid-template-columns: 1fr; } }  /* Phase 4.2: stack the two columns */
-.tp.tp-back-link { font-size: 12px; padding: 6px 12px; }
+@media (max-width: 600px) { .tp.tp-page { padding: 16px; } }
+.tp.tp-topbar-btn { font-size: 12px; padding: 6px 12px; }
 
 /* ── Shared helpers ────────────────────────────────────────────────────────── */
 .tp .tp-mt-6 { margin-top: 6px; }
@@ -640,3 +641,41 @@
 .tp [data-density="compact"] .ps-bar-block { display: none; }
 
 /* ══ end point cards ══ */
+
+/* ══ Patient handout (Phase 4.2c): printed instead of the page ═══════════════ */
+.tp .tp-handout { display: none; }
+
+@media print {
+  @page { margin: 16mm; }
+  /* The page's own sections carry inline display values set by script, hence !important. */
+  .tp.tp-page > :not(.tp-handout),
+  .tp.zf-point-panel,
+  .tp.tp-overlay,
+  .tp .pc-undo { display: none !important; }
+  .tp.tp-page { padding: 0; }
+  .tp .tp-handout {
+    display: block;
+    color: #000000;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  .tp .tp-handout-head { margin-block-end: 8mm; padding-block-end: 4mm; border-block-end: 1px solid #000000; }
+  .tp .tp-handout-brand { font-size: 9pt; letter-spacing: .08em; text-transform: uppercase; }
+  .tp .tp-handout-title { font-size: 18pt; font-weight: 700; }
+  .tp .tp-handout-meta { font-size: 10pt; }
+  .tp .tp-handout-part { margin-block-end: 7mm; break-inside: avoid; }
+  .tp .tp-handout h3 { margin-block-end: 2mm; font-size: 12pt; font-weight: 700; }
+  .tp .tp-handout-table { width: 100%; border-collapse: collapse; }
+  .tp .tp-handout-table th,
+  .tp .tp-handout-table td {
+    padding: 1.5mm 2mm;
+    border: 1px solid #555555;
+    text-align: start;
+    vertical-align: top;
+  }
+  .tp .tp-handout-table tr { break-inside: avoid; }
+  .tp .tp-handout-code { font-weight: 700; white-space: nowrap; }
+  .tp .tp-handout-advice { padding-inline-start: 5mm; }
+  .tp .tp-handout-advice li { margin-block-end: 1.5mm; }
+  .tp .tp-handout-foot { margin-block-start: 8mm; font-size: 9pt; }
+}

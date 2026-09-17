@@ -61,6 +61,11 @@ REVIEWED = {
     # point states (Phase 4.2b): markup assembled from escHtml()-ed text in the same function
     "labelHtml",
     "actionHtml",
+    # patient handout (Phase 4.2c): markup assembled from escHtml()-ed text in handoutHtml()
+    "pointsHtml",
+    "items",
+    "adviceHtml",
+    "signature",
     # inside an escHtml(`…`) template — escaped as a whole
     "phone",
 }

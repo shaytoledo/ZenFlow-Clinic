@@ -3,10 +3,14 @@
 {% block page_heading %}{{ t['treatment_active_session'] if t else 'Active Treatment Session' }}{% endblock %}
 
 {% block topbar_actions %}
-<a href="/patients" class="zf-btn zf-btn-outline tp tp-back-link">
+<a href="/patients" class="zf-btn zf-btn-outline tp tp-topbar-btn">
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="zf-rtl-flip"><polyline points="15 18 9 12 15 6"/></svg>
   {{ t['treatment_all_patients'] if t else 'All Patients' }}
 </a>
+<button type="button" class="zf-btn zf-btn-outline tp tp-topbar-btn" data-action="print-handout">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  {{ t['treatment_print_handout'] if t else 'Print handout' }}
+</button>
 {% endblock %}
 
 {% block content %}
@@ -43,6 +47,9 @@
 
     </div>
   </div>
+
+  <!-- The patient handout: printed instead of the page (Phase 4.2c, handout.js) -->
+  <section id="print-handout" class="tp-handout" aria-hidden="true"></section>
 </div>
 
 {% include "treatment/point_panel.html" %}
@@ -71,6 +78,7 @@
 <script src="/static/js/treatment/pipeline.js"></script>
 <script src="/static/js/treatment/advice.js"></script>
 <script src="/static/js/treatment/points-input.js"></script>
+<script src="/static/js/treatment/handout.js"></script>
 <script src="/static/js/treatment/events.js"></script>
 <script src="/static/js/treatment/main.js"></script>
 {% endblock %}
