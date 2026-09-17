@@ -84,12 +84,19 @@ def _fill(path: str) -> str:
     )
 
 
+#: Provider webhooks are not dashboard endpoints: they prove who they are with a signature, and
+#: are absent entirely while their channel is off (`docs/WHATSAPP.md`). Their own tests cover
+#: both — `tests/integration/test_whatsapp_webhook.py`.
+WEBHOOK_PATHS = {"/api/webhooks/whatsapp"}
+
+
 @pytest.mark.parametrize(("method", "path"), list(_api_routes()))
 async def test_every_api_route_rejects_anonymous_access(
     client: httpx.AsyncClient, method: str, path: str
 ) -> None:
     resp = await client.request(method, _fill(path), json={})
-    assert resp.status_code in (401, 403, 302, 303, 307), f"{method} {path} -> {resp.status_code}"
+    allowed = (401, 403, 302, 303, 307) + ((404,) if path in WEBHOOK_PATHS else ())
+    assert resp.status_code in allowed, f"{method} {path} -> {resp.status_code}"
 
 
 async def test_authenticated_client_reaches_dashboard_and_settings(

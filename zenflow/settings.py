@@ -112,6 +112,9 @@ class Settings(BaseSettings):
     whatsapp_app_secret: str = ""  # WHATSAPP_APP_SECRET — signs the webhook; empty ⇒ all refused
     whatsapp_verify_token: str = ""  # WHATSAPP_VERIFY_TOKEN — Meta's subscription handshake
     whatsapp_api_version: str = "v23.0"  # WHATSAPP_API_VERSION — Graph API version
+    # Approved template names (Meta console). Empty ⇒ nothing is sent outside the 24 h window.
+    whatsapp_template_followup: str = ""  # WHATSAPP_TEMPLATE_FOLLOWUP — the 24h check-in
+    whatsapp_template_confirmation: str = ""  # WHATSAPP_TEMPLATE_CONFIRMATION — a booking
     # TELEGRAM_WEBHOOK_SECRET — the secret_token Telegram echoes on webhook calls (7.1); empty ⇒
     # every webhook is refused. Polling (today's mode) does not use it.
     telegram_webhook_secret: str = ""

@@ -12,9 +12,10 @@ What WhatsApp makes different from Telegram, and how this adapter answers it:
   `outside_session_window` and the caller sends a `Template` instead. The window is tracked from
   inbound messages (`remember_inbound`, Redis, best effort: an unknown window is treated as open
   so a real patient message is never withheld on a cache miss).
-* **Buttons are limited.** Up to 3 become reply buttons, up to 10 a list; more than that is sent
-  as a numbered text message, because the check-in's typed answers already accept a number
-  (Phase 6.2). Labels are 20 characters, ids 256.
+* **Buttons are limited.** Up to 3 become reply buttons, up to 10 a list. More options than that
+  — or a label longer than WhatsApp's 20 characters — is sent as a numbered text message,
+  because every check-in step accepts a typed answer (6.2). Refusing would leave the patient with
+  a question they cannot answer.
 * **Nothing can be edited.** `supports_edit` is False, so the conformance suite checks the
   refusal instead of an edit.
 * **Typing needs a message to answer.** The indicator is tied to marking an inbound message as
@@ -223,13 +224,7 @@ class WhatsAppChannel(ChannelAdapter):
         self.check_text(text)
         self.check_buttons(buttons)
         flat = [b for row in buttons for b in row]
-        for label, _data in flat:
-            if len(label) > MAX_BUTTON_TITLE:
-                raise ChannelError(
-                    f"a button label is limited to {MAX_BUTTON_TITLE} characters",
-                    permanent=True,
-                    code="button_label",
-                )
+        too_long = any(len(label) > MAX_BUTTON_TITLE for label, _d in flat)
         if len(text) > MAX_BODY:
             raise ChannelError(
                 f"a message with buttons is limited to {MAX_BODY} characters",
@@ -237,14 +232,16 @@ class WhatsAppChannel(ChannelAdapter):
                 code="too_long",
             )
         await self._require_open_window(recipient_id)
-        if len(flat) <= MAX_REPLY_BUTTONS:
-            payload = self._interactive(recipient_id, text, _reply_buttons(flat))
-        elif len(flat) <= MAX_LIST_ROWS:
-            payload = self._interactive(recipient_id, text, _list_rows(flat))
-        else:
-            # More options than WhatsApp will show: the check-in also accepts a typed number.
+        if too_long or len(flat) > MAX_LIST_ROWS:
+            # More options than WhatsApp shows, or a label it would cut off ("Much better"
+            # fits, "A little worse than before" does not): ask in words. Every check-in step
+            # accepts a typed answer (Phase 6.2), so the conversation continues either way.
             numbered = "\n".join(f"{i}. {label}" for i, (label, _d) in enumerate(flat, start=1))
             return await self.send_text(recipient_id, f"{text}\n\n{numbered}")
+        if len(flat) <= MAX_REPLY_BUTTONS:
+            payload = self._interactive(recipient_id, text, _reply_buttons(flat))
+        else:
+            payload = self._interactive(recipient_id, text, _list_rows(flat))
         return await self._send(recipient_id, payload)
 
     async def send_media(self, recipient_id: str | int, media: OutboundMedia) -> SentMessage:

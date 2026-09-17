@@ -113,7 +113,8 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 │       ├── acupoints.py     # /api/acupoints — point reference data in the therapist's language (ETag)
 │       ├── availability.py  # /api/calendars, /api/events, /api/availability
 │       ├── messages.py      # /api/messages/active, /conversations, /history/{pid}, /send
-│       └── system.py        # /api/status, /api/my/status, /api/my/activation-code, /api/my/language, /api/my/preferences
+│       ├── system.py        # /api/status, /api/my/status, /api/my/activation-code, /api/my/language, /api/my/preferences
+│       └── whatsapp.py      # /api/webhooks/whatsapp — Meta's deliveries (404 while the flag is off)
 ├── services/                # Domain service layer
 │   ├── appointment_service.py
 │   ├── availability_service.py
@@ -250,6 +251,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `ZF_CONV_TIMEOUT_MINUTES` | `30` | Idle minutes before a patient flow is closed; `0` = never |
 | `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TOKEN` / `WHATSAPP_APP_SECRET` / `WHATSAPP_VERIFY_TOKEN` / `WHATSAPP_API_VERSION` | — / — / — / — / `v23.0` | WhatsApp Cloud API (only with `ZF_CHANNEL_WHATSAPP=1`; `docs/WHATSAPP.md`) |
+| `WHATSAPP_TEMPLATE_FOLLOWUP` / `WHATSAPP_TEMPLATE_CONFIRMATION` | — | Approved template names for messages outside WhatsApp's 24-hour window |
 | `TELEGRAM_WEBHOOK_SECRET` | — | Secret Telegram echoes on webhook calls (7.1); empty ⇒ every webhook refused |
 | `ZF_API_RATE_PER_MINUTE` | `60` | Booking API requests per minute per caller (`0` = no limit) |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |

@@ -78,7 +78,8 @@ Clinic/
 │   │       ├── availability.py    # /api/calendars, /api/events, /api/availability (POST/DELETE)
 │   │       ├── messages.py        # /api/messages/active, /conversations, /history/{pid}, /send
 │   │       ├── system.py          # /api/status, /api/my/status, /api/my/activation-code
-│   │       └── v1.py              # /api/v1 booking API: key or session, idempotency, OpenAPI (7.3)
+│   │       ├── v1.py              # /api/v1 booking API: key or session, idempotency, OpenAPI (7.3)
+│   │       └── whatsapp.py        # /api/webhooks/whatsapp — inbound + receipts (7.4b)
 │   ├── services/                  # Domain service layer (CRUD, caching, Telegram helpers)
 │   │   ├── booking_service.py     # THE booking implementation: create / cancel / availability (7.3)
 │   │   ├── idempotency.py         # Idempotency-Key storage for the booking API
