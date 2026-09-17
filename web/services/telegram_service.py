@@ -1,122 +1,59 @@
 """
 web/services/telegram_service.py
 ──────────────────────────────────
-Telegram Bot API helpers for the web layer.
+Telegram helpers for the web layer.
 
-Supports:
-- Sending messages to patients via the patient bot
-- Sending messages to patients via the therapist bot
-- Reading active relay conversations from Redis
-- Fetching recent Telegram updates (for live chat view)
+Sending goes through the channel adapters (`bot.interfaces`, plan 7.1) — this module never
+talks to the Bot API itself. What is left here:
+- echoing a web-sent reply into the therapist's own bot chat;
+- bot identity for pages and the status check;
+- reading and managing the relay conversations kept in Redis.
 """
 
 import json
 import logging
 from typing import Any
 
-import httpx
-
+from bot.interfaces import SentMessage, TelegramChannel, get_staff_channel
 from bot.patient_bot.services.relay import history_key, lastseen_key
 
 logger = logging.getLogger(__name__)
 
-_TIMEOUT = httpx.Timeout(10.0)
-
-
-async def _send(
-    token: str,
-    chat_id: int,
-    text: str,
-    parse_mode: str | None,
-    reply_markup: dict[str, Any] | None = None,
-) -> dict:
-    payload: dict[str, Any] = {"chat_id": chat_id, "text": text}
-    if parse_mode:  # None / "" = plain text: user-typed words must not be parsed (B2)
-        payload["parse_mode"] = parse_mode
-    if reply_markup:  # inline buttons (the 24h check-in, Phase 6.2)
-        payload["reply_markup"] = reply_markup
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json=payload,
-        )
-        data = resp.json()
-        if not data.get("ok"):
-            raise RuntimeError(data.get("description", "Telegram sendMessage failed"))
-        return data
-
-
-async def send_to_patient(
-    patient_id: int,
-    text: str,
-    parse_mode: str | None = "Markdown",
-    reply_markup: dict[str, Any] | None = None,
-) -> dict:
-    """Send a message to a patient via the patient bot token."""
-    from bot.config import TELEGRAM_TOKEN
-
-    if reply_markup:
-        return await _send(TELEGRAM_TOKEN, patient_id, text, parse_mode, reply_markup)
-    return await _send(TELEGRAM_TOKEN, patient_id, text, parse_mode)
-
-
-async def send_via_therapist_bot(patient_id: int, text: str, parse_mode: str = "Markdown") -> dict:
-    """Send a message to a patient via the therapist bot (relay channel)."""
-    from bot.config import THERAPIST_BOT_TOKEN
-
-    if not THERAPIST_BOT_TOKEN:
-        raise RuntimeError("THERAPIST_BOT_TOKEN not configured")
-    return await _send(THERAPIST_BOT_TOKEN, patient_id, text, parse_mode)
-
 
 async def echo_to_therapist_chat(
-    therapist_telegram_id: int,
+    therapist_telegram_id: int | str | None,
     text: str,
-    reply_to_msg_id: int | None = None,
-    parse_mode: str | None = "Markdown",
-) -> dict | None:
+    reply_to_msg_id: int | str | None = None,
+) -> SentMessage | None:
     """Echo a web-sent reply into the therapist's own bot chat.
 
-    When a therapist sends a message from the web, this surfaces it in their
-    Telegram chat as a Telegram reply to the patient's last forwarded message,
-    so the conversation context is visible in both places. Returns None on failure
-    (errors are logged but never raised — echoing is best-effort).
+    When a therapist sends a message from the web, this surfaces it in their Telegram chat as a
+    reply to the patient's last forwarded message, so the conversation reads the same in both
+    places. Best effort: failures are logged, never raised, and None is returned.
     """
-    from bot.config import THERAPIST_BOT_TOKEN
-
-    if not THERAPIST_BOT_TOKEN or not therapist_telegram_id:
+    if not therapist_telegram_id:
         return None
-    payload: dict[str, Any] = {"chat_id": therapist_telegram_id, "text": text}
-    if parse_mode:
-        payload["parse_mode"] = parse_mode
-    if reply_to_msg_id:
-        payload["reply_to_message_id"] = reply_to_msg_id
-        payload["allow_sending_without_reply"] = True
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-            resp = await client.post(
-                f"https://api.telegram.org/bot{THERAPIST_BOT_TOKEN}/sendMessage",
-                json=payload,
-            )
-            data = resp.json()
-            if not data.get("ok"):
-                logger.warning(f"echo_to_therapist_chat not ok: {data.get('description')}")
-                return None
-            return data
+        return await get_staff_channel().send_text(
+            therapist_telegram_id, text, reply_to=reply_to_msg_id
+        )
     except Exception as e:
         logger.warning(f"echo_to_therapist_chat failed: {e}")
         return None
 
 
-async def get_bot_info(token: str) -> dict | None:
-    """Call getMe for the given token; return result dict or None on failure."""
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
-            resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
-            data = resp.json()
-            return data.get("result") if data.get("ok") else None
-    except Exception:
+async def get_bot_info(token: str) -> dict[str, Any] | None:
+    """getMe for the given token, or None when it cannot be reached or is refused."""
+    if not token:
         return None
+    return await TelegramChannel(token=token).bot_info()
+
+
+async def check_bot(token: str) -> tuple[bool, str]:
+    """(ok, "@username" or the reason) for the status page."""
+    if not token:
+        return False, "Token not configured"
+    return await TelegramChannel(token=token).check()
 
 
 async def get_active_relay_conversations() -> list[dict]:

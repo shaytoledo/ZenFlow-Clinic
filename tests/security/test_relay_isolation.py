@@ -35,9 +35,10 @@ PW = "pw-Test-123"
 def patient_bot(monkeypatch: pytest.MonkeyPatch) -> FakeBot:
     """The patient application's client, as the therapist bot sees it."""
     import bot.therapist_bot.handlers as th
+    from bot.interfaces import TelegramChannel
 
     bot_ = FakeBot()
-    monkeypatch.setattr(th, "_patient_bot", bot_)
+    monkeypatch.setattr(th, "_patient_channel", TelegramChannel(bot=bot_))
     return bot_
 
 

@@ -61,6 +61,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/POINT_IMAGE_SOURCING.md` | Phase 4.3d shortlist of point-image sources with licences (owner decision Q4) |
 | `docs/GOOGLE_CONNECTION_UX.md` | Phase 5: recovered prior work, the `google_not_connected` 409 contract, client + background behaviour |
 | `docs/FOLLOWUP.md` | Phase 6: 24h follow-up and recommendation delivery — root causes, storage, conversation, alerts |
+| `docs/CHANNELS.md` | Phase 7: the `ChannelAdapter` contract, Telegram adapter, conformance suite, adding a channel |
 
 > Start guide: `startup/START.md`
 
@@ -74,6 +75,7 @@ bot/
 ├── states.py          # 10 integer state constants (SELECTING, THERAPIST_SELECT, …)
 ├── config.py          # Constants sourced from zenflow.settings; calls init_db(); loads THERAPISTS from SQLite
 ├── utils.py           # Shared: get_main_keyboard(show_change_therapist)
+├── interfaces/        # ChannelAdapter (channel.py), TelegramChannel (the only Bot API caller), factory
 ├── patient_bot/
 │   ├── start.py       # start(), back_to_main(), change_therapist()
 │   ├── schedule.py    # Booking flow: therapist → week → days → hours → intake
@@ -178,8 +180,8 @@ Any message / /start → SELECTING (main menu)
 ```
 
 ## Two-bot relay architecture
-- **Patient bot** (`TELEGRAM_TOKEN`): patient-facing; forwards messages via `Bot(THERAPIST_BOT_TOKEN)`
-- **Therapist bot** (`THERAPIST_BOT_TOKEN`): shared by all therapists; routes replies back via `Bot(TELEGRAM_TOKEN)`
+- **Patient bot** (`TELEGRAM_TOKEN`): patient-facing; forwards messages through `_therapist_channel` (a `TelegramChannel` over the therapist app's client)
+- **Therapist bot** (`THERAPIST_BOT_TOKEN`): shared by all therapists; routes replies back through `_patient_channel` (over the patient app's client)
 - Both bots run concurrently in the same process via `asyncio.run(_run(patient_app, therapist_app))`
 - Routing key: Redis `zenflow:relay:msg:{therapist_id}:{msg_id}` stores `{patient_id, therapist_id}`
 
@@ -187,7 +189,7 @@ Any message / /start → SELECTING (main menu)
 - `tests/conftest.py` pins the environment *before* any project import (`bot/config.py` opens the DB at import time).
 - Every test gets a fresh SQLite file via `ZENFLOW_DB_PATH`; fakeredis is patched into `bot.redis_client`; never touch `data/zenflow.db` or a real Redis.
 - Fixtures: `client`, `authenticated_client` (signs in through the real form), `frozen_clock`, `fake_telegram`, `fake_llm`, `make_therapist/patient/appointment/treatment_notes/completed_session`.
-- `tests/unit` (no I/O), `tests/integration` (ASGI client + SQLite + fakes), `tests/security` (attack scenarios), `tests/e2e`. Markers: `slow`, `integration`, `e2e`, `security`.
+- `tests/unit` (no I/O), `tests/integration` (ASGI client + SQLite + fakes), `tests/security` (attack scenarios), `tests/contract` (adapter conformance), `tests/e2e`. Markers: `slow`, `integration`, `e2e`, `security`, `contract`.
 - `tests/e2e` serves the app on a local port and drives the installed Chrome with Playwright (`ZF_E2E_BROWSER=msedge` for Edge); visual baselines live in `tests/e2e/snapshots/` per platform — after an intended UI change run `ZF_UPDATE_SNAPSHOTS=1 python -m pytest tests/e2e` and look at the images before committing.
 - Known-open API routes are *strict* xfails in `tests/integration/test_smoke_web.py` — delete the entry when you fix the route.
 
@@ -207,7 +209,8 @@ Any message / /start → SELECTING (main menu)
 - Logging (ADR-18): `logging.getLogger(__name__)` as usual — `zenflow/logging.py` configures the root once per process. Bind context with `zlog.bind(...)` / `with zlog.log_context(appointment_id=..)`; time calls with `zlog.timed(...)`. Never `print()` in services; never log tokens (they are redacted anyway).
 - Authz (ADR-17): every `/api` router is included in `web/app.py` with `dependencies=_API_AUTH`; any endpoint that touches an appointment resolves it via `resolve_owned_appointment` (404) or `require_appointment_access` (403) from `web/deps.py` — never by patient/date/time alone. Repository reads take a `therapist_id` filter.
 - `availability.py` may import `appointments.py` — not the other way around (circular import risk).
-- Relay Bot clients: never build `Bot(token=...)` in a module. `bot.main.wire_bots()` hands the relay the running applications' own clients (BOT_AUDIT B14).
+- Relay Bot clients: never build `Bot(token=...)` in a module. `bot.main.wire_bots()` hands the relay channels over the running applications' own clients (BOT_AUDIT B14).
+- Messaging (ADR-27): anything the system sends goes through `bot.interfaces` — `get_channel("telegram")` / `get_default_channel()` for patients, `get_staff_channel()` for therapists — never httpx to api.telegram.org (only `telegram_channel.py` may name it). Handle `ChannelError` (`permanent`, `retry_after`). A new channel implements `ChannelAdapter` and passes `tests/contract/channel_conformance.py`. Tests: `fake_telegram` is an offline Bot API (`api_calls`, `fail_next(...)`, `down`).
 - Booking: write the appointment row first (`save_appointment` raises `SlotTaken`), then touch the calendar (BOT_AUDIT B4).
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
 - Treatment page: no `<style>` or inline `<script>` in `templates/treatment*` (only the `#treatment-config` JSON island) — tests read the page through `tests/integration/treatment_source.py`.
@@ -237,6 +240,7 @@ Any message / /start → SELECTING (main menu)
 | `CLINIC_TZ` | `Asia/Jerusalem` | clinic zone for `today()`; stored instants are always UTC |
 | `ZF_*` | see `.env.example` | Typed feature flags (`zenflow/settings.py`); `GET /api/admin/flags` shows them |
 | `ZF_CONV_TIMEOUT_MINUTES` | `30` | Idle minutes before a patient flow is closed; `0` = never |
+| `TELEGRAM_WEBHOOK_SECRET` | — | Secret Telegram echoes on webhook calls (7.1); empty ⇒ every webhook refused |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |

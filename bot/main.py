@@ -155,9 +155,10 @@ def wire_bots(patient_bot: object, therapist_bot: object) -> None:
     """
     import bot.patient_bot.therapist as patient_side
     import bot.therapist_bot.handlers as therapist_side
+    from bot.interfaces import TelegramChannel
 
-    patient_side._therapist_bot = therapist_bot  # patient → therapist
-    therapist_side._patient_bot = patient_bot  # therapist → patient
+    patient_side._therapist_channel = TelegramChannel(bot=therapist_bot)  # patient → therapist
+    therapist_side._patient_channel = TelegramChannel(bot=patient_bot)  # therapist → patient
     logger.info("Relay wired to the running applications' bot clients")
 
 

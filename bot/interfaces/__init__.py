@@ -1,31 +1,47 @@
 """
 bot/interfaces/
 ────────────────
-Channel-agnostic messaging abstractions.
+Channel-agnostic messaging (plan 7.1).
 
-The clinic currently runs on Telegram (`bot/interfaces/telegram_channel.py`),
-but every code path that *sends* an outbound message — patient confirmations,
-recommendation deliveries, the 24h follow-up prompt — should go through
-`MessagingChannel` defined here, not call the Telegram Bot API directly.
+`ChannelAdapter` (channel.py) is the contract every chat backend implements: outbound text,
+buttons, media, edits and typing, plus inbound webhook parsing and verification. Telegram is
+`TelegramChannel`, the only module that talks to the Telegram Bot API. Every adapter must pass
+the conformance suite in `tests/contract/channel_conformance.py`.
 
-This makes adding a WhatsApp (or SMS, web push, …) backend a matter of:
-  1. Subclass `MessagingChannel`.
-  2. Register it in `get_default_channel()` based on an env flag.
-  3. No other code changes.
+Adding a channel (WhatsApp, 7.4):
+  1. Implement `ChannelAdapter` and make the conformance suite green for it.
+  2. Return it from `get_channel()` behind its feature flag.
 
-The patient `ConversationHandler` itself stays Telegram-specific because
-python-telegram-bot owns its event loop. To swap chat platforms entirely you
-also need a parallel `whatsapp_bot/` driver — but the OUTBOUND helpers
-(notifications, recommendations, follow-ups) work without that change.
+The Telegram conversation handlers (`bot/patient_bot`, `bot/therapist_bot`) stay Telegram's own
+driver: python-telegram-bot owns their event loop and their in-conversation replies. Everything
+the system initiates — confirmations, recommendations, follow-ups, relay deliveries, web
+replies — goes through an adapter.
 """
 
-from .channel import MessagingChannel, OutboundMessage
-from .factory import get_default_channel
+from .channel import (
+    ChannelAdapter,
+    ChannelError,
+    InboundMedia,
+    InboundMessage,
+    MessagingChannel,
+    OutboundMedia,
+    OutboundMessage,
+    SentMessage,
+)
+from .factory import get_channel, get_default_channel, get_staff_channel
 from .telegram_channel import TelegramChannel
 
 __all__ = [
+    "ChannelAdapter",
+    "ChannelError",
+    "InboundMedia",
+    "InboundMessage",
     "MessagingChannel",
+    "OutboundMedia",
     "OutboundMessage",
+    "SentMessage",
     "TelegramChannel",
+    "get_channel",
     "get_default_channel",
+    "get_staff_channel",
 ]

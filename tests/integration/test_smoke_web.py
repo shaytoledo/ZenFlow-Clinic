@@ -127,10 +127,10 @@ def test_frozen_clock_pins_now(frozen_clock) -> None:
 
 
 async def test_fake_telegram_records_outbound_messages(fake_telegram) -> None:
-    from web.services.telegram_service import send_to_patient
+    from bot.interfaces import get_channel
 
-    result = await send_to_patient(4242, "hello *patient*")
-    assert result["ok"] is True
+    sent = await get_channel("telegram").send_text(4242, "hello *patient*", markdown=True)
+    assert sent.message_id and sent.recipient_id == "4242"
     assert fake_telegram.calls == [
         {"bot": "patient", "chat_id": 4242, "text": "hello *patient*", "parse_mode": "Markdown"}
     ]

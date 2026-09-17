@@ -324,9 +324,10 @@ if active therapists > 1:
 Triggered by: patient sends first message in THERAPIST_INPUT state
 
 therapist = THERAPIST_BY_ID[selected_therapist]
-fwd_msg = await Bot(THERAPIST_BOT_TOKEN).send_message(
-    chat_id=therapist["telegram_id"],
-    text=f"[{patient_name}]: {patient_message}"
+# _therapist_channel: a TelegramChannel over the therapist application's client (7.1)
+fwd_msg = await _therapist_channel.send_text(
+    therapist["telegram_id"],
+    f"[{patient_name}]: {patient_message}",
 )
 save_relay_mapping(fwd_msg.message_id, patient_id, therapist_id)
     → Redis SET zenflow:relay:msg:{therapist_id}:{fwd_msg.id} = {patient_id, therapist_id}  TTL 24h
@@ -341,7 +342,7 @@ send to patient: "✅ Message sent. [End Chat]"
 ```
 Triggered by: any text message in THERAPIST_RELAY state
 
-fwd_msg = await Bot(THERAPIST_BOT_TOKEN).send_message(therapist, text)
+fwd_msg = await _therapist_channel.send_text(therapist["telegram_id"], text)
 save_relay_mapping(fwd_msg.message_id, patient_id, therapist_id)
     → refreshes Redis key
 
@@ -382,7 +383,7 @@ handle_therapist_message() in therapist_bot/handlers.py:
          → Redis GET zenflow:relay:msg:{therapist_id}:{reply_msg_id}
          → returns {patient_id, therapist_id}
        → security check: replying therapist must match stored therapist_id
-       → Bot(TELEGRAM_TOKEN).send_message(patient_id, f"Therapist: {text}")
+       → _patient_channel.send_buttons(patient_id, f"Therapist: {text}", [End Chat])
    else:
        → get current active patient from zenflow:relay:active:*
        → route to that patient if active session exists

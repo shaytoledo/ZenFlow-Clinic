@@ -18,8 +18,9 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
+from bot.interfaces import get_channel
 from web.deps import require_active_therapist, require_appointment_access
-from web.services import telegram_service, treatment_service
+from web.services import treatment_service
 from zenflow import clock, leases
 
 router = APIRouter(prefix="/api/treatment-notes")
@@ -681,8 +682,8 @@ async def send_recommendations(
             "appointment_id": apt_id,
         }
         try:
-            sent = await telegram_service.send_to_patient(
-                patient_id, _format_recommendations_for_telegram(enabled)
+            sent = await get_channel("telegram").send_text(
+                patient_id, _format_recommendations_for_telegram(enabled), markdown=True
             )
         except Exception as e:
             logger.error(f"send_recommendations(telegram) error: {e}")

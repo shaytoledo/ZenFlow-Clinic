@@ -108,14 +108,10 @@ async def test_the_followup_step1_is_logged_too(telegram_session, fake_telegram)
 
 
 async def test_a_failed_telegram_delivery_is_logged_per_attempt(
-    telegram_session, monkeypatch
+    telegram_session, fake_telegram
 ) -> None:
-    import web.services.telegram_service as ts
-
-    async def _down(*_a: Any, **_k: Any) -> dict[str, Any]:
-        raise RuntimeError("Forbidden: bot was blocked by the user")
-
-    monkeypatch.setattr(ts, "_send", _down)
+    # every attempt of both jobs fails
+    fake_telegram.fail_next("Forbidden: bot was blocked by the user", status=403, times=10)
     client, apt, _tid = telegram_session
     with freeze_time(FROZEN, ignore=["itsdangerous"]) as frozen:
         await _complete(client, apt)

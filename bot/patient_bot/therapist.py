@@ -1,9 +1,10 @@
 import logging
 
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bot.config import THERAPIST_BY_ID, THERAPISTS
+from bot.interfaces import TelegramChannel
 from bot.patient_bot.services.relay import append_history, end_relay, save_relay_mapping
 from bot.states import SELECTING, THERAPIST_INPUT, THERAPIST_RELAY, THERAPIST_SELECT
 from bot.utils import get_main_keyboard
@@ -14,10 +15,10 @@ _END_KB = InlineKeyboardMarkup(
     [[InlineKeyboardButton("🔚 End Chat", callback_data="therapist_end")]]
 )
 
-# The therapist application's own Bot client, set by `bot.main.wire_bots()` at startup.
-# Built nowhere at import time: an unmanaged `Bot(token=...)` is never initialised or shut down
-# and bypasses the application's rate limiter (BOT_AUDIT B14).
-_therapist_bot: Bot | None = None
+# Forwards to therapists: a channel over the therapist application's own client, set by
+# `bot.main.wire_bots()` at startup. Never a module-level `Bot(token=...)`: an unmanaged client
+# is never initialised or shut down (BOT_AUDIT B14, plan 7.1).
+_therapist_channel: TelegramChannel | None = None
 
 
 def _get_therapist(context) -> dict | None:
@@ -115,7 +116,7 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             reply_markup=get_main_keyboard(),
         )
         return SELECTING
-    if not _therapist_bot:
+    if not _therapist_channel:
         logger.error("Therapist bot not configured")
         await update.message.reply_text(
             "Sorry, the therapist connection is not configured yet.",
@@ -127,9 +128,9 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     try:
         # Plain text: a patient name or message containing _ * ` [ made Telegram reject the
         # whole message when it was parsed as Markdown (BOT_AUDIT B2).
-        sent = await _therapist_bot.send_message(
-            chat_id=therapist["telegram_id"],
-            text=f"💬 New message from {patient_name} (ID: {user.id})\n\n{update.message.text}",
+        sent = await _therapist_channel.send_text(
+            therapist["telegram_id"],
+            f"💬 New message from {patient_name} (ID: {user.id})\n\n{update.message.text}",
         )
     except Exception as e:
         logger.error(f"[{user.id}] failed to forward to therapist bot: {e}")
@@ -141,7 +142,9 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     # The therapist has the message. A Redis failure past this point costs the reply routing, not
     # the delivery, so the patient must not be told it failed (BOT_AUDIT B9).
-    _record_relay(user.id, sent.message_id, therapist["id"], patient_name, update.message.text)
+    _record_relay(
+        user.id, int(sent.message_id or 0), therapist["id"], patient_name, update.message.text
+    )
     logger.info(
         f"[{user.id}] relay opened via therapist bot, msg_id={sent.message_id}, therapist={therapist['id']}"
     )
@@ -161,15 +164,14 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user = update.effective_user
     therapist = _get_therapist(context)
 
-    if not _therapist_bot or not therapist:
+    if not _therapist_channel or not therapist:
         await update.message.reply_text("⚠️ Therapist not available.", reply_markup=_END_KB)
         return THERAPIST_RELAY
 
     patient_name = user.full_name or user.first_name or ""
     try:
-        sent = await _therapist_bot.send_message(
-            chat_id=therapist["telegram_id"],
-            text=f"💬 {patient_name}:\n{update.message.text}",
+        sent = await _therapist_channel.send_text(
+            therapist["telegram_id"], f"💬 {patient_name}:\n{update.message.text}"
         )
     except Exception as e:
         logger.error(f"[{user.id}] relay failed: {e}")
@@ -178,7 +180,9 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return THERAPIST_RELAY
 
-    _record_relay(user.id, sent.message_id, therapist["id"], patient_name, update.message.text)
+    _record_relay(
+        user.id, int(sent.message_id or 0), therapist["id"], patient_name, update.message.text
+    )
     logger.info(f"[{user.id}] relayed via therapist bot, msg_id={sent.message_id}")
     await update.message.reply_text("✅ Sent.", reply_markup=_END_KB)
     return THERAPIST_RELAY

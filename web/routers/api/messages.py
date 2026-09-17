@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from bot.interfaces import get_channel
 from web.deps import require_active_therapist
 from web.services import telegram_service
 
@@ -119,10 +120,8 @@ async def send_message(body: SendMessageIn, request: Request):
     therapist_name = (therapist or {}).get("name", "Therapist")
     try:
         # Plain text, like the bot relay: a reply containing _ or * must not fail to send (B2).
-        await telegram_service.send_to_patient(
-            body.patient_id,
-            f"👨‍⚕️ {therapist_name}:\n{body.text}",
-            parse_mode=None,
+        await get_channel("telegram").send_text(
+            body.patient_id, f"👨‍⚕️ {therapist_name}:\n{body.text}"
         )
     except Exception as e:
         logger.error(f"send_message → patient delivery failed: {e}")
@@ -139,7 +138,6 @@ async def send_message(body: SendMessageIn, request: Request):
         therapist_telegram_id=therapist_tg_id,
         text=f"💬 Sent via web:\n{body.text}",
         reply_to_msg_id=last_msg_id,
-        parse_mode=None,
     )
 
     return JSONResponse({"ok": True})

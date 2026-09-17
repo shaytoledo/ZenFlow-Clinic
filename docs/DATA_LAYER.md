@@ -326,14 +326,14 @@ Shows exactly what gets written where at each step:
    └─ WRITES: zenflow:relay:active:{pid}  (no TTL — must be explicitly deleted)
 
 2. Patient sends message
-   └─ Bot(THERAPIST_BOT_TOKEN).forward_message() → msg_id
+   └─ _therapist_channel.send_text(therapist) → msg_id   (TelegramChannel, docs/CHANNELS.md)
    └─ WRITES: zenflow:relay:msg:{therapist_id}:{msg_id}      (24h TTL)
               zenflow:relay:history:{therapist_id}:{pid}      (24h TTL, append)
 
 3. Therapist replies-to forwarded message
    └─ READS:  zenflow:relay:msg:{therapist_id}:{msg_id}  → {patient_id, therapist_id}
               (security check: reply therapist_id must match stored therapist_id)
-   └─ Bot(TELEGRAM_TOKEN).send_message(patient_id, ...)
+   └─ _patient_channel.send_buttons(patient_id, ...)
    └─ WRITES: zenflow:relay:history:{therapist_id}:{pid}  (append)
 
 4. Either side ends chat

@@ -294,40 +294,28 @@ def _generate_reg_code() -> str:
 
 async def _get_therapist_bot_username() -> str:
     global _therapist_bot_username
-    if _therapist_bot_username:
-        return _therapist_bot_username
-    try:
-        import httpx
-
+    if not _therapist_bot_username:
         from bot.config import THERAPIST_BOT_TOKEN
 
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"https://api.telegram.org/bot{THERAPIST_BOT_TOKEN}/getMe")
-            data = resp.json()
-            if data.get("ok"):
-                _therapist_bot_username = data["result"]["username"]
-    except Exception:
-        pass
+        _therapist_bot_username = await _bot_username(THERAPIST_BOT_TOKEN)
     return _therapist_bot_username
 
 
 async def _get_patient_bot_username() -> str:
     global _patient_bot_username
-    if _patient_bot_username:
-        return _patient_bot_username
-    try:
-        import httpx
-
+    if not _patient_bot_username:
         from bot.config import TELEGRAM_TOKEN
 
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getMe")
-            data = resp.json()
-            if data.get("ok"):
-                _patient_bot_username = data["result"]["username"]
-    except Exception:
-        pass
+        _patient_bot_username = await _bot_username(TELEGRAM_TOKEN)
     return _patient_bot_username
+
+
+async def _bot_username(token: str) -> str:
+    """The bot's @username through the channel adapter; "" when it cannot be learned."""
+    from web.services.telegram_service import get_bot_info
+
+    info = await get_bot_info(token)
+    return str((info or {}).get("username") or "")
 
 
 def _make_reg_flow():

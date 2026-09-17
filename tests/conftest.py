@@ -10,7 +10,7 @@ fake_redis            fakeredis sync + async clients patched into bot.redis_clie
 client                httpx.AsyncClient over ASGITransport against web.app:app
 authenticated_client  same, signed in through the real /register/signin form
 frozen_clock          freezegun at 2026-03-01T12:00:00 (tick() to advance)
-fake_telegram         records every outbound Telegram sendMessage instead of calling the API
+fake_telegram         an offline Telegram Bot API (tests/telegram_fake.py): records sends, scripts failures
 fake_llm              canned question / diagnosis / points answers instead of Ollama
 make_therapist / make_patient / make_appointment / make_treatment_notes / make_completed_session
 """
@@ -50,6 +50,7 @@ import pytest  # noqa: E402
 from freezegun import freeze_time  # noqa: E402
 
 import bot.db as dbmod  # noqa: E402  (imports bot.db only — bot.config is imported lazily below)
+from tests.telegram_fake import FakeBotApi  # noqa: E402
 
 _REAL_DB = (Path(dbmod.__file__).resolve().parent.parent / "data" / "zenflow.db").resolve()
 
@@ -189,62 +190,58 @@ def frozen_clock() -> Iterator[Any]:
 
 
 # ── 6. Telegram ──────────────────────────────────────────────────────────────────────────────
-class FakeTelegram:
-    """Records outbound sendMessage calls made through web.services.telegram_service."""
+class FakeTelegram(FakeBotApi):
+    """The offline Bot API (tests/telegram_fake.py) with the two bots' tokens labelled.
+
+    `calls` lists the delivered sendMessage calls in the shape older tests compare against;
+    `api_calls` has every call (any method, failed ones too). `fail_next(...)` scripts errors.
+    """
 
     def __init__(self) -> None:
-        self.calls: list[dict[str, Any]] = []
-        self._next_id = 100
+        super().__init__(
+            {
+                os.environ["TELEGRAM_TOKEN"]: "patient",
+                os.environ["THERAPIST_BOT_TOKEN"]: "therapist",
+            }
+        )
 
-    def _label(self, token: str) -> str:
-        if token == os.environ["TELEGRAM_TOKEN"]:
-            return "patient"
-        if token == os.environ["THERAPIST_BOT_TOKEN"]:
-            return "therapist"
-        return "unknown"
-
-    async def send(
-        self,
-        token: str,
-        chat_id: int,
-        text: str,
-        parse_mode: str,
-        reply_markup: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        call: dict[str, Any] = {
-            "bot": self._label(token),
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": parse_mode,
-        }
-        if reply_markup is not None:  # inline buttons (Phase 6.2)
-            call["reply_markup"] = reply_markup
-        self.calls.append(call)
-        self._next_id += 1
-        return {"ok": True, "result": {"message_id": self._next_id, "chat": {"id": chat_id}}}
+    @property
+    def calls(self) -> list[dict[str, Any]]:
+        out = []
+        for c in self.of("sendMessage"):
+            if not c.ok:
+                continue
+            call: dict[str, Any] = {
+                "bot": c.bot,
+                "chat_id": c.params["chat_id"],
+                "text": c.params["text"],
+                "parse_mode": c.params.get("parse_mode"),
+            }
+            if "reply_markup" in c.params:  # inline buttons (Phase 6.2)
+                call["reply_markup"] = c.params["reply_markup"]
+            out.append(call)
+        return out
 
 
 @pytest.fixture(autouse=True)
 def block_real_telegram(monkeypatch: pytest.MonkeyPatch) -> None:
-    """No test may reach api.telegram.org. Request `fake_telegram` to record sends instead."""
-    import web.services.telegram_service as ts
+    """No test may reach api.telegram.org. Request `fake_telegram` to answer offline instead."""
+    import bot.interfaces.telegram_channel as tc
 
-    async def _blocked(
-        token: str, chat_id: int, text: str, parse_mode: str, reply_markup: Any = None
-    ) -> dict[str, Any]:
+    def _refuse(request: httpx.Request) -> httpx.Response:
         raise RuntimeError(
-            "real Telegram send attempted in a test — use the `fake_telegram` fixture"
+            "real Telegram call attempted in a test — use the `fake_telegram` fixture"
         )
 
-    monkeypatch.setattr(ts, "_send", _blocked)
+    monkeypatch.setattr(tc, "_transport", httpx.MockTransport(_refuse))
 
 
 @pytest.fixture
 def fake_telegram(monkeypatch: pytest.MonkeyPatch) -> FakeTelegram:
-    import web.services.telegram_service as ts
+    import bot.interfaces.telegram_channel as tc
 
     fake = FakeTelegram()
-    monkeypatch.setattr(ts, "_send", fake.send)
+    monkeypatch.setattr(tc, "_transport", fake.transport())
     return fake
 
 
