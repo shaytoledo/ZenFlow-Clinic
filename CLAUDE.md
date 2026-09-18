@@ -31,6 +31,7 @@ python -m zenflow.rotate_token_key --dry-run
 # Booking API (Phase 7.3)
 python -m zenflow.api_keys create <name>    # a machine client's key, printed once
 python -m zenflow.export_openapi            # re-publish docs/api/booking-v1.openapi.json
+python -m zenflow.export_routes             # re-publish the route authorization table (9.1)
 ```
 
 > Work follows `docs/MASTER_PLAN_EN.md`; the living checklist is `docs/PROGRESS.md`.
@@ -73,6 +74,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/AI_CALLS.md` | Phase 8.2: the AI meter — `ai_calls`, `ask()`, cost/latency/failure rate, prompt hashing |
 | `docs/MESSAGE_LOG.md` | Phase 8.3: `message_log` — every message to and from a patient, both directions |
 | `docs/METRICS.md` | Phase 8.4: `/healthz`, `/readyz`, `/api/admin/metrics`, Prometheus and tracing flags |
+| `docs/AUTHZ.md` | Phase 9.1: every route, its auth level, its object-level check and the test that proves it |
 
 > Start guide: `startup/START.md`
 
@@ -224,7 +226,7 @@ Any message / /start → SELECTING (main menu)
 - Background work (ADR-20): never `asyncio.ensure_future(...)` fire-and-forget for anything that must happen — `get_default_queue().enqueue(name, payload, run_at=..., idempotency_key=...)` and register the handler with `@default_registry.handler(name)` in `zenflow/worker.py` consumers.
 - Time (ADR-19): use `zenflow.clock` — `iso_now()`, `hours_ahead(n)`, `today()` (clinic-local), `SQL_NOW` in SQL. Never `datetime.now()` / `date.today()` / `datetime('now')`; ruff `DTZ` fails the build. Stored instants are `YYYY-MM-DDTHH:MM:SSZ`.
 - Logging (ADR-18): `logging.getLogger(__name__)` as usual — `zenflow/logging.py` configures the root once per process. Bind context with `zlog.bind(...)` / `with zlog.log_context(appointment_id=..)`; time calls with `zlog.timed(...)`. Never `print()` in services; never log tokens (they are redacted anyway).
-- Authz (ADR-17): every `/api` router is included in `web/app.py` with `dependencies=_API_AUTH`; any endpoint that touches an appointment resolves it via `resolve_owned_appointment` (404) or `require_appointment_access` (403) from `web/deps.py` — never by patient/date/time alone. Repository reads take a `therapist_id` filter.
+- Authz (ADR-17, 9.1): a new route must be added to `ROUTES` in `web/authz.py` with its auth level, object-level scope and the test that proves the scope, then `python -m zenflow.export_routes` — `tests/security/test_route_inventory.py` fails otherwise. Every `/api` router is included in `web/app.py` with `dependencies=_API_AUTH`; any endpoint that touches an appointment resolves it via `resolve_owned_appointment` (404) or `require_appointment_access` (403) from `web/deps.py` — never by patient/date/time alone. Repository reads take a `therapist_id` filter.
 - `availability.py` may import `appointments.py` — not the other way around (circular import risk).
 - Relay Bot clients: never build `Bot(token=...)` in a module. `bot.main.wire_bots()` hands the relay channels over the running applications' own clients (BOT_AUDIT B14).
 - Messaging (ADR-27): anything the system sends goes through `bot.interfaces` — `get_channel("telegram")` / `get_default_channel()` for patients, `get_staff_channel()` for therapists — never httpx to api.telegram.org (only `telegram_channel.py` may name it). Handle `ChannelError` (`permanent`, `retry_after`). A new channel implements `ChannelAdapter` and passes `tests/contract/channel_conformance.py`. Tests: `fake_telegram` is an offline Bot API (`api_calls`, `fail_next(...)`, `down`).

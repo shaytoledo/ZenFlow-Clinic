@@ -73,7 +73,14 @@ def _with_param(path: str, name: str, value: str) -> str:
 
 @router.get("/auth/login")
 async def auth_login(request: Request, next: str = ""):  # noqa: A002 - the query parameter's name
-    """Start Google consent. `?next=/treatment/…` comes back to that page afterwards."""
+    """Start Google consent. `?next=/treatment/…` comes back to that page afterwards.
+
+    A session is required (SF-015, plan 9.1): the callback binds the token to whoever is signed in,
+    and this route writes to the session, so a stranger must not be able to start it.
+    """
+    _therapist, redirect = _active_therapist_or_redirect(request)
+    if redirect:
+        return RedirectResponse(redirect, status_code=303)
     if not GOOGLE_CLIENT_ID:
         return HTMLResponse(
             "<h2>GOOGLE_CLIENT_ID not set in .env — see START.md for setup.</h2>",

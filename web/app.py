@@ -52,7 +52,20 @@ _ROOT = Path(__file__).resolve().parent.parent
 zlog.configure_logging("web", file_path=_ROOT / "logs" / "webLogs.text", file_mode="a")
 _access_log = logging.getLogger("web.access")
 
-app = FastAPI(title="ZenFlow Therapist")
+
+def docs_urls(is_dev: bool) -> dict[str, str | None]:
+    """FastAPI's own documentation, in development only (SF-014, plan 9.1).
+
+    `/docs`, `/redoc` and `/openapi.json` are unauthenticated by design and hand a stranger the
+    complete route map of a system holding medical records. They are worth having on a developer's
+    machine and worth nothing on a server, so outside dev the routes do not exist at all.
+    """
+    if not is_dev:
+        return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+
+
+app = FastAPI(title="ZenFlow Therapist", **docs_urls(get_settings().is_dev))  # type: ignore[arg-type]
 
 _REQUEST_ID_MAX = 64
 
