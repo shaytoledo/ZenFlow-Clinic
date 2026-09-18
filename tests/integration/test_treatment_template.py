@@ -103,7 +103,15 @@ def _page_css() -> str:
 #: pl-* (point lightbox, 4.3d), ed-* (email dialog, 5.3) and fu-* (follow-up card, 6.5)
 CLASS_NAME = r"(?:tp|pc|ps|pl|ed|fu)-[a-z0-9-]+"
 #: class names finished at render time from a known list (see the checks below)
-COMPUTED_PREFIXES = {"tp-tone-", "tp-ch-", "fu-state-", "fu-tone-", "fu-msg-", "fu-status-"}
+COMPUTED_PREFIXES = {
+    "tp-tone-",
+    "tp-ch-",
+    "fu-state-",
+    "fu-tone-",
+    "fu-msg-",
+    "fu-status-",
+    "fu-dir-",
+}
 
 
 def _defined_classes() -> set[str]:
@@ -165,6 +173,8 @@ def test_every_computed_class_is_defined_in_the_stylesheet() -> None:
         "fu-state-no-channel",
     ]
     assert "fu-msg-patient" in _defined_classes()
+    # 8.3: a received message reads differently; "out" is the default and needs no rule
+    assert "fu-dir-in" in _defined_classes()
 
 
 def test_the_scripts_start_the_page_last() -> None:

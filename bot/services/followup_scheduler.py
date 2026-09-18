@@ -149,14 +149,23 @@ async def _send_template(channel: Any, contact: Any, appt: dict, name: str, lang
 
 
 def _open_checkin(channel: str, sender_id: int | str) -> dict | None:
-    """The open check-in of the patient behind a channel identity, if any."""
+    """The open check-in of the patient behind a channel identity, if any.
+
+    The row remembers where the check-in was *sent*; `_arrived_on` is where this answer came from,
+    which is what the message log should say (8.3). It is not a column and is never written back.
+    """
     from web.repositories import followup_repo, patient_repo
 
     try:
         patient_id = patient_repo.find_by_channel(channel, sender_id)
     except ValueError:  # not a valid channel identity
         return None
-    return None if patient_id is None else followup_repo.open_for_patient(patient_id)
+    if patient_id is None:
+        return None
+    row = followup_repo.open_for_patient(patient_id)
+    if row is not None:
+        row["_arrived_on"] = channel
+    return row
 
 
 # ── Sender ────────────────────────────────────────────────────────────────────
@@ -625,11 +634,25 @@ def _chosen(state: dict) -> list[str]:
 
 
 def _audit_answer(state: dict, answers: dict) -> None:
-    """The patient answered a check-in question (8.1) — recorded in their own name."""
+    """The patient answered a check-in question (8.1) — recorded in their own name, and counted as
+    a message the clinic received (8.3)."""
+    from web.repositories import message_log_repo
     from web.services import audit
 
     with audit.acting_as("patient", state.get("patient_id", "")):
         audit.record("followup.answered", "followup", int(state["appointment_id"]), after=answers)
+    try:
+        message_log_repo.record(
+            channel=str(state.get("_arrived_on") or state.get("channel") or "telegram"),
+            kind="followup",
+            status="sent",  # a message that arrived, arrived
+            direction="in",
+            therapist_id=str(state.get("therapist_id") or ""),
+            patient_id=int(state["patient_id"]) if state.get("patient_id") else None,
+            appointment_id=int(state["appointment_id"]),
+        )
+    except Exception as e:
+        logger.warning(f"check-in answer not logged: {e}")
 
 
 async def _take_answer(state: dict, step: int, value: Any, shown: str, lang: str) -> Any:

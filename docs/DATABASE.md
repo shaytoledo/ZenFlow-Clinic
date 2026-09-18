@@ -180,14 +180,16 @@ canonical UTC. CHECK constraints guard `status`, `pain_level` (0–10), `improve
 
 ### Table: `message_log` (plan 8.3, started in Phase 6.6)
 
-One append-only row per outbound patient message attempt: `ts`, `direction`, `channel`
-(`telegram` / `whatsapp` / `email`), `patient_id`, `therapist_id`, `appointment_id`, `kind`
-(`recommendations` / `followup`), `status` (`sent` / `failed`), `provider_message_id`, and
-`error` (redacted, at most 300 characters).
+One append-only row per message between the clinic and a patient: `ts`, `direction`
+(`out` — the clinic sent it; `in` — the patient did), `channel` (`telegram` / `whatsapp` /
+`email`), `patient_id`, `therapist_id`, `appointment_id`, `kind` (`confirmation` /
+`recommendations` / `followup` / `relay`), `status` (`sent` / `failed`), `provider_message_id`,
+and `error` (redacted, at most 300 characters).
 
-- CHECK constraints guard the enumerations; the index is `(appointment_id, ts)`.
-- The recipient address is not stored.
-- Repository: `web/repositories/message_log_repo.py`. Details: `docs/FOLLOWUP.md` §6.
+- CHECK constraints guard the enumerations; the index is `(appointment_id, ts)`. Widening one
+  rebuilds the table once (`0002_message_log_kinds`, `0003_message_log_relay`).
+- Neither the message text nor the recipient address is stored.
+- Repository: `web/repositories/message_log_repo.py`. Details: `docs/MESSAGE_LOG.md`.
 
 ### Table: `bot_persistence` (Phase 2.3)
 

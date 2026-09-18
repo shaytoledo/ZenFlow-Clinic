@@ -89,7 +89,7 @@
 .fu-who { color: var(--zf-text-muted); font-size: var(--zf-text-2xs); font-weight: var(--zf-weight-bold); }
 .fu-text { margin: 2px 0 0; color: var(--zf-text); font-size: var(--zf-text-sm); white-space: pre-wrap; }
 
-/* The session's "Messages sent" list (Phase 6.6) — templates/partials/delivery_log.html */
+/* The session's messages, sent and received (6.6, 8.3) — templates/partials/delivery_log.html */
 .fu-log { display: grid; gap: var(--zf-space-1); margin: 0; padding: 0; list-style: none; }
 .fu-log-item {
   display: flex;
@@ -105,4 +105,7 @@
 .fu-log-status { margin-inline-start: auto; font-weight: var(--zf-weight-semibold); }
 .fu-status-sent .fu-log-status { color: var(--zf-accent-text); }
 .fu-status-failed .fu-log-status { color: var(--zf-danger-text); }
+/* What the patient sent back reads as the quieter half of the conversation. */
+.fu-dir-in .fu-log-status { color: var(--zf-text-muted); font-weight: var(--zf-weight-medium); }
+.fu-dir-in .fu-log-what { color: var(--zf-text-muted); }
 .fu-log-error { flex-basis: 100%; color: var(--zf-danger-text); font-size: var(--zf-text-xs); }

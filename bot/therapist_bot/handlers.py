@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import threading
+from typing import Any
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -166,16 +167,40 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
     try:
         # Plain text: patient and therapist wording is user data, and Markdown parsing made
         # Telegram reject any message containing an underscore or asterisk (BOT_AUDIT B2).
-        await _patient_channel.send_buttons(
+        sent = await _patient_channel.send_buttons(
             patient_id, f"👨‍⚕️ {therapist_name}:\n{msg.text}", _END_BUTTONS
         )
+        _log_relay(patient_id, therapist_id, "sent", provider_message_id=sent.message_id)
         append_history(patient_id, "therapist", msg.text, therapist_id)
         delivered_msg = "✅ Delivered." if lang == "en" else "✅ נמסר למטופל."
         await msg.reply_text(delivered_msg)
         logger.info(f"Therapist reply delivered to patient {patient_id}")
     except Exception as e:
         logger.error(f"Could not deliver therapist reply to patient {patient_id}: {e}")
+        _log_relay(patient_id, therapist_id, "failed", error=str(e))
         await msg.reply_text(f"⚠️ Could not deliver to patient {patient_id}.")
+
+
+def _log_relay(
+    telegram_id: int,
+    therapist_id: str,
+    status: str,
+    *,
+    provider_message_id: Any = None,
+    error: str | None = None,
+) -> None:
+    """The therapist answered their patient (plan 8.3) — who, when and whether it arrived."""
+    from web.repositories import message_log_repo
+
+    message_log_repo.record_relay(
+        direction="out",
+        channel="telegram",
+        external_id=telegram_id,
+        therapist_id=therapist_id,
+        status=status,
+        provider_message_id=provider_message_id,
+        error=error,
+    )
 
 
 async def _handle_registration(msg, user_id: int, code: str) -> None:

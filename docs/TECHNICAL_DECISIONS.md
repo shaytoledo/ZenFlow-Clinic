@@ -1126,3 +1126,54 @@ retention story.
 - A failed generation leaves evidence (`status`, `error`, `duration_ms`) even though the caller
   degraded gracefully and the patient saw a fallback question.
 - Adding a model call means adding a stage name; the conformance test makes that the only way.
+
+---
+
+## ADR-33: The Message Log Is Metadata in Both Directions, and Records What the System Acted On
+
+**Status:** Accepted (Phase 8.3, 2026-09-18)
+
+**Context.** `message_log` was created in 6.6 for outbound deliveries and widened in 7.3 for
+booking confirmations, but its `direction` column only ever held `out`, and the busiest
+conversation in the product — the patient/therapist relay — left no trace at all. "Did the patient
+ever get an answer?" could only be answered from Redis keys that expire, and a relay failure was
+visible only in a log file.
+
+**Decision.**
+
+1. **Both directions, one table.** `direction='out'` is what the clinic sent; `direction='in'` is
+   what the patient sent. A received message is recorded with `status='sent'` — it arrived, by
+   definition — so the status column keeps one meaning: did this message reach the other side.
+2. **Inbound means what the system acted on**: a relay message and a check-in answer. Intake
+   answers are not logged — they belong to the intake record, and the clinic is not delivering
+   anything. Nor are the check-in's own follow-up questions: the check-in is one delivery.
+3. **Metadata only, never the text.** The relay history (Redis) and the check-in transcript hold
+   what was said. A test asserts that a distinctive sentence never appears in the row.
+4. **The relay's call sites pass a channel identity**, not a patient id, because that is what a bot
+   has. `record_relay()` resolves it through `patient_channels` (ADR-28) and writes `patient_id`
+   null for somebody who never booked, rather than dropping the row.
+5. **Logging is best effort, after the send.** `record_relay()` swallows its own errors: a
+   therapist holding the message must never be told the delivery failed because a row was not
+   written. Every entry point to a reply — the therapist bot, the dashboard's messages page — logs
+   the same way, so the trail does not depend on which door was used.
+6. **The therapist's card collapses runs.** A four-question check-in is one line with a count, not
+   four lines, because the card answers "did we hear back?" rather than "list every packet".
+
+**Options rejected:**
+
+- **Storing the message text.** It would duplicate clinical conversation into a table with a
+  different retention story and a different audience, for no operational gain.
+- **A separate `relay_log` table.** The questions are the same questions ("what did this patient
+  receive, and when?"), and two tables would have to be merged in every answer.
+- **Logging every inbound Telegram update.** Most are conversation steps that already have a
+  home; the log would grow without making anything more answerable.
+- **Making the log part of the send transaction.** A failed insert would then cost a message, or
+  cause a retry and a duplicate — the opposite of what a delivery log is for.
+
+**Consequences.**
+
+- `kind` gained `relay`, which SQLite cannot add to a CHECK in place: `widen_kinds()` now takes a
+  migration name and rebuilds once (`0003_message_log_relay`), the same shape as `0002`.
+- The delivery card is no longer "Messages sent" but "Messages", and shows both directions.
+- Relay rows have no `appointment_id` (a chat is not a session), so they serve operational
+  queries without appearing on a session's card.

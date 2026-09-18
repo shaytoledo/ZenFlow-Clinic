@@ -201,6 +201,18 @@ else:
 > running applications' own clients (`_therapist_channel`, `_patient_channel`, wired by
 > `bot.main.wire_bots()`); see `docs/CHANNELS.md`.
 
+## What is recorded (Phase 8.3)
+
+Each relayed message leaves one `message_log` row: the patient's message as `direction='in'`, the
+therapist's reply as `direction='out'`, both with `kind='relay'`, the channel, the therapist, the
+patient (resolved from the Telegram id through `patient_channels`), whether it arrived, and the
+forwarded copy's message id. A failed forward is recorded as `failed` with the redacted error.
+
+**Never the message text** — the conversation itself stays in the Redis relay history, and the
+delivery trail is metadata only. Relay rows carry no `appointment_id`, so they do not appear on a
+session's card. Logging is best effort and happens after the send: a therapist who has the message
+must never see "could not deliver" because a log row failed. See `docs/MESSAGE_LOG.md`.
+
 ## Security Model
 
 | Threat | Mitigation |

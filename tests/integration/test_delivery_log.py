@@ -246,7 +246,7 @@ async def test_the_session_pages_list_the_messages(telegram_session) -> None:
             error="<b>boom</b>",
         )
     section = _section((await client.get(page_url)).text)
-    assert "Messages sent" in section
+    assert "Messages" in section
     assert '<time class="fu-log-time">2026-03-02 14:01</time>' in section
     assert "Recommendations · Telegram" in section and "24h check-in · Email" in section
     assert "fu-status-sent" in section and "fu-status-failed" in section
@@ -263,12 +263,15 @@ def test_hebrew_labels() -> None:
         [{"ts": "2026-03-02T12:00:00Z", "kind": "followup", "channel": "email", "status": "sent"}],
         "he",
     )
-    assert view is not None and view["title"] == "הודעות שנשלחו"
+    assert view is not None and view["title"] == "הודעות"
     assert view["items"][0] | {} == {
         "time": "2026-03-02 14:00",
         "what": "מעקב 24 שעות",
         "channel": "אימייל",
+        "direction": "out",
         "status": "sent",
         "status_label": "נשלח",
         "error": "",
+        "count": 1,
+        "repeat": "",
     }
