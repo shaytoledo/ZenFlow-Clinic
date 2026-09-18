@@ -770,6 +770,7 @@ async def summarize_checkin(answers: dict[str, Any], lang: str) -> str:
         from langchain_core.messages import HumanMessage, SystemMessage
 
         from bot.patient_bot.services import ai_intake
+        from web.services import ai_calls
 
         model = ai_intake._LLM
         if model is None:
@@ -780,8 +781,6 @@ async def summarize_checkin(answers: dict[str, Any], lang: str) -> str:
             f"acupuncture, in {language}, for their therapist. Use only the facts below. Do not "
             "add symptoms, scores, diagnoses or advice. At most two lines, under 250 characters."
         )
-        from web.services import ai_calls
-
         response = await ai_calls.ask(
             model,
             [SystemMessage(content=instructions), HumanMessage(content=fallback)],
