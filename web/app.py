@@ -45,6 +45,7 @@ from web.routers.pages import router as pages_router
 from web.routers.patients import router as patients_router
 from web.services import audit
 from zenflow import logging as zlog
+from zenflow import tracing
 from zenflow.settings import get_settings
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -137,6 +138,25 @@ async def healthz() -> JSONResponse:
     return JSONResponse({"ok": True})
 
 
+@app.get("/readyz", include_in_schema=False)
+async def readyz(request: Request) -> JSONResponse:
+    """Readiness (8.4): 200 while the app can serve traffic, 503 when a required dependency is
+    gone — the database or a configuration that loads. Redis, the AI and the bots are reported
+    but never take the app out of rotation: the dashboard answers requests without them.
+
+    A stranger gets `{"ok": …}` and nothing else (F11); a signed-in therapist also gets the
+    checks, because an operator debugging a deployment is exactly who needs the names.
+    """
+    from web.deps import _get_session_therapist
+    from web.services import health
+
+    ready, checks = await health.readiness()
+    body: dict[str, object] = {"ok": ready}
+    if _get_session_therapist(request):
+        body["checks"] = [check.as_dict() for check in checks]
+    return JSONResponse(body, status_code=200 if ready else 503)
+
+
 app.mount(
     "/static",
     StaticFiles(directory=Path(__file__).parent / "static"),
@@ -187,3 +207,8 @@ async def _validation_error(request: Request, exc: RequestValidationError) -> JS
     if request.url.path.startswith("/api/v1/"):
         return error_response(422, "validation_error", jsonable_encoder(exc.errors()))
     return JSONResponse({"detail": jsonable_encoder(exc.errors())}, status_code=422)
+
+
+# Tracing is a flag, not a dependency: with ZF_TRACING=1 and the OpenTelemetry packages installed
+# it instruments this app; without them it logs one warning and the app runs untraced (8.4).
+tracing.setup(app)

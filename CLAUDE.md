@@ -72,6 +72,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/AUDIT.md` | Phase 8.1: the append-only `audit_log` — what changed, when, and who did it |
 | `docs/AI_CALLS.md` | Phase 8.2: the AI meter — `ai_calls`, `ask()`, cost/latency/failure rate, prompt hashing |
 | `docs/MESSAGE_LOG.md` | Phase 8.3: `message_log` — every message to and from a patient, both directions |
+| `docs/METRICS.md` | Phase 8.4: `/healthz`, `/readyz`, `/api/admin/metrics`, Prometheus and tracing flags |
 
 > Start guide: `startup/START.md`
 
@@ -262,6 +263,8 @@ Any message / /start → SELECTING (main menu)
 | `TELEGRAM_WEBHOOK_SECRET` | — | Secret Telegram echoes on webhook calls (7.1); empty ⇒ every webhook refused |
 | `ZF_API_RATE_PER_MINUTE` | `60` | Booking API requests per minute per caller (`0` = no limit) |
 | `ZF_AI_DEBUG_PROMPTS` | `0` | `1` = keep AI prompts/answers in `ai_calls` in the clear; dev and tests only (8.2) |
+| `ZF_METRICS_PROMETHEUS` | `0` | `1` = `/api/admin/metrics?format=prometheus` serves the text exposition format (8.4) |
+| `ZF_TRACING` | `0` | `1` = OpenTelemetry tracing, when the packages are installed (8.4) |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |
@@ -284,7 +287,7 @@ Any message / /start → SELECTING (main menu)
 - Session history page (`/sessions`): all sessions sortable by name/date/last access
 - "Complete Session" button sets `completed_at` and enqueues the 24h follow-up + recommendation jobs (durable, exactly-once via idempotency keys; `bot/services/followup_jobs.py`)
 - Live relay chat visible and sendable from web messages page (`/messages`)
-- System health API (`/api/status`, auth required) covering Redis, Ollama, bots, Google Calendar; public liveness probe `GET /healthz`
+- System health API (`/api/status`, auth required) covering Redis, Ollama, bots, Google Calendar; public liveness probe `GET /healthz`, readiness gate `GET /readyz` (503 when the database is gone), operator numbers at `GET /api/admin/metrics` (jobs, follow-ups, AI latency/failures, messages, relay — `docs/METRICS.md`)
 - "Change Therapist" button in main menu (appears after therapist is selected)
 - In-flight flows survive a bot restart (`bot/persistence.py`, table `bot_persistence`; scheduling keys only, never clinical text)
 - Test harness (`tests/`): per-test SQLite, fakeredis, ASGI client, fake Telegram/LLM, factories; `python tasks.py test`

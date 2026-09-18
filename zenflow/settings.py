@@ -50,6 +50,8 @@ FLAG_NAMES: tuple[str, ...] = (
     "AUTO_FOLLOWUP",
     "API_RATE_PER_MINUTE",
     "AI_DEBUG_PROMPTS",
+    "METRICS_PROMETHEUS",
+    "TRACING",
 )
 
 
@@ -80,6 +82,10 @@ class FeatureFlags(BaseSettings):
     api_rate_per_minute: int = 60
     # ZF_AI_DEBUG_PROMPTS — keep the clinical prompt in `ai_calls` in the clear; dev only (8.2)
     ai_debug_prompts: bool = False
+    # ZF_METRICS_PROMETHEUS — serve /api/admin/metrics in Prometheus' text format too (8.4)
+    metrics_prometheus: bool = False
+    # ZF_TRACING — OpenTelemetry tracing; needs the packages installed (8.4, Phase 12)
+    tracing: bool = False
 
     @field_validator("ai_provider", mode="before")
     @classmethod
