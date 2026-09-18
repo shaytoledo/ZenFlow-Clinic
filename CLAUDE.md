@@ -130,7 +130,8 @@ web/                         # Therapist web dashboard (FastAPI — multi-page)
 ├── templates/               # Jinja2 templates (all extend base.html)
 │   ├── treatment.html       # treatment page entry (<400 lines): layout + includes + script tags
 │   ├── partials/followup_card.html  # the 24h follow-up card (Phase 6.5), shared with session_archive.html
-│   ├── partials/delivery_log.html   # "Messages sent" from message_log (Phase 6.6), same two pages
+│   ├── partials/delivery_log.html   # "Messages" from message_log (6.6, both directions in 8.3)
+│   ├── partials/session_history.html # "Record history" from audit_log + ai_calls (Phase 8.5)
 │   └── treatment/           # its partials: header, ai_points, intake, diagnosis, points, notes, advice, complete, followup, point_lightbox, email_dialog
 └── static/
     ├── style.css            # zf- prefixed styles

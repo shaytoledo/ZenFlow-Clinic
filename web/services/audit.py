@@ -203,6 +203,30 @@ def _trim(value: str | None, limit: int) -> str | None:
 
 
 # ── reading (8.5 surfaces this per appointment) ──
+#: everything that happens to a session is recorded under its appointment id, in one of these
+SESSION_ENTITIES = ("appointment", "treatment_notes", "followup")
+
+
+def for_appointment(appointment_id: Any, limit: int = 200) -> list[dict[str, Any]]:
+    """One session's whole story, oldest first: the booking, its notes, and its check-in.
+
+    All three entity types are keyed by the appointment id (a `treatment_notes` row is recorded
+    against the appointment it belongs to, not its own row id), so a session's trail is one query.
+    """
+    placeholders = ",".join("?" for _ in SESSION_ENTITIES)
+    rows = (
+        _conn()
+        .execute(
+            f"""SELECT * FROM audit_log
+               WHERE entity_id=? AND entity_type IN ({placeholders})
+               ORDER BY id LIMIT ?""",  # noqa: S608  # nosec B608 — placeholders, not values
+            (str(appointment_id), *SESSION_ENTITIES, int(limit)),
+        )
+        .fetchall()
+    )
+    return [dict(r) for r in rows]
+
+
 def for_entity(entity_type: str, entity_id: Any, limit: int = 100) -> list[dict[str, Any]]:
     rows = (
         _conn()

@@ -111,6 +111,7 @@ COMPUTED_PREFIXES = {
     "fu-msg-",
     "fu-status-",
     "fu-dir-",
+    "fu-actor-",
 }
 
 
@@ -175,6 +176,8 @@ def test_every_computed_class_is_defined_in_the_stylesheet() -> None:
     assert "fu-msg-patient" in _defined_classes()
     # 8.3: a received message reads differently; "out" is the default and needs no rule
     assert "fu-dir-in" in _defined_classes()
+    # 8.5: the actors a therapist scans the history for; the rest use the default wording
+    assert {"fu-actor-ai", "fu-actor-api"} <= _defined_classes()
 
 
 def test_the_scripts_start_the_page_last() -> None:

@@ -1,0 +1,24 @@
+{#- Who changed this session's record, and when (Phase 8.5): `history` from
+    web/services/history_view.history_view; styled by the fu-hist rules in
+    static/css/followup.css. -#}
+{% if history %}
+<section id="session-history" class="zf-card fu" aria-labelledby="sh-title">
+  <h2 class="fu-title" id="sh-title">{{ history.title }}</h2>
+  <p class="fu-hist-intro">{{ history.intro }}</p>
+  <ol class="fu-hist">
+    {% for item in history['items'] %}
+    <li class="fu-hist-item fu-actor-{{ item.actor }}">
+      <time class="fu-log-time">{{ item.time }}</time>
+      <span class="fu-hist-what">{{ item.what }}</span>
+      <span class="fu-hist-who">{{ item.who }}</span>
+      {% if item.fields %}<span class="fu-hist-fields">{{ item.fields }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% if history.ai %}
+  <p class="fu-hist-ai">{{ history.ai.summary }}</p>
+  {% endif %}
+</section>
+{% else %}
+<section id="session-history" class="fu" hidden></section>
+{% endif %}

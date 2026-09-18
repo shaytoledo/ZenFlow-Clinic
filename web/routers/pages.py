@@ -126,12 +126,16 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
     google = await asyncio.to_thread(google_connection, therapist["id"])
     t = get_t(therapist.get("language"))
     from web.repositories import followup_repo, message_log_repo
+    from web.services import ai_calls, audit
     from web.services.followup_view import delivery_view, followup_view
+    from web.services.history_view import history_view
 
     checkin = await asyncio.to_thread(followup_repo.get, int(apt["id"]))
     sent = await asyncio.to_thread(
         message_log_repo.for_appointment, therapist["id"], int(apt["id"])
     )
+    trail = await asyncio.to_thread(audit.for_appointment, int(apt["id"]))
+    model_calls = await asyncio.to_thread(ai_calls.history, int(apt["id"]))
     return _page(
         request,
         "treatment.html",
@@ -142,6 +146,9 @@ async def treatment_page(request: Request, patient_id: int, apt_date: str, apt_t
         email_text={key: t[key] for key in EMAIL_DIALOG_KEYS},
         fu=followup_view(checkin, therapist.get("language")),
         deliveries=delivery_view(sent, therapist.get("language")),
+        history=history_view(
+            trail, model_calls, therapist.get("language"), therapist_id=therapist["id"]
+        ),
     )
 
 
