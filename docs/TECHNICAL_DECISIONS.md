@@ -1177,3 +1177,57 @@ visible only in a log file.
 - The delivery card is no longer "Messages sent" but "Messages", and shows both directions.
 - Relay rows have no `appointment_id` (a chat is not a session), so they serve operational
   queries without appearing on a session's card.
+
+---
+
+## ADR-34: Liveness, Readiness and Metrics Are Three Different Questions
+
+**Status:** Accepted (Phase 8.4, 2026-09-18)
+
+**Context.** The system had one public probe (`/healthz`, F11) and one authenticated status page
+(`/api/status`) that mixed "can I serve traffic" with "is Ollama up" and was shaped for a dashboard
+widget rather than for an operator or a deployment. Nothing exposed the numbers the earlier Phase 8
+tables were written to produce — queue depth, follow-ups due, AI latency and failure rate, message
+deliveries.
+
+**Decision.**
+
+1. **Three endpoints, three audiences.** `/healthz` (public, liveness, says nothing else);
+   `/readyz` (readiness, 503 when the app cannot serve); `/api/admin/metrics` (session, the
+   operator's numbers). `/api/status` stays as the dashboard's own widget feed.
+2. **Readiness counts only required dependencies**: the database and a configuration that loads.
+   Redis, Ollama, Telegram and Google are probed and reported, but never take the web app out of a
+   load balancer's rotation — a check-in that cannot be sent is a follow-up failure, not a reason
+   to stop serving a therapist their schedule.
+3. **A stranger learns nothing from `/readyz`**: `{"ok": …}` only. A signed-in therapist also gets
+   the per-check detail, redacted and trimmed. The probe is not a topology map (F11), but an
+   operator debugging a deployment is exactly who needs the names.
+4. **The metrics endpoint degrades rather than fails.** Every section is computed defensively: an
+   unreadable section becomes `{}`, an unreachable dependency becomes `"ok": false`, Redis being
+   down makes the relay count `known: false`. An endpoint that exists to report outages must not
+   fail because of one.
+5. **No new source of truth.** Every number is read from a table that already records it — `jobs`,
+   `followups`, `ai_calls` (8.2), `message_log` (8.3) — so a metric cannot disagree with the data.
+6. **Prometheus is a format, behind a flag**, written by hand (twelve gauge families) rather than
+   pulled in as a client library: no dependency, no registry to keep in sync with the snapshot, and
+   with `ZF_METRICS_PROMETHEUS=0` the format simply 404s like every other flagged surface.
+7. **Tracing is a seam, not a dependency.** `ZF_TRACING=1` without the OpenTelemetry packages logs
+   one warning and leaves the app untraced (`status() == "unavailable"`). The seam is written and
+   tested now; installing the packages is the owner's call.
+
+**Options rejected:**
+
+- **Extending `/api/status`.** Its shape (`{label, detail}` per service) is a UI contract; a probe
+  needs status codes and an operator needs numbers.
+- **`prometheus_client`.** A new dependency, a global registry that would drift from the snapshot,
+  and a second code path for the same values.
+- **An unauthenticated `/metrics`.** Queue depth and failure rates describe a clinic's operations;
+  until there is a network boundary to put them behind (Phase 12), a session is the boundary.
+- **Failing readiness on Redis.** It would take the dashboard out of rotation for an outage it
+  survives, turning a degraded feature into an outage.
+
+**Consequences.**
+
+- A deployment gets a real readiness gate, and `docs/METRICS.md` states what "ready" means.
+- The AI and message tables now have a consumer, which is what makes them worth keeping.
+- Phase 12 can turn on tracing and scraping with flags rather than code.
