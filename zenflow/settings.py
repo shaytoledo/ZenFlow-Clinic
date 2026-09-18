@@ -49,6 +49,7 @@ FLAG_NAMES: tuple[str, ...] = (
     "CONV_TIMEOUT_MINUTES",
     "AUTO_FOLLOWUP",
     "API_RATE_PER_MINUTE",
+    "AI_DEBUG_PROMPTS",
 )
 
 
@@ -77,6 +78,8 @@ class FeatureFlags(BaseSettings):
     auto_followup: bool = False
     # ZF_API_RATE_PER_MINUTE — booking API requests per minute per caller; 0 = no limit (7.3)
     api_rate_per_minute: int = 60
+    # ZF_AI_DEBUG_PROMPTS — keep the clinical prompt in `ai_calls` in the clear; dev only (8.2)
+    ai_debug_prompts: bool = False
 
     @field_validator("ai_provider", mode="before")
     @classmethod

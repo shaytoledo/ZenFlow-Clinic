@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from bot.interfaces import get_channel
 from web.deps import require_active_therapist, require_appointment_access
-from web.services import treatment_service
+from web.services import ai_calls, treatment_service
 from zenflow import clock, leases
 
 router = APIRouter(prefix="/api/treatment-notes")
@@ -945,7 +945,13 @@ async def _rediagnose(
                 )
             ),
         ]
-        resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=180)
+        resp = await ai_calls.ask(
+            _LLM_LONG,
+            messages,
+            stage="rediagnose",
+            timeout_seconds=180,
+            appointment_id=apt_id,
+        )
         parsed = _parse_diagnosis_json(resp.content)
 
         raw_certainty = parsed.get("diagnosis_certainty", 0)
@@ -1053,13 +1059,14 @@ async def _generate_points(
         await asyncio.to_thread(_set_st, apt_id, "GENERATING")
         logger.info(f"generate-points apt{apt_id} — started, pattern='{tcm_pattern}'")
 
-        points = await select_points_for_diagnosis(
-            tcm_pattern=tcm_pattern,
-            treatment_principles=treatment_principles,
-            intake_context=intake_context or "No prior intake on file.",
-            log_tag=f"apt{apt_id}",
-            lang=lang,
-        )
+        with ai_calls.for_appointment(apt_id):
+            points = await select_points_for_diagnosis(
+                tcm_pattern=tcm_pattern,
+                treatment_principles=treatment_principles,
+                intake_context=intake_context or "No prior intake on file.",
+                log_tag=f"apt{apt_id}",
+                lang=lang,
+            )
 
         logger.info(f"generate-points apt{apt_id} — AI returned {len(points)} point(s)")
 

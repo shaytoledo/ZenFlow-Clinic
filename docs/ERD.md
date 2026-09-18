@@ -125,6 +125,33 @@ erDiagram
         TEXT    error                 "redacted, ≤ 300 chars"
     }
 
+    AUDIT_LOG {
+        INTEGER id                PK  AUTOINCREMENT
+        TEXT    ts                    "canonical UTC"
+        TEXT    actor_type            "therapist | patient | api | ai | system"
+        TEXT    actor_id
+        TEXT    action                "entity.verb"
+        TEXT    entity_type
+        TEXT    entity_id
+        TEXT    before_json           "only what changed, redacted"
+        TEXT    after_json
+        TEXT    request_id            "ties the row to the access log"
+    }
+
+    AI_CALLS {
+        INTEGER id                PK  AUTOINCREMENT
+        TEXT    ts                    "canonical UTC"
+        INTEGER appointment_id    FK  "→ appointments.id (nullable)"
+        TEXT    stage                 "intake.question | pipeline.points | …"
+        TEXT    provider              "ollama | anthropic"
+        TEXT    model
+        INTEGER prompt_tokens
+        INTEGER completion_tokens
+        INTEGER duration_ms
+        TEXT    status                "ok | error | timeout"
+        TEXT    prompt_sha256         "the prompt as identity, never as text"
+    }
+
     PATIENTS      ||--o{ PATIENT_CHANNELS   : "reachable on"
     PATIENTS      ||--o{ APPOINTMENTS       : "books"
     THERAPISTS    ||--o{ APPOINTMENTS       : "treats"
@@ -134,6 +161,7 @@ erDiagram
     APPOINTMENTS  ||--o| TREATMENT_NOTES   : "has one"
     APPOINTMENTS  ||--o| FOLLOWUPS         : "has one check-in"
     APPOINTMENTS  ||--o{ MESSAGE_LOG       : "messages sent"
+    APPOINTMENTS  ||--o{ AI_CALLS          : "model calls made for it"
 ```
 
 ---
@@ -149,6 +177,8 @@ erDiagram
 | `treatment_notes` | INTEGER AUTOINCREMENT | 1:1 with appointments | `save_treatment_notes()`, web `/complete` |
 | `message_log` | INTEGER AUTOINCREMENT | a few per session | every outbound patient message attempt (6.6) |
 | `followups` | INTEGER AUTOINCREMENT | 1:1 with completed appointments | `followup_repo` (enqueue, send, answers, manual entry, start-up backfill) |
+| `audit_log` | INTEGER AUTOINCREMENT | one per clinical mutation | `web/services/audit.py` — append-only by trigger (8.1) |
+| `ai_calls` | INTEGER AUTOINCREMENT | one per model call | `web/services/ai_calls.py::ask()` (8.2) |
 
 ---
 

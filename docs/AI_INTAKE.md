@@ -33,7 +33,10 @@ Both are created once at module import.
 - `OLLAMA_HOST` from `.env` (default: `http://localhost:11434`)
 - `num_predict` caps output tokens — intake questions need ~30 tokens; this is the biggest speed lever
 - `num_ctx` limits the context window — smaller window = faster prompt processing
-- All LLM calls use `asyncio.wait_for(..., timeout=100)` — 100-second timeout per call
+- Every LLM call goes through `ai_calls.ask(model, messages, stage=…, timeout_seconds=…)`
+  (`web/services/ai_calls.py`, ADR-32): it applies the timeout, re-raises what the model
+  raised — so each fallback below is unchanged — and records one `ai_calls` row with the
+  provider, model, duration, status and the prompt's SHA-256. See `docs/AI_CALLS.md`
 
 **Why two instances:** Intake questions are short (1–2 sentences). A hard cap of 100 output tokens cuts per-question latency roughly proportionally. Summaries and TCM diagnoses need more room and use `_LLM_LONG`.
 
@@ -170,7 +173,7 @@ Called by: handle_intake_answer() for answers 1–4
 1. hist.add_user_message(user_answer)   — Redis RPUSH
 2. await _maybe_compress(user_id)       — compress if > 6 messages
 3. Build context (system + rolling summary + recent messages)
-4. await asyncio.wait_for(_LLM.ainvoke(context), timeout=100)
+4. await ai_calls.ask(_LLM, context, stage="intake.question", timeout_seconds=OLLAMA_TIMEOUT)
    → on success: hist.add_ai_message(question), return question
    → on TimeoutError: fallback
    → on any Exception: fallback
@@ -188,7 +191,7 @@ Called by: handle_intake_answer() on 5th answer (awaited — result used in book
 1. hist.add_user_message(final_answer)
 2. Build context including rolling summary if exists
 3. Append SUMMARY_INSTRUCTION as final HumanMessage
-4. await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=100)
+4. await ai_calls.ask(_LLM_LONG, messages, stage="intake.summary", timeout_seconds=OLLAMA_TIMEOUT)
    → on success: return summary string
    → on any error: return "Intake completed — see conversation history for details."
 ```
@@ -201,7 +204,7 @@ Called by: handle_intake_answer() on 5th answer (awaited — result used in book
 Called by: _tcm_and_clear() background task (fires after confirmation sent to patient)
 
 1. Build context: system + rolling summary + full history + summary + TCM_DIAGNOSIS_PROMPT
-2. await asyncio.wait_for(_LLM_LONG.ainvoke(context_parts), timeout=100)
+2. await ai_calls.ask(_LLM_LONG, context_parts, stage="intake.diagnosis", timeout_seconds=OLLAMA_TIMEOUT)
 3. Strip markdown code fences (```json ... ```) if present
 4. Extract JSON object using regex: re.search(r"\{[\s\S]*\}", raw)
 5. json.loads(extracted)
@@ -332,8 +335,9 @@ with a fresh run id. All of them return 409 while another generation is running,
 | Default model | `gemma3:latest` (= `gemma3:4b`, 3.3 GB) |
 | Pull model | `ollama pull gemma3:latest` |
 | Change model | Set `OLLAMA_MODEL` in `.env` |
-| Timeout per call | 100 seconds |
-| Compression timeout | 30 seconds |
+| Timeout per call | 180 seconds (`OLLAMA_TIMEOUT`) |
+| Compression timeout | 30 seconds (`COMPRESS_TIMEOUT`) |
+| Cost, latency, failures | `ai_calls` — one row per call (`docs/AI_CALLS.md`) |
 
 ```bash
 # Check Ollama is running

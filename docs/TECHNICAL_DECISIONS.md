@@ -1073,3 +1073,56 @@ acting.
 - Anything that needs to delete audit rows (a retention policy, a legal erasure request) has to
   drop the triggers deliberately — which is the point, and is left to plan 9.9 / Q5.
 - Actions are named `entity.verb`, so new ones are self-describing.
+
+---
+
+## ADR-32: Every Model Call Goes Through One Meter, and the Prompt Is Stored as a Hash
+
+**Status:** Accepted (Phase 8.2, 2026-09-18)
+
+**Context.** Eight places called a model directly, each with its own `asyncio.wait_for` and its own
+fallback. Nobody could say what the AI cost last week, which stage is slow, how often Ollama times
+out, or which prompt produced a diagnosis a therapist is questioning. The obvious fix — log the
+prompt and the answer — writes the most sensitive text in the system into a table with no
+retention story.
+
+**Decision.**
+
+1. **One function calls models.** `web/services/ai_calls.ask(model, messages, stage=…,
+   timeout_seconds=…)` applies the timeout, returns what the model returned and re-raises what it
+   raised, so every caller keeps the fallback it already had. It writes one `ai_calls` row on
+   success, on error and on timeout. A test walks the source tree and fails if `.ainvoke(` appears
+   anywhere else.
+2. **The prompt is identity, not content.** `prompt_sha256` / `response_sha256` answer "was this
+   the same call?", "did this diagnosis come from that summary?" and "do these failures share an
+   input?" without storing clinical text. The text itself is kept only with
+   `ZF_AI_DEBUG_PROMPTS=1` **and** a dev or test environment; `forget_prompts()` removes those
+   copies while the hashes remain.
+3. **The appointment comes from context.** `ai_calls.for_appointment(id)` is set by the pipeline's
+   `_exclusive()` block and by the treatment page's regeneration, so seven call signatures did not
+   have to grow an argument that most callers do not have.
+4. **Recording is best effort**, like the audit trail (ADR-31): a failed insert is logged and
+   swallowed. A metric is worth less than the patient's answer.
+5. **The table is the metrics source.** `summary(hours)` returns calls, failures, failure rate,
+   p50/p95 and tokens overall and per stage — the AI half of 8.4's `/api/admin/metrics`.
+
+**Options rejected:**
+
+- **A LangChain callback handler.** Tied to one client library; the project is meant to keep an
+  `AIProvider` seam for Bedrock and others (plan 12.1), and a callback cannot see the timeout the
+  caller applied.
+- **Logging alone.** Log lines answer "what happened just now", not "what did the AI cost this
+  month" or "how often does stage 2 fail"; log files also rotate away and are shipped off-box.
+- **Storing prompts in full with a retention job.** The retention job is the part that does not
+  exist yet; until it does, the table would be an unbounded copy of clinical conversations.
+- **`audit_log` instead of a second table.** Audit rows are clinical events with an actor; a model
+  call is an operational measurement with tokens and latency. Mixing them would make both queries
+  worse and put prompts inside an append-only table that nothing may prune.
+
+**Consequences.**
+
+- Cost and latency are queryable per stage, per model and per appointment, from the day a provider
+  changes — which is what makes the `USE_AI=anthropic` switch measurable rather than a leap.
+- A failed generation leaves evidence (`status`, `error`, `duration_ms`) even though the caller
+  degraded gracefully and the patient saw a fallback question.
+- Adding a model call means adding a stage name; the conformance test makes that the only way.
