@@ -4,6 +4,8 @@ web/routers/api/messages.py
 Messaging endpoints: unread count, conversation list, send reply via Telegram.
 """
 
+import asyncio
+import functools
 import json
 import logging
 
@@ -120,12 +122,15 @@ async def send_message(body: SendMessageIn, request: Request):
     therapist_name = (therapist or {}).get("name", "Therapist")
     try:
         # Plain text, like the bot relay: a reply containing _ or * must not fail to send (B2).
-        await get_channel("telegram").send_text(
+        sent = await get_channel("telegram").send_text(
             body.patient_id, f"👨‍⚕️ {therapist_name}:\n{body.text}"
         )
     except Exception as e:
         logger.error(f"send_message → patient delivery failed: {e}")
+        await _log_relay(body.patient_id, therapist["id"], "failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Delivery to patient failed: {e}")
+
+    await _log_relay(body.patient_id, therapist["id"], "sent", provider_message_id=sent.message_id)
 
     await telegram_service.append_relay_message(
         therapist["id"], body.patient_id, "therapist", body.text
@@ -141,6 +146,31 @@ async def send_message(body: SendMessageIn, request: Request):
     )
 
     return JSONResponse({"ok": True})
+
+
+async def _log_relay(
+    telegram_id: int,
+    therapist_id: str,
+    status: str,
+    *,
+    provider_message_id: object = None,
+    error: str | None = None,
+) -> None:
+    """A reply typed on the messages page is a relay message like any other (plan 8.3)."""
+    from web.repositories import message_log_repo
+
+    await asyncio.to_thread(
+        functools.partial(
+            message_log_repo.record_relay,
+            direction="out",
+            channel="telegram",
+            external_id=telegram_id,
+            therapist_id=therapist_id,
+            status=status,
+            provider_message_id=provider_message_id,
+            error=error,
+        )
+    )
 
 
 async def _last_forwarded_msg_id(therapist_id: str, patient_id: int) -> int | None:

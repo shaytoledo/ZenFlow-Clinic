@@ -51,6 +51,7 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | `intake_sessions` | Patient completes intake | Never | 1:1 with appointments |
 | `availability` | Therapist drags slot on calendar | Slot is booked or deleted | Small — active slots only |
 | `treatment_notes` | Appointment saved (AI data) or session completed (therapist data) | Never | 1:1 with appointments |
+| `message_log` | Any message to or from a patient (6.6, 7.3, 8.3) | Never | Metadata only — a few per session, plus one per relay message |
 | `audit_log` | Any clinical mutation (8.1) | Never — append-only by trigger | One row per change; part of the clinical record (9.9 / Q5) |
 | `ai_calls` | Any model call (8.2) | Never; `forget_prompts()` clears dev-only prompt copies | Small rows (hashes + numbers); a few per appointment |
 

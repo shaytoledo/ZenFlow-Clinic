@@ -52,24 +52,41 @@ def _answered(answers: dict[str, Any]) -> int:
 
 
 def delivery_view(rows: list[dict[str, Any]], lang: str | None) -> dict[str, Any] | None:
-    """The session's "Messages sent" list (Phase 6.6), or None when nothing was sent."""
+    """The session's message list (Phase 6.6, both directions since 8.3), or None when there is
+    nothing to show.
+
+    A patient answering a four-question check-in is four received messages; the therapist wants to
+    read "the patient answered", so a run of identical entries is one line with a count.
+    """
     if not rows:
         return None
     t = get_t(lang)
-    return {
-        "title": t["dl_title"],
-        "items": [
-            {
-                "time": _when(row.get("ts")),
-                "what": t[f"dl_kind_{row.get('kind')}"],
-                "channel": t[f"dl_channel_{row.get('channel')}"],
-                "status": str(row.get("status") or ""),
-                "status_label": t[f"dl_status_{row.get('status')}"],
-                "error": row.get("error") or "",
-            }
-            for row in rows
-        ],
-    }
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        received = str(row.get("direction") or "out") == "in"
+        item = {
+            "time": _when(row.get("ts")),
+            "what": t[f"dl_kind_{row.get('kind')}"],
+            "channel": t[f"dl_channel_{row.get('channel')}"],
+            "direction": "in" if received else "out",
+            "status": str(row.get("status") or ""),
+            "status_label": t["dl_dir_in"] if received else t[f"dl_status_{row.get('status')}"],
+            "error": row.get("error") or "",
+            "count": 1,
+            "repeat": "",
+        }
+        if items and _same_line(items[-1], item):
+            items[-1]["count"] += 1
+            items[-1]["repeat"] = f"×{items[-1]['count']}"
+            continue
+        items.append(item)
+    return {"title": t["dl_title"], "items": items}
+
+
+def _same_line(previous: dict[str, Any], item: dict[str, Any]) -> bool:
+    """Two entries a therapist would read as one — the same thing, the same way, no error."""
+    keys = ("what", "channel", "direction", "status")
+    return not previous["error"] and not item["error"] and all(previous[k] == item[k] for k in keys)
 
 
 def followup_view(row: dict[str, Any] | None, lang: str | None) -> dict[str, Any] | None:

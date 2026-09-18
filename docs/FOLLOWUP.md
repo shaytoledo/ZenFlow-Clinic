@@ -257,11 +257,12 @@ and Hebrew mirrors from `dir="rtl"` alone.
 
 F1 (email without the therapist id) was fixed in Phase 1.3.
 
-**`message_log`** (plan 8.3, started here; `web/repositories/message_log_repo.py`) holds one
-append-only row per outbound patient message attempt. Columns: `ts`, `direction` (`out`),
-`channel` (`telegram` / `email`), `patient_id`, `therapist_id`, `appointment_id`, `kind`
-(`recommendations` / `followup`), `status` (`sent` / `failed`), `provider_message_id` (the
-Telegram message id or the Gmail id), and `error`.
+**`message_log`** (started here, finished in 8.3 — full description in `docs/MESSAGE_LOG.md`;
+`web/repositories/message_log_repo.py`) holds one append-only row per message between the clinic
+and a patient. Columns: `ts`, `direction` (`out` / `in`), `channel` (`telegram` / `whatsapp` /
+`email`), `patient_id`, `therapist_id`, `appointment_id`, `kind` (`confirmation` /
+`recommendations` / `followup` / `relay`), `status` (`sent` / `failed`), `provider_message_id`
+(the Telegram message id or the Gmail id), and `error`.
 
 **What it records:**
 
@@ -274,10 +275,12 @@ Telegram message id or the Gmail id), and `error`.
 - **Never blocks delivery:** after a successful send, the row is written best-effort, so a
   logging failure cannot cause a retry, and so no second message.
 
-**What the therapist sees:** a "Messages sent" list (`partials/delivery_log.html`, `fu-log-*`
+**What the therapist sees:** a "Messages" list (`partials/delivery_log.html`, `fu-log-*`
 classes) under the follow-up card, on the treatment page and in the session archive. Each line
-shows the time (clinic zone), what was sent, the channel, the status, and the error if there was
-one. It lists only the therapist's own rows and is hidden when nothing was sent.
+shows the time (clinic zone), what it was, the channel, the status — or "Received" for what the
+patient sent back (8.3) — and the error if there was one. A run of identical entries is one line
+with a count, so a four-question check-in does not become four lines. It lists only the
+therapist's own rows and is hidden when there is nothing to show.
 
 The rest of plan 8.3 (booking confirmations, relay messages, an inbound direction) comes with
 Phase 8.

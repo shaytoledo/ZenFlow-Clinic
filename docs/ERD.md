@@ -114,12 +114,12 @@ erDiagram
     MESSAGE_LOG {
         INTEGER id                PK  AUTOINCREMENT
         TEXT    ts                    "canonical UTC"
-        TEXT    direction             "out (in: Phase 8)"
+        TEXT    direction             "out = the clinic sent it | in = the patient did"
         TEXT    channel               "telegram | email"
         INTEGER patient_id
         TEXT    therapist_id
         INTEGER appointment_id    FK  "→ appointments.id"
-        TEXT    kind                  "recommendations | followup"
+        TEXT    kind                  "confirmation | recommendations | followup | relay"
         TEXT    status                "sent | failed"
         TEXT    provider_message_id
         TEXT    error                 "redacted, ≤ 300 chars"
@@ -175,7 +175,7 @@ erDiagram
 | `intake_sessions` | INTEGER AUTOINCREMENT | 1:1 with appointments | `save_appointment()` |
 | `availability` | UUID hex | Tens–hundreds | Web `/api/availability`, `book_slot()`, `restore_slot()` |
 | `treatment_notes` | INTEGER AUTOINCREMENT | 1:1 with appointments | `save_treatment_notes()`, web `/complete` |
-| `message_log` | INTEGER AUTOINCREMENT | a few per session | every outbound patient message attempt (6.6) |
+| `message_log` | INTEGER AUTOINCREMENT | a few per session, plus the relay | every message between the clinic and a patient, both directions (6.6, 8.3) |
 | `followups` | INTEGER AUTOINCREMENT | 1:1 with completed appointments | `followup_repo` (enqueue, send, answers, manual entry, start-up backfill) |
 | `audit_log` | INTEGER AUTOINCREMENT | one per clinical mutation | `web/services/audit.py` — append-only by trigger (8.1) |
 | `ai_calls` | INTEGER AUTOINCREMENT | one per model call | `web/services/ai_calls.py::ask()` (8.2) |

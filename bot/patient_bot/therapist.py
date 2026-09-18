@@ -53,6 +53,30 @@ def _record_relay(
         append_history(patient_id, "patient", text, therapist_id)
     except Exception as e:
         logger.error(f"[{patient_id}] relay delivered but the history was not saved: {e}")
+    _log_relay(patient_id, therapist_id, "sent", provider_message_id=message_id)
+
+
+def _log_relay(
+    telegram_id: int,
+    therapist_id: str,
+    status: str,
+    *,
+    provider_message_id: int | None = None,
+    error: str | None = None,
+) -> None:
+    """The patient wrote to their therapist (plan 8.3) — who, when and whether it arrived, never
+    the message itself."""
+    from web.repositories import message_log_repo
+
+    message_log_repo.record_relay(
+        direction="in",
+        channel="telegram",
+        external_id=telegram_id,
+        therapist_id=therapist_id,
+        status=status,
+        provider_message_id=provider_message_id,
+        error=error,
+    )
 
 
 async def show_therapist_for_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -134,6 +158,7 @@ async def start_relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         )
     except Exception as e:
         logger.error(f"[{user.id}] failed to forward to therapist bot: {e}")
+        _log_relay(user.id, therapist["id"], "failed", error=str(e))
         await update.message.reply_text(
             "Could not reach the therapist right now. Please try again later.",
             reply_markup=get_main_keyboard(),
@@ -175,6 +200,7 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
     except Exception as e:
         logger.error(f"[{user.id}] relay failed: {e}")
+        _log_relay(user.id, therapist["id"], "failed", error=str(e))
         await update.message.reply_text(
             "⚠️ Could not forward your message. Please try again.", reply_markup=_END_KB
         )
