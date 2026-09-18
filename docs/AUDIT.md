@@ -85,6 +85,19 @@ audit.record("appointment.cancelled", "appointment", apt_id, before=row, after=u
 `tests/integration/test_audit_log.py` keeps a list of the endpoints that change clinical data and
 fails if one of them stops recording — so a new endpoint has to say where it belongs.
 
+## 5a. Where a therapist sees it (8.5)
+
+`audit.for_appointment(id)` is one session's whole story: every entity a session owns —
+`appointment`, `treatment_notes`, `followup` — is recorded under the appointment's own id, so
+the trail is one query. `web/services/history_view.py` turns it into the **Record history**
+card (`partials/session_history.html`), shown on the live treatment page and the read-only
+archive, with the session's model calls (8.2) summarised underneath.
+
+A line says *who* (you, another therapist, the patient, ZenFlow AI, a named API client, the
+system), *what* ("Notes updated", "Session completed"), *when*, and **which fields moved** —
+never their values. The clinical text is already on the page; repeating it in a history card
+would only spread the same sensitive words across more of the DOM and the print view.
+
 ## 6. Retention
 
 Audit rows are part of the clinical record and are kept as long as it is. Nothing prunes them

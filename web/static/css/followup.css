@@ -108,4 +108,24 @@
 /* What the patient sent back reads as the quieter half of the conversation. */
 .fu-dir-in .fu-log-status { color: var(--zf-text-muted); font-weight: var(--zf-weight-medium); }
 .fu-dir-in .fu-log-what { color: var(--zf-text-muted); }
+
+/* Who changed this session's record (8.5) — templates/partials/session_history.html */
+.fu-hist-intro { margin: 0 0 var(--zf-space-2); color: var(--zf-text-muted); font-size: var(--zf-text-sm); }
+.fu-hist { display: grid; gap: var(--zf-space-1); margin: 0; padding: 0; list-style: none; }
+.fu-hist-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--zf-space-2);
+  padding-block: var(--zf-space-1);
+  border-block-end: 1px solid var(--zf-border-subtle);
+  font-size: var(--zf-text-sm);
+}
+.fu-hist-what { color: var(--zf-text); font-weight: var(--zf-weight-medium); }
+.fu-hist-who { color: var(--zf-text-muted); }
+.fu-hist-fields { flex-basis: 100%; color: var(--zf-text-muted); font-size: var(--zf-text-xs); }
+.fu-hist-ai { margin: var(--zf-space-2) 0 0; color: var(--zf-text-muted); font-size: var(--zf-text-xs); }
+/* The AI and a connected system are the two actors a therapist scans for. */
+.fu-actor-ai .fu-hist-who { color: var(--zf-accent-text); }
+.fu-actor-api .fu-hist-who { color: var(--zf-accent-text); }
 .fu-log-error { flex-basis: 100%; color: var(--zf-danger-text); font-size: var(--zf-text-xs); }
