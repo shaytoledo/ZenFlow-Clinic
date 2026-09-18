@@ -234,6 +234,33 @@ One row per clinical mutation. **Append-only by trigger** — an UPDATE or DELET
 `audit_log is append-only`, so the trail cannot be rewritten by the application that writes it.
 Retention: kept with the clinical record (plan 9.9 / Q5). Details: `docs/AUDIT.md`.
 
+### Table: `ai_calls` (Phase 8.2)
+
+```sql
+CREATE TABLE IF NOT EXISTS ai_calls (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts                TEXT NOT NULL,                  -- canonical UTC
+    appointment_id    INTEGER,                        -- null outside a generation
+    stage             TEXT NOT NULL,                  -- intake.question, pipeline.points, …
+    provider          TEXT NOT NULL DEFAULT '',       -- ollama | anthropic
+    model             TEXT NOT NULL DEFAULT '',
+    prompt_tokens     INTEGER,                        -- when the model reports usage
+    completion_tokens INTEGER,
+    duration_ms       INTEGER NOT NULL DEFAULT 0,
+    status            TEXT NOT NULL CHECK (status IN ('ok','error','timeout')),
+    error             TEXT,                           -- redacted, capped
+    prompt_sha256     TEXT NOT NULL DEFAULT '',       -- the prompt as identity, never as text
+    response_sha256   TEXT,
+    prompt_debug      TEXT,                           -- dev only: ZF_AI_DEBUG_PROMPTS=1 + ENV=dev
+    response_debug    TEXT
+);
+-- indexes: (appointment_id, id), (ts), (stage, ts)
+```
+
+One row per model call, written by `web/services/ai_calls.ask()` — the only place in the system
+that calls a model. Cost, latency and failure rate come from `summary(hours)`; a clinical prompt
+never reaches a staging or production database. Details: `docs/AI_CALLS.md`.
+
 ---
 
 ### Tables: `api_clients`, `api_idempotency` (Phase 7.3)

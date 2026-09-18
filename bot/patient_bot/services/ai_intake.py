@@ -11,7 +11,6 @@ Speed optimisations applied:
 - In-process history cache: RedisChatMessageHistory object reused per user (avoids LRANGE on every call)
 """
 
-import asyncio
 import json
 import logging
 import re
@@ -20,6 +19,7 @@ from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from bot.config import OLLAMA_HOST, OLLAMA_MODEL, REDIS_URL
+from web.services import ai_calls
 from zenflow.settings import get_settings
 
 USE_AI = get_settings().ai_provider
@@ -27,6 +27,7 @@ USE_AI = get_settings().ai_provider
 logger = logging.getLogger(__name__)
 
 OLLAMA_TIMEOUT = 180  # seconds
+COMPRESS_TIMEOUT = 30  # seconds — compressing old history must not hold up the next question
 FALLBACK_SUMMARY = "Intake completed — see conversation history for details."
 
 SYSTEM_PROMPT = """\
@@ -407,9 +408,11 @@ async def _maybe_compress(user_id: int) -> None:
         prompt_text = f"{BUFFER_SUMMARIZE_PROMPT}\n\n{transcript}"
 
     try:
-        resp = await asyncio.wait_for(
-            _LLM.ainvoke([SystemMessage(content=prompt_text)]),
-            timeout=30,
+        resp = await ai_calls.ask(
+            _LLM,
+            [SystemMessage(content=prompt_text)],
+            stage="intake.compress",
+            timeout_seconds=COMPRESS_TIMEOUT,
         )
         _rolling_summaries[user_id] = resp.content.strip()
         logger.info(f"[{user_id}] History compressed: {len(to_compress)} msgs → summary")
@@ -462,7 +465,9 @@ async def get_next_question(user_id: int, user_answer: str, lang: str = "en") ->
 
     if _LLM is not None:
         try:
-            resp = await asyncio.wait_for(_LLM.ainvoke(context_messages), timeout=OLLAMA_TIMEOUT)
+            resp = await ai_calls.ask(
+                _LLM, context_messages, stage="intake.question", timeout_seconds=OLLAMA_TIMEOUT
+            )
             question = resp.content.strip()
             hist.add_ai_message(question)
             logger.info(f"[{user_id}] next question generated via LangChain ({USE_AI})")
@@ -502,7 +507,9 @@ async def generate_summary(user_id: int, final_answer: str) -> str:
     ]
     if _LLM_LONG is not None:
         try:
-            resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=OLLAMA_TIMEOUT)
+            resp = await ai_calls.ask(
+                _LLM_LONG, messages, stage="intake.summary", timeout_seconds=OLLAMA_TIMEOUT
+            )
             logger.info(f"[{user_id}] clinical summary generated via LangChain ({USE_AI})")
             return resp.content.strip()
         except TimeoutError:
@@ -563,7 +570,9 @@ async def summarize_history(
             raise GenerationError("summary failed: no AI backend configured")
         return FALLBACK_SUMMARY
     try:
-        resp = await asyncio.wait_for(_LLM_LONG.ainvoke(messages), timeout=OLLAMA_TIMEOUT)
+        resp = await ai_calls.ask(
+            _LLM_LONG, messages, stage="pipeline.summary", timeout_seconds=OLLAMA_TIMEOUT
+        )
         text = str(resp.content).strip()
         if not text:
             raise GenerationError("summary failed: empty response")
@@ -737,9 +746,11 @@ async def select_points_for_diagnosis(
     )
 
     try:
-        resp = await asyncio.wait_for(
-            llm.ainvoke([HumanMessage(content=prompt)]),
-            timeout=OLLAMA_TIMEOUT,
+        resp = await ai_calls.ask(
+            llm,
+            [HumanMessage(content=prompt)],
+            stage="pipeline.points",
+            timeout_seconds=OLLAMA_TIMEOUT,
         )
         points = _parse_points_response(resp.content.strip(), log_tag)
 
@@ -807,7 +818,9 @@ async def generate_diagnosis_only(
     if _LLM_LONG is None:
         return fallback
     try:
-        resp = await asyncio.wait_for(_LLM_LONG.ainvoke(context_parts), timeout=OLLAMA_TIMEOUT)
+        resp = await ai_calls.ask(
+            _LLM_LONG, context_parts, stage="pipeline.diagnosis", timeout_seconds=OLLAMA_TIMEOUT
+        )
         raw = _strip_json(resp.content.strip())
         parsed = json.loads(raw)
         raw_certainty = parsed.get("diagnosis_certainty", 0)
@@ -875,7 +888,9 @@ async def generate_tcm_diagnosis(user_id: int, clinical_summary: str) -> dict:
         return fallback
 
     try:
-        resp = await asyncio.wait_for(_LLM_LONG.ainvoke(context_parts), timeout=OLLAMA_TIMEOUT)
+        resp = await ai_calls.ask(
+            _LLM_LONG, context_parts, stage="intake.diagnosis", timeout_seconds=OLLAMA_TIMEOUT
+        )
         raw = _strip_json(resp.content.strip())
         parsed = json.loads(raw)
 

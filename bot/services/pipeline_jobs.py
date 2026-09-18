@@ -32,6 +32,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
 
+from web.services import ai_calls, audit
 from zenflow import leases
 from zenflow.queue import get_default_queue
 from zenflow.worker import current_job, default_registry, is_last_attempt
@@ -140,12 +141,25 @@ def _load(appointment_id: int) -> dict[str, Any] | None:
 
 @contextmanager
 def _exclusive(appointment_id: int) -> Iterator[None]:
+    """One generation per appointment — and, inside it, the AI is the one acting: every model call
+    is metered against this appointment (8.2) and every write it causes is the AI's (8.1)."""
     job = current_job()
     holder = f"job-{job.id}" if job is not None else f"direct-{uuid.uuid4().hex[:8]}"
     with leases.held(lock_name(appointment_id), holder, ttl_seconds=LOCK_TTL_SECONDS) as got:
         if not got:
             raise PipelineBusy(f"another generation is running for appointment {appointment_id}")
-        yield
+        with ai_calls.for_appointment(appointment_id), audit.acting_as("ai", _model_name()):
+            yield
+
+
+def _model_name() -> str:
+    """What to call the AI in the audit trail — the model that answers, if it can be asked."""
+    try:
+        from bot.patient_bot.services import ai_intake
+
+        return ai_calls.identify(ai_intake._LLM_LONG)[1]
+    except Exception:
+        return ""
 
 
 # ── public entry point ──

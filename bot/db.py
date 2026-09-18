@@ -246,13 +246,14 @@ def init_db() -> None:
 
 
 def _create_api_tables(conn: sqlite3.Connection) -> None:
-    """Booking API clients and their idempotency keys (Phase 7.3), and the audit trail (8.1)."""
+    """Booking API clients and idempotency keys (7.3), the audit trail (8.1), the AI meter (8.2)."""
     from web.repositories import api_client_repo
-    from web.services import audit, idempotency
+    from web.services import ai_calls, audit, idempotency
 
     api_client_repo.create_schema(conn)
     idempotency.create_schema(conn)
     audit.create_schema(conn)
+    ai_calls.create_schema(conn)
 
 
 def _create_patients(conn: sqlite3.Connection) -> None:

@@ -69,6 +69,8 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/BOOKING_API.md` | Phase 7.3: `/api/v1` booking — API keys, idempotency, errors, the published OpenAPI schema |
 | `docs/WHATSAPP.md` | Phase 7.4: the WhatsApp channel — 24-hour window, templates, button limits, webhooks |
 | `docs/CHANNELS.md` | Phase 7: the `ChannelAdapter` contract, Telegram adapter, conformance suite, adding a channel; patient identity (`patients` + `patient_channels`) |
+| `docs/AUDIT.md` | Phase 8.1: the append-only `audit_log` — what changed, when, and who did it |
+| `docs/AI_CALLS.md` | Phase 8.2: the AI meter — `ai_calls`, `ask()`, cost/latency/failure rate, prompt hashing |
 
 > Start guide: `startup/START.md`
 
@@ -223,6 +225,8 @@ Any message / /start → SELECTING (main menu)
 - `availability.py` may import `appointments.py` — not the other way around (circular import risk).
 - Relay Bot clients: never build `Bot(token=...)` in a module. `bot.main.wire_bots()` hands the relay channels over the running applications' own clients (BOT_AUDIT B14).
 - Messaging (ADR-27): anything the system sends goes through `bot.interfaces` — `get_channel("telegram")` / `get_default_channel()` for patients, `get_staff_channel()` for therapists — never httpx to api.telegram.org (only `telegram_channel.py` may name it). Handle `ChannelError` (`permanent`, `retry_after`). A new channel implements `ChannelAdapter` and passes `tests/contract/channel_conformance.py`. Tests: `fake_telegram` is an offline Bot API (`api_calls`, `fail_next(...)`, `down`).
+- AI (ADR-32): every model call goes through `ai_calls.ask(model, messages, stage=…, timeout_seconds=…)` in `web/services/ai_calls.py` — never `ainvoke` directly (a test walks the tree). It returns and raises exactly what the model did, so keep your fallback; a new call site means a new stage name. Prompts are stored as SHA-256 only — `ZF_AI_DEBUG_PROMPTS=1` keeps the text in dev alone.
+- Audit (ADR-31): a clinical mutation records `audit.record(action, entity_type, id, before=…, after=…)`; the actor comes from context (`audit.acting_as(...)`), never from an argument.
 - Booking: write the appointment row first (`save_appointment` raises `SlotTaken`), then touch the calendar (BOT_AUDIT B4).
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
 - Treatment page: no `<style>` or inline `<script>` in `templates/treatment*` (only the `#treatment-config` JSON island) — tests read the page through `tests/integration/treatment_source.py`.
@@ -256,6 +260,7 @@ Any message / /start → SELECTING (main menu)
 | `WHATSAPP_TEMPLATE_FOLLOWUP` / `WHATSAPP_TEMPLATE_CONFIRMATION` | — | Approved template names for messages outside WhatsApp's 24-hour window |
 | `TELEGRAM_WEBHOOK_SECRET` | — | Secret Telegram echoes on webhook calls (7.1); empty ⇒ every webhook refused |
 | `ZF_API_RATE_PER_MINUTE` | `60` | Booking API requests per minute per caller (`0` = no limit) |
+| `ZF_AI_DEBUG_PROMPTS` | `0` | `1` = keep AI prompts/answers in `ai_calls` in the clear; dev and tests only (8.2) |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |

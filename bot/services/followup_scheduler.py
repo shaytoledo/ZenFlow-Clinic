@@ -780,9 +780,13 @@ async def summarize_checkin(answers: dict[str, Any], lang: str) -> str:
             f"acupuncture, in {language}, for their therapist. Use only the facts below. Do not "
             "add symptoms, scores, diagnoses or advice. At most two lines, under 250 characters."
         )
-        response = await asyncio.wait_for(
-            model.ainvoke([SystemMessage(content=instructions), HumanMessage(content=fallback)]),
-            timeout=SUMMARY_TIMEOUT_SECONDS,
+        from web.services import ai_calls
+
+        response = await ai_calls.ask(
+            model,
+            [SystemMessage(content=instructions), HumanMessage(content=fallback)],
+            stage="followup.summary",
+            timeout_seconds=SUMMARY_TIMEOUT_SECONDS,
         )
         text = str(getattr(response, "content", "") or "").strip()
     except Exception as e:
