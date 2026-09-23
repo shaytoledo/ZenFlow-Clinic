@@ -55,6 +55,7 @@ FLAG_NAMES: tuple[str, ...] = (
     "SESSION_IDLE_MINUTES",
     "SESSION_MAX_HOURS",
     "CSP_ENFORCE",
+    "LOGIN_MAX_ATTEMPTS",
 )
 
 
@@ -97,6 +98,9 @@ class FeatureFlags(BaseSettings):
     # Default off: the templates still carry inline handlers and style attributes a strict policy
     # would block, so the policy bakes in report-only until that markup is cleaned up.
     csp_enforce: bool = False
+    # ZF_LOGIN_MAX_ATTEMPTS — consecutive failed sign-ins before the account and source IP are
+    # locked for a growing cooldown (9.5). 0 = no lockout.
+    login_max_attempts: int = 5
 
     @field_validator("ai_provider", mode="before")
     @classmethod

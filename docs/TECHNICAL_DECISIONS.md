@@ -1402,3 +1402,53 @@ loads Google Fonts and FullCalendar from external origins.
 - The nonce is minted in the outermost middleware before the request runs, so it is set before any
   inner layer or endpoint renders a template, and cleared afterwards so it never leaks to the next
   request.
+
+## ADR-38: Login Brute-Force Lockout — Per-IP and Per-Account, Fail-Open
+
+**Status:** Accepted (Phase 9.5, 2026-09-23)
+
+**Context.** `/register/signin` verified a password on every request with nothing to slow an
+attacker: they could guess one account's password, or stuff stolen credentials across many accounts,
+as fast as the network allowed, and the account owner never learned of it. This is the first, most
+valuable slice of plan 9.5 (abuse limiting); signup/activation flood, AI-endpoint limits and the
+Telegram side follow as their own changes.
+
+**Decision** (`web/services/login_guard.py`):
+
+1. **Count failures in Redis, lock at a threshold** (`ZF_LOGIN_MAX_ATTEMPTS`, default 5; `0`
+   disables). The cooldown is **progressive** — base 60 s at the threshold, doubling with each
+   further failure, capped at 30 min — so an honest fat-fingered therapist waits a minute while a
+   sustained attacker is pushed to a crawl.
+2. **Two independent scopes.** `account` (the email) locks a single-account guessing attack;
+   `ip` (the source address) locks credential stuffing that spreads thin across many accounts.
+   Sign-in refuses if *either* is locked, before the password is checked.
+3. **Account failures are counted whether or not the account exists**, so lockout timing never
+   reveals which emails are real. (The pre-existing "this account uses Google sign-in" hint already
+   distinguishes some accounts; tightening that enumeration is separate.)
+4. **A correct password clears both counters** — a legitimate user who eventually remembers their
+   password is not left locked.
+5. **The owner is notified once per window.** When an *existing* account crosses the threshold, a
+   `security` notification lands in their bell icon ("change your password if this wasn't you"),
+   de-duplicated with a Redis `SET NX` marker and sent best-effort.
+6. **Fail-open.** Every Redis call is wrapped; if Redis is down the guard allows the request. A
+   brute-force attack needs thousands of tries and Redis outages are rare and short — locking every
+   therapist out of the dashboard because the cache blinked is the worse failure. (Contrast the
+   session denylist in ADR-35, which is authoritative SQLite; this is best-effort cache.)
+
+**Options rejected:**
+
+- **A hard account lock (no auto-expiry, admin unlock).** For a tiny clinic with no always-on admin,
+  a permanent lock is a self-inflicted denial of service; a growing cooldown is the right trade.
+- **Per-account only.** Misses credential stuffing that never hits one account hard; the per-IP
+  scope catches the spread.
+- **Fail-closed on a Redis error.** Would convert a cache outage into a full sign-in outage.
+- **Storing counters in SQLite.** Writes on every failed login (an attacker-controlled rate) to the
+  clinical database; Redis with TTLs is the right home for hot, expiring counters.
+
+**Consequences.**
+
+- A completely coherent slice: sign-in is protected end to end and tested (service math + the
+  endpoint returning `429` + `Retry-After` when locked, and the owner notification). Signup and
+  activation flood limits, AI-endpoint limits, and Telegram flood control are still open under 9.5.
+- The `login_guard` primitives (`locked_for` / `record_failure` / `record_success`, scope+key) are
+  deliberately generic so those follow-ups reuse them.

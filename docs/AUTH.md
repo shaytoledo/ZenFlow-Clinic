@@ -148,15 +148,20 @@ def _verify_password(password: str, stored: str) -> bool:
 POST /register/signin
 body: {email, password}
 
-a. _find_by_email(email) → therapist dict or None
-b. if not found: "No account with that email"
-c. if password_hash is NULL: "This account uses Google sign-in"
-d. _verify_password(password, therapist["password_hash"])
-   → if False: "Incorrect password"
-e. if not active: "Account not yet activated — send the code to the bot"
+a. login_guard.check_locked(request, email)     # brute-force lockout (9.5)
+   → if the account OR the source IP is locked: 429 + Retry-After, no password check
+b. _find_by_email(email) → therapist dict or None
+c. if found with password_hash NULL: "This account uses Google sign-in" (not a failure)
+d. if not found, or _verify_password() is False:
+      login_guard.on_failure(...)               # count the failure on both scopes
+      → "Invalid email or password."            # one message; never says which of the two
+e. login_guard.on_success(...)                   # clear both counters
 f. request.session["therapist_id"] = therapist["id"]
-g. redirect to /
+g. redirect to / (or /onboarding if not active)
 ```
+
+The failure message is deliberately uniform (`Invalid email or password.`) so it never reveals
+whether the email exists; see the brute-force section below.
 
 ---
 
@@ -406,3 +411,36 @@ one.
 
 `tests/security/test_csrf.py` includes a check that walks every route and fails if a new unsafe,
 cookie-authenticated `/api`, `/auth` or `/register` route is not behind the guard.
+
+## Sign-in brute-force lockout (Phase 9.5)
+
+`web/services/login_guard.py` (ADR-38) slows password guessing. It counts consecutive failed
+sign-ins in Redis and, once `ZF_LOGIN_MAX_ATTEMPTS` (default 5; `0` disables) is reached, **locks**
+the target for a cooldown that starts at 60 s and doubles with each further failure, capped at
+30 min.
+
+**Two scopes, checked before the password:**
+
+| scope | what it stops |
+|---|---|
+| `account` (the email) | hammering one account to guess its password |
+| `ip` (the source address) | credential stuffing spread thin across many accounts |
+
+A locked sign-in returns **`429` with a `Retry-After` header** and re-renders the form with a wait
+message — the password is never checked while locked. A **correct** password clears both counters.
+
+**Design points:**
+
+- Account failures are counted **whether or not the account exists**, so lockout timing does not
+  reveal which emails are real, and the failure message is always the uniform
+  `Invalid email or password.`
+- When an **existing** account crosses the threshold, its owner gets one `security` notification in
+  the bell icon (de-duplicated per window with a Redis `SET NX`), advising a password change.
+- **Fail-open:** every Redis call is guarded; if Redis is unavailable the guard allows the request,
+  because locking the whole clinic out over a cache blip is worse than briefly losing the throttle.
+
+Tested in `tests/security/test_login_guard.py` (the cooldown math, the endpoint `429`/`Retry-After`,
+per-IP vs per-account, the owner notification, and the disabled path).
+
+> Still open under 9.5: signup/activation flood limits, AI-endpoint rate limits, and Telegram-side
+> flood control. The `login_guard` primitives are generic (scope + key) so those reuse them.
