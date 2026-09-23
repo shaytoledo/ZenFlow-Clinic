@@ -75,6 +75,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/MESSAGE_LOG.md` | Phase 8.3: `message_log` — every message to and from a patient, both directions |
 | `docs/METRICS.md` | Phase 8.4: `/healthz`, `/readyz`, `/api/admin/metrics`, Prometheus and tracing flags |
 | `docs/AUTHZ.md` | Phase 9.1: every route, its auth level, its object-level check and the test that proves it |
+| `docs/SECRETS.md` | Phase 9.6: the secrets inventory, the `SecretsProvider` seam (EnvSecrets → AWS Secrets Manager) and token-key rotation |
 
 > Start guide: `startup/START.md`
 
@@ -223,6 +224,7 @@ Any message / /start → SELECTING (main menu)
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
 - Read configuration through `zenflow.settings.get_settings()` — never `os.getenv` (exceptions: `bot/db.py`, `startup/launch.py`). New flags go in `FeatureFlags` with both paths tested.
+- Secrets (ADR-41, 9.6): secret values enter through the `SecretsProvider` seam (`zenflow/secrets.py`) — `EnvSecrets` by default, `AwsSecretsManagerSecrets` under `ZF_CLOUD`+`AWS_SECRETS_ID` (Phase 12) — wired as settings' lowest-precedence source, so the environment always wins. A new secret is added to `SECRET_NAMES` and to the `Settings` field. Never log a secret; rotate the token-encryption key with `python -m zenflow.rotate_token_key` (`docs/SECRETS.md`).
 - Background work (ADR-20): never `asyncio.ensure_future(...)` fire-and-forget for anything that must happen — `get_default_queue().enqueue(name, payload, run_at=..., idempotency_key=...)` and register the handler with `@default_registry.handler(name)` in `zenflow/worker.py` consumers.
 - Time (ADR-19): use `zenflow.clock` — `iso_now()`, `hours_ahead(n)`, `today()` (clinic-local), `SQL_NOW` in SQL. Never `datetime.now()` / `date.today()` / `datetime('now')`; ruff `DTZ` fails the build. Stored instants are `YYYY-MM-DDTHH:MM:SSZ`.
 - Logging (ADR-18): `logging.getLogger(__name__)` as usual — `zenflow/logging.py` configures the root once per process. Bind context with `zlog.bind(...)` / `with zlog.log_context(appointment_id=..)`; time calls with `zlog.timed(...)`. Never `print()` in services; never log tokens (they are redacted anyway).
