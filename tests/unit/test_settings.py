@@ -193,6 +193,11 @@ def test_ai_and_signup_rate_flags_parse(env) -> None:
     assert env({"ZF_SIGNUP_PER_MINUTE": "4"}).flags.signup_per_minute == 4
 
 
+def test_bot_flood_flag_parses(env) -> None:
+    assert env({"ZF_BOT_FLOOD_PER_MINUTE": "0"}).flags.bot_flood_per_minute == 0
+    assert env({"ZF_BOT_FLOOD_PER_MINUTE": "15"}).flags.bot_flood_per_minute == 15
+
+
 def test_flags_snapshot_has_exactly_the_documented_flags(env) -> None:
     snap = env({}).flags.snapshot()
     assert set(snap) == set(S.FLAG_NAMES)

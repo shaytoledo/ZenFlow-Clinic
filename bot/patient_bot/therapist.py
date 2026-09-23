@@ -193,6 +193,17 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("⚠️ Therapist not available.", reply_markup=_END_KB)
         return THERAPIST_RELAY
 
+    # Flood control (9.5): don't let one patient spam the therapist. Stays in the relay so the
+    # chat is not closed — the next (in-budget) message goes through normally.
+    from bot.services import flood
+
+    if await flood.too_fast("relay", user.id):
+        await update.message.reply_text(
+            "⏳ You're sending messages very quickly — please wait a moment.",
+            reply_markup=_END_KB,
+        )
+        return THERAPIST_RELAY
+
     patient_name = user.full_name or user.first_name or ""
     try:
         sent = await _therapist_channel.send_text(

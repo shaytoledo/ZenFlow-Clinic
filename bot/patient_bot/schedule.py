@@ -386,6 +386,20 @@ def _start_generation(appointment_id: int, user_id: int) -> None:
 
 async def handle_intake_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_id = update.effective_user.id
+
+    # Flood control (9.5): a patient rattling off messages during intake would fire one Ollama
+    # call each. Throttle before counting the answer, so a dropped message does not use a question.
+    from bot.services import flood
+
+    if await flood.too_fast("intake", user_id):
+        lang = get_lang(context.user_data.get("selected_therapist"))
+        await update.message.reply_text(
+            "⏳ One moment — please wait a few seconds before your next message."
+            if lang == "en"
+            else "⏳ רגע אחד — נא להמתין כמה שניות לפני ההודעה הבאה."
+        )
+        return INTAKE
+
     user_answer = update.message.text
     intake_count = context.user_data.get("intake_count", 0) + 1
     context.user_data["intake_count"] = intake_count

@@ -58,6 +58,7 @@ FLAG_NAMES: tuple[str, ...] = (
     "LOGIN_MAX_ATTEMPTS",
     "AI_RATE_PER_MINUTE",
     "SIGNUP_PER_MINUTE",
+    "BOT_FLOOD_PER_MINUTE",
 )
 
 
@@ -108,6 +109,9 @@ class FeatureFlags(BaseSettings):
     ai_rate_per_minute: int = 20
     # ZF_SIGNUP_PER_MINUTE — public sign-ups allowed per minute per source IP (9.5). 0 = no limit.
     signup_per_minute: int = 10
+    # ZF_BOT_FLOOD_PER_MINUTE — Telegram messages one user may send per minute on each bot surface
+    # (relay, intake, activation-code entry) before the bot throttles them (9.5). 0 = no limit.
+    bot_flood_per_minute: int = 20
 
     @field_validator("ai_provider", mode="before")
     @classmethod

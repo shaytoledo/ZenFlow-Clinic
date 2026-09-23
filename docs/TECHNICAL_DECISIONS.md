@@ -1495,3 +1495,48 @@ so they want a rate limit, not a lockout.
   control (both bot-side) remain open under 9.5.
 - Three per-minute knobs now exist — `ZF_API_RATE_PER_MINUTE` (booking), `ZF_AI_RATE_PER_MINUTE`
   (AI), `ZF_SIGNUP_PER_MINUTE` (sign-up) — all served by the one limiter.
+
+## ADR-40: Telegram-Side Flood Control (Bot Surfaces)
+
+**Status:** Accepted (Phase 9.5 part 3, 2026-09-23)
+
+**Context.** Three Telegram surfaces had no per-user limit, the last of plan 9.5's list. On the
+**therapist bot**, a stranger could send 8-character strings to guess a pending registration code
+(`zenflow:reg:{code}`) and hijack an activation. On the **patient bot**, a patient in a relay chat
+could spam the therapist, and a patient in intake could rattle off messages that each fire a
+synchronous Ollama call. These are the same shape — too many messages from one Telegram id per
+minute — as the web volume limits (ADR-39).
+
+**Decision** (`bot/services/flood.py`):
+
+1. **One helper, one budget.** `too_fast(kind, user_id)` reuses the fixed-window limiter with an
+   opaque key `bot:{kind}:{user_id}` and `ZF_BOT_FLOOD_PER_MINUTE` (default 20; `0` disables). The
+   three `kind`s — `activation`, `relay`, `intake` — each get their own window per user.
+2. **Placed in the handlers, before the work.**
+   - `handle_therapist_message`: an unknown sender's code-shaped message is throttled *before*
+     `_handle_registration` looks the code up.
+   - `relay_to_therapist`: a throttled message is not forwarded and the reply says "wait"; the
+     handler **stays in `THERAPIST_RELAY`** so the chat is not closed — the next in-budget message
+     goes through.
+   - `handle_intake_answer`: the check runs *before* `intake_count` is incremented, so a throttled
+     message does not burn one of the five intake questions, and returns `INTAKE` unchanged.
+3. **Fail-open**, like the rest of the limiter — a Redis error is "not too fast", because a cache
+   blip must never stop a patient reaching their therapist.
+
+**Options rejected:**
+
+- **A hard lockout on activation-code guesses.** The code space (`[A-Z0-9]{8}`) is ~2.8e12 and the
+  code is single-use and deleted on success; a per-user flood cap is proportionate defence in
+  depth, and a lockout would risk stranding a therapist fat-fingering their own code.
+- **Silently dropping flooding messages.** Telling the user to wait is friendlier and, for intake,
+  necessary so they understand why their answer did not advance the questionnaire.
+- **A bot-only limiter implementation.** `bot/` already imports `web/` widely; reusing
+  `rate_limit.hit` keeps one mechanism and one Redis key schema.
+
+**Consequences.**
+
+- Plan 9.5 is complete: sign-in lockout (ADR-38), AI + sign-up volume limits (ADR-39), and the three
+  Telegram surfaces (this ADR). A fourth per-minute knob, `ZF_BOT_FLOOD_PER_MINUTE`, joins the
+  three from ADR-39.
+- Tested against the bot handler fakes (`tests/bot/test_flood.py`): the service math, and each
+  surface throttling a flood while a different user/kind keeps its own budget.

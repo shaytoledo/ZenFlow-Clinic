@@ -71,6 +71,12 @@ async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT
     if user_id in THERAPIST_MAP:
         await _handle_relay(msg, THERAPIST_MAP[user_id]["id"], _therapist_lang(user_id))
     elif _REG_CODE_RE.match(text):
+        # Flood control (9.5): cap code guesses per Telegram user before checking the code.
+        from bot.services import flood
+
+        if await flood.too_fast("activation", user_id):
+            await msg.reply_text("⏳ Too many attempts. Please wait a minute and try again.")
+            return
         await _handle_registration(msg, user_id, text)
     else:
         await msg.reply_text(
