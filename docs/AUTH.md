@@ -316,3 +316,49 @@ Two OAuth flows share the same `GOOGLE_CLIENT_ID`:
 | Code sent, not activated | 0 | 0 | No | No |
 | Activated via bot | non-zero | 1 | Yes | Yes (if session cookie valid) |
 | Signed out | — | 1 | Yes | No (no session cookie) |
+
+---
+
+## Session policy (Phase 9.2)
+
+The dashboard session is a **signed cookie** (`zf_session`, HttpOnly, SameSite=lax, Secure outside
+dev). The server keeps no server-side copy — that is what lets the app restart and scale without
+shared state — so the three properties below are built in `web/session_policy.py` and applied in
+one place, `_get_session_therapist` in `web/deps.py`.
+
+### It begins clean — no fixation
+
+`start()` (called by `_set_session` on every sign-in, password or Google) does `session.clear()`
+before writing the therapist id, a fresh random `sid`, and the timestamps. Nothing an anonymous
+visitor planted — an OAuth `next`, a registration marker, a chosen `sid` — survives into a
+signed-in session.
+
+### It ends by time
+
+Every authenticated request checks two limits and clears the session when either passes:
+
+| Limit | Flag | Default |
+|---|---|---|
+| idle — since the last request | `ZF_SESSION_IDLE_MINUTES` | 720 (12 h) |
+| absolute — since sign-in | `ZF_SESSION_MAX_HOURS` | 168 (7 days) |
+
+`seen_at` is refreshed at most once a minute, so a busy session stays alive without a `Set-Cookie`
+on every response. The cookie's own `max_age` is set to the absolute limit, so the browser and the
+server agree on when it dies. A cookie written before 9.2 has no timestamps; it is adopted as if it
+began now, so a deploy signs nobody out.
+
+### It ends on logout, for real
+
+A cookie cannot be recalled: a copy captured before logout still verifies. `revoke()` therefore
+writes the session's `sid` to `revoked_sessions` (see `docs/DATABASE.md`), and `is_usable()`
+refuses any session whose `sid` is on that list. The row is kept only until the session's absolute
+limit would have passed anyway; `prune()` clears the expired ones.
+
+### Transport
+
+`security_headers()` sends `Strict-Transport-Security` (one year, `includeSubDomains`) outside dev
+only — on a developer's `http://localhost` it would pin the browser to https and break local work.
+No CORS middleware is installed, so a browser's default (refuse cross-origin reads of credentialed
+responses) stands; cross-origin *writes* are the CSRF token's job (plan 9.3).
+
+Tests: `tests/security/test_session_policy.py`.

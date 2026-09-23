@@ -52,6 +52,8 @@ FLAG_NAMES: tuple[str, ...] = (
     "AI_DEBUG_PROMPTS",
     "METRICS_PROMETHEUS",
     "TRACING",
+    "SESSION_IDLE_MINUTES",
+    "SESSION_MAX_HOURS",
 )
 
 
@@ -86,6 +88,10 @@ class FeatureFlags(BaseSettings):
     metrics_prometheus: bool = False
     # ZF_TRACING — OpenTelemetry tracing; needs the packages installed (8.4, Phase 12)
     tracing: bool = False
+    # ZF_SESSION_IDLE_MINUTES — a dashboard session left alone this long ends (9.2)
+    session_idle_minutes: int = 720
+    # ZF_SESSION_MAX_HOURS — however busy, a session ends this long after sign-in (9.2)
+    session_max_hours: int = 168
 
     @field_validator("ai_provider", mode="before")
     @classmethod

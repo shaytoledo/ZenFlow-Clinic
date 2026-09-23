@@ -68,7 +68,10 @@ def test_cookie_is_secure_only_outside_dev() -> None:
     assert session_cookie_kwargs(is_dev=False)["https_only"] is True
     for kw in (session_cookie_kwargs(is_dev=True), session_cookie_kwargs(is_dev=False)):
         assert kw["same_site"] == "lax"
-        assert kw["max_age"] == 86400 * 30
+        # the cookie lifetime tracks the session policy's absolute limit (9.2), not a fixed 30 days
+        from web.session_policy import max_hours
+
+        assert kw["max_age"] == max_hours() * 3600
 
 
 @pytest.mark.slow

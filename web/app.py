@@ -130,14 +130,33 @@ app.add_middleware(LegacyPatientIdMiddleware)
 
 
 def session_cookie_kwargs(is_dev: bool) -> dict:
-    """Session-cookie hardening (Phase 0.5): Secure outside dev, SameSite=lax, explicit max_age.
-    (HttpOnly is always set by SessionMiddleware.)"""
+    """Session-cookie hardening (0.5, 9.2): Secure outside dev, SameSite=lax, and a lifetime that
+    matches the session policy — the cookie must not outlive the session it carries
+    (`web/session_policy.py`). (HttpOnly is always set by SessionMiddleware.)
+
+    SameSite stays `lax` rather than `strict` on purpose: Google's OAuth callback is a top-level
+    cross-site GET back to this app, and `strict` would arrive without the session. Cross-site
+    *writes* are stopped by the CSRF token (plan 9.3), not by the cookie's flags.
+    """
+    from web.session_policy import max_hours
+
     return {
         "session_cookie": "zf_session",
-        "max_age": 86400 * 30,
+        "max_age": max_hours() * 3600,
         "same_site": "lax",
         "https_only": not is_dev,
     }
+
+
+def security_headers(is_dev: bool) -> dict[str, str]:
+    """Transport headers (9.2). The content headers and CSP are plan 9.4.
+
+    HSTS is sent only where HTTPS is real: on a developer's http://localhost it would pin the
+    browser to https for a year and make local work impossible.
+    """
+    if is_dev:
+        return {}
+    return {"Strict-Transport-Security": "max-age=31536000; includeSubDomains"}
 
 
 app.add_middleware(
@@ -177,11 +196,16 @@ app.mount(
 )
 
 
+_SECURITY_HEADERS = security_headers(get_settings().is_dev)
+
+
 @app.middleware("http")
 async def no_cache_static(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-store"
+    for name, value in _SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
     return response
 
 

@@ -56,7 +56,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/BOT_FLOWS.md` | Conversation state machine, all handler flows |
 | `docs/RELAY.md` | Two-bot relay architecture |
 | `docs/AI_INTAKE.md` | Ollama/LangChain adaptive intake |
-| `docs/AUTH.md` | Web auth, registration, session management |
+| `docs/AUTH.md` | Web auth, registration, session management + the 9.2 session policy (fixation, idle/absolute expiry, logout revocation) |
 | `docs/AVAILABILITY.md` | Google Calendar vs local SQLite availability |
 | `docs/DATA_LAYER.md` | **Living doc** — full data inventory, TTL logic, known breaking points, operational runbook |
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
@@ -268,6 +268,8 @@ Any message / /start → SELECTING (main menu)
 | `ZF_AI_DEBUG_PROMPTS` | `0` | `1` = keep AI prompts/answers in `ai_calls` in the clear; dev and tests only (8.2) |
 | `ZF_METRICS_PROMETHEUS` | `0` | `1` = `/api/admin/metrics?format=prometheus` serves the text exposition format (8.4) |
 | `ZF_TRACING` | `0` | `1` = OpenTelemetry tracing, when the packages are installed (8.4) |
+| `ZF_SESSION_IDLE_MINUTES` | `720` | Idle minutes before a dashboard session ends (9.2) |
+| `ZF_SESSION_MAX_HOURS` | `168` | A dashboard session's absolute lifetime after sign-in (9.2) |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |
