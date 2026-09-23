@@ -221,6 +221,8 @@ must never see "could not deliver" because a log row failed. See `docs/MESSAGE_L
 | Unregistered user impersonates therapist | `THERAPIST_MAP` checked by `telegram_id`; unknown users get "not registered" |
 | Replay attack via old forwarded message IDs | Relay msg keys expire after 24h |
 | Patient sends to wrong therapist | `selected_therapist` is chosen before relay starts; can't be changed mid-session |
+| Patient floods the therapist with messages | Per-user flood control (`bot/services/flood.py`, `ZF_BOT_FLOOD_PER_MINUTE`, 9.5/ADR-40): over budget, `relay_to_therapist` replies "wait" and does not forward, staying in the relay |
+| Stranger brute-forces an activation code | The therapist bot throttles code-shaped messages per Telegram user before checking the code (same helper, `kind="activation"`) |
 
 ---
 
