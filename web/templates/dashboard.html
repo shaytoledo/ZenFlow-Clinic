@@ -212,7 +212,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 let _freeSlots = {};
 let _nameSearchTimer = null;
 let _selectedExistingPatient = null;

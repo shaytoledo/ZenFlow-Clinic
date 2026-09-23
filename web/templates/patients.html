@@ -68,7 +68,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const _ZF_PT = {
   status_active:    "{{ t['status_active'] if t else 'Active' }}",
   status_new:       "{{ t['status_new'] if t else 'New' }}",

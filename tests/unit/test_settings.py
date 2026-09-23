@@ -142,6 +142,7 @@ BOOL_FLAGS = [
     "WEBHOOK_MODE",
     "SSE_UPDATES",
     "POINT_IMAGES",
+    "CSP_ENFORCE",
 ]
 
 

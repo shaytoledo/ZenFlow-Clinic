@@ -146,7 +146,7 @@
 
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
   const _ZF_LANG = "{{ therapist.language if therapist and therapist.language else 'en' }}";
   const _ZF_NOTIF_STR = {
     empty:   "{{ t['notif_empty'] if t else 'No notifications.' }}",

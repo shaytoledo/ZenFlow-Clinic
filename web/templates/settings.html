@@ -182,7 +182,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const _ZF_SETTINGS_T = {
   copy_code:   "{{ t['settings_copy_code'] if t else 'Copy Code' }}",
   copied:      "{{ t['settings_copied'] if t else '✓ Copied!' }}",
@@ -214,7 +214,7 @@ const _ZF_SETTINGS_T = {
 .zf-status-label { font-weight: 600; color: #111827; }
 .zf-status-detail { font-size: 12px; color: #6B7280; margin-top: 1px; }
 </style>
-<script>
+<script nonce="{{ csp_nonce() }}">
 async function loadStatus() {
   const grid = document.getElementById('status-grid');
   try {

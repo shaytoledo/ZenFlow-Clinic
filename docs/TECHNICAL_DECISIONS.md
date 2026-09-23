@@ -1340,3 +1340,65 @@ frontend has roughly thirty `fetch(...)` call sites across many files plus three
 - A client that calls the dashboard API by cookie from outside a browser must now fetch `zf_csrf`
   first and echo it — the booking API with an API key is the supported non-browser path and is
   unaffected.
+
+## ADR-37: Security Headers and a Nonce-Based CSP, Report-Only First
+
+**Status:** Accepted (Phase 9.4, 2026-09-23)
+
+**Context.** The dashboard served HTML holding medical records with no content-security headers. A
+successfully injected `<script>` would run; the page could be framed for clickjacking; a declared
+content type could be sniffed and re-interpreted; and a full URL — patient ids live in paths — was
+sent as a referrer to any external site the page linked to. Phase 4.1 removed inline script from the
+*treatment* page precisely so a Content-Security-Policy could be adopted, but the other pages still
+carry inline `<script>` blocks, inline `on*=` handlers and inline `style=` attributes, and the app
+loads Google Fonts and FullCalendar from external origins.
+
+**Decision.**
+
+1. **Static headers enforce everywhere** (`web/csp.py:STATIC_HEADERS`): `X-Content-Type-Options:
+   nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and a
+   `Permissions-Policy` switching off features the app never uses (geolocation, camera, microphone,
+   payment, USB, sensors, FLoC). None of them depend on page content, so none can break existing
+   markup — they ship in dev too. HSTS stays gated to non-dev (ADR of 9.2), because it is real only
+   where HTTPS is.
+2. **A nonce-based Content-Security-Policy.** `script-src 'self' 'nonce-<per-request>'`: every
+   response mints one random nonce, the outermost middleware publishes it to the template layer (the
+   `csp_nonce()` Jinja global, backed by a `ContextVar`) and pins the same value into the header.
+   Inline `<script>` tags carry `nonce="…"`; an injected inline script cannot guess it. `default-src
+   'self'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`
+   close the common holes.
+3. **Report-only until the markup is clean.** `ZF_CSP_ENFORCE=0` (default) sends
+   `Content-Security-Policy-Report-Only`; `=1` sends the enforcing header. The nonce plumbing is real
+   in both modes, so the only work left to flip to enforce is removing the inline `on*=` handlers and
+   inline `style=` attributes that a strict policy would block — not new infrastructure. This is the
+   plan's "report-only first, then enforce".
+4. **`style-src` keeps `'unsafe-inline'` for now.** A nonce cannot cover an inline `style=`
+   *attribute* (only a `<style>` element), and the templates use many. Styles cannot execute script,
+   so this is a far smaller exposure than an inline-*script* allowance. Tracked as SF-016.
+5. **External origins are named, not blanket-allowed.** `style-src`/`font-src` list
+   `fonts.googleapis.com` + `fonts.gstatic.com`; the FullCalendar CDN CSS is allowed by host and its
+   JS tag carries the nonce (so the whole CDN host is not trusted for script). Self-hosting both
+   under `/static` would let us drop these — SF-016.
+
+**Options rejected:**
+
+- **Enforce immediately.** Would break every page with an inline handler or style attribute; the
+  plan explicitly calls for report-only first.
+- **`script-src 'unsafe-inline'`.** Defeats the entire point of a script CSP; a nonce is strictly
+  better and already wired.
+- **Hashing every inline script instead of a nonce.** Brittle — any edit to a script changes its
+  hash — and does nothing for the external CDN tag; a per-request nonce covers both.
+- **Passing the nonce through every `TemplateResponse` context.** A `ContextVar` + one Jinja global
+  keeps every render call untouched, the same reasoning as the CSRF fetch-wrapper (ADR-36).
+
+**Consequences.**
+
+- Every response carries the content headers and a CSP; a security test asserts the headers, the
+  policy shape, per-request freshness of the nonce, and that the header nonce is the one rendered
+  into the page (proving the plumbing end to end).
+- The remaining path to an enforcing policy is a template-cleanup task (inline handlers → delegated
+  `data-action` handlers as the treatment page already does; inline `style=` → classes), after which
+  `ZF_CSP_ENFORCE=1` needs no code change. Tracked as SF-016.
+- The nonce is minted in the outermost middleware before the request runs, so it is set before any
+  inner layer or endpoint renders a template, and cleared afterwards so it never leaks to the next
+  request.

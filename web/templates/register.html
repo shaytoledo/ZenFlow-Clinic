@@ -197,7 +197,7 @@
 </div>
 
 <script src="/static/js/csrf.js"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
