@@ -24,7 +24,7 @@ from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, ValidationError, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = ROOT / ".env"
@@ -124,10 +124,53 @@ class FeatureFlags(BaseSettings):
         return {name: getattr(self, name.lower()) for name in FLAG_NAMES}
 
 
+class _SecretsProviderSource(PydanticBaseSettingsSource):
+    """Lowest-precedence settings source (9.6): fills secret fields from the `SecretsProvider`.
+
+    The environment, `.env` and explicit init all rank above it, so `EnvSecrets` (the default)
+    changes nothing; a cloud provider (AWS Secrets Manager, Phase 12) supplies the secrets the
+    environment does not. It runs inside the source chain, so provider-supplied secrets are present
+    before the fail-fast validators fire. See zenflow/secrets.py and ADR-41.
+    """
+
+    def get_field_value(self, field: object, field_name: str) -> tuple[object, str, bool]:
+        # Unused: __call__ returns the whole mapping at once.
+        return None, field_name, False
+
+    def __call__(self) -> dict[str, object]:
+        from zenflow.secrets import SECRET_NAMES, get_secrets_provider
+
+        provider = get_secrets_provider()
+        out: dict[str, object] = {}
+        for name in SECRET_NAMES:
+            value = provider.get(name)
+            if value:
+                out[name.lower()] = value
+        return out
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore", case_sensitive=False
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        # Order = priority (first wins). The SecretsProvider is last, so the environment overrides it.
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+            _SecretsProviderSource(settings_cls),
+        )
 
     # ── runtime ──
     env: Env = "dev"
@@ -307,6 +350,9 @@ def get_settings() -> Settings:
 
 
 def reset_settings() -> None:
-    """Forget the cached settings (tests; config reload)."""
+    """Forget the cached settings and secrets provider (tests; config reload)."""
     global _settings
     _settings = None
+    from zenflow.secrets import reset_secrets_provider
+
+    reset_secrets_provider()

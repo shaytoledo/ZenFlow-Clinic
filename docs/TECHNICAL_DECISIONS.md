@@ -1540,3 +1540,53 @@ minute — as the web volume limits (ADR-39).
   three from ADR-39.
 - Tested against the bot handler fakes (`tests/bot/test_flood.py`): the service math, and each
   surface throttling a flood while a different user/kind keeps its own budget.
+
+## ADR-41: A `SecretsProvider` Seam Under Settings, Lowest Precedence
+
+**Status:** Accepted (Phase 9.6, 2026-09-23)
+
+**Context.** Secrets (`SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, bot tokens, `GOOGLE_CLIENT_SECRET`,
+the WhatsApp secrets…) are read by `zenflow.settings` from the environment and `.env`. Phase 0.5
+already keeps `TOKEN_ENCRYPTION_KEY` distinct from `SESSION_SECRET`, redacts secrets from logs, and
+`zenflow.rotate_token_key` re-encrypts stored Google tokens. Phase 9.6 adds the one missing piece:
+an abstraction so that in the cloud (Phase 12) secrets can come from a manager (AWS Secrets Manager)
+instead of the environment — without every call site changing.
+
+**Decision** (`zenflow/secrets.py`):
+
+1. **`SecretsProvider` ABC**, `get(name) -> str | None`, looked up by env-var name. `EnvSecrets`
+   (default) reads `os.environ`; `AwsSecretsManagerSecrets` (Phase 12) reads one JSON bundle from
+   Secrets Manager, boto3 imported lazily and the bundle cached.
+2. **Wired as the lowest-precedence pydantic settings source** (`settings_customise_sources` →
+   `_SecretsProviderSource`, after init/env/dotenv/file-secret). So an explicit env var or `.env`
+   entry always wins, the default provider is a **no-op** (nothing changes today), and a cloud
+   provider fills only the secrets the environment lacks.
+3. **Inside the source chain, not a post-load overlay.** Settings' fail-fast validators (a default
+   `SESSION_SECRET` outside dev is refused, `TOKEN_ENCRYPTION_KEY` must differ, HTTPS-only URLs)
+   run at construction; a provider-supplied secret must therefore be present *before* validation, so
+   the seam has to be a settings source, not a mutation after `Settings()` returns.
+4. **Selection reads the environment directly** (`ZF_CLOUD` + `AWS_SECRETS_ID`), not `get_settings()`
+   — the provider is consulted *while* settings are being built, so calling back would recurse. This
+   is a deliberate, documented exception to "read config through settings", like `bot/db.py`.
+5. **Never renders values.** A provider's `__repr__` shows only its class and non-secret config
+   (the AWS secret *id*), so a stray log line or traceback cannot leak a secret.
+
+**Options rejected:**
+
+- **A post-load overlay** (fill empty secret fields after `Settings()`). Breaks fail-fast: an
+  AWS-supplied `SESSION_SECRET` would be validated as the still-default value and rejected.
+- **Reading secrets through `get_settings()` inside the provider.** Recurses — the provider runs
+  during settings construction.
+- **Making the provider the *highest* precedence.** Would let a stale cloud secret silently override
+  an operator's explicit env var during an incident; env-wins is the least-surprising precedence,
+  and a cloud deployment simply does not set those env vars.
+
+**Consequences.**
+
+- The default path is byte-for-byte unchanged (the source returns the same env values it is then
+  overridden by), proven by the full suite staying green; the seam is exercised by a fake provider
+  in `tests/unit/test_secrets.py`.
+- Phase 12 implements nothing new here — it sets `ZF_CLOUD=1` + `AWS_SECRETS_ID`, populates the
+  Secrets Manager entry, and drops the secrets from the environment.
+- Token-key rotation is unchanged and documented in `docs/SECRETS.md`
+  (`python -m zenflow.rotate_token_key`).
