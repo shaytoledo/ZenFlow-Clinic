@@ -1,11 +1,14 @@
 """
 web/services/rate_limit.py
 ───────────────────────────
-A per-caller request budget for the booking API (Phase 7.3).
+A per-caller request budget, shared by every volume limit (Phase 7.3, extended in 9.5).
 
-A fixed one-minute window in Redis: cheap, good enough to keep one client from flooding the
-clinic's database, and honest about what it is. If Redis is unavailable the request is allowed —
-a monitoring outage must not stop the clinic taking bookings.
+A fixed one-minute window in Redis: cheap, good enough to keep one caller from flooding a shared
+resource, and honest about what it is. `hit(caller, per_minute)` counts one request under an
+opaque `caller` key and returns the seconds to wait when that caller is over budget. Callers today:
+the booking API (per API key / session), the AI diagnosis endpoints (per therapist) and the public
+sign-up form (per source IP). If Redis is unavailable the request is allowed — a monitoring outage
+must not stop the clinic working.
 """
 
 from __future__ import annotations
@@ -13,10 +16,21 @@ from __future__ import annotations
 import logging
 
 from zenflow import clock
+from zenflow.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
 WINDOW_SECONDS = 60
+
+
+def ai_per_minute() -> int:
+    """Diagnosis/point-generation requests a therapist may make per minute; 0 = no limit (9.5)."""
+    return int(get_settings().flags.ai_rate_per_minute)
+
+
+def signup_per_minute() -> int:
+    """Public sign-ups allowed per minute per source IP; 0 = no limit (9.5)."""
+    return int(get_settings().flags.signup_per_minute)
 
 
 def window_key(caller: str, minute: int) -> str:

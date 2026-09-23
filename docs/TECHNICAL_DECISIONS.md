@@ -1452,3 +1452,46 @@ Telegram side follow as their own changes.
   activation flood limits, AI-endpoint limits, and Telegram flood control are still open under 9.5.
 - The `login_guard` primitives (`locked_for` / `record_failure` / `record_success`, scope+key) are
   deliberately generic so those follow-ups reuse them.
+
+## ADR-39: Per-Minute Volume Limits on the AI Endpoints and Sign-Up
+
+**Status:** Accepted (Phase 9.5 part 2, 2026-09-23)
+
+**Context.** Two abuse surfaces remained after the sign-in lockout (ADR-38). An **authenticated**
+therapist could hammer `POST …/rediagnose` and `…/generate-points`, each of which makes synchronous
+Ollama calls, and pin the single shared model box — a denial of service against every therapist from
+one ordinary account. And the **public** `POST /register/signup` could be scripted to mass-create
+accounts. These are *volume* problems (too many requests), not *failure* problems (ADR-38's lockout),
+so they want a rate limit, not a lockout.
+
+**Decision.** Reuse the booking API's fixed-window limiter (`web/services/rate_limit.hit`, Phase
+7.3) rather than invent a second mechanism:
+
+1. **AI endpoints — per therapist.** `_exclusive_generation` (the one funnel both AI endpoints pass
+   through) calls `hit(f"ai:{therapist_id}", ai_per_minute())` right after authentication and
+   *before* the per-appointment lease or any model call. Over budget → `429` with `Retry-After`.
+   `ZF_AI_RATE_PER_MINUTE` default 20: a human clicking "regenerate" (which spends two hits —
+   rediagnose then generate-points) never notices, a script is throttled.
+2. **Sign-up — per source IP.** `hit(f"signup:{ip}", signup_per_minute())` at the top of
+   `register_signup`. `ZF_SIGNUP_PER_MINUTE` default 10. Over budget → `429` and the form re-renders
+   with a wait message.
+3. **Same fail-open stance** as the rest of the limiter: a Redis error allows the request. A DoS is
+   sustained and loud; a cache blip must not stop diagnoses or registrations.
+
+**Options rejected:**
+
+- **A lockout (ADR-38 style) for the AI endpoints.** Wrong model — a therapist legitimately
+  regenerating is not "failing"; a rolling per-minute budget fits volume abuse.
+- **A separate limiter implementation.** The fixed-window limiter already exists and is proven; a
+  second one is just more surface. The `caller` key is opaque, so `ai:{id}` and `signup:{ip}` slot
+  in with no change to the primitive.
+- **Rate-limiting inside the queued pipeline instead.** The DoS is on the *synchronous* web
+  endpoints that call Ollama directly; the queued jobs already serialize via the appointment lease.
+
+**Consequences.**
+
+- Part 2 of 9.5 done: the AI endpoints and sign-up are capped and tested (over-budget `429` +
+  `Retry-After`, and the disabled `0` path for both). Activation-code entry and Telegram-side flood
+  control (both bot-side) remain open under 9.5.
+- Three per-minute knobs now exist — `ZF_API_RATE_PER_MINUTE` (booking), `ZF_AI_RATE_PER_MINUTE`
+  (AI), `ZF_SIGNUP_PER_MINUTE` (sign-up) — all served by the one limiter.
