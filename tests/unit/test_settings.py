@@ -181,6 +181,11 @@ def test_ai_provider_falls_back_to_legacy_use_ai(env) -> None:
     assert env({"USE_AI": "anthropic", "ZF_AI_PROVIDER": "ollama"}).ai_provider == "ollama"
 
 
+def test_login_max_attempts_parses_both_off_and_on(env) -> None:
+    assert env({"ZF_LOGIN_MAX_ATTEMPTS": "0"}).flags.login_max_attempts == 0
+    assert env({"ZF_LOGIN_MAX_ATTEMPTS": "7"}).flags.login_max_attempts == 7
+
+
 def test_flags_snapshot_has_exactly_the_documented_flags(env) -> None:
     snap = env({}).flags.snapshot()
     assert set(snap) == set(S.FLAG_NAMES)

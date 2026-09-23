@@ -33,6 +33,7 @@ from web.gcal import (
     exchange_code,
     get_auth_url,
 )
+from web.services import login_guard
 from web.services.cache_service import prefetch_calendar, purge_calendar
 from web.services.email_service import google_reconnected
 
@@ -201,8 +202,8 @@ async def register_signin(request: Request):
     email = (form.get("email") or "").strip().lower()
     password = (form.get("password") or "").strip()
 
-    def _err(msg: str):
-        return templates.TemplateResponse(
+    def _err(msg: str, status: int = 200, retry_after: int | None = None):
+        resp = templates.TemplateResponse(
             "register.html",
             {
                 "request": request,
@@ -212,20 +213,39 @@ async def register_signin(request: Request):
                 "name": "",
                 "email": email,
             },
+            status_code=status,
         )
+        if retry_after is not None:
+            resp.headers["Retry-After"] = str(retry_after)
+        return resp
 
     if not email or not password:
         return _err("Email and password are required.")
+
+    # Brute-force lockout (9.5): refuse before touching the password if this account or the source
+    # IP has failed too many times in a row.
+    wait = await login_guard.check_locked(request, email)
+    if wait:
+        minutes = max(1, round(wait / 60))
+        return _err(
+            f"Too many sign-in attempts. Please wait about {minutes} minute(s) and try again.",
+            status=429,
+            retry_after=wait,
+        )
+
     therapist = _find_by_email(email)
-    if not therapist:
-        return _err("Invalid email or password.")
-    if not therapist.get("password_hash"):
+    # A Google-only account is a legitimate hint, not a failed password — do not count it.
+    if therapist and not therapist.get("password_hash"):
         return _err(
             "This account uses Google sign-in. Please click 'Continue with Google' instead."
         )
-    if not _verify_password(password, therapist["password_hash"]):
+    if not therapist or not _verify_password(password, therapist["password_hash"]):
+        await login_guard.on_failure(
+            request, email, account_id=(therapist["id"] if therapist else None)
+        )
         return _err("Invalid email or password.")
 
+    await login_guard.on_success(request, email)
     _set_session(request, therapist["id"])
     # Pre-warm the next 2 weeks of Google Calendar events so the schedule page
     # loads instantly. Fire-and-forget — never blocks the redirect.
