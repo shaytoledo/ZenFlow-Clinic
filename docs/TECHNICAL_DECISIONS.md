@@ -1285,3 +1285,58 @@ asked the browser to drop a cookie that still verified if a copy had been taken.
   a captured cookie.
 - `revoked_sessions` is new server-side state, but bounded and self-clearing.
 - The idle and absolute limits are flags, so a clinic can loosen or tighten them without a deploy.
+
+---
+
+## ADR-36: CSRF by Double-Submit Cookie, Keyed on the Authorization Header
+
+**Status:** Accepted (Phase 9.3, 2026-09-23)
+
+**Context.** The dashboard authenticates with an ambient session cookie and had no CSRF protection
+at all. A page on another origin could make a logged-in therapist's browser POST to any dashboard
+endpoint — cancel an appointment, send a message, change settings — and it would be accepted. The
+frontend has roughly thirty `fetch(...)` call sites across many files plus three server-rendered
+`<form>`s, so any solution that touched each call site would be large and easy to leave incomplete.
+
+**Decision.**
+
+1. **Double-submit cookie**, not synchroniser token. A random value is a readable cookie
+   (`zf_csrf`), and every unsafe request must echo it in the `X-CSRF-Token` header or a `csrf_token`
+   form field. No server-side per-session token store — consistent with the stateless-session
+   decision (ADR-35).
+2. **One fetch wrapper** (`static/js/csrf.js`, loaded on every page) attaches the header to all
+   same-origin unsafe `fetch` calls, so no existing call site changed and new ones are covered
+   automatically. The same script fills the hidden field of native forms.
+3. **A dependency, not middleware.** `csrf.protect` is a FastAPI dependency on each
+   cookie-authenticated router. This avoids the classic `BaseHTTPMiddleware` body-consumption bug:
+   the dependency shares the endpoint's own request, so reading a form field for the token does not
+   starve the endpoint of its body. The cookie is *set* in response middleware, which is body-safe.
+4. **The exemption keys on the `Authorization` header, not the path.** A request with an API key is
+   not driven by an ambient cookie, so it needs no token; a session-authenticated request does —
+   even to `/api/v1`, which accepts both. Keying on the path would have wrongly exempted a
+   session-authenticated booking call. The WhatsApp webhook (`/api/webhooks/*`, signature-authed,
+   cookieless) is the one path-based exemption.
+5. **SameSite=lax stays** (ADR-35): it is defence in depth for CSRF but cannot be the whole answer,
+   because the Google OAuth callback is a legitimate top-level cross-site GET; the token is what
+   actually authorises writes.
+
+**Options rejected:**
+
+- **SameSite=strict alone.** Breaks the OAuth callback, and a single cookie attribute is a fragile
+  sole defence (older browsers, top-level navigations).
+- **Editing every fetch call.** Large, and one missed call is a hole; the wrapper is one place.
+- **A body-reading ASGI/BaseHTTP middleware.** Either consumes the request body (breaking form and
+  JSON endpoints) or needs careful body-replay; the dependency avoids the problem entirely.
+- **A per-session synchroniser token in the DB.** Reintroduces server-side session state the
+  architecture deliberately avoids, for no extra security over double-submit here.
+
+**Consequences.**
+
+- Every unsafe, cookie-authenticated route is protected, and a walk-the-routes test fails if a new
+  one is added without the guard.
+- The frontend cost was one JS file and two `<script>` includes; the ~30 fetch sites and the
+  test suite's own POSTs are covered by wrappers (the test fixtures arm a default header, mirroring
+  a browser).
+- A client that calls the dashboard API by cookie from outside a browser must now fetch `zf_csrf`
+  first and echo it — the booking API with an API key is the supported non-browser path and is
+  unaffected.

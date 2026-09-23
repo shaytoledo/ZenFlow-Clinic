@@ -81,9 +81,13 @@ def email_page(make_therapist, make_appointment, make_patient, make_treatment_no
                 route.continue_() if route.request.url.startswith(base) else route.abort()
             ),
         )
+        # Playwright's APIRequestContext bypasses the browser DOM (and csrf.js), so it must
+        # fetch the CSRF cookie and submit the token as a field itself (9.3).
+        context.request.get(f"{base}/healthz")
+        csrf = next(c["value"] for c in context.cookies() if c["name"] == "zf_csrf")
         signin = context.request.post(
             f"{base}/register/signin",
-            form={"email": therapist["email"], "password": PW},
+            form={"email": therapist["email"], "password": PW, "csrf_token": csrf},
             max_redirects=0,
         )
         assert signin.status in (302, 303, 307), signin.status

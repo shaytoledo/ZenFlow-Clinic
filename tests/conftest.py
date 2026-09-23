@@ -117,6 +117,18 @@ def fake_redis(monkeypatch: pytest.MonkeyPatch) -> FakeRedisPair:
 
 
 # ── 4. Web client ────────────────────────────────────────────────────────────────────────────
+async def _arm_csrf(c: httpx.AsyncClient) -> None:
+    """Do what a browser does (9.3): fetch the CSRF cookie, then echo it on every unsafe request.
+
+    A default header is enough because the cookie is stable; the CSRF tests use their own bare
+    client to prove the guard actually refuses a request without it.
+    """
+    await c.get("/healthz")
+    token = c.cookies.get("zf_csrf")
+    if token:
+        c.headers["X-CSRF-Token"] = token
+
+
 @pytest.fixture
 async def client() -> AsyncIterator[httpx.AsyncClient]:
     from web.app import app
@@ -125,6 +137,7 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
     async with httpx.AsyncClient(
         transport=transport, base_url="http://testserver", follow_redirects=False
     ) as c:
+        await _arm_csrf(c)
         yield c
 
 
@@ -164,6 +177,7 @@ async def login_as():
             follow_redirects=False,
         )
         clients.append(c)
+        await _arm_csrf(c)
         resp = await c.post(
             "/register/signin",
             data={"email": therapist["email"], "password": therapist["password"]},
