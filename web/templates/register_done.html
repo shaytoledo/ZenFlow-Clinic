@@ -192,7 +192,7 @@
   {% endif %}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function copyCode() {
   const code = document.getElementById('code-text').textContent.trim();
   navigator.clipboard.writeText(code).then(() => {

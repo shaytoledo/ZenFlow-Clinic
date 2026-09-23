@@ -26,6 +26,13 @@ from zenflow import clock as _clock  # noqa: E402
 templates.env.filters["clinic_date"] = _clock.format_clinic
 templates.env.filters["clinic_datetime"] = lambda v: _clock.format_clinic(v, "%Y-%m-%d %H:%M")
 
+# The per-request CSP script nonce (9.4): templates write `nonce="{{ csp_nonce() }}"` on their inline
+# <script> tags so the browser runs them under `script-src 'self' 'nonce-…'`. The middleware sets
+# the value on the way in; here it is just exposed to every template.
+from web import csp as _csp  # noqa: E402
+
+templates.env.globals["csp_nonce"] = _csp.current_nonce
+
 # ── Auth / session helpers ─────────────────────────────────────────────────────
 
 _web_reg_lock = threading.Lock()

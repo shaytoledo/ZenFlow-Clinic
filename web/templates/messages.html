@@ -70,7 +70,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const _ZF_MSG_T = {
   no_active_relay:     "{{ t['messages_no_active_relay'] if t else 'No active relay sessions.' }}",
   select_patient:      "{{ t['messages_select_patient'] if t else 'Select a patient to view conversation' }}",

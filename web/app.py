@@ -24,7 +24,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from bot.config import SESSION_SECRET
-from web import csrf
+from web import csp, csrf
 from web.csrf import protect as csrf_protect
 from web.deps import require_signed_in
 from web.legacy_patient_ids import LegacyPatientIdMiddleware
@@ -151,14 +151,18 @@ def session_cookie_kwargs(is_dev: bool) -> dict:
 
 
 def security_headers(is_dev: bool) -> dict[str, str]:
-    """Transport headers (9.2). The content headers and CSP are plan 9.4.
+    """The static security headers (9.2 transport, 9.4 content).
 
-    HSTS is sent only where HTTPS is real: on a developer's http://localhost it would pin the
-    browser to https for a year and make local work impossible.
+    The content headers (`csp.STATIC_HEADERS`: nosniff, frame-options, referrer, permissions) cannot
+    break existing markup, so they enforce in every environment. HSTS is added only where HTTPS is
+    real: on a developer's http://localhost it would pin the browser to https for a year and make
+    local work impossible. The Content-Security-Policy carries a per-request nonce and so is set in
+    the middleware, not here.
     """
-    if is_dev:
-        return {}
-    return {"Strict-Transport-Security": "max-age=31536000; includeSubDomains"}
+    headers = dict(csp.STATIC_HEADERS)
+    if not is_dev:
+        headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return headers
 
 
 app.add_middleware(
@@ -203,11 +207,22 @@ _SECURITY_HEADERS = security_headers(get_settings().is_dev)
 
 @app.middleware("http")
 async def no_cache_static(request: Request, call_next):
-    response = await call_next(request)
+    # Mint the CSP script nonce BEFORE the request runs, so the templates it renders can read it
+    # (via the `csp_nonce()` Jinja global); the same value is pinned into the header below. This is
+    # the outermost middleware, so the nonce is set before any inner layer or endpoint runs.
+    nonce = csp.new_nonce()
+    try:
+        response = await call_next(request)
+    finally:
+        csp.reset()
     if request.url.path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-store"
     for name, value in _SECURITY_HEADERS.items():
         response.headers.setdefault(name, value)
+    # Report-only until the templates lose their inline handlers and style attributes (9.4).
+    response.headers.setdefault(
+        csp.header_name(enforce=get_settings().flags.csp_enforce), csp.policy(nonce)
+    )
     # Give a visitor a CSRF cookie to echo back on unsafe requests (9.3). Response side only — the
     # request body is untouched, so this stays a safe BaseHTTPMiddleware.
     csrf.ensure_cookie(request, response)

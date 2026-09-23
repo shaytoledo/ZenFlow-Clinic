@@ -53,7 +53,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const _ZF_SESSIONS_T = {
   loading:        "{{ t['dashboard_loading'] if t else 'Loading…' }}",
   error:          "{{ t['sessions_error'] if t and t.get('sessions_error') else 'Error loading sessions' }}",
