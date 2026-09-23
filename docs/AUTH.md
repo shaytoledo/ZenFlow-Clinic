@@ -362,3 +362,47 @@ No CORS middleware is installed, so a browser's default (refuse cross-origin rea
 responses) stands; cross-origin *writes* are the CSRF token's job (plan 9.3).
 
 Tests: `tests/security/test_session_policy.py`.
+
+---
+
+## CSRF protection (Phase 9.3)
+
+The dashboard authenticates with an ambient cookie, so before this a page on another origin could
+make a signed-in therapist's browser send a state-changing request and have it accepted. The
+**double-submit-cookie** pattern closes that (`web/csrf.py`).
+
+### The two copies
+
+A random token is set as a **readable** cookie, `zf_csrf` (not HttpOnly — same-origin script has to
+read it; SameSite=lax, Secure outside dev). Every unsafe request must echo that same value back:
+
+- **fetch / XHR** — the `X-CSRF-Token` header. `static/js/csrf.js` (loaded on every page) wraps
+  `window.fetch` once so the header rides along automatically on same-origin POST/PUT/PATCH/DELETE.
+  None of the ~30 existing `fetch(...)` call sites had to change, and new ones are covered for free.
+- **a native `<form>` post** — a hidden `csrf_token` field. The same script fills it from the cookie
+  on load and before submit, so the three server-rendered forms (sign in, sign up, Google
+  disconnect) carry the token.
+
+A cross-site page can cause the cookie to ride along but cannot **read** it (same-origin policy) to
+copy it into the header or field, and cannot run our script. So it cannot produce a matching token,
+and `secrets.compare_digest` refuses the request with **403**.
+
+### What is exempt, and why it is still safe
+
+`csrf.protect` is a dependency on every cookie-authenticated router. It returns early — no token
+needed — in exactly three cases:
+
+| Exempt | Why it is not a CSRF risk |
+|---|---|
+| GET / HEAD / OPTIONS | change nothing |
+| a request carrying `Authorization` | the booking API's key; a browser never attaches that header on its own, so the request was not driven by an ambient cookie |
+| `/api/webhooks/*` | no cookie at all — Meta signs the WhatsApp webhook |
+
+The check keys on the **`Authorization` header, not the path**, which is what makes it correct for
+`/api/v1`: that router accepts *either* an API key *or* a dashboard session, and a
+session-authenticated call to it needs the token like any other cookie request. A test pins both
+sides — an API-key booking POST passes without a token, a session booking POST is refused without
+one.
+
+`tests/security/test_csrf.py` includes a check that walks every route and fails if a new unsafe,
+cookie-authenticated `/api`, `/auth` or `/register` route is not behind the guard.

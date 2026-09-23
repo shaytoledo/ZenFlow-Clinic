@@ -24,6 +24,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from bot.config import SESSION_SECRET
+from web import csrf
+from web.csrf import protect as csrf_protect
 from web.deps import require_signed_in
 from web.legacy_patient_ids import LegacyPatientIdMiddleware
 from web.routers.api.acupoints import router as acupoints_router
@@ -206,18 +208,25 @@ async def no_cache_static(request: Request, call_next):
         response.headers["Cache-Control"] = "no-store"
     for name, value in _SECURITY_HEADERS.items():
         response.headers.setdefault(name, value)
+    # Give a visitor a CSRF cookie to echo back on unsafe requests (9.3). Response side only — the
+    # request body is untouched, so this stays a safe BaseHTTPMiddleware.
+    csrf.ensure_cookie(request, response)
     return response
 
 
 # ── Register routers ───────────────────────────────────────────────────────────
 app.include_router(pages_router)
-app.include_router(auth_router)
+# The auth router's form posts (sign in/up, Google disconnect) are cookie-authenticated; its GETs
+# are exempt because csrf.protect skips safe methods (9.3).
+app.include_router(auth_router, dependencies=[Depends(csrf_protect)])
 app.include_router(patients_router)
 app.include_router(media_router)  # /media/* — signed-in only (router dependency)
 
 # Every /api/* router requires a session at ROUTER level so the check runs before body
-# validation (SF-005 / F11). Endpoints add object-level checks on top (F6).
-_API_AUTH = [Depends(require_signed_in)]
+# validation (SF-005 / F11). `csrf.protect` (9.3) sits beside it and skips safe methods and
+# API-key requests itself, so it is safe on every cookie-authenticated router. Endpoints add
+# object-level checks on top (F6).
+_API_AUTH = [Depends(require_signed_in), Depends(csrf_protect)]
 app.include_router(apts_router, dependencies=_API_AUTH)
 app.include_router(treatment_router, dependencies=_API_AUTH)
 app.include_router(avail_router, dependencies=_API_AUTH)
@@ -226,9 +235,12 @@ app.include_router(system_router, dependencies=_API_AUTH)
 app.include_router(notifications_router, dependencies=_API_AUTH)
 app.include_router(admin_router, dependencies=_API_AUTH)
 app.include_router(acupoints_router, dependencies=_API_AUTH)
-# The booking API authenticates per request (API key or session) — see web/routers/api/v1.py.
-app.include_router(v1_router)
-# WhatsApp's webhook verifies Meta's signature itself; it answers 404 while the channel is off.
+# The booking API authenticates per request (API key or session). `csrf.protect` skips the API-key
+# path (an Authorization header is never forged by a browser) and guards a session-authenticated
+# call — see web/routers/api/v1.py and web/csrf.py.
+app.include_router(v1_router, dependencies=[Depends(csrf_protect)])
+# WhatsApp's webhook verifies Meta's signature itself; it answers 404 while the channel is off, and
+# csrf.protect exempts /api/webhooks/ (no cookie to forge).
 app.include_router(whatsapp_router)
 
 
