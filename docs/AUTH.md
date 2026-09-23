@@ -442,5 +442,11 @@ message — the password is never checked while locked. A **correct** password c
 Tested in `tests/security/test_login_guard.py` (the cooldown math, the endpoint `429`/`Retry-After`,
 per-IP vs per-account, the owner notification, and the disabled path).
 
-> Still open under 9.5: signup/activation flood limits, AI-endpoint rate limits, and Telegram-side
-> flood control. The `login_guard` primitives are generic (scope + key) so those reuse them.
+**Volume limits (9.5 part 2, ADR-39).** Two more surfaces are capped per minute by the booking
+API's fixed-window limiter (`web/services/rate_limit.hit`): the synchronous AI endpoints
+(`rediagnose` / `generate-points`) per therapist (`ZF_AI_RATE_PER_MINUTE`, default 20, to protect
+the shared Ollama box) and `POST /register/signup` per source IP (`ZF_SIGNUP_PER_MINUTE`, default
+10). Over budget returns `429` + `Retry-After`, checked before any model call or account creation.
+Tested in `tests/security/test_abuse_limits.py`.
+
+> Still open under 9.5: activation-code entry and Telegram-side flood control (both bot-side).

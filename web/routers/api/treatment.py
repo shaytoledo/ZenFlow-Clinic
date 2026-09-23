@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from bot.interfaces import get_channel
 from web.deps import require_active_therapist, require_appointment_access
-from web.services import ai_calls, treatment_service
+from web.services import ai_calls, rate_limit, treatment_service
 from zenflow import clock, leases
 
 router = APIRouter(prefix="/api/treatment-notes")
@@ -184,6 +184,15 @@ async def _exclusive_generation(
     from bot.services.pipeline_jobs import lock_name
 
     therapist = _require_auth(request)
+    # Per-therapist AI budget (9.5): refuse before touching the lease or the model so one account
+    # cannot pin the shared Ollama box by hammering regenerate.
+    retry_after = await rate_limit.hit(f"ai:{therapist['id']}", rate_limit.ai_per_minute())
+    if retry_after:
+        return JSONResponse(
+            {"detail": "Too many AI requests — please wait a moment.", "retry_after": retry_after},
+            status_code=429,
+            headers={"Retry-After": str(retry_after)},
+        )
     apt_id = await _resolve_apt_id(patient_id, apt_date, apt_time, therapist["id"])
     notes = await asyncio.to_thread(treatment_service.get_notes, apt_id)
     status = str((notes or {}).get("points_status") or "")

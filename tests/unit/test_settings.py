@@ -186,6 +186,13 @@ def test_login_max_attempts_parses_both_off_and_on(env) -> None:
     assert env({"ZF_LOGIN_MAX_ATTEMPTS": "7"}).flags.login_max_attempts == 7
 
 
+def test_ai_and_signup_rate_flags_parse(env) -> None:
+    assert env({"ZF_AI_RATE_PER_MINUTE": "0"}).flags.ai_rate_per_minute == 0
+    assert env({"ZF_AI_RATE_PER_MINUTE": "30"}).flags.ai_rate_per_minute == 30
+    assert env({"ZF_SIGNUP_PER_MINUTE": "0"}).flags.signup_per_minute == 0
+    assert env({"ZF_SIGNUP_PER_MINUTE": "4"}).flags.signup_per_minute == 4
+
+
 def test_flags_snapshot_has_exactly_the_documented_flags(env) -> None:
     snap = env({}).flags.snapshot()
     assert set(snap) == set(S.FLAG_NAMES)

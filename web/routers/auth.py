@@ -33,7 +33,7 @@ from web.gcal import (
     exchange_code,
     get_auth_url,
 )
-from web.services import login_guard
+from web.services import login_guard, rate_limit
 from web.services.cache_service import prefetch_calendar, purge_calendar
 from web.services.email_service import google_reconnected
 
@@ -169,8 +169,8 @@ async def register_signup(request: Request):
     email = (form.get("email") or "").strip().lower()
     password = (form.get("password") or "").strip()
 
-    def _err(msg: str):
-        return templates.TemplateResponse(
+    def _err(msg: str, status: int = 200, retry_after: int | None = None):
+        resp = templates.TemplateResponse(
             "register.html",
             {
                 "request": request,
@@ -180,6 +180,22 @@ async def register_signup(request: Request):
                 "name": name,
                 "email": email,
             },
+            status_code=status,
+        )
+        if retry_after is not None:
+            resp.headers["Retry-After"] = str(retry_after)
+        return resp
+
+    # Per-IP flood limit (9.5): stop a script mass-creating accounts from one address.
+    wait = await rate_limit.hit(
+        f"signup:{login_guard.client_ip(request)}", rate_limit.signup_per_minute()
+    )
+    if wait:
+        minutes = max(1, round(wait / 60))
+        return _err(
+            f"Too many sign-up attempts. Please wait about {minutes} minute(s) and try again.",
+            status=429,
+            retry_after=wait,
         )
 
     if not name:

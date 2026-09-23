@@ -274,6 +274,8 @@ Any message / /start → SELECTING (main menu)
 | `ZF_SESSION_MAX_HOURS` | `168` | A dashboard session's absolute lifetime after sign-in (9.2) |
 | `ZF_CSP_ENFORCE` | `0` | `1` = send the Content-Security-Policy as enforcing; `0` = report-only (9.4, SF-016) |
 | `ZF_LOGIN_MAX_ATTEMPTS` | `5` | Consecutive failed sign-ins before the account + source IP are locked for a growing cooldown (9.5); `0` = off |
+| `ZF_AI_RATE_PER_MINUTE` | `20` | AI diagnosis/point-generation requests per therapist per minute before the endpoints 429 (9.5); `0` = off |
+| `ZF_SIGNUP_PER_MINUTE` | `10` | Public sign-ups per minute per source IP before 429 (9.5); `0` = off |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |

@@ -56,6 +56,8 @@ FLAG_NAMES: tuple[str, ...] = (
     "SESSION_MAX_HOURS",
     "CSP_ENFORCE",
     "LOGIN_MAX_ATTEMPTS",
+    "AI_RATE_PER_MINUTE",
+    "SIGNUP_PER_MINUTE",
 )
 
 
@@ -101,6 +103,11 @@ class FeatureFlags(BaseSettings):
     # ZF_LOGIN_MAX_ATTEMPTS — consecutive failed sign-ins before the account and source IP are
     # locked for a growing cooldown (9.5). 0 = no lockout.
     login_max_attempts: int = 5
+    # ZF_AI_RATE_PER_MINUTE — diagnosis/point-generation requests a therapist may make per minute
+    # before the AI endpoints refuse (protects the shared Ollama box, 9.5). 0 = no limit.
+    ai_rate_per_minute: int = 20
+    # ZF_SIGNUP_PER_MINUTE — public sign-ups allowed per minute per source IP (9.5). 0 = no limit.
+    signup_per_minute: int = 10
 
     @field_validator("ai_provider", mode="before")
     @classmethod
