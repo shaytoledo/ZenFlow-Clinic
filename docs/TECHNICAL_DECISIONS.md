@@ -1231,3 +1231,57 @@ deliveries.
 - A deployment gets a real readiness gate, and `docs/METRICS.md` states what "ready" means.
 - The AI and message tables now have a consumer, which is what makes them worth keeping.
 - Phase 12 can turn on tracing and scraping with flags rather than code.
+
+---
+
+## ADR-35: A Signed-Cookie Session, Made to Begin Clean, Expire, and Be Revocable
+
+**Status:** Accepted (Phase 9.2, 2026-09-23)
+
+**Context.** The dashboard session is a Starlette signed cookie: no server-side store, which is why
+the app restarts and scales without shared state. Phase 0.5 hardened the cookie's *flags*
+(HttpOnly, SameSite, Secure outside dev). Three things a stateless cookie does not give for free
+were still missing, and each is a real risk for a system showing medical records on a screen in a
+treatment room: a signed-in session inherited whatever an anonymous visitor's cookie held (fixation
+and a caller-chosen session id); a session never expired while the cookie lasted; and logout only
+asked the browser to drop a cookie that still verified if a copy had been taken.
+
+**Decision.**
+
+1. **One module, one application point.** `web/session_policy.py` owns beginning, living and
+   ending; `_get_session_therapist` in `web/deps.py` applies it, so every authenticated path —
+   pages, `/api`, `/readyz`'s detail — gets the same policy without each route remembering to.
+2. **Begin clean.** `start()` clears the session before writing the therapist id, a server-chosen
+   random `sid`, and timestamps. A caller cannot fixate a session or choose its id.
+3. **Two expiries, checked per request.** Idle (`ZF_SESSION_IDLE_MINUTES`, 12 h) and absolute
+   (`ZF_SESSION_MAX_HOURS`, 7 days). The cookie's `max_age` tracks the absolute limit so browser and
+   server agree. `seen_at` is rewritten at most once a minute to avoid a `Set-Cookie` per response.
+4. **Revocation despite statelessness.** Logout writes the `sid` to `revoked_sessions` and every
+   request checks it — the one small piece of server-side state, kept only until the session would
+   have expired anyway and pruned after. A stolen pre-logout cookie is refused.
+5. **Backward compatible.** A cookie from before 9.2 has no stamps; it is adopted as if it began
+   now, so shipping the policy signs nobody out.
+6. **Transport.** HSTS outside dev only; no CORS middleware, keeping the browser's deny-by-default.
+
+**Options rejected:**
+
+- **A server-side session store (Redis/DB) for everything.** It would make revocation and expiry
+  trivial but throw away the statelessness that lets the app scale and survive restarts; the plan
+  keeps sessions stateless deliberately (Phase 12). The denylist is the minimum server state that
+  buys real logout.
+- **SameSite=strict.** Google's OAuth callback is a top-level cross-site GET back to the app;
+  `strict` would arrive without the session and break sign-in. Cross-site writes are stopped by the
+  CSRF token (9.3), not the cookie flag.
+- **Shortening the cookie `max_age` alone.** The browser forgetting the cookie is not the server
+  refusing it: a copied cookie outlives the browser's own expiry. Server-checked timestamps and the
+  denylist are what actually end a session.
+- **A background sweeper for `revoked_sessions`.** Unnecessary: the table is bounded by "signed out
+  within the absolute window", and `prune()` runs cheaply; a scheduled sweep can come with the rest
+  of the retention work (9.9).
+
+**Consequences.**
+
+- A session ends when it should: idle, aged out, or signed out — and the last one holds even against
+  a captured cookie.
+- `revoked_sessions` is new server-side state, but bounded and self-clearing.
+- The idle and absolute limits are flags, so a clinic can loosen or tighten them without a deploy.

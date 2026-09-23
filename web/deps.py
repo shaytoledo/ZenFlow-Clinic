@@ -91,6 +91,12 @@ def _active_therapist_or_redirect(request: Request):
 
 
 def _get_session_therapist(request: Request) -> dict | None:
+    """The signed-in therapist — and the one place the session policy is applied (9.2):
+    an idle, expired or signed-out session is cleared here and reads as nobody."""
+    from web import session_policy
+
+    if not session_policy.is_usable(request.session):
+        return None
     tid = _get_session_therapist_id(request)
     if not tid:
         return None
@@ -98,7 +104,10 @@ def _get_session_therapist(request: Request) -> dict | None:
 
 
 def _set_session(request: Request, therapist_id: str) -> None:
-    request.session["therapist_id"] = therapist_id
+    """Sign in: a brand-new session (plan 9.2, `web/session_policy.py`)."""
+    from web import session_policy
+
+    session_policy.start(request.session, therapist_id)
 
 
 def _find_by_email(email: str) -> dict | None:

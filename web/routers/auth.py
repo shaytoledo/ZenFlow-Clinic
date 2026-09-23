@@ -327,9 +327,13 @@ async def register_done(request: Request, code: str = ""):
 
 @router.get("/logout")
 async def logout(request: Request):
+    from web import session_policy
+
     tid = request.session.get("therapist_id")
     if tid:
         # Purge this therapist's calendar cache on logout
         asyncio.create_task(purge_calendar(tid))
-    request.session.clear()
+    # Clears the cookie *and* remembers the session id: a copy taken earlier still verifies
+    # (9.2, SF-016).
+    session_policy.revoke(request.session)
     return RedirectResponse("/register", status_code=303)

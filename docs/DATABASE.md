@@ -295,6 +295,24 @@ CREATE TABLE IF NOT EXISTS api_idempotency (
 
 ---
 
+### Table: `revoked_sessions` (Phase 9.2)
+
+```sql
+CREATE TABLE IF NOT EXISTS revoked_sessions (
+    sid        TEXT PRIMARY KEY,   -- the session id inside the signed cookie
+    revoked_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL       -- when this session would have expired anyway
+);
+-- index: (expires_at) for the prune sweep
+```
+
+A signed cookie cannot be recalled — a copy taken before logout still verifies — so signing out
+writes the session's `sid` here and every authenticated request checks it (`web/session_policy.py`).
+The row is kept only until the session's own absolute limit passes; `prune()` deletes the rest, so
+the table stays the size of "sessions signed out this week". Details: `docs/AUTH.md`.
+
+---
+
 ### Tables: `patients`, `patient_channels` (Phase 7.2)
 
 ```sql
