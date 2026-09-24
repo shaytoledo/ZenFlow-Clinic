@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from bot.config import GOOGLE_CLIENT_ID
 from bot.services.followup_jobs import resume_after_google_connected
 from web.deps import (
+    _OAUTH_STATE_KEY,
     _active_therapist_or_redirect,
     _find_by_email,
     _get_patient_bot_username,
@@ -25,6 +26,7 @@ from web.deps import (
     _make_reg_flow,
     _register_web_therapist,
     _set_session,
+    _verify_oauth_state,
     _verify_password,
     templates,
 )
@@ -92,7 +94,9 @@ async def auth_login(request: Request, next: str = ""):  # noqa: A002 - the quer
         request.session[_NEXT_KEY] = target
     else:
         request.session.pop(_NEXT_KEY, None)
-    return RedirectResponse(get_auth_url())
+    url, state = get_auth_url()
+    request.session[_OAUTH_STATE_KEY] = state  # verified on the callback (A12)
+    return RedirectResponse(url)
 
 
 @router.post("/auth/disconnect")
@@ -107,14 +111,21 @@ async def auth_disconnect(request: Request):
 
 
 @router.get("/auth/callback")
-async def auth_callback(request: Request, code: str = "", error: str = ""):
+async def auth_callback(request: Request, code: str = "", error: str = "", state: str = ""):
     target = _safe_next(request.session.pop(_NEXT_KEY, ""))
     if request.session.pop("reg_google", False):
-        return await _handle_reg_google(request, code, error)
+        return await _handle_reg_google(request, code, error, state)
     if error or not code:
+        request.session.pop(_OAUTH_STATE_KEY, None)
         if target:
             return RedirectResponse(_with_param(target, "google", "cancelled"))
         return RedirectResponse("/settings?error=Google+auth+cancelled")
+    # OAuth CSRF (A12): the code is only trusted if its state matches this session's.
+    if not _verify_oauth_state(request, state):
+        logger.warning("OAuth callback rejected: state mismatch")
+        if target:
+            return RedirectResponse(_with_param(target, "google", "error"))
+        return RedirectResponse("/settings?error=Google+auth+failed")
     try:
         therapist = _get_session_therapist(request)
         if not therapist:
@@ -300,13 +311,16 @@ async def register_google(request: Request):
         return RedirectResponse("/register?error=Google+sign-in+is+not+configured")
     request.session["reg_google"] = True
     flow = _make_reg_flow()
-    url, _ = flow.authorization_url(prompt="select_account", access_type="offline")
+    url, state = flow.authorization_url(prompt="select_account", access_type="offline")
+    request.session[_OAUTH_STATE_KEY] = str(state)  # verified on the callback (A12)
     return RedirectResponse(url)
 
 
 @router.get("/register/google/callback")
-async def register_google_callback(request: Request, code: str = "", error: str = ""):
-    return await _handle_reg_google(request, code, error)
+async def register_google_callback(
+    request: Request, code: str = "", error: str = "", state: str = ""
+):
+    return await _handle_reg_google(request, code, error, state)
 
 
 @router.get("/register/done", response_class=HTMLResponse)

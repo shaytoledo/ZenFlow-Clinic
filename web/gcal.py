@@ -173,12 +173,15 @@ def _migrate_legacy_file(therapist_id: str) -> bool:
 # ── Public OAuth helpers ───────────────────────────────────────────────────────
 
 
-def get_auth_url() -> str:
-    """Return the Google consent URL (Calendar + Gmail scopes, offline access)."""
+def get_auth_url() -> tuple[str, str]:
+    """Return `(consent_url, state)` for Google (Calendar + Gmail, offline access).
+
+    The caller must stash `state` in the session and check it on the callback (OAuth CSRF, A12).
+    """
     flow = _make_flow()
-    url, _ = flow.authorization_url(prompt="consent", access_type="offline")
+    url, state = flow.authorization_url(prompt="consent", access_type="offline")
     logger.info(f"[OAuth] redirect_uri → {GOOGLE_REDIRECT_URI}")
-    return url
+    return url, str(state)
 
 
 def exchange_code(code: str, therapist_id: str) -> None:

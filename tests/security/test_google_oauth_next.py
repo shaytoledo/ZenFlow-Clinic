@@ -18,6 +18,7 @@ pytestmark = pytest.mark.security
 
 PW = "pw-Test-123"
 PAGE = "/treatment/5/2026-03-02/10-00"
+STATE = "test-oauth-state"  # the mocked get_auth_url returns this; the callback must echo it (A12)
 
 
 @pytest.fixture
@@ -29,7 +30,9 @@ async def google_client(make_therapist, login_as, monkeypatch):
 
     exchanged: list[tuple[str, str]] = []
     monkeypatch.setattr(auth, "GOOGLE_CLIENT_ID", "client-id")
-    monkeypatch.setattr(auth, "get_auth_url", lambda: "https://accounts.google.com/o/oauth2/auth")
+    monkeypatch.setattr(
+        auth, "get_auth_url", lambda: ("https://accounts.google.com/o/oauth2/auth", STATE)
+    )
     monkeypatch.setattr(auth, "exchange_code", lambda code, tid: exchanged.append((code, tid)))
     monkeypatch.setattr(auth, "prefetch_calendar", _no_prefetch)
     therapist = make_therapist(email="oauth@example.com", password=PW)
@@ -44,7 +47,7 @@ async def _round_trip(client: Any, next_value: str | None, callback: str = "code
     start = await client.get("/auth/login", params=params)
     assert start.status_code in (302, 307)
     assert start.headers["location"].startswith("https://accounts.google.com/")
-    done = await client.get(f"/auth/callback?{callback}")
+    done = await client.get(f"/auth/callback?{callback}&state={STATE}")
     assert done.status_code in (302, 307), done.text
     return str(done.headers["location"])
 
@@ -61,7 +64,8 @@ async def test_cancelling_returns_to_the_page_too(google_client) -> None:
 
 async def test_the_return_path_is_used_once(google_client) -> None:
     await _round_trip(google_client, PAGE)
-    again = await google_client.get("/auth/callback?code=def")
+    await google_client.get("/auth/login")  # a fresh flow (no next) re-arms the state
+    again = await google_client.get(f"/auth/callback?code=def&state={STATE}")
     assert again.headers["location"] == "/settings?connected=1"
 
 

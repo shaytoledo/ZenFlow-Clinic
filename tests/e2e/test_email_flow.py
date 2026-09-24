@@ -167,7 +167,11 @@ def test_connecting_google_restores_the_send(browser, live_server, email_page, m
 
     fake = FakeGmail()
     monkeypatch.setattr(gcal, "get_gmail_service", lambda _tid: fake)
-    monkeypatch.setattr(auth, "get_auth_url", lambda: f"{live_server}/auth/callback?code=abc")
+    monkeypatch.setattr(
+        auth,
+        "get_auth_url",
+        lambda: (f"{live_server}/auth/callback?code=abc&state=e2e-st8", "e2e-st8"),
+    )
     monkeypatch.setattr(auth, "exchange_code", lambda code, tid: _connect(tid))
     page, s = email_page(browser, live_server)
     try:
@@ -207,7 +211,9 @@ def test_cancelling_google_keeps_the_explanation(
     import web.routers.auth as auth
 
     monkeypatch.setattr(
-        auth, "get_auth_url", lambda: f"{live_server}/auth/callback?error=access_denied"
+        auth,
+        "get_auth_url",
+        lambda: (f"{live_server}/auth/callback?error=access_denied&state=e2e-st8", "e2e-st8"),
     )
     page, _ = email_page(browser, live_server)
     try:

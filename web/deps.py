@@ -352,12 +352,31 @@ def _make_reg_flow():
     return Flow.from_client_config(config, scopes=_REG_SCOPES, redirect_uri=_REDIR)
 
 
-async def _handle_reg_google(request: Request, code: str, error: str = ""):
+_OAUTH_STATE_KEY = "oauth_state"
+
+
+def _verify_oauth_state(request: Request, state: str) -> bool:
+    """True iff `state` matches the value stashed when the OAuth flow began (OAuth CSRF, A12).
+
+    The stored value is popped so a state cannot be replayed; `secrets.compare_digest` avoids a
+    timing side channel. Shared by the Calendar callback (`web/routers/auth.py`) and the Google
+    registration callback below.
+    """
+    expected = request.session.pop(_OAUTH_STATE_KEY, "")
+    return bool(expected) and bool(state) and secrets.compare_digest(str(state), str(expected))
+
+
+async def _handle_reg_google(request: Request, code: str, error: str = "", state: str = ""):
     """Handle Google OAuth callback for registration/sign-in."""
     from fastapi.responses import RedirectResponse
 
     if error or not code:
+        request.session.pop(_OAUTH_STATE_KEY, None)
         return RedirectResponse("/register?error=Google+sign-in+was+cancelled")
+    # OAuth CSRF (A12): only trust the code if its state matches this session's.
+    if not _verify_oauth_state(request, state):
+        logger.warning("Google registration callback rejected: state mismatch")
+        return RedirectResponse("/register?error=Google+sign-in+failed")
     try:
         from googleapiclient.discovery import build as _build
 
