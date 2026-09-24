@@ -1,0 +1,24 @@
+# Dependabot — automated dependency-update PRs (Phase 9.10).
+# Watches the pinned requirements and the GitHub Actions used by CI, and opens a PR when a newer
+# (or security-fixed) version is available. Grouped weekly to keep the noise down.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      python-deps:
+        patterns: ["*"]
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "ci"
