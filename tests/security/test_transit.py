@@ -77,7 +77,7 @@ _PROD = {
     "SESSION_SECRET": "s" * 48,
     "TOKEN_ENCRYPTION_KEY": "k" * 48,
     "OLLAMA_HOST": "https://ollama.internal.example",
-    "REDIS_URL": "rediss://redis.internal.example:6380/0",
+    "REDIS_URL": "rediss://:redis-secret@redis.internal.example:6380/0",
     "GOOGLE_REDIRECT_URI": "https://clinic.example/auth/callback",
     "GOOGLE_REG_REDIRECT_URI": "https://clinic.example/register/google/callback",
     "GOOGLE_GMAIL_REDIRECT_URI": "https://clinic.example/auth/gmail/callback",
@@ -102,4 +102,23 @@ def test_prod_refuses_plain_redis_to_a_non_local_host(monkeypatch) -> None:
 def test_prod_accepts_tls_everywhere(monkeypatch) -> None:
     settings = _build(monkeypatch)  # the all-TLS _PROD base boots cleanly
     assert settings.redis_url.startswith("rediss://")
+    S.reset_settings()
+
+
+# ── Redis AUTH (A9): TLS is not enough — a remote Redis holds clinical data ──
+def test_prod_refuses_a_non_local_redis_without_auth(monkeypatch) -> None:
+    with pytest.raises(S.SettingsError, match="REDIS_URL"):
+        _build(monkeypatch, REDIS_URL="rediss://redis.internal.example:6380/0")  # TLS but no AUTH
+    S.reset_settings()
+
+
+def test_prod_accepts_a_non_local_redis_with_auth(monkeypatch) -> None:
+    settings = _build(monkeypatch, REDIS_URL="rediss://:s3cret@redis.internal.example:6380/0")
+    assert settings.redis_url.startswith("rediss://")
+    S.reset_settings()
+
+
+def test_local_redis_needs_no_auth(monkeypatch) -> None:
+    settings = _build(monkeypatch, REDIS_URL="redis://localhost:6379/0", ENV="dev")
+    assert settings.redis_url.startswith("redis://")
     S.reset_settings()

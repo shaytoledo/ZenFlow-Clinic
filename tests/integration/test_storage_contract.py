@@ -167,7 +167,7 @@ def test_a_custom_endpoint_must_use_https_outside_dev(
         "SESSION_SECRET": "s" * 40,
         "TOKEN_ENCRYPTION_KEY": "t" * 40,
         "OLLAMA_HOST": "https://ollama.example.com",
-        "REDIS_URL": "rediss://redis.example.com:6380/0",
+        "REDIS_URL": "rediss://:redis-secret@redis.example.com:6380/0",
         "GOOGLE_REDIRECT_URI": "https://app.example.com/auth/callback",
         "GOOGLE_REG_REDIRECT_URI": "https://app.example.com/register/google/callback",
         "GOOGLE_GMAIL_REDIRECT_URI": "https://app.example.com/auth/gmail/callback",

@@ -18,7 +18,7 @@ PROD_BASE = {
     "SESSION_SECRET": GOOD_SECRET,
     "TOKEN_ENCRYPTION_KEY": GOOD_KEY,
     "OLLAMA_HOST": "https://ollama.internal.example",
-    "REDIS_URL": "rediss://redis.internal.example:6380/0",
+    "REDIS_URL": "rediss://:redis-secret@redis.internal.example:6380/0",
     "GOOGLE_REDIRECT_URI": "https://clinic.example/auth/callback",
     "GOOGLE_REG_REDIRECT_URI": "https://clinic.example/register/google/callback",
     "GOOGLE_GMAIL_REDIRECT_URI": "https://clinic.example/auth/gmail/callback",

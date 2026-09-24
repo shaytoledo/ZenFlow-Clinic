@@ -72,7 +72,7 @@ Each row is (or becomes) a test in `tests/security/`. **Covered** = a regression
 | **A6** | Telegram relay cross-tenant: reply to a recycled/guessed message id (F4) | rogue tenant | **Covered** — `test_relay_isolation.py`; mapping stores `therapist_id`, 24h expiry |
 | **A7** | Registration-code brute force (8 chars) | malicious patient | **Covered** — per-user flood on code entry (9.5, `test_abuse_limits.py`); search-space `[A-Z0-9]{8}` ≈ 2.8×10¹² + single-use code (see below) |
 | **A8** | Prompt injection through intake → poisoned/oversized diagnosis, JSON breakout (9.8) | malicious patient | **Covered** — `test_llm_injection.py`; output bounds (ADR-42) |
-| **A9** | Redis reachable without auth → read relay history, forge mappings, flush the "already sent" guard | network | **Deployment** — `rediss://` + AUTH required for non-local Redis (9.11 settings); on a private box Redis is localhost-only. Follow-up: an explicit unauth-Redis test |
+| **A9** | Redis reachable without auth → read relay history, forge mappings, flush the "already sent" guard | network | **Covered** — settings refuse a non-local `REDIS_URL` that lacks TLS **or** a password/AUTH (`test_transit.py`); on a private box Redis is localhost-only (exempt) |
 | **A10** | SQLite file perms / path traversal / world-readable WAL | host insider | Path traversal **Covered** (`storage.check_key` + `is_relative_to`); **Deployment** — file permissions are an OS/host control (Phase 12) |
 | **A11** | Resource exhaustion: unbounded intake → Ollama pinned; concurrent regenerate; poller amplification | malicious patient / tenant | **Covered** — AI per-therapist rate limit + input caps (`test_abuse_limits.py`, `test_input_limits.py`); regenerate serialised by the per-appointment lease |
 | **A12** | OAuth: open redirect on `redirect_uri`, missing state, scope creep, token replay after disconnect | network | **Covered** — `state` is now generated and verified on both callbacks (SF-018, `test_oauth_state.py`); the `next` redirect target is validated (`test_google_oauth_next.py`); `redirect_uri` is a fixed server value; disconnect deletes the token |
@@ -87,12 +87,11 @@ against a 2.8-trillion space with a short-lived, one-shot target — **not feasi
 enumeration is bounded by the same flood limit. (A distributed attacker across many Telegram accounts
 is possible in theory but costly; a shorter code TTL would tighten it further — noted for the owner.)
 
-## Follow-ups (a later 10.2 pass)
+## Follow-ups (a later pass)
 
-- **A9** — an explicit test that non-local Redis without AUTH is refused / a `requirepass` check.
 - **A10** — document/enforce the DB file mode (`0600`) in the deployment runbook (Phase 12).
 
-_(A12 — OAuth `state` verification — closed 2026-09-24, SF-018.)_
+_(A9 — non-local Redis TLS+AUTH — and A12 — OAuth `state` verification (SF-018) — closed 2026-09-24.)_
 
 Run everything: `python tasks.py security` (bandit at HIGH + `tests/security/`). CI additionally runs
 pip-audit and gitleaks (9.10).
