@@ -3,14 +3,14 @@
 -c requirements.txt
 
 black==26.5.1
-ruff==0.6.9
+ruff==0.16.8
 mypy==2.3.1
 pre-commit==4.6.2
 pip-tools==7.6.1
 bandit==1.9.4
 
-pytest==8.3.3
-pytest-asyncio==0.24.0
+pytest==8.4.2
+pytest-asyncio==1.4.0
 pytest-cov==7.1.0
 fakeredis==2.38.0
 freezegun==1.5.5

@@ -1,6 +1,4 @@
 # Locked by pip-compile from requirements-dev.in. Do not edit by hand: make lock / python tasks.py lock
---index-url https://pypi.org/simple
-
 ast-serialize==0.11.2
     # via mypy
 bandit==1.9.4
@@ -38,14 +36,7 @@ click==8.3.1
     #   -c requirements.txt
     #   black
     #   pip-tools
-colorama==0.4.6
-    # via
-    #   -c requirements.txt
-    #   bandit
-    #   build
-    #   click
-    #   pytest
-coverage==7.16.1
+coverage[toml]==7.16.1
     # via pytest-cov
 cryptography==46.0.5
     # via
@@ -90,7 +81,7 @@ markupsafe==3.0.3
     #   werkzeug
 mdurl==0.1.2
     # via markdown-it-py
-moto==5.2.3
+moto[s3]==5.2.3
     # via -r requirements-dev.in
 mypy==2.3.1
     # via -r requirements-dev.in
@@ -135,17 +126,19 @@ pycparser==3.0
 pyee==13.0.1
     # via playwright
 pygments==2.19.2
-    # via rich
+    # via
+    #   pytest
+    #   rich
 pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
-pytest==8.3.3
+pytest==8.4.2
     # via
     #   -r requirements-dev.in
     #   pytest-asyncio
     #   pytest-cov
-pytest-asyncio==0.24.0
+pytest-asyncio==1.4.0
     # via -r requirements-dev.in
 pytest-cov==7.1.0
     # via -r requirements-dev.in
@@ -178,7 +171,7 @@ responses==0.26.3
     # via moto
 rich==15.0.0
     # via bandit
-ruff==0.6.9
+ruff==0.16.8
     # via -r requirements-dev.in
 s3transfer==0.19.2
     # via
