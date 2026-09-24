@@ -432,3 +432,48 @@ When adding a new SQLite column:
 - [ ] Update the schema in `docs/DATABASE.md` AND this file
 - [ ] Update the UPSERT / INSERT query in the relevant service file
 - [ ] If the column stores JSON, document the exact format here
+
+---
+
+## Data Protection: Retention, Export & Deletion (Phase 9.9)
+
+### Patient data classes (every table keyed to a patient)
+
+| Data class | Table | Patient link | Sensitivity |
+|---|---|---|---|
+| Identity | `patients` | `id` | name; internal |
+| Channel identities | `patient_channels` | `patient_id`, `external_id` | Telegram/WhatsApp id |
+| Appointments | `appointments` | `patient_id` | booking + intake summary |
+| Intake | `intake_sessions` | `patient_id` | the patient's own words (clinical) |
+| Treatment notes | `treatment_notes` | `patient_id` | **clinical record** |
+| Message metadata | `message_log` | `patient_id` | who/when/direction — **never the text** |
+| Notifications | `notifications` | `patient_id` | dashboard alerts |
+| Follow-ups | `followups` | `patient_id` | 24h check-in answers |
+| AI calls | `ai_calls` | via the patient's `appointment_id` | model/cost/latency; prompt as SHA-256 |
+
+`audit_log` references entities but is an **append-only operational trail** (who changed what), not a
+patient data store, and is deliberately immutable (triggers refuse UPDATE/DELETE).
+
+### Export — right of access (implemented)
+
+`python -m zenflow.patient_export <patient_id> [--out file.json]` gathers every row above for one
+patient into a single JSON document, one section per class. Read-only, strictly scoped by
+`patient_id` (never another patient's data). Use it to answer a data-subject access request.
+
+### Retention & deletion — **owner decision Q5 (blocked)**
+
+The retention *periods* per class and the legal basis (GDPR vs. local medical-records law, which
+often mandates a **minimum** retention for clinical records that overrides an erasure request) are an
+owner decision — **Q5** — and are not yet implemented. Design notes for when Q5 is answered:
+
+- A retention job would purge/anonymise each class after its period; clinical classes
+  (`treatment_notes`, `intake_sessions`, `appointments`) likely have a legally-mandated minimum and
+  cannot simply be deleted on request.
+- A deletion/erasure procedure must reconcile with (a) the append-only `audit_log` (erasure records
+  the fact of deletion; it does not rewrite history), (b) soft-deleted cancelled appointments kept
+  for clinical history, and (c) any legal-hold. It should anonymise the identity/channel classes
+  while preserving the de-identified clinical record where the law requires.
+- Encryption at rest (the DB file / future RDS) and encrypted backups are Phase 12 (cloud) concerns.
+
+Until Q5 is answered, the clinic can honour an **access** request today (the export above) but a
+**deletion** request must be handled manually with legal guidance.

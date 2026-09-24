@@ -32,6 +32,9 @@ python -m zenflow.rotate_token_key --dry-run
 python -m zenflow.api_keys create <name>    # a machine client's key, printed once
 python -m zenflow.export_openapi            # re-publish docs/api/booking-v1.openapi.json
 python -m zenflow.export_routes             # re-publish the route authorization table (9.1)
+
+# Patient data-subject access request (Phase 9.9) — everything the clinic holds about one patient
+python -m zenflow.patient_export <patient_id> [--out file.json]
 ```
 
 > Work follows `docs/MASTER_PLAN_EN.md`; the living checklist is `docs/PROGRESS.md`.
