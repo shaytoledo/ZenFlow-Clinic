@@ -305,6 +305,14 @@ class Settings(BaseSettings):
                     f"{name}={value!r} must use {'/'.join(sorted(schemes))}:// "
                     "for non-localhost hosts (ADR-14)"
                 )
+        # Redis holds relay + LLM history (clinical data): a non-local instance must require AUTH,
+        # not just TLS — a password in the URL (A9 / plan 9.11). Localhost is private to the host.
+        redis = urlsplit(self.redis_url)
+        if (redis.hostname or "") not in LOCAL_HOSTS and not (redis.password or redis.username):
+            out.append(
+                f"REDIS_URL={self.redis_url!r} must include a password (AUTH) "
+                "for a non-localhost host"
+            )
         return out
 
 

@@ -8,7 +8,7 @@ verification off. This complements encryption/handling at rest (`docs/SECRETS.md
 | Boundary | Rule | Enforced by |
 |---|---|---|
 | Dashboard, OAuth callbacks, webhooks (non-local) | `https://` only | `zenflow.settings` URL validator (ADR-14) — a plain `http://` to a non-local host refuses to boot outside dev |
-| Redis (non-local) | `rediss://` (TLS) only | same validator — `redis://` to a non-local host refuses to boot; Redis holds relay + LLM history (clinical data) |
+| Redis (non-local) | `rediss://` (TLS) **and** a password (AUTH) | same validator — a non-local `redis://`, or a non-local Redis with no password, refuses to boot; Redis holds relay + LLM history (clinical data), so TLS alone is not enough (A9) |
 | Ollama when remote | `https://` only | same validator |
 | Google Calendar/Gmail, Telegram Bot API, Anthropic | `https://` endpoints, **certificate verification ON** | the channel adapters / SDKs use https; a test forbids any `verify=False` / `CERT_NONE` / `check_hostname=False` in the source |
 | HSTS (non-dev) | `max-age=31536000; includeSubDomains` | `web/csp.py` (Phase 9.4) |
