@@ -262,11 +262,17 @@ def _recommendations_email_body(patient_name: str, items: list[dict]) -> str:
 
 
 def _recommendations_telegram_text(items: list[dict]) -> str:
+    from telegram.helpers import escape_markdown
+
     lines = ["*Your post-treatment lifestyle recommendations from ZenFlow Clinic:*\n"]
     for item in items:
         cat = item.get("category", "")
         icon = item.get("icon") or _ICON_MAP.get(cat, "•")
-        lines.append(f"{icon} *{cat}:* {item.get('text', '')}")
+        # Escape the dynamic parts (9.7): `text` is AI advice, steerable by the patient's intake
+        # (SF-011); stray Markdown would make Telegram reject the whole send or render a link.
+        cat_md = escape_markdown(cat, version=1)
+        text_md = escape_markdown(str(item.get("text", "")), version=1)
+        lines.append(f"{icon} *{cat_md}:* {text_md}")
     lines.append("\n_Take care and see you at your next session! 🌿_")
     return "\n".join(lines)
 
