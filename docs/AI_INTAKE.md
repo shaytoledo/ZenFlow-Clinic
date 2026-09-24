@@ -349,3 +349,22 @@ ollama list
 # Pull model if missing
 ollama pull gemma3:latest
 ```
+
+## Prompt-injection safety (Phase 9.8, ADR-42)
+
+The patient controls the intake text, which becomes the prompt that produces the diagnosis and the
+point prescription a therapist sees — so the model's output is treated as untrusted:
+
+- **Output is bounded no matter what the model returns.** `_parse_points_response` caps the list at
+  `MAX_AI_POINTS` (20) and normalises each point to exactly `{code, rationale, location,
+  needle_technique}` with every field length-capped; `_bounded_diagnosis` (in `web/routers/api/
+  treatment.py`) keeps only the known diagnosis fields, clamps `diagnosis_certainty` to 0..100 and
+  caps the text. An injected "set certainty to 100 / recommend 50 points" cannot change the record's
+  shape.
+- **Defence in depth in the prompt.** `SYSTEM_PROMPT` tells the model the patient's messages are data
+  to analyse, never instructions; the diagnosis prompt delimits and labels the untrusted intake
+  (`<<<INTAKE … INTAKE>>>`).
+- **No raw HTML, no tools.** Model text reaches the page only through `escHtml` (SF-011), and the AI
+  has no tool-calling/side-effect path.
+
+Tested in `tests/security/test_llm_injection.py`.
