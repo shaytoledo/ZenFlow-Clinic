@@ -17,7 +17,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from bot.interfaces import get_channel
 from web.deps import require_active_therapist, require_appointment_access
@@ -30,15 +30,23 @@ logger = logging.getLogger(__name__)
 
 # ── Models ─────────────────────────────────────────────────────────────────────
 
+# Generous free-text caps (9.7): far above any real clinical note, low enough to refuse an abusive
+# multi-megabyte payload before it is stored or fed to the AI. The dashboard is therapist-only, so
+# these are defence in depth, not a UX limit.
+_OBS_MAX = 4_000  # tongue / pulse observations — short by nature
+_DIAG_MAX = 8_000  # a TCM diagnosis
+_NOTES_MAX = 20_000  # session / therapist notes — the longest free text
+_FEEDBACK_MAX = 8_000  # a recorded check-in note
+
 
 class TreatmentNotesIn(BaseModel):
-    tongue_observation: str = ""
-    pulse_observation: str = ""
-    session_notes: str = ""
+    tongue_observation: str = Field(default="", max_length=_OBS_MAX)
+    pulse_observation: str = Field(default="", max_length=_OBS_MAX)
+    session_notes: str = Field(default="", max_length=_NOTES_MAX)
     used_points: list[str] = []
     recommendations_sent_at: str | None = None
-    therapist_diagnosis: str = ""
-    therapist_notes: str = ""
+    therapist_diagnosis: str = Field(default="", max_length=_DIAG_MAX)
+    therapist_notes: str = Field(default="", max_length=_NOTES_MAX)
 
 
 class RecommendationItemsIn(BaseModel):
@@ -55,22 +63,22 @@ class RecommendationsIn(BaseModel):
 
 
 class CompleteSessionIn(BaseModel):
-    tongue_observation: str = ""
-    pulse_observation: str = ""
-    session_notes: str = ""
+    tongue_observation: str = Field(default="", max_length=_OBS_MAX)
+    pulse_observation: str = Field(default="", max_length=_OBS_MAX)
+    session_notes: str = Field(default="", max_length=_NOTES_MAX)
     used_points: list[str] = []
-    therapist_diagnosis: str = ""
-    therapist_notes: str = ""
+    therapist_diagnosis: str = Field(default="", max_length=_DIAG_MAX)
+    therapist_notes: str = Field(default="", max_length=_NOTES_MAX)
 
 
 class RediagnoseIn(BaseModel):
-    tongue_observation: str = ""
-    pulse_observation: str = ""
+    tongue_observation: str = Field(default="", max_length=_OBS_MAX)
+    pulse_observation: str = Field(default="", max_length=_OBS_MAX)
 
 
 class ManualFeedbackIn(BaseModel):
     rating: int | None = None  # 1–5
-    notes: str = ""
+    notes: str = Field(default="", max_length=_FEEDBACK_MAX)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

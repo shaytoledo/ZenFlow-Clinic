@@ -11,7 +11,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from bot.interfaces import get_channel
 from web.deps import require_active_therapist
@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 class SendMessageIn(BaseModel):
     patient_id: int
-    text: str
+    # Telegram rejects a message longer than 4096 chars anyway; refuse it up front (9.7).
+    text: str = Field(max_length=4096)
 
 
 async def _own_sessions(therapist: dict) -> list[dict]:
