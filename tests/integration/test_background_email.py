@@ -149,7 +149,9 @@ async def test_connecting_google_through_oauth_wakes_the_send(email_patient, mon
 
     client, apt, tid = email_patient
     monkeypatch.setattr(auth, "GOOGLE_CLIENT_ID", "client-id")
-    monkeypatch.setattr(auth, "get_auth_url", lambda: "https://accounts.google.com/o/oauth2/auth")
+    monkeypatch.setattr(
+        auth, "get_auth_url", lambda: ("https://accounts.google.com/o/oauth2/auth", "oauth-st8")
+    )
     monkeypatch.setattr(auth, "exchange_code", lambda code, therapist_id: _connect(therapist_id))
     monkeypatch.setattr(auth, "prefetch_calendar", _no_prefetch)
     worker = _worker()
@@ -159,7 +161,7 @@ async def test_connecting_google_through_oauth_wakes_the_send(email_patient, mon
         await worker.run_once()
         waiting_until = _rec_job()["run_at"]
         await client.get("/auth/login")
-        done = await client.get("/auth/callback?code=abc")
+        done = await client.get("/auth/callback?code=abc&state=oauth-st8")
         assert done.status_code in (302, 307)
         job = _rec_job()
         assert job["status"] == "pending" and job["run_at"] < waiting_until

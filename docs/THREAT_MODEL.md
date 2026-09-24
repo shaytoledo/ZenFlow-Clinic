@@ -75,7 +75,7 @@ Each row is (or becomes) a test in `tests/security/`. **Covered** = a regression
 | **A9** | Redis reachable without auth → read relay history, forge mappings, flush the "already sent" guard | network | **Deployment** — `rediss://` + AUTH required for non-local Redis (9.11 settings); on a private box Redis is localhost-only. Follow-up: an explicit unauth-Redis test |
 | **A10** | SQLite file perms / path traversal / world-readable WAL | host insider | Path traversal **Covered** (`storage.check_key` + `is_relative_to`); **Deployment** — file permissions are an OS/host control (Phase 12) |
 | **A11** | Resource exhaustion: unbounded intake → Ollama pinned; concurrent regenerate; poller amplification | malicious patient / tenant | **Covered** — AI per-therapist rate limit + input caps (`test_abuse_limits.py`, `test_input_limits.py`); regenerate serialised by the per-appointment lease |
-| **A12** | OAuth: open redirect on `redirect_uri`, missing state, scope creep, token replay after disconnect | network | Partly **Covered** — `test_google_oauth_next.py` (redirect target validated), disconnect deletes the token. Follow-up: assert `state` verification + fixed server-side `redirect_uri` |
+| **A12** | OAuth: open redirect on `redirect_uri`, missing state, scope creep, token replay after disconnect | network | **Covered** — `state` is now generated and verified on both callbacks (SF-018, `test_oauth_state.py`); the `next` redirect target is validated (`test_google_oauth_next.py`); `redirect_uri` is a fixed server value; disconnect deletes the token |
 | **A13** | Secrets in git history and logs (F8) | repo insider | **Covered** — gitleaks over history in CI (9.10, `.github/workflows/ci.yml`); redaction (`zenflow/logging.py`); tokens gitignored |
 | **A14** | Availability/booking race: double-book one slot from two channels | two patients | **Covered** — `save_appointment` raises `SlotTaken` before the calendar write (`tests/bot/test_double_booking.py`, ADR B4) |
 
@@ -90,9 +90,9 @@ is possible in theory but costly; a shorter code TTL would tighten it further �
 ## Follow-ups (a later 10.2 pass)
 
 - **A9** — an explicit test that non-local Redis without AUTH is refused / a `requirepass` check.
-- **A12** — assert the OAuth `state` parameter is generated and verified, and `redirect_uri` is a
-  fixed server value (not attacker-influenced).
 - **A10** — document/enforce the DB file mode (`0600`) in the deployment runbook (Phase 12).
+
+_(A12 — OAuth `state` verification — closed 2026-09-24, SF-018.)_
 
 Run everything: `python tasks.py security` (bandit at HIGH + `tests/security/`). CI additionally runs
 pip-audit and gitleaks (9.10).
