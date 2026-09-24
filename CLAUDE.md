@@ -79,6 +79,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/METRICS.md` | Phase 8.4: `/healthz`, `/readyz`, `/api/admin/metrics`, Prometheus and tracing flags |
 | `docs/AUTHZ.md` | Phase 9.1: every route, its auth level, its object-level check and the test that proves it |
 | `docs/SECRETS.md` | Phase 9.6: the secrets inventory, the `SecretsProvider` seam (EnvSecrets → AWS Secrets Manager) and token-key rotation |
+| `docs/TRANSPORT.md` | Phase 9.11: data in transit — HTTPS/`rediss://` everywhere (ADR-14), no `verify=False`, the Telegram-not-e2e posture (Q5), Phase-12 TLS infra |
 
 > Start guide: `startup/START.md`
 
