@@ -431,13 +431,19 @@ async def complete_session(
 
 
 def _format_recommendations_for_telegram(enabled: list[dict]) -> str:
+    from telegram.helpers import escape_markdown
+
     icon_map = {"Diet": "🥗", "Sleep": "🌙", "Exercise": "🏃", "Movement": "🚶", "Stress": "🧘"}
     lines = ["*Your post-treatment lifestyle recommendations from ZenFlow Clinic:*\n"]
     for item in enabled:
         cat = item.get("category", "")
         text = item.get("text", "")
         icon = item.get("icon") or icon_map.get(cat, "•")
-        lines.append(f"{icon} *{cat}:* {text}")
+        # Escape the dynamic parts (9.7): `text` is AI advice, steerable by the patient's intake
+        # (SF-011); stray Markdown would make Telegram reject the whole send or render a link.
+        lines.append(
+            f"{icon} *{escape_markdown(cat, version=1)}:* {escape_markdown(str(text), version=1)}"
+        )
     lines.append("\n_Take care and see you at your next session! 🌿_")
     return "\n".join(lines)
 
