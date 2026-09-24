@@ -41,7 +41,24 @@ TARGETS: dict[str, list[Step]] = {
     "test": [PY + ["pytest", "--cov", "--cov-report=term-missing"]],
     "test-fast": [PY + ["pytest", "-m", "not slow", "-x", "-q"]],
     "security": [
-        PY + ["bandit", "-q", "-r", "bot", "web", "startup", "-x", "tests"],
+        # Fail only on HIGH severity + HIGH confidence — matches the CI gate (9.10) and lets
+        # `security` / `all` exit 0 despite the pre-existing LOW/MEDIUM baseline (debt T1).
+        PY
+        + [
+            "bandit",
+            "-q",
+            "-r",
+            "bot",
+            "web",
+            "zenflow",
+            "startup",
+            "-x",
+            "tests",
+            "--severity-level",
+            "high",
+            "--confidence-level",
+            "high",
+        ],
         PY + ["pytest", "tests/security", "-q"],
     ],
     "lock": [

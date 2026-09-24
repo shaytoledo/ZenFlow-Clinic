@@ -80,6 +80,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/AUTHZ.md` | Phase 9.1: every route, its auth level, its object-level check and the test that proves it |
 | `docs/SECRETS.md` | Phase 9.6: the secrets inventory, the `SecretsProvider` seam (EnvSecrets → AWS Secrets Manager) and token-key rotation |
 | `docs/TRANSPORT.md` | Phase 9.11: data in transit — HTTPS/`rediss://` everywhere (ADR-14), no `verify=False`, the Telegram-not-e2e posture (Q5), Phase-12 TLS infra |
+| `docs/THREAT_MODEL.md` | Phase 10.1: STRIDE threat model — assets, entry points, attacker profiles, and the A1–A14 attack scenarios each mapped to its `tests/security/` regression |
 
 > Start guide: `startup/START.md`
 
