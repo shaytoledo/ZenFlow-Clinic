@@ -636,10 +636,12 @@ def _parse_points_response(raw: str, log_tag: str) -> list[dict]:
     stripped = _strip_json(raw)
     logger.debug(f"[{log_tag}] raw point response (first 500 chars): {raw[:500]!r}")
 
-    # Try direct parse first
+    # Try direct parse first. A recursive-descent JSON decoder raises RecursionError (a RuntimeError,
+    # not a JSONDecodeError) on pathologically nested input like "[[[[…", so catch that too — the
+    # response is untrusted and must never crash the pipeline (9.8 / 11.1).
     try:
         parsed = json.loads(stripped)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, RecursionError):
         # Attempt to recover a partial array — find all complete point objects
         object_pattern = re.compile(
             r'\{\s*"code"\s*:\s*"([^"]+)"[^}]*"rationale"\s*:\s*"([^"]*)"[^}]*\}',
