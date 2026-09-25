@@ -778,9 +778,16 @@ def _parse_diagnosis_json(raw: str) -> dict:
     if m:
         text = m.group(0)
 
+    # Only a JSON *object* is a diagnosis. A bare scalar (`true`, `42`), a list, or a deeply-nested
+    # array the C decoder still accepts must fall through to the regex extraction below, which
+    # synthesises a dict — the contract is `-> dict`, and `_bounded_diagnosis` calls `.get()` on it
+    # (9.8 / 11.1). `except Exception` also swallows RecursionError on pathologically nested input.
+
     # 1. strict
     try:
-        return json.loads(text)
+        obj = json.loads(text)
+        if isinstance(obj, dict):
+            return obj
     except Exception:
         pass
 
@@ -790,14 +797,18 @@ def _parse_diagnosis_json(raw: str) -> dict:
     repaired = repaired.replace("“", '"').replace("”", '"')  # smart double quotes
     repaired = repaired.replace("‘", "'").replace("’", "'")  # smart single quotes
     try:
-        return json.loads(repaired)
+        obj = json.loads(repaired)
+        if isinstance(obj, dict):
+            return obj
     except Exception:
         pass
 
     # 3. swap single-quoted strings to double-quoted (rough heuristic — only when no double quotes present)
     if '"' not in repaired and "'" in repaired:
         try:
-            return json.loads(repaired.replace("'", '"'))
+            obj = json.loads(repaired.replace("'", '"'))
+            if isinstance(obj, dict):
+                return obj
         except Exception:
             pass
 

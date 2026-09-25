@@ -165,7 +165,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 11 — Test pyramid
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 11.1 | Unit suite (incl. AI-output parser fuzzing) | [ ] | | | |
+| 11.1 | Unit suite (incl. AI-output parser fuzzing) | [~] | 2026-09-25 | _pending_ | **AI-parser fuzzing done** (`tests/unit/test_ai_parser_fuzz.py`): 8000 deterministic malformed/truncated/injected/deep-nested inputs across both parsers — asserts they never raise and always return a bounded shape. Surfaced + fixed two real robustness gaps: (1) `_parse_points_response` raised `RecursionError` (a `RuntimeError`, not `JSONDecodeError`) on deeply-nested JSON — now caught; (2) `_parse_diagnosis_json` returned a non-dict (bare scalar / deep-nested list the C decoder accepts), which would crash `_bounded_diagnosis`'s `.get()` — now only returns a `dict`. **Remaining:** widen unit coverage (services/repos ≥85%, availability maths, i18n, password/Fernet, red-flag rules). |
 | 11.2 | Integration suite (all routes, repos, jobs, migrations) | [ ] | | | |
 | 11.3 | Bot state-machine suite | [ ] | | | |
 | 11.4 | E2E journeys J1–J5 (Playwright) | [ ] | | | |
