@@ -64,7 +64,9 @@ def aggregate_patients(appointments: list[dict]) -> list[dict]:
         if pid not in patients:
             patients[pid] = {
                 "id": pid,
-                "name": apt.get("patient_name", f"Patient {pid}"),
+                # `or` (not a .get default): the repo always selects patient_name, so the key is
+                # present — an empty/NULL name would otherwise render blank instead of this label.
+                "name": apt.get("patient_name") or f"Patient {pid}",
                 "sessions": 0,
                 "active_count": 0,
                 "intake_count": 0,
