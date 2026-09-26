@@ -20,6 +20,9 @@ that is real load behaviour, not a script bug. Requires availability seeded for 
 
 from __future__ import annotations
 
+# mypy: ignore-errors
+# (locust is install-on-demand, not a mypy dependency, so HttpUser resolves to Any in CI; this is a
+# runnable load script, not typed app code.)
 # ruff: noqa: S311 - random here only varies load-test data (names, slots); it is not cryptographic.
 import os
 import random
