@@ -1636,3 +1636,57 @@ obey embedded instructions — so the guarantee has to be on the *output*.
   keys, `<script>`) is capped, clamped and shape-enforced — `tests/security/test_llm_injection.py`.
 - New output bounds live beside the parsers (`MAX_AI_POINTS`, `_POINT_TEXT_MAX`, `_DIAG_TEXT_MAX`),
   so a future field or stage inherits the same discipline.
+
+---
+
+## ADR-43: Patient Erasure Anonymizes by Default; Purge Waits for the Retention Period
+
+**Status:** Accepted (Phase 9.9, 2026-10-02)
+
+**Context.** A patient may ask the clinic to delete their data. But a clinic's records are not
+ordinary personal data: medical-records law may set a *minimum* retention that overrides an erasure
+request, and the length of that minimum is an open owner/legal decision (Q5). The `audit_log` is
+append-only by trigger (ADR-31), and before/after values in it carry the patient's name and contact
+details. Erasure has to satisfy the request without destroying a record the law may require, and
+without quietly breaking the audit guarantee.
+
+**Decision.**
+
+1. **Two modes.** `anonymize` (default) removes everything that identifies or reaches the patient —
+   name/phone/email/notes/legacy id, every channel identity, message metadata, notifications, queued
+   jobs, bot state, Redis keys, identity fields inside audit values — and keeps the de-identified
+   clinical record. `purge` deletes every row, audit trail included, and is refused inside the
+   clinical retention period unless `--override-retention` records a human decision.
+2. **Retention numbers are settings, not code.** `ZF_RETENTION_CLINICAL_YEARS` defaults to **0 =
+   keep forever**, so nothing clinical is ever deleted automatically until the owner sets it;
+   `ZF_RETENTION_OPERATIONAL_DAYS` (730) bounds operational rows. The policy table is `POLICY` in
+   `zenflow/retention.py`.
+3. **The audit guard is lifted only inside the erasure transaction.** Drop the two triggers, rewrite
+   or delete the patient's rows, recreate the triggers, commit — a failure rolls back all of it, guard
+   included. Then record `patient.erased` / `patient.purged` with mode, reason and counts, and no
+   identity.
+4. **Plan by default.** Both commands print what they would do; `--apply` changes data. A reason is
+   mandatory and lands in the trail.
+5. **Copies that leave the host are encrypted.** `db_backup --encrypt` and `patient_export --encrypt`
+   write Fernet files under a dedicated `BACKUP_ENCRYPTION_KEY` (so a leaked backup key never opens
+   sessions or Google tokens); the backup is taken in memory, so no plaintext copy is ever written.
+
+**Options rejected:**
+
+- **Hard delete on request.** It can destroy a legally required record, and it cannot be undone.
+- **Leave `audit_log` untouched on erasure.** The name and phone would survive in before/after
+  values; anonymization would be a claim, not a fact.
+- **Crypto-shredding (per-patient keys).** The right long-term design for an append-only store, but
+  it means re-encrypting every clinical column; out of proportion for a single-clinic SQLite today.
+  Revisit with Phase 12 (RDS).
+- **A web button for erasure.** An irreversible act on a medical record belongs with the database
+  owner on the host, not one click away from a stolen session.
+
+**Consequences.**
+
+- An access request and an erasure request can both be answered today (`patient_export`,
+  `patient_erasure`); the retention sweep can run daily with no clinical risk until Q5 sets a period.
+- `audit_log` is append-only *for the application*; the erasure command is the documented exception
+  and is itself audited. Tests prove the guard is back after success and after a rolled-back failure.
+- Google Calendar events and old backups are outside the command's reach; the plan lists them as
+  manual steps (`docs/DATA_PROTECTION.md`).

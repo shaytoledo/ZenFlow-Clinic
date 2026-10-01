@@ -9,6 +9,7 @@ How the clinic's secrets are stored, where they come from, and how the one encry
 |---|---|---|
 | `SESSION_SECRET` | signs the `zf_session` cookie | always (default refused outside dev) |
 | `TOKEN_ENCRYPTION_KEY` | Fernet material for stored Google tokens | outside dev; **must differ** from `SESSION_SECRET` |
+| `BACKUP_ENCRYPTION_KEY` | Fernet material for backups and patient exports that leave the host (9.9, `zenflow/file_crypto.py`) | optional; `--encrypt` refuses without it; ≥ 32 chars and **must differ** from the two above; keep a copy off the host |
 | `TELEGRAM_TOKEN` / `THERAPIST_BOT_TOKEN` | the two bot tokens | to run the bots |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth | for Calendar/Gmail |
 | `WHATSAPP_TOKEN` / `WHATSAPP_APP_SECRET` / `WHATSAPP_VERIFY_TOKEN` | WhatsApp Cloud API | with `ZF_CHANNEL_WHATSAPP=1` |
