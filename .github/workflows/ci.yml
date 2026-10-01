@@ -44,11 +44,11 @@ jobs:
         run: mypy
 
       - name: Tests with coverage (unit · integration · security · contract; not e2e)
-        # --timeout turns a hung test into a fast, diagnosable failure (thread method dumps the
-        # stack of the stuck test) instead of a 6-hour job timeout.
+        # --timeout turns a hung test into a fast, named failure (signal method on Linux interrupts
+        # the stuck test and reports its nodeid) instead of a 6-hour job timeout.
         run: >
           python -m pytest -m "not e2e" -q -p no:cacheprovider
-          --timeout=120 --timeout-method=thread
+          --timeout=120
           --cov=bot --cov=web --cov=zenflow --cov=startup
           --cov-report=xml --cov-report=term-missing:skip-covered
 
@@ -89,7 +89,7 @@ jobs:
       # test_followup_card.py) are intentionally excluded — their baselines are per-developer-OS.
       - name: E2E journeys
         run: >
-          python -m pytest -q -p no:cacheprovider --timeout=180 --timeout-method=thread
+          python -m pytest -q -p no:cacheprovider --timeout=180
           tests/e2e/test_journey_signin.py
           tests/e2e/test_journey_intake_ready.py
           tests/e2e/test_journey_schedule.py
