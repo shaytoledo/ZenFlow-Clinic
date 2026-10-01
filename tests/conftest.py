@@ -198,8 +198,10 @@ FROZEN_AT = "2026-03-01T12:00:00"
 @pytest.fixture
 def frozen_clock() -> Iterator[Any]:
     # itsdangerous keeps real time so session cookies signed before/after freezing stay valid
-    # regardless of fixture order.
-    with freeze_time(FROZEN_AT, ignore=["itsdangerous"]) as freezer:
+    # regardless of fixture order. real_asyncio: the event loop's clock is time.monotonic(), which
+    # a frozen clock also stops — an asyncio timeout would never fire on Linux (1 ns clock
+    # resolution; Windows' 15.6 ms rounds a short one to "due"), hanging CI instead of failing.
+    with freeze_time(FROZEN_AT, ignore=["itsdangerous"], real_asyncio=True) as freezer:
         yield freezer
 
 

@@ -179,7 +179,7 @@ async def test_send_now_clears_the_auto_queued_recommendations(clinic, fake_tele
 
 # ── finding 6: a job that dead-letters on timeout still alerts the therapist ──
 async def test_recommendation_timeout_on_final_attempt_alerts_once(
-    clinic, monkeypatch: pytest.MonkeyPatch
+    clinic, fake_telegram, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import asyncio
 
@@ -191,7 +191,10 @@ async def test_recommendation_timeout_on_final_attempt_alerts_once(
     monkeypatch.setattr(fs, "dispatch_recommendations", _hang)
     client, apt = clinic
     worker = _worker(handler_timeout=0.01)
-    with freeze_time(FROZEN, ignore=["itsdangerous"]) as frozen:
+    # real_asyncio: the event loop's clock is time.monotonic(), which freeze_time also stops — the
+    # 0.01 s handler timeout would then never fire on Linux (1 ns clock resolution; Windows'
+    # 15.6 ms resolution happened to round it to "due"), which hung CI for 6 hours.
+    with freeze_time(FROZEN, ignore=["itsdangerous"], real_asyncio=True) as frozen:
         await _complete(client, apt)
         frozen.tick(timedelta(hours=24, minutes=1))
         for _ in range(q.DEFAULT_MAX_ATTEMPTS):
