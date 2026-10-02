@@ -209,7 +209,9 @@ def test_media_handlers_are_wired_into_both_bots() -> None:
     from bot.main import build_patient_app
     from bot.therapist_bot.main import build_therapist_app
 
-    patient = [h for group in build_patient_app().handlers.values() for h in group]
-    therapist = [h for group in build_therapist_app().handlers.values() for h in group]
+    patient_app, therapist_app = build_patient_app(), build_therapist_app()
+    assert patient_app is not None and therapist_app is not None
+    patient = [h for group in patient_app.handlers.values() for h in group]
+    therapist = [h for group in therapist_app.handlers.values() for h in group]
     assert "relay_unsupported_media" in _callbacks(patient), "patient media in a relay"
     assert "handle_therapist_media" in _callbacks(therapist), "therapist media"
