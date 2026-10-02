@@ -79,3 +79,11 @@ def test_compose_never_carries_a_real_secret() -> None:
         env = service.get("environment") or {}
         for key in env:
             assert key not in SECRET_NAMES, f"{name} sets {key} — secrets come from .env only"
+
+
+def test_the_image_ships_everything_the_app_reads_at_start() -> None:
+    """init_db() stamps/upgrades through Alembic (12.2.3) — its config and revisions must ship."""
+    runtime = _stages()["runtime"]
+    copied = [line.split() for line in runtime.splitlines() if line.startswith("COPY ")]
+    for path in ("bot", "web", "zenflow", "startup", "locales", "alembic.ini", "migrations"):
+        assert any(path in tokens for tokens in copied), path

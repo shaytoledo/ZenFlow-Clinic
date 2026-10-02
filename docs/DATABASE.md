@@ -533,24 +533,12 @@ CREATE TABLE IF NOT EXISTS treatment_notes (
 
 ---
 
-## Migrations
+## Migrations (legacy, before Phase 12.2.3)
 
-`init_db()` runs inline migrations for columns added after initial schema deployment:
-
-```python
-_migrations = [
-    "ALTER TABLE treatment_notes ADD COLUMN diagnosis_certainty INTEGER DEFAULT 0",
-    "ALTER TABLE treatment_notes ADD COLUMN completed_at TEXT",
-]
-for migration in _migrations:
-    try:
-        conn.execute(migration)
-        conn.commit()
-    except Exception:
-        pass  # Column already exists — safe to ignore
-```
-
-To add a new column: append to `_migrations`. It will be applied on the next startup for any database that doesn't have the column yet.
+Before Alembic, `init_db()` ran a list of `ALTER TABLE … ADD COLUMN` statements inside `try/except`
+on every start. **That list is frozen.** It still runs, so an old database comes up to the baseline,
+but no new line may be added (a test counts them). Schema changes are Alembic revisions now: see
+**Migrations (Phase 12.2.3, ADR-45)** at the end of this file.
 
 **Data migrations (Phase 7.2).** A migration that rewrites data must run exactly once. Each one
 is recorded in `schema_migrations(name, applied_at)`.
@@ -613,3 +601,26 @@ the current thread's connection. Tests assert they never touch the real file.
 
 Claim is one atomic `UPDATE … WHERE id IN (SELECT … LIMIT n) RETURNING *`, so two workers never
 take the same job. Backoff: 60 s × 2^(attempt−1). Access only through `zenflow/queue.py`.
+
+---
+
+## Migrations (Phase 12.2.3, ADR-45) — how the schema changes now
+
+The schema is defined once, as data: **`zenflow/schema.py`** (SQLAlchemy Core), portable between
+SQLite and Postgres. **Alembic** owns every change to it.
+
+```bash
+python -m zenflow.migrate current             # this database's revision
+python -m zenflow.migrate upgrade             # apply pending revisions (a deploy step)
+python -m zenflow.migrate revision "add x"    # after editing zenflow/schema.py: generate, then REVIEW
+python -m zenflow.migrate check               # does zenflow/schema.py match the migrations?
+```
+
+- `migrations/versions/0001_baseline.py` is the schema exactly as the app built it before Alembic.
+  `tests/integration/test_schema_baseline.py` proves it, column for column.
+- `bot.db.init_db()` keeps building or verifying that baseline with the old statements. It then
+  stamps `0001` on a database Alembic has never seen (nothing is rebuilt), and applies newer revisions.
+- **Never add to the old `ALTER TABLE` list in `bot/db.py`.** It is frozen, and a test counts it.
+- CI's `postgres` job builds the schema on Postgres 16. It checks the audit guard (a plpgsql trigger
+  there), the one-active-appointment-per-slot index and the legacy timestamp default.
+

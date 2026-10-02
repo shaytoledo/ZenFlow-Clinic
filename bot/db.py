@@ -190,7 +190,13 @@ def get_db() -> sqlite3.Connection:
 
 
 def init_db() -> None:
-    """Create all tables and run schema migrations on every startup."""
+    """Create all tables and run schema migrations on every startup.
+
+    The raw statements below build the baseline schema (Alembic revision 0001) on an empty file and
+    verify it on an old one; `zenflow.migrate.ensure_sqlite` then stamps the database and applies
+    any newer Alembic revision (Phase 12.2.3, ADR-45). The legacy ALTER list is FROZEN — a schema
+    change is a new revision (`python -m zenflow.migrate revision "…"`), never a new line here.
+    """
     conn = get_db()
     # Use individual execute() calls (not executescript) so busy_timeout is respected
     for stmt in _SCHEMA_STMTS:
@@ -300,6 +306,14 @@ def init_db() -> None:
     _create_message_log(conn)
     _create_followups(conn)
     _create_api_tables(conn)
+    _ensure_migrated(conn)
+
+
+def _ensure_migrated(conn: sqlite3.Connection) -> None:
+    """Under Alembic from here on: stamp 0001 once, then apply newer revisions (12.2.3)."""
+    from zenflow.migrate import ensure_sqlite
+
+    ensure_sqlite(conn)
 
 
 def _create_api_tables(conn: sqlite3.Connection) -> None:

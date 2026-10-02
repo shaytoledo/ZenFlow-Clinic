@@ -1,6 +1,7 @@
 # Continuous integration (Phase 9.10, extended in 11.7): the quality gate + supply-chain scanners
 # on every push/PR, plus the e2e journeys and coverage upload, and (12.2.1) the container images:
 # built, the web container started and its /healthz answered, non-root checked, trivy (advisory).
+# And (12.2.3) the Alembic baseline built on a real Postgres 16 and exercised there.
 # Pipeline order: lint → type → unit+integration+security (with coverage) → e2e; supply-chain runs
 # alongside. Bandit fails the build on HIGH findings only (the pre-existing LOW/MEDIUM baseline is
 # tracked as debt T1, not a CI blocker).
@@ -162,3 +163,39 @@ jobs:
         run: |
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest \
             image --severity HIGH,CRITICAL --exit-code 1 --no-progress zenflow-web:ci
+
+  postgres:
+    name: schema on Postgres (Alembic baseline)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zenflow
+          POSTGRES_USER: zenflow
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U zenflow -d zenflow"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      ZF_TEST_POSTGRES_URL: postgresql+psycopg://zenflow:ci-only-password@localhost:5432/zenflow
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Build the schema with Alembic
+        run: python -m zenflow.migrate --url "$ZF_TEST_POSTGRES_URL" upgrade
+
+      - name: The schema works on Postgres
+        run: python -m pytest tests/integration/test_schema_postgres.py -q -p no:cacheprovider
