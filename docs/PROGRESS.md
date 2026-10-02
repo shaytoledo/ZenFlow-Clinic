@@ -202,7 +202,7 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **Settings** refuse webhook mode without a 32+ char secret and an https URL, in any environment.
 - **One bots replica** (conversation state is in-process; documented). The SIGTERM shutdown stops the apps cleanly.
 - **Tests:** `test_bot_webhooks.py` (13, incl. `_run` end to end against the fake Telegram) + settings tests; 2 mutation specs VERIFIED |
-| 12.2.6 | IaC skeleton (Terraform/CDK) | [x] | 2026-10-03 | _pending_ | ADR-50, `docs/INFRA.md`. **Not applied, and nothing provisioned.** Terraform in `infra/terraform/`, one root module, staging/prod `.tfvars`, S3+DynamoDB state.
+| 12.2.6 | IaC skeleton (Terraform/CDK) | [x] | 2026-10-03 | bb7bd1b (#119) | ADR-50, `docs/INFRA.md`. **Not applied, and nothing provisioned.** Terraform in `infra/terraform/`, one root module, staging/prod `.tfvars`, S3+DynamoDB state.
 - **Region:** `il-central-1`, so patient data stays in Israel.
 - **Network and edge:** VPC over 2 AZs; ALB with ACM TLS 1.2/1.3 and WAF (managed rules, a rate limit, `/telegram/*` only from Telegram's ranges).
 - **App:** ECS Fargate `web` / `bots` (one replica, stop-then-start) / `worker`, plus a one-off `migrate` task.
