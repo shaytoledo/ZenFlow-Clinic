@@ -45,6 +45,7 @@ python -m zenflow.retention [--apply | --policy]
 # Backups / exports that leave the host are encrypted first (BACKUP_ENCRYPTION_KEY)
 python -m zenflow.db_backup --encrypt          # SQLite: online backup; Postgres: pg_dump (12.2.7)
 python -m zenflow.restore_drill                # back up → restore into a scratch copy → compare every table
+python -m zenflow.move_data --from <db|s3://…|app> --to <db|s3://…|app>   # verified copy between databases (12.2.9)
 python -m zenflow.file_crypto decrypt <file>.enc --out <file>
 ```
 
@@ -76,6 +77,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
 | `docs/BOT_AUDIT.md` | Phase 2.1 handler-by-handler bot audit, ranked defects B1–B17 |
 | `docs/AWS_READINESS.md` | Phase 12.1: the AWS gap analysis — every concern, today vs target, the flag, the work and the 12.2 task; findings made while measuring |
+| `docs/MIGRATION_RUNBOOK.md` | Phase 12.2.9: the cut-over from the single host to AWS and both rollbacks, step by step, with the verification checklist; `zenflow.move_data` and its recorded runs |
 | `docs/BACKUP_DR.md` | Phase 12.2.7: backups (automatic on the single host, RDS PITR on AWS), RPO/RTO per deployment, the restore drill and its recorded runs |
 | `docs/AWS_COST_ESTIMATE.md` | Phase 12.2.8: the monthly AWS cost in il-central-1 from the public price list — the managed option (≈ $325 with CPU Ollama) vs the one-server option (≈ $156–189), the levers, the recommendation; the owner decides before anything is applied |
 | `docs/INFRA.md` | Phase 12.2.6: the Terraform in `infra/terraform/` — what it builds, the task environment that is the switch to AWS, the order of operations after the owner's go-ahead (nothing applied) |

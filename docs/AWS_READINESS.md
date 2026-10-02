@@ -51,6 +51,6 @@ Measured against `master` on 2026-10-02 by reading the code, not the docs.
 4. **12.2.4** Remove mutable globals; reconcile loop → scheduled job; Redis pool settings.
 5. **12.2.5** Telegram webhooks (both bots) behind `ZF_WEBHOOK_MODE`. **Done.**
 6. **12.2.6** IaC skeleton (Terraform or CDK — an ADR first), no `apply`. **Done** (ADR-50, `docs/INFRA.md`): Terraform, validated in CI, never applied.
-7. **12.2.7–12.2.9** Backups/DR drill on the compose stack, cost estimate + smallest-viable option, migration runbook with rollback. The cost estimate (12.2.8) is **done**: `docs/AWS_COST_ESTIMATE.md` (≈ $325/month managed with CPU Ollama; ≈ $156–189 on one server).
+7. **12.2.7–12.2.9** Backups/DR drill on the compose stack, cost estimate + smallest-viable option, migration runbook with rollback. Backups + the restore drill (12.2.7) and the migration runbook with `zenflow.move_data` (12.2.9) are **done** (`docs/BACKUP_DR.md`, `docs/MIGRATION_RUNBOOK.md`). The cost estimate (12.2.8) is **done**: `docs/AWS_COST_ESTIMATE.md` (≈ $325/month managed with CPU Ollama; ≈ $156–189 on one server).
 
 Owner decisions that gate parts of this: **Q3** (AWS budget, region, and where the LLM runs).
