@@ -2,9 +2,10 @@
 availability.py — returns available days/hours for patient booking,
 and manages Google Calendar slot booking/restoration.
 
-When Google Calendar is configured (data/google_tokens/{therapist_id}.json exists), reads
-"✅ Available" events from the therapist's calendar and creates/removes appointment events
-in the primary calendar. Falls back to local SQLite availability table when no token exists.
+When the therapist has connected Google (an encrypted token in the `google_tokens` table, the same
+one the dashboard uses — `web.gcal`), reads "✅ Available" events from their calendar and
+creates/removes appointment events in the primary calendar. Falls back to the local SQLite
+availability table when there is no token.
 
 All Google Calendar calls are wrapped in asyncio.to_thread() to avoid
 blocking the asyncio event loop.
@@ -28,34 +29,26 @@ _AVAILABILITY_CAL_NAME = "ZenFlow Availability"
 _CLINIC_TZ_NAME = "Asia/Jerusalem"  # passed as string to Google Calendar API
 
 
-def _resolve_token_file(therapist_id: str | None = None):
-    """Return the token file for the given therapist, or None if not connected."""
-    from pathlib import Path
-
-    tokens_dir = Path(__file__).parent.parent.parent.parent / "data" / "google_tokens"
-    if therapist_id:
-        tf = tokens_dir / f"{therapist_id}.json"
-        return tf if tf.exists() else None
-    return None
-
-
 # ── Google Calendar service ───────────────────────────────────────────────────
 
 
 def _gcal_service(therapist_id: str | None = None):
-    tf = _resolve_token_file(therapist_id)
-    if tf is None:
+    """The therapist's Calendar API client, or None (→ local availability).
+
+    Uses the dashboard's token: encrypted in the `google_tokens` table, refreshed and re-saved by
+    `web.gcal.load_credentials`. (This used to read `data/google_tokens/{id}.json`, a file the
+    dashboard moves into the database and deletes — so the bot silently lost the calendar.)
+    """
+    if not therapist_id:
         return None
     try:
-        from google.auth.transport.requests import Request
-        from google.oauth2.credentials import Credentials
         from googleapiclient.discovery import build
 
-        SCOPES = ["https://www.googleapis.com/auth/calendar"]
-        creds = Credentials.from_authorized_user_file(str(tf), SCOPES)
-        if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            tf.write_text(creds.to_json(), encoding="utf-8")
+        from web import gcal
+
+        if not gcal.is_authenticated(therapist_id):  # also moves a legacy token file in, once
+            return None
+        creds = gcal.load_credentials(therapist_id)
         return build("calendar", "v3", credentials=creds, cache_discovery=False)
     except Exception as e:
         logger.warning(f"Google Calendar unavailable: {e}")

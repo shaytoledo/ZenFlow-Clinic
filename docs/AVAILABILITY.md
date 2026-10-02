@@ -9,7 +9,7 @@
 
 | Mode | Condition | Storage | Managed via |
 |---|---|---|---|
-| Google Calendar | `data/google_tokens/{therapist_id}.json` exists | Google Calendar API | FullCalendar + Google Calendar UI |
+| Google Calendar | the therapist has a row in the `google_tokens` table (encrypted) | Google Calendar API | FullCalendar + Google Calendar UI |
 | Local (SQLite) | No Google token for therapist | `availability` table in `data/zenflow.db` | FullCalendar drag-to-create on `/schedule` |
 
 Both modes are transparent to the patient — the same booking flow is used regardless.
@@ -19,21 +19,18 @@ Both modes are transparent to the patient — the same booking flow is used rega
 ## Mode Detection
 
 ```python
-# availability.py
-def _resolve_token_file(therapist_id: str | None):
-    tokens_dir = Path(__file__).parent.parent.parent.parent / "data" / "google_tokens"
-    if therapist_id:
-        tf = tokens_dir / f"{therapist_id}.json"
-        return tf if tf.exists() else None
-    return None
-
+# bot/patient_bot/services/availability.py
 def _gcal_service(therapist_id=None):
-    tf = _resolve_token_file(therapist_id)
-    if tf is None:
+    if not therapist_id or not gcal.is_authenticated(therapist_id):
         return None   # ← triggers local mode
-    # Build and return Google API service object
-    ...
+    creds = gcal.load_credentials(therapist_id)   # decrypted from google_tokens, refreshed + re-saved
+    return build("calendar", "v3", credentials=creds, cache_discovery=False)
 ```
+
+The bot and the dashboard read **the same token** — the encrypted row in `google_tokens` (`web/gcal.py`).
+Until 2026-10-02 the bot read `data/google_tokens/{id}.json` instead; the dashboard moves such a file
+into the database and deletes it, so the bot silently lost the calendar and offered local slots
+(`tests/integration/test_bot_google_calendar_token.py`).
 
 **No cross-therapist fallback.** If therapist T2 does not have their own token, they use local SQLite — even if therapist T1's token exists. Each therapist is fully independent.
 
@@ -205,28 +202,18 @@ The therapist uses the FullCalendar interface at `/schedule`:
 
 ## Google Calendar Token Management
 
-### Token Files
+### Token storage
 
-```
-data/google_tokens/t1.json    ← therapist with id "t1"
-data/google_tokens/t2.json    ← therapist with id "t2"
-```
-
-Each token is a JSON credential file from Google OAuth 2.0, containing:
-- `access_token` — short-lived (1 hour)
-- `refresh_token` — long-lived, used to get new access tokens
-- `token_uri`, `client_id`, `client_secret`, `scopes`
+One row per therapist in the `google_tokens` table: the OAuth credential JSON, Fernet-encrypted with
+`TOKEN_ENCRYPTION_KEY` (`docs/SECRETS.md`; rotate with `python -m zenflow.rotate_token_key`). A legacy
+`data/google_tokens/{id}.json` (or `data/gmail_tokens/`) file is moved into the table and deleted the
+first time `web.gcal.is_authenticated` / `load_credentials` sees it.
 
 ### Token Refresh
 
-```python
-creds = Credentials.from_authorized_user_file(str(tf), SCOPES)
-if creds.expired and creds.refresh_token:
-    creds.refresh(Request())      # exchange refresh_token for new access_token
-    tf.write_text(creds.to_json())   # save updated token back to file
-```
-
-Auto-refresh happens every time `_gcal_service()` is called and the token is expired.
+`web.gcal.load_credentials(therapist_id)` decrypts the row and, when the access token has expired,
+refreshes it with the refresh token and saves the new one (encrypted) back to the table. Both the bot
+(`_gcal_service`) and the dashboard go through it.
 
 ### OAuth Flow (Connecting Calendar)
 
@@ -234,7 +221,7 @@ Auto-refresh happens every time `_gcal_service()` is called and the token is exp
 1. GET /auth/start → build Google OAuth URL (calendar scope)
 2. Google redirects to GET /auth/callback?code=...
 3. Exchange code for credentials
-4. Save to data/google_tokens/{therapist_id}.json
+4. Save the credentials, encrypted, to the google_tokens table
 5. Redirect to /settings — calendar is now connected
 ```
 
@@ -242,7 +229,7 @@ Auto-refresh happens every time `_gcal_service()` is called and the token is exp
 
 ```
 GET /auth/disconnect
-→ delete data/google_tokens/{therapist_id}.json
+→ delete the therapist's google_tokens row
 → purge Redis: zenflow:gcal:events:{tid}:*
 → redirect to /settings — availability falls back to local SQLite
 ```

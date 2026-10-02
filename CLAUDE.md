@@ -189,7 +189,7 @@ startup/
 
 data/
 ├── zenflow.db               # SQLite database (WAL mode) — primary data store
-└── google_tokens/           # Per-therapist Google OAuth tokens (auto-created, never commit)
+└── google_tokens/           # LEGACY only — tokens live encrypted in the google_tokens table; a file here is migrated + deleted
     └── {id}.json            #   e.g. t1.json, t2.json
 
 docs/                        # All documentation (one file per topic)
@@ -260,7 +260,7 @@ Any message / /start → SELECTING (main menu)
 | File | Purpose |
 |---|---|
 | `zenflow.db` | Primary database — all clinical and operational data |
-| `google_tokens/{id}.json` | Per-therapist Google OAuth token — auto-created on Calendar connect, never commit |
+| `google_tokens/{id}.json` | Legacy (pre-0.5) OAuth file — moved into the encrypted `google_tokens` table and deleted on first use; the bot and the dashboard both read the table via `web.gcal` |
 
 ## Environment variables (`.env`)
 | Variable | Default | Purpose |
