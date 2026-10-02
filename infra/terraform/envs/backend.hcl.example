@@ -1,0 +1,7 @@
+# Copy to envs/<env>.backend.hcl (not committed) and `terraform init -backend-config=envs/<env>.backend.hcl`.
+# The bucket and the table are created once by hand — docs/INFRA.md, "Before the first plan".
+bucket         = "zenflow-terraform-state-<account-id>"
+key            = "zenflow/<env>/terraform.tfstate"
+region         = "il-central-1"
+dynamodb_table = "zenflow-terraform-locks"
+encrypt        = true

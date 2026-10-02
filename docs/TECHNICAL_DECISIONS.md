@@ -1920,3 +1920,58 @@ Optionally, an ALB/WAF rule can allow only Telegram's published ranges (149.154.
 91.108.4.0/22) to reach `/telegram/*`. That is defence in depth: the per-bot secret is the actual
 check. Deploys have a few seconds without a bots replica; Telegram queues updates and retries, so
 nothing is lost.
+
+---
+
+## ADR-50: Terraform for the AWS Infrastructure; Nothing Applied Without the Owner
+
+**Status:** Accepted (Phase 12.2.6, 2026-10-02)
+
+**Context.** The plan's Phase 12 prepares an AWS deployment behind flags. The rule: nothing is
+provisioned without the owner's explicit go-ahead and a cost estimate (12.2.8). The infrastructure
+still has to exist as reviewable code, so that "moving" becomes a reviewed `terraform apply` and a
+runbook (12.2.9), not a week of console clicking.
+
+**Decision.**
+1. **Terraform (HCL), AWS provider 5.x**, in `infra/terraform/` as one root module.
+   - Staging and prod differ only by `envs/<env>.tfvars` and a backend file. The state lives in an
+     encrypted, versioned S3 bucket with a DynamoDB lock; both are created once by hand
+     (`docs/INFRA.md`).
+   - CI runs `terraform fmt -check`, `terraform validate` and a misconfiguration scan on every PR. No
+     credentials and no `plan`/`apply`.
+2. **Region `il-central-1` (Tel Aviv) by default.** Patients' health data stays in Israel, which keeps
+   the Privacy Protection (Transfer of Data Abroad) regulations out of the picture. It is a variable.
+3. **Shape:**
+   - one VPC over 2 AZs;
+   - an ALB with ACM TLS 1.2+/1.3 and WAF (AWS managed rules, a rate limit, and `/telegram/*` only
+     from Telegram's ranges);
+   - ECS Fargate: `web` (behind the ALB), `bots` (one replica, ADR-49, `/telegram/*` routed to
+     it), `worker`, and a one-off `migrate` task;
+   - RDS Postgres 16: encrypted, `rds.force_ssl`, PITR, deletion protection in prod, and a password
+     **managed and rotated by RDS**;
+   - ElastiCache Redis 7: TLS + AUTH, encrypted at rest;
+   - S3 media: SSE-KMS, versioned, private, TLS-only;
+   - one KMS key, Secrets Manager, ECR, CloudWatch logs/alarms with SNS email, and a **budget alarm**.
+4. **Ollama stays (owner decision Q3).** It runs on an EC2 instance, GPU by default, reached only
+   over **TLS** through an internal NLB at `ollama.<domain>`, with an ACM certificate. The app
+   refuses plain HTTP to a non-local host (ADR-14), and intake answers are health data.
+5. **The switch is the task definitions.** They set every flag the app already has: `ZF_DB_URL` (no
+   password in it — `ZF_DB_PASSWORD` comes from the RDS secret), `REDIS_URL` (`rediss://`, from a
+   generated secret), `ZF_STORAGE_S3`, `ZF_WEBHOOK_MODE`, `ZF_LOG_FILES=0`, `ENV=prod`. Secret
+   values are never in Terraform:
+   - it creates an empty `…/app` secret that a person fills (`docs/INFRA.md` has the JSON template);
+   - the two generated values (the Redis AUTH token, the RDS password) live in Secrets Manager,
+     and the Redis token also in the encrypted state.
+6. **Cost-conscious defaults, each a variable:** no NAT gateway (tasks get public IPs, and their
+   security group admits only the ALB), single-AZ RDS, the smallest Graviton instances, and
+   Container Insights off. 12.2.8 prices these defaults and the alternatives.
+
+**Options rejected.**
+- **AWS CDK.** It needs a Node/Python synth step plus CloudFormation, and its diffs are less direct
+  to review than `terraform plan`. Nobody on this project knows it better than HCL.
+- **Copilot / Elastic Beanstalk.** Less code, but they hide the network and IAM that a health-data
+  system has to be able to show.
+
+**Consequences.** `terraform apply` needs the owner's AWS account, a Route 53 hosted zone for the
+domain, a filled `…/app` secret, and the go-ahead after 12.2.8. The cut-over itself (data export,
+setWebhook, DNS) is the 12.2.9 runbook.

@@ -196,13 +196,22 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 - the Redis pool is bounded (50) with timeouts and health checks; there is no `CONFIG SET` (the memory policy is in compose / the launcher / the ElastiCache parameter group);
 - Postgres connections have a connect timeout, an application name and a documented budget.
 Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQLite and on Postgres |
-| 12.2.5 | Webhook mode for both bots | [x] | 2026-10-02 | _pending_ | ADR-49. `ZF_WEBHOOK_MODE=1` makes start-up call `setWebhook(TELEGRAM_WEBHOOK_URL + /telegram/<bot>, secret_token)` instead of polling.
+| 12.2.5 | Webhook mode for both bots | [x] | 2026-10-02 | ca2cfca (#118) | ADR-49. `ZF_WEBHOOK_MODE=1` makes start-up call `setWebhook(TELEGRAM_WEBHOOK_URL + /telegram/<bot>, secret_token)` instead of polling.
 - **The bots process's own HTTP server** (`bot/webhooks.py`, `BOTS_HOST:BOTS_PORT`, 8081): `/healthz` in both modes (503 while a bot is down; the image has a Docker `HEALTHCHECK`) and one POST route per bot.
 - **Safety:** a **per-bot secret token** (HMAC of `TELEGRAM_WEBHOOK_SECRET`, so one bot's header cannot feed the other), checked in constant time before the body is read; bodies capped at 1 MB and never logged (no access log); the verified update is queued exactly as polling would deliver it, and Telegram gets its 200 at once.
 - **Settings** refuse webhook mode without a 32+ char secret and an https URL, in any environment.
 - **One bots replica** (conversation state is in-process; documented). The SIGTERM shutdown stops the apps cleanly.
 - **Tests:** `test_bot_webhooks.py` (13, incl. `_run` end to end against the fake Telegram) + settings tests; 2 mutation specs VERIFIED |
-| 12.2.6 | IaC skeleton (Terraform/CDK) | [ ] | | | no provisioning without approval |
+| 12.2.6 | IaC skeleton (Terraform/CDK) | [x] | 2026-10-03 | _pending_ | ADR-50, `docs/INFRA.md`. **Not applied, and nothing provisioned.** Terraform in `infra/terraform/`, one root module, staging/prod `.tfvars`, S3+DynamoDB state.
+- **Region:** `il-central-1`, so patient data stays in Israel.
+- **Network and edge:** VPC over 2 AZs; ALB with ACM TLS 1.2/1.3 and WAF (managed rules, a rate limit, `/telegram/*` only from Telegram's ranges).
+- **App:** ECS Fargate `web` / `bots` (one replica, stop-then-start) / `worker`, plus a one-off `migrate` task.
+- **Data:** RDS Postgres 16 (encrypted, `force_ssl`, PITR 14 d, password **managed and rotated by RDS**); ElastiCache Redis 7 (TLS + AUTH); S3 media (SSE-KMS, private, TLS-only); one KMS key.
+- **Ollama** (Q3): an EC2 GPU instance behind an internal **TLS** NLB at `ollama.<domain>`, installed from the pinned release with its checksum verified, SSM-only admin.
+- **Operations:** CloudWatch alarms + SNS email; a **monthly budget alarm**.
+- **The switch:** the task environment sets every app flag. Secrets are injected from Secrets Manager, never plain env and never in Terraform.
+- **App side:** `ZF_DB_PASSWORD` fills the password into `ZF_DB_URL`.
+- **Checks:** CI job `infra` (`fmt`, `validate`, trivy scan); `tests/unit/test_infra.py` (the task env boots the app in prod mode, secrets never plain, one bots replica, encryption at rest, only the ALB is open); 2 mutation specs VERIFIED |
 | 12.2.7 | Backups & tested restore drill | [ ] | | | |
 | 12.2.8 | Cost estimate + minimal-viable alternative | [ ] | | | |
 | 12.2.9 | Migration runbook + rollback | [ ] | | | |

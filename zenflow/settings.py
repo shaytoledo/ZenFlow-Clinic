@@ -210,6 +210,9 @@ class Settings(BaseSettings):
     # ZF_DB_URL — a Postgres URL (postgresql+psycopg://…) moves the app off SQLite (12.2.2,
     # ADR-46); empty = the SQLite file. bot/db.py reads it itself; validated here.
     zf_db_url: str = ""
+    # ZF_DB_PASSWORD — the database password, injected apart from the URL (AWS: the one RDS manages
+    # in Secrets Manager); fills in a ZF_DB_URL that names a user but no password (12.2.6).
+    zf_db_password: str = ""
     log_format: Literal["auto", "console", "json"] = "auto"  # auto = console in dev, json otherwise
     log_level: str = "INFO"
     clinic_tz: str = "Asia/Jerusalem"  # IANA zone; the clinic's wall clock for "today" (ADR-19)

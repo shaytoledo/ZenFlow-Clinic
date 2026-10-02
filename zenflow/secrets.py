@@ -45,6 +45,7 @@ SECRET_NAMES: tuple[str, ...] = (
     "TELEGRAM_WEBHOOK_SECRET",
     "ANTHROPIC_API_KEY",
     "GOOGLE_CLIENT_SECRET",
+    "ZF_DB_PASSWORD",
 )
 
 _TRUE = {"1", "true", "yes", "on"}

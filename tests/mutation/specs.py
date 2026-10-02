@@ -490,6 +490,27 @@ SPECS = [
         ],
     ),
     spec(
+        id="12.2.6 the AWS task env boots prod",
+        file="infra/terraform/app.tf",
+        edits=[("5432/zenflow?sslmode=require", "5432/zenflow", False)],
+        tests=["tests/unit/test_infra.py::test_the_task_environment_boots_the_app_in_prod_mode"],
+    ),
+    spec(
+        id="12.2.6 one bots replica",
+        file="infra/terraform/app.tf",
+        anchor='resource "aws_ecs_service" "bots"',
+        edits=[
+            (
+                "  desired_count                      = 1",
+                "  desired_count                      = 2",
+                False,
+            )
+        ],
+        tests=[
+            "tests/unit/test_infra.py::test_one_bots_replica_stopped_before_its_replacement_starts"
+        ],
+    ),
+    spec(
         id="B6 /start says so",
         file="bot/patient_bot/start.py",
         edits=[

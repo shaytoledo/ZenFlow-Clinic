@@ -41,3 +41,9 @@ htmlcov/
 tests/e2e/snapshots/_actual/
 # python tasks.py verify-fixes output
 mutation_results.json
+
+# Terraform (12.2.6): local state, plugins, and the per-env backend files with account ids
+.terraform/
+*.tfstate
+*.tfstate.*
+infra/terraform/envs/*.backend.hcl

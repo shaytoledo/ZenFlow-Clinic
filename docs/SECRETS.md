@@ -14,6 +14,7 @@ How the clinic's secrets are stored, where they come from, and how the one encry
 | `GOOGLE_CLIENT_SECRET` | Google OAuth | for Calendar/Gmail |
 | `WHATSAPP_TOKEN` / `WHATSAPP_APP_SECRET` / `WHATSAPP_VERIFY_TOKEN` | WhatsApp Cloud API | with `ZF_CHANNEL_WHATSAPP=1` |
 | `TELEGRAM_WEBHOOK_SECRET` | webhook authentication | with `ZF_WEBHOOK_MODE=1` |
+| `ZF_DB_PASSWORD` | the Postgres password, injected apart from `ZF_DB_URL` (on AWS: the RDS-managed secret, which RDS rotates) | with a Postgres `ZF_DB_URL` that names a user but no password (12.2.6) |
 | `ANTHROPIC_API_KEY` | Claude API | with `USE_AI=anthropic` |
 
 All are read in exactly one place — `zenflow.settings` — and **never logged**: `zenflow/logging.py`

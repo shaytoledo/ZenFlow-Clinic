@@ -94,3 +94,31 @@ def test_the_driver_suffix_is_stripped_for_psycopg_and_added_for_sqlalchemy() ->
     assert sqlalchemy_url("postgresql://u@h/db") == "postgresql+psycopg://u@h/db"
     assert sqlalchemy_url("postgres://u@h/db") == "postgresql+psycopg://u@h/db"
     assert sqlalchemy_url("sqlite:///x.db") == "sqlite:///x.db"
+
+
+@pytest.mark.parametrize(
+    ("url", "password", "expected"),
+    [
+        (  # RDS (12.2.6): the URL names the user, the managed password is injected apart
+            "postgresql+psycopg://zenflow@db.internal:5432/zenflow?sslmode=require",
+            "p@ss/w:rd",
+            "postgresql+psycopg://zenflow:p%40ss%2Fw%3Ard@db.internal:5432/zenflow?sslmode=require",
+        ),
+        ("postgresql://u:given@h/db", "other", "postgresql://u:given@h/db"),  # the URL wins
+        ("postgresql://h/db", "pw", "postgresql://h/db"),  # no user: nothing to fill in
+    ],
+)
+def test_the_password_is_filled_into_a_url_that_names_a_user(
+    url: str, password: str, expected: str
+) -> None:
+    from bot.db import _with_password
+
+    assert _with_password(url, password) == expected
+
+
+def test_db_url_combines_the_url_and_the_injected_password(monkeypatch) -> None:
+    import bot.db as dbmod
+
+    monkeypatch.setenv("ZF_DB_URL", "postgresql+psycopg://zenflow@db.internal/zenflow")
+    monkeypatch.setenv("ZF_DB_PASSWORD", "s3cret")
+    assert dbmod.db_url() == "postgresql+psycopg://zenflow:s3cret@db.internal/zenflow"

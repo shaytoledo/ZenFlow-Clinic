@@ -50,7 +50,7 @@ Measured against `master` on 2026-10-02 by reading the code, not the docs.
 3. **12.2.2** `ZF_DB_URL` + a sqlite3-shaped Postgres adapter (ADR-46: the repositories keep their SQL, made portable; Core was not needed for the proof); the whole suite on Postgres in CI (`postgres-suite`). **Done.**
 4. **12.2.4** Remove mutable globals; reconcile loop → scheduled job; Redis pool settings.
 5. **12.2.5** Telegram webhooks (both bots) behind `ZF_WEBHOOK_MODE`. **Done.**
-6. **12.2.6** IaC skeleton (Terraform or CDK — an ADR first), no `apply`.
+6. **12.2.6** IaC skeleton (Terraform or CDK — an ADR first), no `apply`. **Done** (ADR-50, `docs/INFRA.md`): Terraform, validated in CI, never applied.
 7. **12.2.7–12.2.9** Backups/DR drill on the compose stack, cost estimate + smallest-viable option, migration runbook with rollback.
 
 Owner decisions that gate parts of this: **Q3** (AWS budget, region, and where the LLM runs).
