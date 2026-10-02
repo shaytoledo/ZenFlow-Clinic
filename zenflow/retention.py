@@ -26,6 +26,7 @@ import argparse
 import json
 import logging
 import sys
+from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Any
 
@@ -138,8 +139,12 @@ def expired_patients() -> list[int]:
     return [pid for pid in ids if retention_allows_purge(conn, pid)]
 
 
-def sweep(*, apply: bool = False) -> dict[str, Any]:
-    """Apply (or, by default, preview) the policy. Returns what was — or would be — removed."""
+def sweep(*, apply: bool = False, keep: Collection[int] = ()) -> dict[str, Any]:
+    """Apply (or, by default, preview) the policy. Returns what was — or would be — removed.
+
+    `keep` = patient ids the operator holds back from the clinical purge after reading the preview
+    (e.g. a minor, whose record must outlive their 25th birthday — docs/DATA_PROTECTION.md §1).
+    """
     from bot.db import get_db
     from zenflow.patient_erasure import erase_patient
     from zenflow.settings import get_settings
@@ -159,7 +164,9 @@ def sweep(*, apply: bool = False) -> dict[str, Any]:
                 conn.execute(f"DELETE FROM {table} WHERE {where}", (cutoff,))
             result["operational"][table] = n
 
-    expired = expired_patients()
+    held = {int(pid) for pid in keep}
+    expired = [pid for pid in expired_patients() if pid not in held]
+    result["clinical_kept"] = sorted(held)
     for pid in expired:
         if apply:
             erase_patient(
@@ -178,12 +185,21 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Apply the data-retention policy (Phase 9.9).")
     parser.add_argument("--apply", action="store_true", help="remove rows (default: preview)")
     parser.add_argument("--policy", action="store_true", help="print the policy table and exit")
+    parser.add_argument(
+        "--keep",
+        default="",
+        help="comma-separated patient ids to hold back from the clinical purge (e.g. minors)",
+    )
     args = parser.parse_args(argv)
     if args.policy:
         for c in POLICY:
             print(f"{c.name:40} {c.kind:12} {c.tables:55} {c.kept}")
         return 0
-    print(json.dumps(sweep(apply=args.apply), indent=2))
+    try:
+        keep = [int(x) for x in args.keep.split(",") if x.strip()]
+    except ValueError:
+        parser.error("--keep takes patient ids, e.g. --keep 12,34")
+    print(json.dumps(sweep(apply=args.apply, keep=keep), indent=2))
     if not args.apply:
         print("preview only — nothing changed; re-run with --apply", file=sys.stderr)
     return 0

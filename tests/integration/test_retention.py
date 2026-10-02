@@ -2,8 +2,8 @@
 
 Operational rows about patients (message metadata, AI-call meters, read or resolved notifications,
 finished jobs) are removed after `ZF_RETENTION_OPERATIONAL_DAYS`; open alerts and pending jobs stay.
-The clinical record is never removed while `ZF_RETENTION_CLINICAL_YEARS` is 0 (keep forever, the
-default until owner decision Q5); once set, a patient whose last appointment is older is purged.
+The clinical record is kept `ZF_RETENTION_CLINICAL_YEARS` after the patient's LAST appointment —
+7 by default (owner decision Q5) — and never removed while it is 0 (keep forever).
 """
 
 from __future__ import annotations
@@ -127,15 +127,34 @@ def test_zero_days_keeps_operational_rows_forever(retention, monkeypatch) -> Non
     assert _count("message_log") == 2
 
 
-def test_clinical_records_are_never_purged_by_default(
-    retention, make_appointment, make_treatment_notes
+def test_zero_years_keeps_the_clinical_record_forever(
+    retention, monkeypatch, make_appointment, make_treatment_notes
 ) -> None:
     from zenflow.retention import sweep
 
+    _set(monkeypatch, ZF_RETENTION_CLINICAL_YEARS="0")
     apt = make_appointment(apt_date="2001-01-01")
     make_treatment_notes(apt)
     assert sweep(apply=True)["clinical_purged"] == []
     assert _count("treatment_notes") == 1
+
+
+def test_by_default_the_record_is_kept_seven_years_after_the_last_visit(
+    retention, make_patient, make_appointment
+) -> None:
+    """Owner decision Q5: seven years from the last treatment (docs/DATA_PROTECTION.md §1)."""
+    from zenflow.retention import expired_patients
+
+    today = clock.today()
+    eight_years_ago = f"{today.year - 8}-01-01"  # more than seven years, whatever today is
+    six_years_ago = f"{today.year - 6}-12-31"  # less than seven
+    gone = make_patient("Last seen eight years ago")
+    make_appointment(patient=gone, apt_date=eight_years_ago)
+    kept = make_patient("Last seen six years ago")
+    make_appointment(patient=kept, apt_date=six_years_ago, apt_time="11:00")
+    expired = expired_patients()
+    assert gone["patient_id"] in expired
+    assert kept["patient_id"] not in expired
 
 
 def test_a_record_past_its_clinical_period_is_purged(
@@ -185,3 +204,23 @@ def test_the_cli_prints_the_policy(capsys) -> None:
     assert main(["--policy"]) == 0
     out = capsys.readouterr().out
     assert "Clinical record" in out and "ZF_RETENTION_CLINICAL_YEARS" in out
+
+
+def test_the_operator_can_hold_patients_back_from_the_purge(
+    retention, monkeypatch, make_patient, make_appointment, capsys
+) -> None:
+    """A minor's record must outlive the default period: the preview names them, `--keep` holds."""
+    from zenflow.retention import main, sweep
+
+    minor = make_patient("A minor")
+    make_appointment(patient=minor, apt_date="2001-01-01")
+    adult = make_patient("An adult")
+    make_appointment(patient=adult, apt_date="2001-01-01", apt_time="11:00")
+
+    assert sorted(sweep()["clinical_purged"]) == sorted([minor["patient_id"], adult["patient_id"]])
+    assert main(["--apply", "--keep", str(minor["patient_id"])]) == 0
+    conn = dbmod.get_db()
+    remaining = {r[0] for r in conn.execute("SELECT id FROM patients")}
+    assert minor["patient_id"] in remaining and adult["patient_id"] not in remaining
+    with pytest.raises(SystemExit):
+        main(["--keep", "twelve"])

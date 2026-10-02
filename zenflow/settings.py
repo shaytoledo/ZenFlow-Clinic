@@ -120,8 +120,9 @@ class FeatureFlags(BaseSettings):
     # `python -m zenflow.retention` removes them (9.9). 0 = keep forever.
     retention_operational_days: int = Field(default=730, ge=0)
     # ZF_RETENTION_CLINICAL_YEARS — years after a patient's last appointment before the clinical
-    # record may be purged (9.9). 0 (default) = keep forever: the legal minimum is owner decision Q5.
-    retention_clinical_years: int = Field(default=0, ge=0)
+    # record may be purged (9.9). Default 7 (owner decision Q5: the Israeli outpatient-record period
+    # and the civil limitation period — docs/DATA_PROTECTION.md §1). 0 = keep forever.
+    retention_clinical_years: int = Field(default=7, ge=0)
     # ZF_TRUSTED_PROXIES — IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's
     # subnet); X-Forwarded-For is believed only from these. Empty (default) = never (SF-022).
     trusted_proxies: str = ""

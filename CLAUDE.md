@@ -307,7 +307,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_LOG_FILES` | `1` | `0` = log to the console only, no `logs/*.text` files (containers; 12.2.1) |
 | `ZF_TRUSTED_PROXIES` | — | IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's subnet); `X-Forwarded-For` is believed only from these — empty = never (SF-022, `web/client_ip.py`) |
 | `ZF_RETENTION_OPERATIONAL_DAYS` | `730` | Days operational patient rows (message metadata, AI meters, read notifications, finished jobs) are kept before `zenflow.retention --apply` removes them (9.9); `0` = forever |
-| `ZF_RETENTION_CLINICAL_YEARS` | `0` | Years after a patient's last appointment before the clinical record may be purged (9.9); `0` = forever until owner decision Q5 |
+| `ZF_RETENTION_CLINICAL_YEARS` | `7` | Years after a patient's last appointment before the clinical record may be purged (9.9); 7 = owner decision Q5 (Israeli outpatient-record period), `0` = forever |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |

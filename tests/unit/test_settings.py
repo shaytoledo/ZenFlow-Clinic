@@ -208,7 +208,7 @@ def test_bot_flood_flag_parses(env) -> None:
 
 def test_retention_knobs_parse_and_refuse_negatives(env) -> None:
     s = env({})
-    assert (s.flags.retention_operational_days, s.flags.retention_clinical_years) == (730, 0)
+    assert (s.flags.retention_operational_days, s.flags.retention_clinical_years) == (730, 7)
     s = env({"ZF_RETENTION_OPERATIONAL_DAYS": "0", "ZF_RETENTION_CLINICAL_YEARS": "10"})
     assert (s.flags.retention_operational_days, s.flags.retention_clinical_years) == (0, 10)
     with pytest.raises(S.SettingsError):
