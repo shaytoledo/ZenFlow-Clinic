@@ -42,3 +42,6 @@ def test_treatment_recommendations_escape_dynamic_markdown() -> None:
     out = _format_recommendations_for_telegram([{"category": "Sleep", "text": EVIL}])
     _assert_neutralised(out)
     assert "*Sleep:*" in out, "a clean category keeps its bold label"
+
+    out = _format_recommendations_for_telegram([{"category": "Sleep_*[x](http://e)", "text": "x"}])
+    assert "Sleep\\_\\*\\[x](http" in out, "the AI-written category is escaped too"

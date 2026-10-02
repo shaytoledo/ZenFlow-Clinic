@@ -86,6 +86,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/AUTHZ.md` | Phase 9.1: every route, its auth level, its object-level check and the test that proves it |
 | `docs/SECRETS.md` | Phase 9.6: the secrets inventory, the `SecretsProvider` seam (EnvSecrets → AWS Secrets Manager) and token-key rotation |
 | `docs/TRANSPORT.md` | Phase 9.11: data in transit — HTTPS/`rediss://` everywhere (ADR-14), no `verify=False`, the Telegram-not-e2e posture (Q5), Phase-12 TLS infra |
+| `docs/FIX_VERIFICATION.md` | Every recorded fix proven by undoing it: its regression test must fail (`python tasks.py verify-fixes`, `tests/mutation/`) — the 86-fix result and the test gaps it found |
 | `docs/DATA_PROTECTION.md` | Phase 9.9: legal posture (Q5), the retention policy per data class, patient export + erasure (anonymize / purge) and how erasure reconciles with the append-only audit trail |
 | `docs/THREAT_MODEL.md` | Phase 10.1: STRIDE threat model — assets, entry points, attacker profiles, and the A1–A14 attack scenarios each mapped to its `tests/security/` regression |
 
@@ -236,6 +237,7 @@ Any message / /start → SELECTING (main menu)
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
 - Read configuration through `zenflow.settings.get_settings()` — never `os.getenv` (exceptions: `bot/db.py`, `startup/launch.py`). New flags go in `FeatureFlags` with both paths tested.
+- Fixes are proven, not claimed: when you fix a bug, add a spec to `tests/mutation/specs.py` (the edit that undoes it + the tests that must then fail); `python tests/mutation/run.py <id>` must report VERIFIED (`docs/FIX_VERIFICATION.md`).
 - Patient data (ADR-43, 9.9): a new table or column holding patient data is added to `zenflow/patient_export.py` (access), `zenflow/patient_erasure.py` (anonymize/purge) and `POLICY` in `zenflow/retention.py` — `tests/integration/test_retention.py` and `test_patient_erasure.py` fail on an export section the policy or the erasure does not handle. Never hard-delete a patient from the app; erasure is the host-side command. A file holding patient data (backup, export, restore) is written with `bot.db.write_owner_only` — `0600` from the first byte (A10, `tests/security/test_file_permissions.py`).
 - Secrets (ADR-41, 9.6): secret values enter through the `SecretsProvider` seam (`zenflow/secrets.py`) — `EnvSecrets` by default, `AwsSecretsManagerSecrets` under `ZF_CLOUD`+`AWS_SECRETS_ID` (Phase 12) — wired as settings' lowest-precedence source, so the environment always wins. A new secret is added to `SECRET_NAMES` and to the `Settings` field. Never log a secret; rotate the token-encryption key with `python -m zenflow.rotate_token_key` (`docs/SECRETS.md`).
 - Background work (ADR-20): never `asyncio.ensure_future(...)` fire-and-forget for anything that must happen — `get_default_queue().enqueue(name, payload, run_at=..., idempotency_key=...)` and register the handler with `@default_registry.handler(name)` in `zenflow/worker.py` consumers.

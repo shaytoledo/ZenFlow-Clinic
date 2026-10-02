@@ -39,3 +39,5 @@ htmlcov/
 
 # Visual snapshot test output (Phase 4.2e)
 tests/e2e/snapshots/_actual/
+# python tasks.py verify-fixes output
+mutation_results.json

@@ -1,7 +1,7 @@
 """Cross-platform mirror of the Makefile targets (Windows has no `make`).
 
 Usage:  python tasks.py <target> [target ...]
-Targets: install fmt lint type test test-fast security all lock hooks
+Targets: install fmt lint type test test-fast security all lock hooks verify-fixes
 """
 
 from __future__ import annotations
@@ -85,6 +85,8 @@ TARGETS: dict[str, list[Step]] = {
         stamp_lock_headers,
     ],
     "hooks": [PY + ["pre_commit", "install"]],
+    # undo every recorded fix and prove its test fails (slow; edits files in place — clean tree)
+    "verify-fixes": [[sys.executable, "tests/mutation/run.py"]],
 }
 TARGETS["all"] = TARGETS["lint"] + TARGETS["type"] + TARGETS["test"] + TARGETS["security"]
 
