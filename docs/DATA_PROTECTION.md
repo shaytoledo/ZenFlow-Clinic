@@ -36,19 +36,35 @@ there. If it does: health data is a special category (Art. 9; basis 9(2)(h) heal
 to erasure (Art. 17) yields to a legal obligation to retain (17(3)(b)) and to health-care purposes
 (17(3)(c)/(h)), and access (Art. 15) must be answered within a month.
 
-**What the code assumes until Q5 is answered:** a patient can get **everything** we hold
-(`patient_export`); an erasure request removes everything that **identifies or reaches** them and
-keeps the **de-identified** clinical record (`patient_erasure --mode anonymize`); nothing clinical
-is ever deleted automatically (`ZF_RETENTION_CLINICAL_YEARS=0`). That is the safe side of every
-reading above — it never destroys a record the law may require, and never keeps an identity it no
-longer needs.
+**Owner decision Q5 (2026-10-02): "follow the Privacy Protection Law."** Read into a number:
 
-### Owner decisions still open (Q5)
+- **The clinical record is kept 7 years after the patient's LAST treatment, then it may be purged.**
+  The default is `ZF_RETENTION_CLINICAL_YEARS=7`.
+- **Why 7.** The Public Health Regulations (Keeping of Records), 1976, bind hospitals. For a medical
+  file of a hospital's **outpatient clinic** — the closest analogue to a private clinic — they set
+  **7 years from the last treatment**. A hospital in-patient file is 20 years.
+  ([Wikisource text](https://he.wikisource.org/wiki/%D7%AA%D7%A7%D7%A0%D7%95%D7%AA_%D7%91%D7%A8%D7%99%D7%90%D7%95%D7%AA_%D7%94%D7%A2%D7%9D_(%D7%A9%D7%9E%D7%99%D7%A8%D7%AA_%D7%A8%D7%A9%D7%95%D7%9E%D7%95%D7%AA)),
+  [Nevo](https://www.nevo.co.il/law_html/law00/74724.htm).
+  Seven years is also the general civil limitation period, so the record outlives any claim it
+  could answer.
+- **Why not forever.** The Privacy Protection Law's minimisation and retention principles, in force
+  since Amendment 13 (14 August 2025), mean data kept with no purpose is itself a breach.
+- **Minors — a caveat the code cannot apply alone.** For a minor, limitation starts at age 18, so
+  their record should be kept at least until they turn 25. The system does not store dates of birth.
+  The sweep is therefore **run by a person**. First a preview, `python -m zenflow.retention`, which
+  lists the patients it would purge. Then `--apply --keep <ids>` holds back any minor in that list.
+- Not legal advice: counsel can still change the number, and it is one setting.
+
+Unchanged: a patient can get **everything** we hold (`patient_export`), and an erasure request
+removes everything that **identifies or reaches** them while keeping the **de-identified** clinical
+record (`patient_erasure --mode anonymize`).
+
+### Owner decisions (Q5)
 
 | # | Decision | Where it lands |
 |---|---|---|
-| a | Does the Patient's Rights Law record-keeping duty apply to the clinic? | `ZF_RETENTION_CLINICAL_YEARS` |
-| b | The clinical retention period (years after the last appointment) | `ZF_RETENTION_CLINICAL_YEARS` |
+| a | Does the Patient's Rights Law record-keeping duty apply to the clinic? | answered as "follow the law": treated as if it does — 7 years |
+| b | The clinical retention period (years after the last appointment) | **7** — `ZF_RETENTION_CLINICAL_YEARS` (2026-10-02) |
 | c | The operational retention period (default 2 years) | `ZF_RETENTION_OPERATIONAL_DAYS` |
 | d | Database registration / DPO thresholds — does the clinic cross them? | operations, not code |
 | e | Patient consent text for Telegram (not end-to-end encrypted — `docs/TRANSPORT.md`) | bot copy |
@@ -65,7 +81,7 @@ prints it. The sweep (`python -m zenflow.retention --apply`, run daily) applies 
 |---|---|---|
 | Identity | `patients` | with the clinical record; anonymized on an erasure request |
 | Channel identities | `patient_channels` | with the clinical record; deleted on an erasure request |
-| Clinical record | `appointments`, `intake_sessions`, `treatment_notes`, `followups` | `ZF_RETENTION_CLINICAL_YEARS` after the last appointment — **0 = forever** (Q5) |
+| Clinical record | `appointments`, `intake_sessions`, `treatment_notes`, `followups` | `ZF_RETENTION_CLINICAL_YEARS` after the last appointment — **7 years** (Q5); 0 = forever |
 | Audit trail | `audit_log` | as long as the clinical record it describes; purged with it |
 | Message metadata | `message_log` | `ZF_RETENTION_OPERATIONAL_DAYS` (default 730) |
 | AI-call meters | `ai_calls` | `ZF_RETENTION_OPERATIONAL_DAYS` |
@@ -123,9 +139,9 @@ Nothing changes without `--apply`; the plan prints the row counts per class and 
 ### `--mode purge` — the record's retention period is over
 
 Every row about the patient is deleted, clinical record and audit trail included. It is refused
-while the clinical retention period runs — and therefore **always**, while `ZF_RETENTION_CLINICAL_YEARS`
-is 0 — unless `--override-retention` records that a person (with counsel) decided otherwise. The
-retention sweep uses this mode for patients whose period has lapsed.
+while the clinical retention period runs (7 years after the last appointment; **always** if
+`ZF_RETENTION_CLINICAL_YEARS` is 0) unless `--override-retention` records that a person decided
+otherwise. The retention sweep uses this mode for patients whose period has lapsed.
 
 ### The audit trail and erasure
 

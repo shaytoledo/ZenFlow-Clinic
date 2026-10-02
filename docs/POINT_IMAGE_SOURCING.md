@@ -44,6 +44,24 @@ already covers.
 3. **Optional:** a "historical chart" tab using Wellcome images from option 3, clearly labelled
    as historical.
 
+## Owner decision Q4 (2026-10-02): "research it yourself" — the choice
+
+Re-checked against our 26 points:
+- **Wikimedia Commons** (86 files in the category): mostly historical woodcuts and a handful of
+  modern GIFs. There is no consistent modern set, so it stays a source for a historical tab only.
+- **Acupoint Wellness Atlas** and similar sites state no licence, so they are all rights reserved.
+- **HOPE Neuro-Acupuncture Rehab** publishes one diagram per point for all 361 meridian points
+  (362 images on the page). The licence is stated under each image: **CC BY-SA 4.0**, credit
+  "© 2024 by HOPE Neuro-Acupuncture Rehab", with the note "Blog Visuals are Free to Use with
+  Attribution". The images are WebP, about 39 KB each.
+  **Coverage: 25 of our 26 points** — every meridian point. **Yintang** (an extra point) is missing.
+
+**Choice:** option 2 now, so that 25 points get a real diagram. Yintang keeps the placeholder until
+the commissioned set (option 1) or another licensed diagram covers it. Share-alike applies to the
+image files only: we show them unmodified, with credit and licence in the lightbox. That does not
+make the app itself CC BY-SA. **Next step:** the owner approves downloading the 25 files
+(~1 MB), then the steps below.
+
 ## How a chosen set gets in
 
 1. Put the files in a folder named by code (`LI4.png`, `ST-36_diagram.svg`→`.png`). The
