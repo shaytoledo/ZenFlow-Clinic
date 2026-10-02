@@ -38,6 +38,9 @@ COPY --chown=zenflow:zenflow web ./web
 COPY --chown=zenflow:zenflow zenflow ./zenflow
 COPY --chown=zenflow:zenflow startup ./startup
 COPY --chown=zenflow:zenflow locales ./locales
+# Alembic (12.2.3): init_db() stamps/upgrades the schema at start-up, so the revisions ship too
+COPY --chown=zenflow:zenflow alembic.ini ./alembic.ini
+COPY --chown=zenflow:zenflow migrations ./migrations
 USER zenflow
 VOLUME ["/data"]
 
