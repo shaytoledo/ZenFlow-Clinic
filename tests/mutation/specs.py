@@ -788,6 +788,14 @@ SPECS = [
         tests=["tests/integration/test_patient_erasure.py"],
     ),
     spec(
+        id="12.2.2 Postgres over TLS",
+        file="zenflow/settings.py",
+        edits=[('and "sslmode=require" not in db.query', "and False", False)],
+        tests=[
+            "tests/security/test_transit.py::test_prod_refuses_a_non_local_postgres_without_tls"
+        ],
+    ),
+    spec(
         id="9.9 backup encryption",
         file="zenflow/db_backup.py",
         edits=[("token = fernet.encrypt(mem.serialize())", "token = mem.serialize()", False)],

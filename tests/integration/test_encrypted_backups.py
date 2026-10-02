@@ -48,6 +48,7 @@ def _backups() -> list[Path]:
     return sorted(db.parent.glob(db.name + ".bak-*"))
 
 
+@pytest.mark.sqlite_only
 def test_an_encrypted_backup_holds_the_database_and_no_plaintext(
     backup_key, make_patient, tmp_path
 ) -> None:
@@ -65,6 +66,7 @@ def test_an_encrypted_backup_holds_the_database_and_no_plaintext(
     assert MARKER in names
 
 
+@pytest.mark.sqlite_only
 def test_without_a_key_the_encrypted_backup_writes_nothing(no_backup_key) -> None:
     from zenflow.db_backup import backup_database
     from zenflow.file_crypto import EncryptionUnavailable
@@ -74,6 +76,7 @@ def test_without_a_key_the_encrypted_backup_writes_nothing(no_backup_key) -> Non
     assert _backups() == []
 
 
+@pytest.mark.sqlite_only
 def test_a_wrong_key_or_a_damaged_file_is_refused(backup_key, tmp_path) -> None:
     from zenflow.db_backup import backup_database
     from zenflow.file_crypto import decrypt_file
@@ -89,6 +92,7 @@ def test_a_wrong_key_or_a_damaged_file_is_refused(backup_key, tmp_path) -> None:
     assert not (tmp_path / "x.db").exists(), "nothing half-decrypted is written"
 
 
+@pytest.mark.sqlite_only
 def test_the_plain_backup_still_works(no_backup_key) -> None:
     from zenflow.db_backup import backup_database
 
@@ -122,6 +126,7 @@ def test_an_encrypted_export_without_a_key_is_refused(no_backup_key, make_patien
     assert list(folder.iterdir()) == []
 
 
+@pytest.mark.sqlite_only
 def test_the_decrypt_cli_round_trips_and_refuses_a_wrong_key(
     backup_key, tmp_path, monkeypatch, capsys
 ) -> None:

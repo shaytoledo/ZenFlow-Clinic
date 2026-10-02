@@ -9,6 +9,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 import bot.db as dbmod
 
 
@@ -22,6 +24,7 @@ def _columns(conn: sqlite3.Connection) -> dict[str, list[str]]:
     return {t: [c[1] for c in conn.execute(f"PRAGMA table_info({t})")] for t in sorted(tables)}
 
 
+@pytest.mark.sqlite_only
 def test_db_path_is_injectable_and_never_the_real_data_file(db: Path) -> None:
     assert dbmod.db_path() == db
     assert db.exists()
@@ -40,6 +43,7 @@ def test_previous_test_data_did_not_leak(db: Path) -> None:
     assert conn.execute("SELECT COUNT(*) FROM therapists").fetchone()[0] == 0
 
 
+@pytest.mark.sqlite_only
 def test_get_db_reconnects_when_the_path_changes(db: Path, tmp_path: Path, monkeypatch) -> None:
     first = dbmod.get_db()
     other = tmp_path / "other.db"
@@ -50,6 +54,7 @@ def test_get_db_reconnects_when_the_path_changes(db: Path, tmp_path: Path, monke
     dbmod.close_db()
 
 
+@pytest.mark.sqlite_only
 def test_init_db_is_idempotent(db: Path) -> None:
     conn = dbmod.get_db()
     before = _columns(conn)

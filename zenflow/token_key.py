@@ -48,9 +48,27 @@ class RotationReport:
 
 
 def _backup_database() -> str:
+    if dbmod.is_postgres():
+        return _backup_token_rows()
     from zenflow.db_backup import backup_database
 
     return backup_database("bak")
+
+
+def _backup_token_rows() -> str:
+    """Postgres: the rows about to change, exactly as stored (still encrypted with the old key).
+
+    The SQLite path copies the whole file; on Postgres the database's own backups (RDS snapshots,
+    point-in-time recovery — 12.2.7) cover everything else, so only what rotation rewrites is kept.
+    """
+    import json
+
+    from zenflow.clock import now_utc
+
+    rows = dbmod.get_db().execute("SELECT * FROM google_tokens ORDER BY therapist_id").fetchall()
+    path = f"{dbmod.db_path()}.google_tokens-{now_utc().strftime('%Y%m%dT%H%M%SZ')}.json"
+    dbmod.write_owner_only(path, json.dumps([dict(r) for r in rows], indent=2).encode("utf-8"))
+    return path
 
 
 def rotate(
@@ -92,7 +110,7 @@ def rotate(
         report.backup_path = _backup_database()
     for tid, plaintext in plan:
         conn.execute(
-            "UPDATE google_tokens SET encrypted_token=?, updated_at=datetime('now') "
+            "UPDATE google_tokens SET encrypted_token=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') "
             "WHERE therapist_id=?",
             (new.encrypt(plaintext).decode("utf-8"), tid),
         )

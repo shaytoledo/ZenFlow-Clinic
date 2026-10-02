@@ -12,6 +12,7 @@ from datetime import timedelta
 import pytest
 
 import bot.db as dbmod
+from tests.dbutil import columns as table_columns
 from zenflow import clock
 from zenflow import queue as q
 from zenflow import worker as w
@@ -246,7 +247,7 @@ def test_other_backends_are_explicitly_not_implemented_yet(db, monkeypatch, back
 
 
 def test_jobs_table_is_part_of_init_db(db) -> None:
-    cols = {r[1] for r in dbmod.get_db().execute("PRAGMA table_info(jobs)")}
+    cols = table_columns("jobs")
     assert {
         "id", "name", "payload_json", "run_at", "status", "attempts", "max_attempts",
         "last_error", "idempotency_key", "locked_by", "locked_at", "created_at", "updated_at",

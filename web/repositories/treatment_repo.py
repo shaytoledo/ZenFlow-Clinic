@@ -83,19 +83,19 @@ def upsert(appointment_id: int, patient_id: int, notes: dict[str, Any]) -> None:
                    ?,?,?,?,?,?,?,?,?,?,?,?,?,
                    strftime('%Y-%m-%dT%H:%M:%SZ','now'),strftime('%Y-%m-%dT%H:%M:%SZ','now'))
            ON CONFLICT(appointment_id) DO UPDATE SET
-             tcm_pattern=COALESCE(excluded.tcm_pattern, tcm_pattern),
-             treatment_principles=COALESCE(excluded.treatment_principles, treatment_principles),
-             diagnosis_certainty=COALESCE(excluded.diagnosis_certainty, diagnosis_certainty),
-             ai_suggested_points=COALESCE(excluded.ai_suggested_points, ai_suggested_points),
-             ai_recommendations=COALESCE(excluded.ai_recommendations, ai_recommendations),
-             tongue_observation=COALESCE(excluded.tongue_observation, tongue_observation),
-             pulse_observation=COALESCE(excluded.pulse_observation, pulse_observation),
-             session_notes=COALESCE(excluded.session_notes, session_notes),
-             used_points=COALESCE(excluded.used_points, used_points),
-             recommendations_sent_at=COALESCE(excluded.recommendations_sent_at, recommendations_sent_at),
-             completed_at=COALESCE(excluded.completed_at, completed_at),
-             therapist_diagnosis=COALESCE(excluded.therapist_diagnosis, therapist_diagnosis),
-             therapist_notes=COALESCE(excluded.therapist_notes, therapist_notes),
+             tcm_pattern=COALESCE(excluded.tcm_pattern, treatment_notes.tcm_pattern),
+             treatment_principles=COALESCE(excluded.treatment_principles, treatment_notes.treatment_principles),
+             diagnosis_certainty=COALESCE(excluded.diagnosis_certainty, treatment_notes.diagnosis_certainty),
+             ai_suggested_points=COALESCE(excluded.ai_suggested_points, treatment_notes.ai_suggested_points),
+             ai_recommendations=COALESCE(excluded.ai_recommendations, treatment_notes.ai_recommendations),
+             tongue_observation=COALESCE(excluded.tongue_observation, treatment_notes.tongue_observation),
+             pulse_observation=COALESCE(excluded.pulse_observation, treatment_notes.pulse_observation),
+             session_notes=COALESCE(excluded.session_notes, treatment_notes.session_notes),
+             used_points=COALESCE(excluded.used_points, treatment_notes.used_points),
+             recommendations_sent_at=COALESCE(excluded.recommendations_sent_at, treatment_notes.recommendations_sent_at),
+             completed_at=COALESCE(excluded.completed_at, treatment_notes.completed_at),
+             therapist_diagnosis=COALESCE(excluded.therapist_diagnosis, treatment_notes.therapist_diagnosis),
+             therapist_notes=COALESCE(excluded.therapist_notes, treatment_notes.therapist_notes),
              updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')""",
         (
             appointment_id,
@@ -157,13 +157,15 @@ def advance_points_status(
     One statement, so a replayed or late job can never move a session backwards (for example from
     COMPLETED back to GENERATING). Returns whether the row changed.
     """
+    allowed = list(only_from) or [""]  # an empty IN () is not valid SQL; "" never matches here
+    marks = ",".join("?" * len(allowed))
     cur = _conn().execute(
-        """UPDATE treatment_notes
+        f"""UPDATE treatment_notes
            SET points_status=?, updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
            WHERE appointment_id=?
-             AND ((? AND COALESCE(points_status, '') = '')
-                  OR points_status IN (SELECT value FROM json_each(?)))""",
-        (status, appointment_id, int(allow_empty), json.dumps(list(only_from))),
+             AND ((? = 1 AND COALESCE(points_status, '') = '')
+                  OR points_status IN ({marks}))""",
+        (status, appointment_id, int(allow_empty), *allowed),
     )
     changed = bool(cur.rowcount)
     if changed:
@@ -198,7 +200,7 @@ def save_points(
             cur = _conn().execute(
                 """UPDATE treatment_notes
                    SET ai_suggested_points=?, points_status='COMPLETED', updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')
-                   WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)""",
+                   WHERE appointment_id=? AND (CAST(? AS TEXT) IS NULL OR COALESCE(points_status, '') = ?)""",
                 (payload, appointment_id, expect_status, expect_status),
             )
             return _notified(appointment_id, bool(cur.rowcount))
@@ -231,7 +233,7 @@ def append_points(
         cur = _conn().execute(
             "UPDATE treatment_notes SET points_status=?, "
             "updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') "
-            "WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)",
+            "WHERE appointment_id=? AND (CAST(? AS TEXT) IS NULL OR COALESCE(points_status, '') = ?)",
             (status, appointment_id, expect_status, expect_status),
         )
         return _notified(appointment_id, bool(cur.rowcount))
@@ -266,7 +268,7 @@ def append_points(
                 "UPDATE treatment_notes SET ai_suggested_points=?, "
                 "points_status=COALESCE(?, points_status), "
                 "updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') "
-                "WHERE appointment_id=? AND (? IS NULL OR COALESCE(points_status, '') = ?)",
+                "WHERE appointment_id=? AND (CAST(? AS TEXT) IS NULL OR COALESCE(points_status, '') = ?)",
                 (merged, status, appointment_id, expect_status, expect_status),
             )
             return _notified(appointment_id, bool(cur.rowcount))

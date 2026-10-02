@@ -15,12 +15,21 @@ import bot.db as dbmod
 from zenflow.clock import now_utc
 
 
+class NotSqlite(RuntimeError):
+    """The database is Postgres (ZF_DB_URL): it is backed up by its own tools, not by this file copy."""
+
+
 def backup_database(suffix: str = "bak", *, encrypt: bool = False) -> str:
     """Copy the live database to ``<db>.<suffix>-<UTC timestamp>`` and return the path.
 
     With `encrypt`, the copy is taken in memory, Fernet-encrypted and written as ``….enc`` — the
     plaintext never touches disk. It refuses up front when `BACKUP_ENCRYPTION_KEY` is not set.
     """
+    if dbmod.is_postgres():
+        raise NotSqlite(
+            "ZF_DB_URL is Postgres: back it up with pg_dump or the server's snapshots / "
+            "point-in-time recovery (Phase 12.2.7), not with this SQLite file copy"
+        )
     src = dbmod.get_db()
     stamp = now_utc().strftime("%Y%m%dT%H%M%SZ")
     dest_path = f"{dbmod.db_path()}.{suffix}-{stamp}"
@@ -54,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         print(backup_database(encrypt=args.encrypt))
-    except EncryptionUnavailable as exc:
+    except (EncryptionUnavailable, NotSqlite) as exc:
         print(f"refused: {exc}", file=sys.stderr)
         return 2
     return 0

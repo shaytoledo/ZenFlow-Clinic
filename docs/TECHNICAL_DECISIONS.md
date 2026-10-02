@@ -1762,3 +1762,55 @@ indistinguishable from "already applied".
 guard, the partial unique index and the legacy default there. Deployments run
 `python -m zenflow.migrate upgrade` as a one-off step before the new code starts; the start-up
 path on SQLite keeps working as before.
+
+---
+
+## ADR-46: Postgres Behind the sqlite3-Shaped Connection; One Switch, `ZF_DB_URL`
+
+**Status:** Accepted (Phase 12.2.2, 2026-10-02)
+
+**Context.** About 48 modules run raw SQL through `bot.db.get_db()` and rely on how a sqlite3
+connection behaves: `?` placeholders, `cursor.lastrowid`, rows read by name and by position,
+autocommit with an explicit `BEGIN IMMEDIATE` for the booking, savepoints opened outside a
+transaction. The plan's proof that AWS (RDS Postgres) will work is the whole suite passing on
+Postgres, and it has to pass without forking the repositories into two versions.
+
+**Decision.**
+1. **One switch.** `ZF_DB_URL` (empty = the SQLite file, as today). With a Postgres URL, `get_db()`
+   returns `zenflow.pg.Connection`. That is psycopg 3 in autocommit, behind the same API the
+   repositories already use, and `init_db()` runs `alembic upgrade head` instead of the legacy
+   statements, then seeds the reference data (the acupoints). A non-local URL without
+   `sslmode=require|verify-*` is refused outside dev (ADR-14).
+2. **The adapter covers only mechanical differences** (`zenflow/pg.py`, unit-tested):
+   - placeholders are rewritten outside string literals, and `%` is escaped;
+   - `RETURNING id` is added to an INSERT into a table with an integer `id`;
+   - rows are readable by name, by position and as `dict(row)`;
+   - the canonical `SQL_NOW` becomes the same UTC string;
+   - `BEGIN IMMEDIATE` becomes `BEGIN`;
+   - `numeric` is read as `float`;
+   - a `SAVEPOINT` outside a transaction opens one, and its `RELEASE` commits (SQLite's rule).
+3. **Everything else is fixed in the SQL itself, portably.** Both databases run the same statement:
+   - `ON CONFLICT DO NOTHING` instead of `INSERT OR IGNORE`;
+   - `CASE` instead of the two-argument `MAX`;
+   - `IN (…)` lists instead of `json_each`, and JSON filtered in Python where it was `json_extract`;
+   - `lower(x) LIKE` where SQLite's LIKE ignored case;
+   - table-qualified columns inside `ON CONFLICT … DO UPDATE`.
+
+   Code that catches database errors catches `bot.db.IntegrityError` / `bot.db.DatabaseError`,
+   which contain both drivers' classes.
+4. **The suite is the proof.** `ZF_TEST_DB_URL=postgresql://… pytest` runs every test on one
+   Postgres database, emptied (`TRUNCATE … RESTART IDENTITY`) before each test. Tests that exercise
+   SQLite itself (the file, PRAGMAs, the backup API, the legacy migrations) are marked
+   `sqlite_only` and skipped there. CI runs this as the `postgres-suite` job beside the SQLite one.
+
+**Options rejected.**
+- **Rewrite every repository in SQLAlchemy Core first.** That touches ~48 modules before anything is
+  proven. The adapter plus portable SQL gets the proof now, and Core can replace a module later
+  without a flag day.
+- **An ORM.** It would change how every query reads and writes for no benefit to the proof.
+- **A Postgres-only branch of each query** (`if is_postgres(): … else: …`). That makes two code
+  paths to test, and one of them silently goes stale.
+
+**Consequences.** The repositories stay one codebase. New SQL must run on both databases, and the
+`postgres-suite` job fails a PR whose SQL does not. SQLite stays the default for development and
+for the single-host deployment until the migration runbook (12.2.9) is executed.

@@ -283,6 +283,7 @@ app refuse to start with a non-local `http://` URL when `ENV != dev`.
 |---|---|---|
 | `ENV` | `dev` | `dev` / `staging` / `prod` — controls fail-fast checks and cookie flags |
 | `ZENFLOW_DB_PATH` | `data/zenflow.db` | SQLite file location. The test harness points it at a temp file per test; never set it to the real file in tests |
+| `ZF_DB_URL` | — | A Postgres URL moves the app off SQLite (12.2.2, ADR-46); `alembic upgrade` builds the schema. A non-local host needs `?sslmode=require` outside dev. Empty = the SQLite file |
 | `LOG_FORMAT` | `auto` | `console` (human-readable) / `json` (one object per line) / `auto` = console in dev, JSON otherwise |
 | `LOG_LEVEL` | `INFO` | Root log level |
 | `CLINIC_TZ` | `Asia/Jerusalem` | IANA zone of the clinic; `zenflow.clock.today()` is this zone's date. Stored instants are always UTC |

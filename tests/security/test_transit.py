@@ -122,3 +122,26 @@ def test_local_redis_needs_no_auth(monkeypatch) -> None:
     settings = _build(monkeypatch, REDIS_URL="redis://localhost:6379/0", ENV="dev")
     assert settings.redis_url.startswith("redis://")
     S.reset_settings()
+
+
+# ── Postgres (12.2.2, ADR-46): the whole clinical record crosses this connection ──
+def test_prod_refuses_a_non_local_postgres_without_tls(monkeypatch) -> None:
+    with pytest.raises(S.SettingsError, match="ZF_DB_URL") as caught:
+        _build(
+            monkeypatch, ZF_DB_URL="postgresql+psycopg://zf:pw-secret@db.internal.example/zenflow"
+        )
+    assert "pw-secret" not in str(caught.value), "the refusal must not print the password"
+    S.reset_settings()
+
+
+@pytest.mark.parametrize("mode", ["require", "verify-ca", "verify-full"])
+def test_prod_accepts_a_non_local_postgres_over_tls(monkeypatch, mode: str) -> None:
+    url = f"postgresql+psycopg://zf:pw@db.internal.example/zenflow?sslmode={mode}"
+    assert _build(monkeypatch, ZF_DB_URL=url).zf_db_url == url
+    S.reset_settings()
+
+
+def test_a_local_postgres_needs_no_tls(monkeypatch) -> None:
+    url = "postgresql+psycopg://zf:pw@localhost:5432/zenflow"
+    assert _build(monkeypatch, ZF_DB_URL=url).zf_db_url == url
+    S.reset_settings()

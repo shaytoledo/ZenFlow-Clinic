@@ -78,12 +78,14 @@ def resolve_code(conn: sqlite3.Connection, code: str) -> str | None:
     """The table code for `code` or one of its aliases; None if no point matches."""
     if conn.execute("SELECT 1 FROM acupoints WHERE code=?", (code,)).fetchone():
         return code
-    row = conn.execute(
-        "SELECT code FROM acupoints WHERE EXISTS "
-        "(SELECT 1 FROM json_each(acupoints.aliases) WHERE value = ?)",
-        (code,),
-    ).fetchone()
-    return str(row[0]) if row else None
+    for row in conn.execute("SELECT code, aliases FROM acupoints").fetchall():
+        try:
+            aliases = json.loads(row[1] or "[]")
+        except ValueError:
+            continue
+        if code in aliases:
+            return str(row[0])
+    return None
 
 
 def load_credits(folder: Path) -> dict[str, Any]:
@@ -180,8 +182,9 @@ class IngestReport:
 def ingest_folder(
     folder: Path, conn: sqlite3.Connection, storage: Storage, dry_run: bool = False
 ) -> IngestReport:
-    conn.execute(CREATE_ACUPOINT_IMAGES)
-    conn.execute(CREATE_ACUPOINT_IMAGES_INDEX)
+    if isinstance(conn, sqlite3.Connection):  # on Postgres the schema is Alembic's (12.2.2)
+        conn.execute(CREATE_ACUPOINT_IMAGES)
+        conn.execute(CREATE_ACUPOINT_IMAGES_INDEX)
     report = IngestReport(dry_run=dry_run)
     credits = load_credits(folder)
 

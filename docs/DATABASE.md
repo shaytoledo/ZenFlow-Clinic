@@ -1,6 +1,6 @@
-# ZenFlow — SQLite Database Reference
+# ZenFlow — Database Reference (SQLite, and Postgres behind `ZF_DB_URL`)
 
-> File: `data/zenflow.db`
+> File: `data/zenflow.db` — or Postgres when `ZF_DB_URL` is set (Phase 12.2.2, see the last section)
 > Mode: WAL (Write-Ahead Log)
 > Connections: Thread-local singletons (`bot/db.py`)
 
@@ -623,4 +623,54 @@ python -m zenflow.migrate check               # does zenflow/schema.py match the
 - **Never add to the old `ALTER TABLE` list in `bot/db.py`.** It is frozen, and a test counts it.
 - CI's `postgres` job builds the schema on Postgres 16. It checks the audit guard (a plpgsql trigger
   there), the one-active-appointment-per-slot index and the legacy timestamp default.
+
+---
+
+## Postgres (Phase 12.2.2, ADR-46) — the same code on the AWS database
+
+**One switch:** `ZF_DB_URL=postgresql+psycopg://user:password@host:5432/zenflow?sslmode=require`.
+When it is empty (the default), nothing changes: the SQLite file above.
+
+| | SQLite (default) | Postgres (`ZF_DB_URL`) |
+|---|---|---|
+| connection | `sqlite3`, one per thread, WAL | `zenflow.pg.Connection`: psycopg 3, autocommit, one per thread |
+| schema | legacy statements build/verify `0001`, then Alembic stamps + upgrades | `alembic upgrade head` only, then the acupoint seed |
+| transactions | `BEGIN IMMEDIATE` (write lock) | `BEGIN`; the unique indexes guard the same races |
+| TLS | n/a | required for any non-local host outside dev (settings refuse to start) |
+| backups | `python -m zenflow.db_backup` (file copy) | `pg_dump` / RDS snapshots + PITR (12.2.7); `db_backup` refuses |
+
+**The repositories are not rewritten.** `zenflow/pg.py` gives Postgres the sqlite3 API they use:
+- `?` placeholders become `%s`, outside string literals;
+- `lastrowid` comes from an added `RETURNING id`;
+- rows read by name, by position, or as `dict(row)`;
+- `SQL_NOW` becomes the same UTC string;
+- `numeric` reads as `float`;
+- a `SAVEPOINT` outside a transaction opens one, and its `RELEASE` commits.
+
+### Writing SQL that runs on both
+
+| Don't (SQLite only) | Do (both) |
+|---|---|
+| `INSERT OR IGNORE` / `INSERT OR REPLACE` | `INSERT … ON CONFLICT DO NOTHING` / `ON CONFLICT(col) DO UPDATE SET …` |
+| `col = COALESCE(excluded.col, col)` in an upsert | qualify the old value: `COALESCE(excluded.col, table.col)` |
+| `MAX(a, b)` (two arguments) | `CASE WHEN a > b THEN a ELSE b END` |
+| `json_each(?)`, `json_extract(col, '$.x')` | an `IN (?, ?, …)` list; decode the JSON in Python |
+| bare columns beside `MAX()` in a `GROUP BY` | `ROW_NUMBER() OVER (PARTITION BY … ORDER BY …)` in a subquery |
+| `? IS NULL` with a `None` parameter | `CAST(? AS TEXT) IS NULL` |
+| `LIKE` for case-insensitive search | `lower(col) LIKE ?` with a lowered parameter |
+| `ORDER BY rowid`, `PRAGMA …`, `sqlite_master` | the primary key; `zenflow.schema.metadata` |
+| `datetime('now')` | `SQL_NOW` (`zenflow.clock`) |
+| `except sqlite3.IntegrityError` | `except bot.db.IntegrityError` (both drivers' classes) |
+
+### Proving it
+
+```bash
+ZF_TEST_DB_URL=postgresql://zenflow:<password>@localhost:5432/zenflow python -m pytest -m "not e2e"
+```
+
+The whole suite runs on one Postgres database, emptied (`TRUNCATE … RESTART IDENTITY`) before each
+test; the schema is rebuilt from the migrations if a test broke it. Tests that exercise SQLite itself
+are marked `sqlite_only` and skipped there: the file and its permissions, PRAGMAs, the backup API, and
+the one-time legacy migrations. CI runs the same thing as the `postgres-suite` job, beside the SQLite
+run in `quality`.
 

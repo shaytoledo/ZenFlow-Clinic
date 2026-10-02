@@ -1,13 +1,15 @@
 # Continuous integration (Phase 9.10, extended in 11.7): the quality gate + supply-chain scanners
 # on every push/PR, plus the e2e journeys and coverage upload, and (12.2.1) the container images:
 # built, the web container started and its /healthz answered, non-root checked, trivy (advisory).
-# And (12.2.3) the Alembic baseline built on a real Postgres 16 and exercised there.
+# And (12.2.3) the Alembic baseline built on a real Postgres 16 and exercised there, and (12.2.2)
+# the whole test suite run a second time on Postgres (`postgres-suite`).
 # Pipeline order: lint → type → unit+integration+security (with coverage) → e2e; supply-chain runs
 # alongside. Bandit fails the build on HIGH findings only (the pre-existing LOW/MEDIUM baseline is
 # tracked as debt T1, not a CI blocker).
 #
-# Required status checks: make `quality`, `e2e` and `supply-chain` required on `master` in the repo's
-# branch-protection settings (GitHub → Settings → Branches). That cannot be expressed in this file.
+# Required status checks on `master` (branch protection, set 2026-10-02): quality, e2e,
+# supply-chain, container and postgres, by their job `name:`. Renaming a job's `name:` here orphans
+# its required check (every PR then waits forever), so update the protection rule in the same change.
 name: CI
 
 on:
@@ -199,3 +201,39 @@ jobs:
 
       - name: The schema works on Postgres
         run: python -m pytest tests/integration/test_schema_postgres.py -q -p no:cacheprovider
+
+  postgres-suite:
+    # 12.2.2 (ADR-46): the WHOLE suite (not e2e) on Postgres 16, beside the SQLite run in `quality`.
+    # The proof that the AWS database (RDS Postgres) works: every repository, job and route runs on
+    # it. Tests marked `sqlite_only` (the file, PRAGMAs, the backup API) are skipped here.
+    name: test suite on Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zenflow
+          POSTGRES_USER: zenflow
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U zenflow -d zenflow"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      ZF_TEST_DB_URL: postgresql+psycopg://zenflow:ci-only-password@localhost:5432/zenflow
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Tests on Postgres (unit · integration · security · contract · bot; not e2e)
+        run: python -m pytest -m "not e2e" -q -p no:cacheprovider --timeout=120 -rfE

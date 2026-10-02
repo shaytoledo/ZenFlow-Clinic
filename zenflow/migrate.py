@@ -33,10 +33,19 @@ BASELINE = "0001"
 
 
 def database_url() -> str:
-    """The SQLAlchemy URL of the app's database (SQLite file today; ZF_DB_URL arrives in 12.2.2)."""
-    from bot.db import db_path
+    """The SQLAlchemy URL of the app's database: `ZF_DB_URL` (Postgres, 12.2.2) or the SQLite file."""
+    from bot.db import db_path, db_url
 
-    return f"sqlite:///{db_path()}"
+    url = db_url()
+    return sqlalchemy_url(url) if url else f"sqlite:///{db_path()}"
+
+
+def sqlalchemy_url(url: str) -> str:
+    """`postgresql://…` / `postgres://…` → `postgresql+psycopg://…` (psycopg 3 is the driver we ship)."""
+    for prefix in ("postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix) :]
+    return url
 
 
 #: Postgres reflects every literal with its type: 'x'::text, timezone('UTC'::text, now())
@@ -116,7 +125,7 @@ def ensure_sqlite(conn: sqlite3.Connection) -> None:
 def upgrade(url: str | None = None, revision: str = "head") -> None:
     from alembic import command
 
-    command.upgrade(_config(url or database_url()), revision)
+    command.upgrade(_config(sqlalchemy_url(url) if url else database_url()), revision)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -135,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
     rev.add_argument("message")
     args = parser.parse_args(argv)
 
-    cfg = _config(args.url or database_url())
+    cfg = _config(sqlalchemy_url(args.url) if args.url else database_url())
     if args.cmd == "current":
         command.current(cfg, verbose=False)
     elif args.cmd == "upgrade":

@@ -6,6 +6,8 @@ the environment is pinned at the top of this module, before any project import c
 Fixtures
 --------
 db                    fresh SQLite file per test (schema from bot.db.init_db)        [autouse]
+                      — or, with ZF_TEST_DB_URL=postgresql://…, one Postgres database emptied
+                      before every test (Phase 12.2.2); `sqlite_only` tests are then skipped
 fake_redis            fakeredis sync + async clients patched into bot.redis_client   [autouse]
 client                httpx.AsyncClient over ASGITransport against web.app:app
 authenticated_client  same, signed in through the real /register/signin form
@@ -26,7 +28,10 @@ from typing import Any
 
 # ── 1. Pin the environment BEFORE any project import ─────────────────────────────────────────
 _SESSION_TMP = Path(tempfile.mkdtemp(prefix="zenflow-tests-"))
+#: the suite against Postgres (12.2.2): opt in with this variable, never via a stray ZF_DB_URL
+_PG_URL = os.environ.get("ZF_TEST_DB_URL", "").strip()
 _TEST_ENV = {
+    "ZF_DB_URL": _PG_URL,  # empty = the SQLite file below
     "ENV": "test",
     "ZENFLOW_DOTENV": "0",  # never read the developer's real .env in tests
     "ZENFLOW_DB_PATH": str(_SESSION_TMP / "bootstrap.db"),
@@ -63,14 +68,63 @@ _assert_not_real_db()
 
 
 # ── 2. Database ──────────────────────────────────────────────────────────────────────────────
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    if not _PG_URL:
+        return
+    skip = pytest.mark.skip(reason="exercises SQLite itself; the suite is running on Postgres")
+    for item in items:
+        if item.get_closest_marker("sqlite_only"):
+            item.add_marker(skip)
+
+
+_PG_SHAPE_SQL = """SELECT
+    (SELECT count(*) FROM information_schema.tables WHERE table_schema = current_schema()),
+    (SELECT count(*) FROM pg_indexes WHERE schemaname = current_schema()),
+    (SELECT count(*) FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
+      WHERE NOT t.tgisinternal AND t.tgenabled <> 'D')"""
+_pg_shape: tuple[Any, ...] | None = None  # tables+views, indexes, enabled triggers of a fresh build
+
+
+def _rebuild_postgres(conn: Any) -> None:
+    conn.execute("DROP SCHEMA public CASCADE")
+    conn.execute("CREATE SCHEMA public")
+    dbmod._migrated_urls.clear()
+    dbmod.init_db()
+
+
+def _empty_postgres() -> None:
+    """Every table emptied and its ids restarted — the Postgres equivalent of a fresh file.
+
+    On SQLite a test that changes the schema (drops an index to test the code without it, lifts the
+    audit guard) only changes its own file. Here the schema is shared, so its shape is compared with
+    a fresh build before every test and rebuilt from the migrations when it differs. The first test
+    of a session always starts from a fresh build (a database left by an older run is not trusted).
+    """
+    global _pg_shape
+    from zenflow.schema import metadata
+
+    conn = dbmod.get_db()
+    conn.execute("SET lock_timeout = '10s'")  # a leaked open transaction fails loudly, not hangs
+    if _pg_shape is None:
+        _rebuild_postgres(conn)
+        _pg_shape = tuple(conn.execute(_PG_SHAPE_SQL).fetchone())
+    elif tuple(conn.execute(_PG_SHAPE_SQL).fetchone()) != _pg_shape:
+        _rebuild_postgres(conn)
+    tables = ", ".join(f'"{name}"' for name in metadata.tables)
+    conn.execute(f"TRUNCATE {tables} RESTART IDENTITY CASCADE")
+    dbmod.seed_reference_data(conn)
+
+
 @pytest.fixture(autouse=True)
 def db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
-    """A fresh, fully-migrated SQLite file for every test."""
+    """A fresh, fully-migrated database for every test: a new SQLite file, or Postgres emptied."""
     path = tmp_path / "zenflow.db"
     monkeypatch.setenv("ZENFLOW_DB_PATH", str(path))
     dbmod.close_db()
     _assert_not_real_db()
     dbmod.init_db()
+    if _PG_URL:
+        _empty_postgres()
     # bot.config caches the therapist registry at import time — refresh it for the new file.
     from bot import config as botcfg
 

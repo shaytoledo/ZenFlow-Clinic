@@ -103,7 +103,7 @@ def test_null_history_json_reads_as_empty_list(make_appointment) -> None:
     apt = make_appointment()
     get_db().execute(
         "INSERT INTO intake_sessions (appointment_id, patient_id, therapist_id, history_json, "
-        "created_at) VALUES (?, ?, ?, NULL, datetime('now'))",
+        "created_at) VALUES (?, ?, ?, NULL, '2026-03-01T12:00:00Z')",
         (apt["id"], apt["patient_id"], apt["therapist_id"]),
     )
     got = intake_repo.get_for_appointment(apt["id"])
@@ -117,7 +117,7 @@ def test_corrupted_history_json_falls_back_to_empty_list(make_appointment) -> No
     apt = make_appointment()
     get_db().execute(
         "INSERT INTO intake_sessions (appointment_id, patient_id, therapist_id, history_json, "
-        "created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+        "created_at) VALUES (?, ?, ?, ?, '2026-03-01T12:00:00Z')",
         (apt["id"], apt["patient_id"], apt["therapist_id"], "{not valid json"),
     )
     got = intake_repo.get_for_appointment(apt["id"])

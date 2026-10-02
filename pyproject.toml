@@ -130,6 +130,7 @@ markers = [
   "e2e: end-to-end journeys against a live app",
   "security: attack-scenario tests (tests/security/)",
   "contract: adapter conformance suites (tests/contract/)",
+  "sqlite_only: exercises SQLite itself (the file, PRAGMAs, the backup API); skipped on Postgres",
 ]
 
 [tool.coverage.run]

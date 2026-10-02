@@ -8,7 +8,6 @@ failures are logged with redacted errors, and the therapist sees the list on the
 from __future__ import annotations
 
 import re
-import sqlite3
 from datetime import timedelta
 from typing import Any
 
@@ -189,7 +188,7 @@ async def test_send_now_is_logged(telegram_session, fake_telegram) -> None:
 # ── the table ──
 def test_the_log_guards_its_values_and_redacts_errors(db) -> None:
     conn = dbmod.get_db()
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(dbmod.IntegrityError):
         conn.execute(
             "INSERT INTO message_log (ts, channel, kind, status) "
             "VALUES ('x', 'sms', 'followup', 'sent')"

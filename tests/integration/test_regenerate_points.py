@@ -99,15 +99,8 @@ async def _drain() -> None:
 def _pipeline_jobs(apt_id: int) -> list[Any]:
     from bot.db import get_db
 
-    return (
-        get_db()
-        .execute(
-            "SELECT name, status, payload_json FROM jobs "
-            "WHERE json_extract(payload_json, '$.appointment_id') = ? ORDER BY id",
-            (apt_id,),
-        )
-        .fetchall()
-    )
+    rows = get_db().execute("SELECT name, status, payload_json FROM jobs ORDER BY id").fetchall()
+    return [r for r in rows if json.loads(r["payload_json"]).get("appointment_id") == apt_id]
 
 
 # ── the endpoint answers at once ──

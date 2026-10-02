@@ -13,7 +13,10 @@ import pytest
 
 from bot.db import get_db, init_db
 
-pytestmark = pytest.mark.integration
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.sqlite_only,
+]  # the legacy SQLite start-up statements
 
 # Columns added by the ALTER-TABLE migration list — they must survive every re-init.
 _MIGRATED_COLUMNS = {

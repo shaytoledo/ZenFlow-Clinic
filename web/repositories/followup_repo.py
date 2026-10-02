@@ -198,10 +198,11 @@ def complete(
     _write_answers(appointment_id, "completed", None, conversation, answers)
     _conn().execute(
         """UPDATE followups SET completed_at=COALESCE(completed_at, ?),
-                                needs_attention=MAX(needs_attention, ?),
+                                needs_attention=CASE WHEN needs_attention > ? THEN needs_attention
+                                                     ELSE ? END,
                                 ai_summary=COALESCE(?, ai_summary), updated_at=?
            WHERE appointment_id=? AND status='completed'""",
-        (now, 1 if needs_attention else 0, ai_summary, now, appointment_id),
+        (now, int(needs_attention), int(needs_attention), ai_summary, now, appointment_id),
     )
 
 

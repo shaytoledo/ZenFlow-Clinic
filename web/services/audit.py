@@ -99,6 +99,36 @@ def create_schema(conn: sqlite3.Connection) -> None:
         conn.execute(statement)
 
 
+_GUARD_TRIGGERS = ("audit_log_is_append_only_update", "audit_log_is_append_only_delete")
+
+
+def lift_guard(conn: sqlite3.Connection) -> None:
+    """Switch the append-only guard off — ONLY inside the caller's transaction, which must end with
+    `restore_guard()` before COMMIT (patient erasure, 9.9, is the one writer allowed to do this).
+
+    SQLite drops the triggers; Postgres disables them. Both are transactional, so a ROLLBACK
+    brings the guard back as well.
+    """
+    from bot.db import is_postgres
+
+    for trigger in _GUARD_TRIGGERS:
+        if is_postgres():
+            conn.execute(f"ALTER TABLE audit_log DISABLE TRIGGER {trigger}")
+        else:
+            conn.execute(f"DROP TRIGGER IF EXISTS {trigger}")
+
+
+def restore_guard(conn: sqlite3.Connection) -> None:
+    from bot.db import is_postgres
+
+    if is_postgres():
+        for trigger in _GUARD_TRIGGERS:
+            conn.execute(f"ALTER TABLE audit_log ENABLE TRIGGER {trigger}")
+    else:
+        for ddl in CREATE_AUDIT_GUARDS:
+            conn.execute(ddl)
+
+
 # ── who is acting ──
 def current_actor() -> Actor:
     return _actor.get()
