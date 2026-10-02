@@ -44,9 +44,9 @@ def list_today() -> list[dict]:
 
 
 def get_by_patient_date_time(
-    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
+    patient_id: int, apt_date: str, apt_time: str, therapist_id: str
 ) -> dict | None:
-    """Fetch a specific appointment record (time accepts HH:MM or HH-MM)."""
+    """Fetch one of this therapist's appointments (time accepts HH:MM or HH-MM)."""
     return appointment_repo.get_by_patient_date_time(patient_id, apt_date, apt_time, therapist_id)
 
 

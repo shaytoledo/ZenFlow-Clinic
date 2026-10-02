@@ -49,8 +49,8 @@ def add_local(therapist_id: str, start: str, end: str) -> dict:
     return to_fc_event({"id": new_id, "start": start, "end": end})
 
 
-def remove_local(slot_id: str, therapist_id: str | None = None) -> int:
-    """Delete a local availability slot by ID (tenant-scoped when `therapist_id` is given).
+def remove_local(slot_id: str, therapist_id: str) -> int:
+    """Delete one of this therapist's local availability slots by ID (always tenant-scoped).
 
     Returns the number of rows deleted (0 = not found / not yours).
     """

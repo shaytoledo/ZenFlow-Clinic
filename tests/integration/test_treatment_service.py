@@ -24,6 +24,11 @@ def test_complete_session_stamps_completed_at_and_audits(make_appointment, make_
 
     notes = svc.get_notes(apt["id"])
     assert notes and notes["completed_at"], "completion stamps a timestamp"
+    # F2: the 24h follow-up is computed from this instant — it must be canonical UTC, not a
+    # naive local time that drifts by the clinic's UTC offset.
+    from zenflow import clock
+
+    assert clock.classify(notes["completed_at"]) == "canonical", notes["completed_at"]
     from web.services import audit
 
     actions = [r["action"] for r in audit.for_entity("treatment_notes", apt["id"])]

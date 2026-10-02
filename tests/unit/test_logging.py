@@ -28,6 +28,7 @@ SAMPLES = [
     ("password=hunter2&next=/", "hunter2"),
     ("SESSION_SECRET=supersecretvalue123", "supersecretvalue123"),
     ("fernet gAAAAABkFAKEfakeFAKEfakeFAKEfakeFAKEfakeFAKEfakeFAKEfakeFAKE==", "gAAAAABkFAKE"),
+    ("Email sent to dana.levi+clinic@mail.example.co.il", "dana.levi"),  # T2: patient contact
 ]
 
 
@@ -177,3 +178,13 @@ def test_configure_logging_is_idempotent() -> None:
     zlog.configure_logging("test", fmt="json", install_file_handler=False)
     root = logging.getLogger()
     assert len([h for h in root.handlers if getattr(h, "_zenflow", False)]) == 1
+
+
+def test_an_email_keeps_only_its_domain() -> None:
+    """T2: the domain helps debugging; the person's address is never written to a log."""
+    out = zlog.redact("sent to dana.levi@example.com and ruth@clinic.co.il")
+    assert out == "sent to <redacted:email>@example.com and <redacted:email>@clinic.co.il"
+
+
+def test_a_bot_username_is_not_an_email() -> None:
+    assert zlog.redact("Open @ZenFlowBot") == "Open @ZenFlowBot"

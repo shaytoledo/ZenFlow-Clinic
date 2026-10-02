@@ -87,8 +87,8 @@ def test_schema_matches_what_the_repositories_select(db: Path) -> None:
         appointment_repo.list_all,
         lambda: appointment_repo.list_by_patient(1),
         lambda: appointment_repo.list_active_by_patient(1),
-        lambda: appointment_repo.get_by_patient_date_time(1, "2026-01-01", "10:00"),
-        lambda: appointment_repo.get_id(1, "2026-01-01", "10:00"),
+        lambda: appointment_repo.get_by_patient_date_time(1, "2026-01-01", "10:00", "t1"),
+        lambda: appointment_repo.get_id(1, "2026-01-01", "10:00", "t1"),
         lambda: appointment_repo.search_patients("x"),
         lambda: appointment_repo.search_patients(""),
         lambda: appointment_repo.list_in_date_range("t1", "2026-01-01", "2026-12-31"),
@@ -111,3 +111,20 @@ def test_schema_matches_what_the_repositories_select(db: Path) -> None:
     ]
     for call in calls:
         call()  # raises sqlite3.OperationalError on schema drift
+
+
+def test_the_db_path_comes_from_dotenv_settings_when_the_env_var_is_absent(
+    monkeypatch, tmp_path
+) -> None:
+    """R0: pydantic never exports .env values to os.environ, so db_path() must ask settings too."""
+    import bot.db as dbmod
+    import zenflow.settings as settings_mod
+
+    target = tmp_path / "from-dotenv.db"
+
+    class _Settings:
+        zenflow_db_path = str(target)
+
+    monkeypatch.delenv("ZENFLOW_DB_PATH", raising=False)
+    monkeypatch.setattr(settings_mod, "get_settings", lambda: _Settings())
+    assert dbmod.db_path() == target

@@ -41,12 +41,9 @@ def insert(therapist_id: str, start_dt: str, end_dt: str) -> str:
     return slot_id
 
 
-def delete(slot_id: str, therapist_id: str | None = None) -> int:
-    """Delete a slot; with `therapist_id` only if it belongs to them. Returns rows deleted."""
-    if therapist_id:
-        cur = _conn().execute(
-            "DELETE FROM availability WHERE id=? AND therapist_id=?", (slot_id, therapist_id)
-        )
-    else:
-        cur = _conn().execute("DELETE FROM availability WHERE id=?", (slot_id,))
+def delete(slot_id: str, therapist_id: str) -> int:
+    """Delete a slot only if it belongs to `therapist_id` (required). Returns rows deleted."""
+    cur = _conn().execute(
+        "DELETE FROM availability WHERE id=? AND therapist_id=?", (slot_id, therapist_id)
+    )
     return int(cur.rowcount or 0)

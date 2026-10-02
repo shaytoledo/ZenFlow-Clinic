@@ -239,6 +239,13 @@ async def test_an_inbound_message_opens_the_service_window(
 
     remembered = json.loads(await fake_redis.async_.get(window_key(WA)))
     assert remembered["id"] == "wamid.1"
+    # 7.4b: stamped on receipt, never with the provider's timestamp (2026-03-01T12:00:00Z here) —
+    # a skewed or stale provider clock must not shut a window we are answering right now.
+    from zenflow import clock
+
+    assert remembered["at"] != "2026-03-01T12:00:00Z"
+    received = clock.parse_iso(remembered["at"])
+    assert abs((clock.now_utc() - received).total_seconds()) < 120, remembered["at"]
 
 
 # ── delivery receipts ──

@@ -47,7 +47,9 @@ def _plant(client: httpx.AsyncClient, data: dict[str, Any]) -> None:
 
     payload = base64.urlsafe_b64encode(json.dumps(data).encode()).decode()
     signed = TimestampSigner(str(SECRET)).sign(payload).decode()
-    client.cookies.set("zf_session", signed, domain="testserver", path="/")
+    # http.cookiejar files a dotless host's cookies under "<host>.local"; a cookie set for plain
+    # "testserver" sits in the jar but is never sent — which made the fixation test pass vacuously.
+    client.cookies.set("zf_session", signed, domain="testserver.local", path="/")
 
 
 def _set_cookie(resp: httpx.Response) -> dict[str, Any]:

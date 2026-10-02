@@ -52,3 +52,54 @@ def test_get_auth_url_returns_a_state() -> None:
 
     src = inspect.getsource(gcal.get_auth_url)
     assert "return" in src and "state" in src, "get_auth_url must return the state, not discard it"
+
+
+class _FakeRegFlow:
+    """Google's OAuth flow, offline: hands out state S1 and records any code exchange."""
+
+    exchanged: list[str] = []
+
+    def authorization_url(self, **_kw: object) -> tuple[str, str]:
+        return "https://accounts.google.com/o/oauth2/auth?state=S1", "S1"
+
+    def fetch_token(self, code: str) -> None:
+        _FakeRegFlow.exchanged.append(code)
+        raise RuntimeError("stop here — the test only needs to know the exchange was reached")
+
+
+@pytest.fixture
+def reg_flow(monkeypatch):
+    import web.deps as deps
+    import web.routers.auth as auth
+
+    _FakeRegFlow.exchanged = []
+    monkeypatch.setattr(auth, "GOOGLE_CLIENT_ID", "client-id")
+    monkeypatch.setattr(auth, "_make_reg_flow", _FakeRegFlow)
+    monkeypatch.setattr(deps, "_make_reg_flow", _FakeRegFlow)
+    return _FakeRegFlow
+
+
+async def test_the_registration_callback_refuses_a_forged_state(client, reg_flow) -> None:
+    """SF-018 on the second flow: Google sign-up/sign-in must check the state too."""
+    await client.get("/register/google", follow_redirects=False)  # session now holds S1
+    resp = await client.get(
+        "/register/google/callback?code=attacker-code&state=forged", follow_redirects=False
+    )
+    assert reg_flow.exchanged == [], "a forged state must never reach the token exchange"
+    assert "error" in resp.headers["location"]
+
+
+async def test_the_registration_callback_without_a_started_flow_is_refused(
+    client, reg_flow
+) -> None:
+    resp = await client.get(
+        "/register/google/callback?code=attacker-code&state=S1", follow_redirects=False
+    )
+    assert reg_flow.exchanged == [], "no flow was started in this session"
+    assert "error" in resp.headers["location"]
+
+
+async def test_the_registration_callback_accepts_its_own_state(client, reg_flow) -> None:
+    await client.get("/register/google", follow_redirects=False)
+    await client.get("/register/google/callback?code=real-code&state=S1", follow_redirects=False)
+    assert reg_flow.exchanged == ["real-code"], "the matching state reaches the exchange"
