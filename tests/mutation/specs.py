@@ -419,11 +419,47 @@ SPECS = [
         ],
     ),
     spec(
-        id="B5 reload in place",
-        file="bot/config.py",
-        anchor="def reload_therapists",
-        edits=[("THERAPISTS.clear()", 'globals()["THERAPISTS"] = []', False)],
+        id="B5 / 12.2.4 registry is the database",
+        file="bot/therapists.py",
+        anchor="def get_active",
+        edits=[
+            (
+                '"SELECT * FROM therapists WHERE id = ? AND active = 1"',
+                '"SELECT * FROM therapists WHERE id = ?"',
+                False,
+            )
+        ],
         tests=[T_RS],
+    ),
+    spec(
+        id="12.2.4 therapist id race",
+        file="web/repositories/therapist_repo.py",
+        anchor="def insert_new",
+        edits=[
+            (
+                "            if get_by_id(new_id) is None:\n                raise",
+                "            raise",
+                False,
+            )
+        ],
+        tests=[
+            "tests/integration/test_therapist_registry.py"
+            "::test_two_processes_picking_the_same_id_both_succeed"
+        ],
+    ),
+    spec(
+        id="12.2.4 periodic once per interval",
+        file="zenflow/periodic.py",
+        edits=[
+            (
+                "ttl_seconds=periodic.every_seconds, renew=False)",
+                "ttl_seconds=periodic.every_seconds)",
+                False,
+            )
+        ],
+        tests=[
+            "tests/unit/test_periodic.py" "::test_a_due_task_runs_once_per_interval_across_workers"
+        ],
     ),
     spec(
         id="B6 /start says so",

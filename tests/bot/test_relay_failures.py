@@ -19,9 +19,6 @@ async def test_mapping_failure_is_not_reported_as_a_failed_send(
     from bot.patient_bot import therapist as pt
 
     t = make_therapist(therapist_id="t1", telegram_id=700_001)
-    from bot import config as botcfg
-
-    botcfg.reload_therapists()
 
     def _boom(*a, **k):
         raise RuntimeError("redis is down")
@@ -45,9 +42,7 @@ async def test_a_real_send_failure_is_still_reported(
     from tests.bot.conftest import FakeBot
 
     t = make_therapist(therapist_id="t1", telegram_id=700_001)
-    from bot import config as botcfg
 
-    botcfg.reload_therapists()
     from bot.interfaces import TelegramChannel
 
     down = FakeBot(fail_with=RuntimeError("telegram is down"))

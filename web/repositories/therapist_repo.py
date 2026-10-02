@@ -109,6 +109,49 @@ def next_id() -> str:
     return f"t{(max(nums) + 1) if nums else 1}"
 
 
+def insert_new(
+    *,
+    name: str,
+    telegram_id: int = 0,
+    email: str | None = None,
+    password_hash: str | None = None,
+    google_id: str | None = None,
+    active: bool = False,
+) -> str:
+    """Insert a therapist under the next free `t{n}` id and return it (12.2.4).
+
+    Safe across processes, with no lock: two registrations that pick the same id race on the
+    primary key, the loser's INSERT fails, and it takes the next id. Any other refusal (a
+    duplicate email, say) is raised as it is.
+    """
+    from bot.db import IntegrityError
+    from zenflow.clock import SQL_NOW
+
+    for _ in range(20):
+        new_id = next_id()
+        try:
+            _conn().execute(
+                f"""INSERT INTO therapists
+                   (id, name, telegram_id, email, password_hash, google_id, calendar_name, active,
+                    created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, 'ZenFlow Availability', ?, {SQL_NOW})""",  # noqa: S608
+                (
+                    new_id,
+                    name,
+                    int(telegram_id or 0),
+                    email or None,
+                    password_hash,
+                    google_id or None,
+                    1 if active else 0,
+                ),
+            )
+            return new_id
+        except IntegrityError:
+            if get_by_id(new_id) is None:
+                raise  # not an id clash
+    raise RuntimeError("no free therapist id after 20 attempts")
+
+
 # ── UI preferences (Phase 4.2d) ────────────────────────────────────────────────
 #: The only preferences stored, each with its allowed values; the first value is the default.
 UI_PREF_CHOICES: dict[str, tuple[str, ...]] = {

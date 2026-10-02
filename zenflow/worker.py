@@ -91,10 +91,12 @@ default_registry = HandlerRegistry()
 #: to alert a human only on its final attempt instead of on every retry.
 _current_job: ContextVar[Job | None] = ContextVar("zenflow_current_job", default=None)
 
-#: Modules whose import registers handlers on `default_registry`.
+#: Modules whose import registers handlers on `default_registry` (and periodic tasks on
+#: `zenflow.periodic` — the follow-up reconcile sweep, 12.2.4).
 DEFAULT_HANDLER_MODULES: tuple[str, ...] = (
     "bot.services.booking_jobs",
     "bot.services.followup_jobs",
+    "bot.services.followup_scheduler",
     "bot.services.pipeline_jobs",
 )
 
@@ -138,6 +140,7 @@ class Worker:
         self.poll_interval = poll_interval
         self.batch = batch
         self.handler_timeout = handler_timeout
+        self._next_periodic_check = 0.0
 
     async def run_once(self) -> int:
         """Claim and process one batch. Returns the number of jobs processed."""
@@ -153,6 +156,7 @@ class Worker:
         while True:
             try:
                 processed = await self.run_once()
+                await self.run_periodic()
             except asyncio.CancelledError:
                 logger.info("worker %s cancelled", self.worker_id)
                 raise
@@ -160,6 +164,19 @@ class Worker:
                 logger.exception("worker %s loop iteration failed", self.worker_id)
                 processed = 0
             await asyncio.sleep(0 if processed else self.poll_interval)
+
+    async def run_periodic(self) -> list[str]:
+        """Run the periodic tasks whose interval is over — each once across every worker, guarded by
+        a lease (`zenflow.periodic`). Checked at most once per poll interval."""
+        import time
+
+        from zenflow import periodic
+
+        now = time.monotonic()
+        if now < self._next_periodic_check:
+            return []
+        self._next_periodic_check = now + self.poll_interval
+        return await asyncio.to_thread(periodic.run_due, self.worker_id)
 
     async def _maybe_dead_hook(self, job: Job, error: str) -> None:
         """The attempt that just failed was the last one → the job is dead: tell the owner."""

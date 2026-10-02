@@ -323,7 +323,7 @@ if active therapists > 1:
 ```
 Triggered by: patient sends first message in THERAPIST_INPUT state
 
-therapist = THERAPIST_BY_ID[selected_therapist]
+therapist = therapists.get_active(selected_therapist)
 # _therapist_channel: a TelegramChannel over the therapist application's client (7.1)
 fwd_msg = await _therapist_channel.send_text(
     therapist["telegram_id"],
@@ -372,7 +372,7 @@ Send therapist (if relay was active): "[Patient ended the chat]"
 ```
 handle_therapist_message() in therapist_bot/handlers.py:
 
-1. Check sender in THERAPIST_MAP (by telegram_id)
+1. Check the sender with `therapists.get_by_telegram(telegram_id)`
    → if unknown: check for 8-char registration code
    → if valid code: register → "Activated ✅"
    → if no match: "You are not registered as a therapist."

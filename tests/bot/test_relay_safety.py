@@ -21,9 +21,7 @@ PATIENT_B = 900_000_102
 def two_therapists(make_therapist):
     a = make_therapist(name="Dr A", telegram_id=700_001, therapist_id="t1")
     b = make_therapist(name="Dr B", telegram_id=700_002, therapist_id="t2")
-    from bot import config as botcfg
 
-    botcfg.reload_therapists()
     return a, b
 
 
@@ -185,7 +183,6 @@ async def test_therapist_media_gets_a_clear_answer(
 async def test_deactivated_therapist_is_not_silently_replaced(
     db, fake_redis, therapist_bot, make_therapist
 ) -> None:
-    from bot import config as botcfg
     from bot.patient_bot.therapist import start_relay
 
     make_therapist(name="Dr A", telegram_id=700_001, therapist_id="t1")
@@ -193,7 +190,6 @@ async def test_deactivated_therapist_is_not_silently_replaced(
     import bot.db as dbmod
 
     dbmod.get_db().execute("UPDATE therapists SET active=0 WHERE id='t1'")
-    botcfg.reload_therapists()
 
     update = make_update("hello?", user_id=PATIENT_A)
     context = make_context({"selected_therapist": "t1"})  # their therapist is no longer active
@@ -207,11 +203,9 @@ async def test_deactivated_therapist_is_not_silently_replaced(
 async def test_registry_reload_is_visible_to_handlers(
     db, fake_redis, therapist_bot, make_therapist
 ) -> None:
-    from bot import config as botcfg
     from bot.patient_bot.therapist import _get_therapist
 
     make_therapist(name="Dr A", telegram_id=700_001, therapist_id="t1")
-    botcfg.reload_therapists()
     context = make_context({"selected_therapist": "t1"})
     chosen = _get_therapist(context)
     assert chosen is not None and chosen["id"] == "t1", "a newly loaded therapist must be visible"
@@ -219,37 +213,46 @@ async def test_registry_reload_is_visible_to_handlers(
     import bot.db as dbmod
 
     dbmod.get_db().execute("UPDATE therapists SET active=0 WHERE id='t1'")
-    botcfg.reload_therapists()
     assert _get_therapist(context) is None, "deactivation must apply without a bot restart"
 
 
-def test_reload_keeps_every_imported_reference_current(db, make_therapist) -> None:
-    """B5: modules that imported the registry by name must see a reload — the list, the map and
-    the by-id dict alike (rebinding any one of them freezes that module's copy)."""
-    from bot import config as botcfg
-    from bot.patient_bot import schedule, start, therapist
+def test_every_lookup_sees_the_database_as_it_is_now(db, make_therapist) -> None:
+    """B5 + 12.2.4: no module keeps a copy of the registry. A therapist written to the database (by
+    this process or another one) is routable at once; one deactivated stops being routable at once.
+    """
+    import sqlite3
+
+    import bot.config as botcfg
+    import bot.db as dbmod
+    from bot import therapists
+    from bot.patient_bot.therapist import _get_therapist
     from bot.therapist_bot import handlers
 
-    def held(module: object, name: str):  # the module's own reference, as its code sees it
-        return vars(module)[name]
-
+    assert not hasattr(botcfg, "THERAPISTS") and not hasattr(botcfg, "THERAPIST_MAP")
     make_therapist(name="Dr New", telegram_id=700_009, therapist_id="t9")
-    botcfg.reload_therapists()
-    for module in (start, schedule, therapist):
-        assert any(t["id"] == "t9" for t in held(module, "THERAPISTS")), module.__name__
-    assert "t9" in held(therapist, "THERAPIST_BY_ID")
-    assert any(t["id"] == "t9" for t in held(handlers, "THERAPIST_MAP").values())
+    chosen = _get_therapist(make_context({"selected_therapist": "t9"}))
+    assert chosen is not None and chosen["id"] == "t9"
+    assert handlers._therapist_lang(700_009) == "en"
+
+    if not dbmod.is_postgres():  # "another process": a second connection to the same file
+        other = sqlite3.connect(dbmod.db_path())
+        other.execute("UPDATE therapists SET active=0 WHERE id='t9'")
+        other.commit()
+        other.close()
+    else:
+        dbmod.get_db().execute("UPDATE therapists SET active=0 WHERE id='t9'")
+    assert therapists.get_active("t9") is None
+    assert therapists.get_by_telegram(700_009) is None
+    assert _get_therapist(make_context({"selected_therapist": "t9"})) is None
 
 
 def test_no_choice_and_several_therapists_means_nobody(db, make_therapist) -> None:
     """B12: without the patient's own choice, only a clinic with exactly ONE active therapist has
     an unambiguous recipient — with two, the message must not go to whichever is first."""
-    from bot import config as botcfg
     from bot.patient_bot.therapist import _get_therapist
 
     make_therapist(name="Dr A", telegram_id=700_001, therapist_id="t1")
     make_therapist(name="Dr B", telegram_id=700_002, therapist_id="t2")
-    botcfg.reload_therapists()
     assert _get_therapist(make_context({})) is None
 
 

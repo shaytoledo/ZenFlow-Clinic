@@ -216,6 +216,8 @@ events = await asyncio.to_thread(
 
 ## ADR-11: In-Memory Therapist Registry Mutation
 
+> **Superseded by ADR-47 (Phase 12.2.4):** there is no in-memory registry any more.
+
 **Decision:** When a therapist activates via bot, `THERAPIST_MAP` and `THERAPIST_BY_ID` are mutated in-place immediately, without requiring a bot restart.
 
 **Pattern:**
@@ -1814,3 +1816,63 @@ Postgres, and it has to pass without forking the repositories into two versions.
 **Consequences.** The repositories stay one codebase. New SQL must run on both databases, and the
 `postgres-suite` job fails a PR whose SQL does not. SQLite stays the default for development and
 for the single-host deployment until the migration runbook (12.2.9) is executed.
+
+---
+
+## ADR-47: The Therapist Registry Is the Database; Ids Are Allocated by It
+
+**Status:** Accepted (Phase 12.2.4, 2026-10-02). Supersedes ADR-11.
+
+**Context.** `bot/config.py` loaded the therapist table into three module-level containers at import.
+Four places mutated them in place: bot activation, two web registration paths, and a language
+change. Each process (bot, web) had its own copy, so the copies drifted. A therapist activated
+through the bot was unknown to the dashboard process until a restart. Registration picked the next
+`t{n}` id under a `threading.Lock`, which no other process can see, so two containers could hand two
+sign-ups the same id.
+
+**Decision.**
+1. `bot/therapists.py` reads the `therapists` table on every call (`active`, `get`, `get_active`,
+   `get_by_telegram`). There is no cache, so there is nothing to invalidate. The table is tiny, and
+   the query costs less than the code that used to keep the copies consistent.
+2. `therapist_repo.insert_new()` is the only place a therapist row is created. It computes the next
+   id and inserts. Losing a race on the primary key means trying the next id; any other refusal is
+   raised. There are no locks.
+3. The three containers and `reload_therapists()` are gone. A test fails if a module-level
+   therapist list or dict comes back.
+
+**Options rejected.**
+- **A short-TTL cache.** The plan suggested one. It would add an invalidation problem (writes in
+  another process) to save a sub-millisecond query.
+- **Redis as the registry.** That is a second source of truth for rows the database already holds.
+
+**Consequences.** One query per therapist lookup on the bot's hot path (a relay message): SQLite
+~0.1 ms, Postgres ~0.5 ms on the same network. Every process and container sees the same
+therapists at the same moment.
+
+---
+
+## ADR-48: Periodic Work Is a Lease-Guarded Task the Workers Share
+
+**Status:** Accepted (Phase 12.2.4, 2026-10-02)
+
+**Context.** The follow-up reconcile sweep (every 30 min) was an asyncio loop started by each bot
+process, so N bot containers meant N concurrent sweeps. The sweep is idempotent (idempotency keys),
+so the duplicates were wasted work, not a correctness bug. But "every process runs it" cannot scale,
+and the plan asks for one scheduled job.
+
+**Decision.** `zenflow/periodic.py` registers periodic tasks (`@periodic.task(name, every_seconds=…)`).
+Every worker calls `run_due()` at most once per poll. A task runs only when its lease
+(`periodic:<name>`) can be taken; the lease is held for the whole interval, with `renew=False`, so
+not even the same worker runs it twice. A task that fails waits for its next turn instead of being
+retried every poll. `python -m zenflow.periodic <name>` runs one task on demand. On AWS,
+EventBridge Scheduler can call that instead of relying on a worker's poll; the lease still
+prevents a double run. The bot no longer starts a loop.
+
+**Options rejected.**
+- **Enqueue a job per interval (bucketed idempotency key).** That adds a `jobs` row every 30 minutes
+  forever for something that needs no retry history.
+- **EventBridge only.** That would leave the single-host deployment (today's) without the sweep
+  unless it also ran cron. A worker poll works everywhere, and EventBridge is optional on top.
+
+**Consequences.** Exactly one sweep per interval across any number of bot/worker containers. The
+interval is measured from the start of the last run (the lease's expiry), not from its end.

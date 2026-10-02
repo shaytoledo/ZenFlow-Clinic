@@ -12,8 +12,6 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  LAYER 1 — In-process Python dicts  (bot process only, lost on restart) │
-│  THERAPIST_MAP       dict[int, dict]   telegram_id → therapist          │
-│  THERAPIST_BY_ID     dict[str, dict]   "t1"        → therapist          │
 │  _history_cache      dict[str, obj]    intake key  → RedisChatHistory   │
 │  _rolling_summaries  dict[str, str]    intake key  → compressed text    │
 └───────────────────────────┬─────────────────────────────────────────────┘
@@ -113,6 +111,11 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 maxmemory            1gb
 maxmemory-policy     allkeys-lru
 ```
+
+Set on the **server**: `docker-compose.yml`, `startup/launch.py`, and the ElastiCache parameter
+group on AWS. Before 12.2.4 the app sent `CONFIG SET` at start-up, which managed Redis refuses.
+The app's clients use one bounded pool per process: 50 connections, 5 s connect timeout, 10 s read
+timeout, a health check after 30 s idle (`bot/redis_client.py`).
 
 When Redis reaches 1 GB, it evicts the **least recently used key** — regardless of TTL.
 This means a `zenflow:relay:active:{pid}` key (no TTL) can be evicted under memory pressure.
@@ -276,7 +279,7 @@ Shows exactly what gets written where at each step:
 
 ```
 1. Patient selects therapist
-   └─ READS:  THERAPIST_BY_ID (in-process dict)
+   └─ READS:  therapists table (bot/therapists.py — no in-process copy since 12.2.4)
 
 2. Patient selects week / day
    └─ READS:  zenflow:avail:days:{tid}:{week}  (Redis, 10 min TTL)

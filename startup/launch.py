@@ -187,8 +187,8 @@ def _start_redis(url: str) -> bool:
     # 2. Try launching redis-server.exe directly
     for path in _REDIS_PATHS:
         if Path(path).exists():
-            subprocess.Popen(
-                [path],
+            subprocess.Popen(  # the memory policy the app used to set itself (12.2.4)
+                [path, "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )

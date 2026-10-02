@@ -7,14 +7,12 @@ import logging
 import re
 import secrets
 import string
-import threading
 from pathlib import Path
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
 from bot.config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-from zenflow.clock import SQL_NOW
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +32,6 @@ from web import csp as _csp  # noqa: E402
 templates.env.globals["csp_nonce"] = _csp.current_nonce
 
 # ── Auth / session helpers ─────────────────────────────────────────────────────
-
-_web_reg_lock = threading.Lock()
 
 
 def _hash_password(plain: str) -> str:
@@ -148,39 +144,25 @@ def _find_by_google_id(google_id: str) -> dict | None:
 
 def _register_web_therapist(name: str, email: str, password: str = "", google_id: str = "") -> dict:
     """Add a new web-registered therapist (telegram_id=0, active=False until bot activation)."""
-    from bot import config as _cfg
-    from bot.db import get_db
+    from web.repositories import therapist_repo
 
-    conn = get_db()
-    with _web_reg_lock:
-        existing_ids = {r[0] for r in conn.execute("SELECT id FROM therapists").fetchall()}
-        n = 1
-        while f"t{n}" in existing_ids:
-            n += 1
-        new_id = f"t{n}"
-        password_hash = _hash_password(password) if password else None
-        conn.execute(
-            f"""INSERT INTO therapists
-               (id, name, telegram_id, email, password_hash, google_id, calendar_name, active,
-                created_at)
-               VALUES (?, ?, 0, ?, ?, ?, 'ZenFlow Availability', 0, {SQL_NOW})""",
-            (new_id, name, email or None, password_hash, google_id or None),
-        )
-        conn.commit()
-        entry: dict = {
-            "id": new_id,
-            "name": name,
-            "telegram_id": 0,
-            "calendar_name": "ZenFlow Availability",
-            "active": False,
-        }
-        if email:
-            entry["email"] = email
-        if google_id:
-            entry["google_id"] = google_id
-        if password_hash:
-            entry["password_hash"] = password_hash
-        _cfg.THERAPISTS.append(entry)
+    password_hash = _hash_password(password) if password else None
+    new_id = therapist_repo.insert_new(
+        name=name, email=email, password_hash=password_hash, google_id=google_id
+    )
+    entry: dict = {
+        "id": new_id,
+        "name": name,
+        "telegram_id": 0,
+        "calendar_name": "ZenFlow Availability",
+        "active": False,
+    }
+    if email:
+        entry["email"] = email
+    if google_id:
+        entry["google_id"] = google_id
+    if password_hash:
+        entry["password_hash"] = password_hash
     return entry
 
 

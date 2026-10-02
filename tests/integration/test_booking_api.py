@@ -56,12 +56,10 @@ def availability(monkeypatch):
 
 @pytest.fixture
 def therapist(db, make_therapist):
-    from bot import config as botcfg
 
     t = make_therapist(
         name="Dr Api", therapist_id="t1", email="api@example.com", password="pw-Test-123"
     )
-    botcfg.reload_therapists()
     return t
 
 
@@ -131,11 +129,9 @@ async def test_the_key_is_stored_hashed(api_key: str) -> None:
 async def test_a_therapist_session_may_book_for_itself_only(
     authenticated_client, make_therapist
 ) -> None:
-    from bot import config as botcfg
 
     mine = authenticated_client.headers["X-Test-Therapist-Id"]
     make_therapist(therapist_id="t9", name="Other")
-    botcfg.reload_therapists()
 
     ok = await authenticated_client.post("/api/v1/appointments", json=_body(therapist_id=mine))
     assert ok.status_code == 201, ok.text
@@ -360,10 +356,8 @@ async def test_confirmation_can_be_turned_off(api) -> None:
 
 # ── reading ──
 async def test_listing_is_scoped_and_filtered(api, authenticated_client, make_therapist) -> None:
-    from bot import config as botcfg
 
     make_therapist(therapist_id="t9", name="Other")
-    botcfg.reload_therapists()
     await api.post("/api/v1/appointments", json=_body())
     await api.post("/api/v1/appointments", json=_body(start_at=f"{DAY}T07:00:00Z"))
 

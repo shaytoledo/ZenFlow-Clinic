@@ -1,21 +1,18 @@
 import json
 import logging
 import re
-import threading
 from typing import Any
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config import THERAPIST_MAP
+from bot import therapists
 from bot.interfaces import TelegramChannel
 from bot.patient_bot.services.relay import append_history
 from bot.therapist_bot.services.relay import get_patient_for_msg, list_active_patients
 from web.i18n import translate as _t
-from zenflow.clock import SQL_NOW
 
 _REG_CODE_RE = re.compile(r"^[A-Z0-9]{8}$")
-_reg_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
 
@@ -27,16 +24,17 @@ _END_BUTTONS = [[("🔚 End Chat", "therapist_end")]]
 
 def _therapist_lang(user_id: int) -> str:
     """Return the language preference for a known therapist, defaulting to 'en'."""
-    t = THERAPIST_MAP.get(user_id)
+    t = therapists.get_by_telegram(user_id)
     return (t.get("language") if t else None) or "en"
 
 
 async def start_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Respond to /start from a therapist."""
     user_id = update.effective_user.id
-    if user_id in THERAPIST_MAP:
-        lang = _therapist_lang(user_id)
-        name = THERAPIST_MAP[user_id].get("name", "Therapist")
+    me = therapists.get_by_telegram(user_id)
+    if me:
+        lang = me.get("language") or "en"
+        name = me.get("name", "Therapist")
         await update.message.reply_text(
             _t("bot_greeting", lang, name=name)
             + "\n\n"
@@ -60,7 +58,7 @@ async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT
     """Single handler for all therapist bot text messages.
 
     Routing:
-    - Known therapist (in THERAPIST_MAP) → relay reply to patient
+    - Known therapist (an active one linked to this Telegram account) → relay reply to patient
     - Unknown sender + valid 8-char code  → registration activation
     - Unknown sender + anything else      → not-registered message
     """
@@ -68,8 +66,9 @@ async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT
     user_id = update.effective_user.id
     text = (msg.text or "").strip()
 
-    if user_id in THERAPIST_MAP:
-        await _handle_relay(msg, THERAPIST_MAP[user_id]["id"], _therapist_lang(user_id))
+    me = therapists.get_by_telegram(user_id)
+    if me:
+        await _handle_relay(msg, me["id"], me.get("language") or "en")
     elif _REG_CODE_RE.match(text):
         # Flood control (9.5): cap code guesses per Telegram user before checking the code.
         from bot.services import flood
@@ -92,7 +91,7 @@ async def handle_therapist_media(update: Update, context: ContextTypes.DEFAULT_T
     refuses clearly rather than silently ignoring the message.
     """
     user_id = update.effective_user.id
-    if user_id not in THERAPIST_MAP:
+    if therapists.get_by_telegram(user_id) is None:
         await update.message.reply_text(
             "👋 You're not registered as a therapist on this bot.\n"
             "Visit the clinic web portal to register and get your activation code."
@@ -250,90 +249,48 @@ async def _handle_registration(msg, user_id: int, code: str) -> None:
 def _register_therapist_to_db(
     name: str, telegram_id: int, email: str = "", google_id: str = ""
 ) -> dict:
-    """Register or update a therapist in SQLite and in-memory config maps.
+    """Register or update a therapist; the database is the only registry (12.2.4).
 
-    Thread-safe via _reg_lock.
     Upsert priority:
       1. Match by email (web-registered therapist with telegram_id=0 → set their telegram_id)
       2. Match by telegram_id (already linked, update name/email)
-      3. Create new entry
+      3. Create new entry (`therapist_repo.insert_new`: the id is safe across processes)
 
-    Mutates THERAPISTS, THERAPIST_MAP, THERAPIST_BY_ID in bot.config for immediate activation
-    without requiring a bot restart.
+    Every process sees the change on its next lookup (`bot.therapists`) — no restart, no copy.
     """
-    from bot import config as _cfg
     from bot.db import get_db
+    from web.repositories import therapist_repo
 
     conn = get_db()
+    existing_row = None
+    if email:
+        existing_row = conn.execute(
+            "SELECT * FROM therapists WHERE lower(email)=?",
+            (email.lower(),),
+        ).fetchone()
+    if existing_row is None:
+        existing_row = conn.execute(
+            "SELECT * FROM therapists WHERE telegram_id=?",
+            (telegram_id,),
+        ).fetchone()
 
-    with _reg_lock:
-        # Try email match first (web-registered therapist not yet linked to Telegram)
-        existing_row = None
+    if existing_row:
+        therapist_id = existing_row["id"]
+        updates = ["name=?", "telegram_id=?", "active=1"]
+        params: list = [name, telegram_id]
         if email:
-            existing_row = conn.execute(
-                "SELECT * FROM therapists WHERE lower(email)=?",
-                (email.lower(),),
-            ).fetchone()
-
-        # Fallback: match by telegram_id
-        if existing_row is None:
-            existing_row = conn.execute(
-                "SELECT * FROM therapists WHERE telegram_id=?",
-                (telegram_id,),
-            ).fetchone()
-
-        if existing_row:
-            updates = ["name=?", "telegram_id=?", "active=1"]
-            params: list = [name, telegram_id]
-            if email:
-                updates.append("email=?")
-                params.append(email)
-            if google_id:
-                updates.append("google_id=?")
-                params.append(google_id)
-            params.append(existing_row["id"])
-            conn.execute(f"UPDATE therapists SET {', '.join(updates)} WHERE id=?", params)
-            conn.commit()
-            entry_row = conn.execute(
-                "SELECT * FROM therapists WHERE id=?", (existing_row["id"],)
-            ).fetchone()
-        else:
-            existing_ids = {r[0] for r in conn.execute("SELECT id FROM therapists").fetchall()}
-            n = 1
-            while f"t{n}" in existing_ids:
-                n += 1
-            new_id = f"t{n}"
-            conn.execute(
-                f"""INSERT INTO therapists
-                   (id, name, telegram_id, email, google_id, calendar_name, active, created_at)
-                   VALUES (?, ?, ?, ?, ?, 'ZenFlow Availability', 1, {SQL_NOW})""",
-                (new_id, name, telegram_id, email or None, google_id or None),
-            )
-            conn.commit()
-            entry_row = conn.execute("SELECT * FROM therapists WHERE id=?", (new_id,)).fetchone()
-
-        entry = dict(entry_row)
-        entry["active"] = bool(entry.get("active"))
-
-        # Reload all therapists and mutate in-place so other modules see the change immediately.
-        all_rows = conn.execute("SELECT * FROM therapists").fetchall()
-        all_therapists = []
-        for row in all_rows:
-            t = dict(row)
-            t["active"] = bool(t.get("active"))
-            all_therapists.append(t)
-
-        _cfg.THERAPISTS.clear()
-        _cfg.THERAPISTS.extend(all_therapists)
-        _cfg.THERAPIST_MAP.clear()
-        _cfg.THERAPIST_MAP.update(
-            {
-                t["telegram_id"]: t
-                for t in all_therapists
-                if t.get("active") and t.get("telegram_id")
-            }
+            updates.append("email=?")
+            params.append(email)
+        if google_id:
+            updates.append("google_id=?")
+            params.append(google_id)
+        params.append(therapist_id)
+        conn.execute(f"UPDATE therapists SET {', '.join(updates)} WHERE id=?", params)
+    else:
+        therapist_id = therapist_repo.insert_new(
+            name=name, telegram_id=telegram_id, email=email, google_id=google_id, active=True
         )
-        _cfg.THERAPIST_BY_ID.clear()
-        _cfg.THERAPIST_BY_ID.update({t["id"]: t for t in all_therapists if t.get("active")})
-
+    entry = therapists.get(therapist_id)
+    if entry is None:  # written a moment ago; only a concurrent delete could do this
+        raise RuntimeError(f"therapist {therapist_id} vanished during registration")
     return entry

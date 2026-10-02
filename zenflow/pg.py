@@ -169,7 +169,15 @@ class Connection:
         import psycopg
         from psycopg.types.numeric import FloatLoader
 
-        self._conn = psycopg.connect(libpq_url(url), autocommit=True, row_factory=_row_factory)
+        # one connection per thread (bot.db): a process holds at most its thread-pool size — see
+        # docs/DATABASE.md "Connection budget". A dead server fails the connect in 10 s, not forever.
+        self._conn = psycopg.connect(
+            libpq_url(url),
+            autocommit=True,
+            row_factory=_row_factory,
+            connect_timeout=10,
+            application_name="zenflow",
+        )
         # AVG()/ROUND() come back as Decimal on Postgres and as float on SQLite; JSON needs float.
         self._conn.adapters.register_loader("numeric", FloatLoader)
         self._outer_savepoint: str | None = None  # a SAVEPOINT that opened the transaction

@@ -25,14 +25,19 @@ def _conn() -> Any:
     return get_db()
 
 
-def acquire(name: str, holder: str, *, ttl_seconds: float) -> bool:
-    """Take (or renew) the lease. False when someone else holds an unexpired one."""
+def acquire(name: str, holder: str, *, ttl_seconds: float, renew: bool = True) -> bool:
+    """Take (or renew) the lease. False when someone else holds an unexpired one.
+
+    `renew=False`: take it only when nobody — the caller included — holds an unexpired one. That
+    is a "once per TTL" gate (`zenflow.periodic`), where a renewal would mean running again.
+    """
     now = clock.now_utc()
     expires_at = clock.to_iso(now + timedelta(seconds=ttl_seconds))
+    who = "leases.holder = excluded.holder OR " if renew else ""
     cur = _conn().execute(
-        """INSERT INTO leases (name, holder, expires_at) VALUES (?, ?, ?)
+        f"""INSERT INTO leases (name, holder, expires_at) VALUES (?, ?, ?)
            ON CONFLICT(name) DO UPDATE SET holder=excluded.holder, expires_at=excluded.expires_at
-           WHERE leases.holder = excluded.holder OR leases.expires_at < ?""",
+           WHERE {who}leases.expires_at < ?""",  # noqa: S608 - a fixed fragment, no input
         (name, holder, expires_at, clock.to_iso(now)),
     )
     return bool(cur.rowcount)

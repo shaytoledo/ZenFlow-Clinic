@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS therapists (
 |---|---|
 | `id` | Text string assigned at registration (`t1`, `t2`, … incremented from max existing id). |
 | `telegram_id` | `0` for web-registered therapists who haven't completed bot activation. Non-zero after bot activation |
-| `active` | `0` until therapist sends bot activation code. Only `active=1` therapists appear in `THERAPIST_MAP` and are offered to patients |
+| `active` | `0` until therapist sends bot activation code. Only `active=1` therapists are routable (`bot.therapists`) and are offered to patients |
 | `password_hash` | `NULL` for Google-only accounts. Format: `"{64-hex-salt}:{64-hex-hash}"` |
 | `google_id` | Google's unique stable identifier for the user (from `id_token.sub`) |
 | `calendar_name` | Name of the therapist's Google Calendar that holds "✅ Available" events |
@@ -646,6 +646,17 @@ When it is empty (the default), nothing changes: the SQLite file above.
 - `SQL_NOW` becomes the same UTC string;
 - `numeric` reads as `float`;
 - a `SAVEPOINT` outside a transaction opens one, and its `RELEASE` commits.
+
+### Connection budget (12.2.4)
+
+Each thread holds one connection (`bot.db.get_db()`). A process therefore holds at most its threads:
+the event-loop thread plus asyncio's default thread pool, which is `min(32, CPUs + 4)`, so 5 to 9 on
+a 1–4 vCPU container. Budget for one stack (web + bots + worker) on 2 vCPU containers: about 3 × 7 =
+**~21 connections** per running copy of the stack. A `db.t4g.micro` RDS instance allows roughly 80–110
+connections (RDS derives `max_connections` from memory: `DBInstanceClassMemory / 9531392`), which leaves room for a second copy during a
+rolling deploy and for admin sessions. More containers than that means RDS Proxy (12.2.6) in front,
+not a bigger instance. Every connection is named `zenflow` (`pg_stat_activity.application_name`)
+and gives up connecting after 10 s.
 
 ### Writing SQL that runs on both
 

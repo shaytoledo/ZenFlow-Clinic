@@ -8,13 +8,8 @@ All direct SQLite access for therapist data goes through here.
 import hashlib
 import logging
 import secrets
-import threading
-
-from zenflow.clock import SQL_NOW
 
 logger = logging.getLogger(__name__)
-
-_web_reg_lock = threading.Lock()
 
 
 # ── Password helpers ───────────────────────────────────────────────────────────
@@ -80,44 +75,6 @@ def find_by_google_id(google_id: str) -> dict | None:
 
     row = get_db().execute("SELECT * FROM therapists WHERE google_id=?", (google_id,)).fetchone()
     return _row_to_dict(row)
-
-
-def register(name: str, email: str, password: str = "", google_id: str = "") -> dict:
-    """Insert a new web-registered therapist (telegram_id=0, active=False)."""
-    from bot import config as _cfg
-    from bot.db import get_db
-
-    conn = get_db()
-    with _web_reg_lock:
-        existing_ids = {r[0] for r in conn.execute("SELECT id FROM therapists").fetchall()}
-        n = 1
-        while f"t{n}" in existing_ids:
-            n += 1
-        new_id = f"t{n}"
-        password_hash = hash_password(password) if password else None
-        conn.execute(
-            f"""INSERT INTO therapists
-               (id, name, telegram_id, email, password_hash, google_id, calendar_name, active,
-                created_at)
-               VALUES (?, ?, 0, ?, ?, ?, 'ZenFlow Availability', 0, {SQL_NOW})""",
-            (new_id, name, email or None, password_hash, google_id or None),
-        )
-        conn.commit()
-        entry: dict = {
-            "id": new_id,
-            "name": name,
-            "telegram_id": 0,
-            "calendar_name": "ZenFlow Availability",
-            "active": False,
-        }
-        if email:
-            entry["email"] = email
-        if google_id:
-            entry["google_id"] = google_id
-        if password_hash:
-            entry["password_hash"] = password_hash
-        _cfg.THERAPISTS.append(entry)
-    return entry
 
 
 def set_active(therapist_id: str, active: bool) -> None:

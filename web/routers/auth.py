@@ -155,9 +155,9 @@ async def register_page(
 ):
     tid = request.session.get("therapist_id")
     if tid:
-        from bot.config import THERAPISTS as _T
+        from bot import therapists
 
-        t = next((x for x in _T if x.get("id") == tid), None)
+        t = therapists.get(tid)
         if t and t.get("active"):
             return RedirectResponse("/")
     return templates.TemplateResponse(

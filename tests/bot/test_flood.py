@@ -47,13 +47,11 @@ async def test_disabled_when_zero(monkeypatch) -> None:
 
 # ── the relay ──
 async def test_relay_throttles_a_flood(therapist_bot, make_therapist, monkeypatch) -> None:
-    from bot import config as botcfg
     from bot.patient_bot import therapist as pt
     from bot.services import flood
     from bot.states import THERAPIST_RELAY
 
     make_therapist(therapist_id="t1", active=True, telegram_id=111)
-    botcfg.reload_therapists()
     monkeypatch.setattr(flood, "per_minute", lambda: 2)
     ctx = make_context(user_data={"selected_therapist": "t1"})
 

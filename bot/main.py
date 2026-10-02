@@ -103,18 +103,11 @@ async def _ensure_ollama(app: Application) -> None:
 async def _post_init(app: Application) -> None:
     """Run on startup before the updater begins polling.
 
-    Order matters: Ollama first (existing behaviour) so handlers don't race on a
-    cold model, then the 24h follow-up scheduler as a long-lived background task.
+    Ollama first (existing behaviour) so handlers don't race on a cold model, then the job
+    worker. The follow-up reconcile sweep is a periodic task the workers share (12.2.4) — the bot
+    no longer runs its own loop, so two bot containers do not mean two sweeps.
     """
     await _ensure_ollama(app)
-    try:
-        from bot.services.followup_scheduler import start_followup_scheduler
-
-        # Stash the task on the app so it shares the application's lifecycle —
-        # the asyncio event loop tears it down when the app stops.
-        app.bot_data["_followup_task"] = start_followup_scheduler()
-    except Exception as e:
-        logger.error(f"Could not start follow-up scheduler: {e}")
     try:
         from zenflow.settings import get_settings
         from zenflow.worker import start_in_process
@@ -128,7 +121,7 @@ async def _post_init(app: Application) -> None:
 
 async def _post_shutdown(app: Application) -> None:
     """Cancel our background tasks so a job in flight is released, not left locked."""
-    for key in ("_worker_task", "_followup_task"):
+    for key in ("_worker_task",):
         task = app.bot_data.get(key)
         if task is not None and not task.done():
             task.cancel()

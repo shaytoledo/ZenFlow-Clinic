@@ -115,11 +115,9 @@ async def test_the_booking_api_with_an_api_key_does_not_need_a_token(
     client, make_therapist
 ) -> None:
     """An Authorization header is not something a browser attaches on its own — no CSRF risk."""
-    from bot import config as botcfg
     from web.repositories import api_client_repo
 
     make_therapist(therapist_id="t1")
-    botcfg.reload_therapists()
     _id, key = api_client_repo.create("csrf-bridge")
 
     resp = await client.post(

@@ -32,7 +32,7 @@ Clinic/
 │
 ├── bot/                           # All Telegram bot code
 │   ├── main.py                    # Wires ConversationHandler; asyncio.run(_run(patient, therapist))
-│   ├── config.py                  # Loads .env; calls init_db(); loads THERAPISTS from SQLite
+│   ├── config.py                  # Constants from zenflow.settings; calls init_db()
 │   ├── db.py                      # SQLite singleton: get_db(), init_db(), 5-table schema
 │   ├── redis_client.py            # get_async_redis() / get_sync_redis() singletons
 │   ├── states.py                  # 10 integer conversation state constants
@@ -177,7 +177,7 @@ To stop the integration entirely, disconnect the Git repository in the Vercel pr
 import bot.config
     → load_dotenv()
     → init_db()        # creates tables, runs schema migrations
-    → load THERAPISTS, THERAPIST_MAP, THERAPIST_BY_ID from SQLite
+    → (therapists are read from the database on every lookup: bot/therapists.py, 12.2.4)
 
 import bot.patient_bot.services.ai_intake
     → create ChatOllama singleton (_LLM)
@@ -374,7 +374,7 @@ completes exactly once.
 | `followup.send_step1` | `POST …/complete`; with `ZF_AUTO_FOLLOWUP`, also the reconcile sweep for sessions never completed (`followup:{appointment_id}:auto`, 24 h after the session ended) | `completed_at + 24h` | `followup:{appointment_id}` | session gone/cancelled, already followed up (`followup_sent_at`, conversation or rating), fired > 48 h after completion, patient has no messaging channel |
 | `recommendations.dispatch` | `POST …/complete` (auto-queue) and `POST …/send-recommendations` with `schedule_hours >= 24` | queued `pending_rec_send_at` | `recommendations:{appointment_id}:{send_at}` | nothing queued any more, or the queue entry was rescheduled. An email send whose therapist has not connected Google is **deferred** (6 h rechecks, no attempt charged, one alert) and woken by `resume_after_google_connected()` when Google is connected (Phase 5.4). A delivery stamps `recommendations_sent_at` (5.5), so completing the session again does not queue them twice |
 
-`followup_scheduler.reconcile()` runs every 30 min as a safety net: it enqueues jobs for sessions
+`followup_scheduler.reconcile()` runs every 30 min as a safety net — a `zenflow.periodic` task, once per interval across all workers (ADR-48): it enqueues jobs for sessions
 completed in the last 26 h without a follow-up and for every queued recommendation (rows written
 before Phase 1.3, or an enqueue that failed); the keys make it safe to repeat. Delivery is
 at-least-once, so handlers check the database before sending.

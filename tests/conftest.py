@@ -125,10 +125,6 @@ def db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     dbmod.init_db()
     if _PG_URL:
         _empty_postgres()
-    # bot.config caches the therapist registry at import time — refresh it for the new file.
-    from bot import config as botcfg
-
-    botcfg.reload_therapists()
     yield path
     dbmod.close_db()
 
@@ -385,8 +381,6 @@ def fake_llm(monkeypatch: pytest.MonkeyPatch) -> FakeLLM:
         return histories.setdefault(user_id, InMemoryChatMessageHistory())
 
     monkeypatch.setattr(ai_intake, "_get_history", _get_history)
-    monkeypatch.setattr(ai_intake, "_history_cache", {})
-    monkeypatch.setattr(ai_intake, "_rolling_summaries", {})
     return fake
 
 
@@ -422,9 +416,6 @@ def make_therapist():
             }
         )
         dbmod.get_db().execute("UPDATE therapists SET language=? WHERE id=?", (language, tid))
-        from bot import config as botcfg
-
-        botcfg.reload_therapists()
         return {
             "id": tid,
             "name": name,

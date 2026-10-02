@@ -22,10 +22,8 @@ PATIENT = 900_000_701
 
 @pytest.fixture
 def one_therapist(db, make_therapist):
-    from bot import config as botcfg
 
     t = make_therapist(name="Dr Only", therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
     return t
 
 

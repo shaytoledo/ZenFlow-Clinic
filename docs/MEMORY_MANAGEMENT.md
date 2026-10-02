@@ -151,22 +151,26 @@ skip_intake() / final answer → context.user_data.clear()
 
 ---
 
-### 1.5 Therapist Registry (module-level, `bot/config.py`)
+### 1.5 Therapist Registry — the `therapists` table itself (`bot/therapists.py`, 12.2.4)
 
 ```python
-THERAPISTS:      list[dict]       # all active therapists
-THERAPIST_MAP:   dict[int, dict]  # by telegram_id → therapist dict
-THERAPIST_BY_ID: dict[str, dict]  # by id string ("t1") → therapist dict
+therapists.active()               # the active therapists, registration order
+therapists.get(id)                # one therapist, any status
+therapists.get_active(id)         # only while active — where patients are routed
+therapists.get_by_telegram(uid)   # the active therapist linked to a Telegram account
 ```
 
 | Property | Value |
 |---|---|
-| Created | At `bot/config.py` import time — `SELECT * FROM therapists` |
-| Updated | `_register_therapist_to_db()` in `therapist_bot/handlers.py` mutates all three dicts in-place on successful bot activation |
-| Destroyed | Never (process lifetime) |
-| Cross-process | NOT shared — web process has its own copy via `_load_therapists_fresh()` |
+| Stored | Only in the database; every call is one indexed query |
+| Updated | Any write to `therapists`, by any process: the next lookup sees it |
+| Cross-process | Shared by construction (bot, web, worker, any number of containers) |
 
-**Why in-process:** Handlers check `THERAPIST_MAP` on every incoming message from the therapist bot. A SQLite query on every message would be wasteful; these maps are small (< 20 entries) and very rarely change.
+**Why not in memory (ADR-47, superseding ADR-11):** until 12.2.4 the registry was three module-level
+copies in `bot/config.py`, refreshed in place by whichever process wrote. The web process and the bot
+process each had their own copy, so they drifted. Several containers on AWS would have made that
+worse. The table has fewer than 20 rows: a query per message costs well under a millisecond, and no
+cache means nothing to invalidate.
 
 ---
 
