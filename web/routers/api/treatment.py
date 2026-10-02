@@ -84,9 +84,7 @@ class ManualFeedbackIn(BaseModel):
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 
-async def _resolve_apt_id(
-    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
-) -> int:
+async def _resolve_apt_id(patient_id: int, apt_date: str, apt_time: str, therapist_id: str) -> int:
     """Resolve to THIS therapist's appointment; another tenant's is a 404 (F6)."""
     apt_id = await asyncio.to_thread(
         treatment_service.get_appointment_id, patient_id, apt_date, apt_time, therapist_id

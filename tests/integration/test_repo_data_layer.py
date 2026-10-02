@@ -53,15 +53,18 @@ def test_delete_scoped_to_owner_refuses_another_therapists_slot(make_therapist) 
     assert availability_repo.list_for_therapist(a["id"]) == []
 
 
-def test_unscoped_delete_removes_any_slot(make_therapist) -> None:
+def test_delete_is_always_scoped_to_a_therapist(make_therapist) -> None:
     t = make_therapist()
     slot_id = availability_repo.insert(t["id"], "2026-03-02T09:00:00Z", "2026-03-02T10:00:00Z")
-    assert availability_repo.delete(slot_id) == 1
-    assert availability_repo.delete(slot_id) == 0, "deleting a gone slot reports zero rows"
+    assert (
+        availability_repo.delete(slot_id, "") == 0
+    ), "an empty id deletes nothing (no unscoped path)"
+    assert availability_repo.delete(slot_id, t["id"]) == 1
+    assert availability_repo.delete(slot_id, t["id"]) == 0, "deleting a gone slot reports zero rows"
 
 
-def test_delete_of_an_unknown_slot_reports_zero() -> None:
-    assert availability_repo.delete("loc_doesnotexist") == 0
+def test_delete_of_an_unknown_slot_reports_zero(make_therapist) -> None:
+    assert availability_repo.delete("loc_doesnotexist", make_therapist()["id"]) == 0
 
 
 # ── intake_repo ──────────────────────────────────────────────────────────────────

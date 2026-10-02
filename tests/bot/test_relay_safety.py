@@ -127,6 +127,21 @@ async def test_patient_message_with_markdown_reaches_the_therapist(
     assert sent.get("parse_mode") is None, "user text must not be parsed as Markdown"
 
 
+async def test_a_follow_up_message_in_an_open_chat_is_plain_text_too(
+    db, fake_redis, therapist_bot, two_therapists
+) -> None:
+    """B2 on the relay loop itself: every later message goes through relay_to_therapist."""
+    from bot.patient_bot.therapist import relay_to_therapist, start_relay
+
+    context = make_context({"selected_therapist": "t1"})
+    await start_relay(make_update("hello", user_id=PATIENT_A), context)
+    state = await relay_to_therapist(make_update(MARKDOWN_TEXT, user_id=PATIENT_A), context)
+    assert state == THERAPIST_RELAY
+    sent = therapist_bot.sent[-1]
+    assert MARKDOWN_TEXT in sent["text"]
+    assert sent.get("parse_mode") is None, "a patient's words are never parsed as Markdown"
+
+
 async def test_therapist_reply_with_markdown_reaches_the_patient(
     db, fake_redis, patient_bot, two_therapists
 ) -> None:

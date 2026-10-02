@@ -168,7 +168,8 @@ def send_email(
         if token_invalid:
             _notify_reconnect(therapist_id)
         raise EmailSendError(f"Gmail API send failed: {e}", token_invalid=token_invalid) from e
-    logger.info(f"Email sent (Gmail API) to {to!r} — {subject!r}")
+    # the address is a patient's contact detail — log only its domain (T2)
+    logger.info(f"Email sent (Gmail API) to a recipient at {to.rpartition('@')[2]!r}")
     google_reconnected(therapist_id)  # a working token proves any reconnect alert is stale
     message_id = response.get("id") if isinstance(response, dict) else None
     return str(message_id) if message_id else None

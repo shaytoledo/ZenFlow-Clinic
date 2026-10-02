@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_appointment_id(
-    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
+    patient_id: int, apt_date: str, apt_time: str, therapist_id: str
 ) -> int | None:
-    """Resolve an appointment row ID from patient/date/time (tenant-scoped when given)."""
+    """Resolve THIS therapist's appointment row ID from patient/date/time (always scoped)."""
     return appointment_repo.get_id(patient_id, apt_date, apt_time, therapist_id)
 
 

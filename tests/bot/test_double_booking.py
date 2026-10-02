@@ -191,3 +191,32 @@ async def test_the_dashboard_refuses_a_slot_the_bot_already_holds(
     )
     assert resp.status_code == 409, resp.text
     assert "booked" in resp.json()["detail"].lower()
+
+
+# ── B4 is two independent layers; each must hold on its own ──
+def test_the_database_alone_refuses_a_second_active_row(db, make_therapist) -> None:
+    """The partial unique index is the last line: even an INSERT that skips save_appointment."""
+    import sqlite3
+
+    import bot.db as dbmod
+
+    t = make_therapist(therapist_id="t1")
+    _book(t["id"], 101)
+    with pytest.raises(sqlite3.IntegrityError):
+        dbmod.get_db().execute(
+            "INSERT INTO appointments (patient_id, patient_name, therapist_id, date, time, status) "
+            "VALUES (102, 'x', ?, ?, ?, 'active')",
+            (t["id"], DAY.isoformat(), TIME),
+        )
+
+
+def test_the_clash_check_alone_refuses_without_the_index(db, make_therapist) -> None:
+    """save_appointment re-checks the slot inside its transaction, index or not."""
+    import bot.db as dbmod
+
+    dbmod.get_db().execute("DROP INDEX IF EXISTS ux_appointments_active_slot")
+    t = make_therapist(therapist_id="t1")
+    _book(t["id"], 101)
+    with pytest.raises(SlotTaken):
+        _book(t["id"], 102)
+    assert len(db_rows(t["id"])) == 1

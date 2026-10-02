@@ -67,4 +67,7 @@ def test_read_helpers_delegate_to_the_repository(make_appointment) -> None:
 
 def test_get_by_patient_date_time_is_none_for_a_missing_slot(make_appointment) -> None:
     apt = make_appointment(apt_date="2026-03-02", apt_time="10:00")
-    assert svc.get_by_patient_date_time(apt["patient_id"], "2026-03-02", "23:00") is None
+    assert (
+        svc.get_by_patient_date_time(apt["patient_id"], "2026-03-02", "23:00", apt["therapist_id"])
+        is None
+    )

@@ -187,3 +187,29 @@ def test_the_error_handler_is_installed_on_both_bots() -> None:
         assert app is not None
         names = [getattr(h, "__name__", "") for h in app.error_handlers]
         assert "on_error" in names
+
+
+def _callbacks(handlers) -> list[str]:
+    """Every callback name reachable from these handlers, through ConversationHandler states."""
+    from telegram.ext import ConversationHandler
+
+    out: list[str] = []
+    for handler in handlers:
+        if isinstance(handler, ConversationHandler):
+            for state_handlers in handler.states.values():
+                out += _callbacks(state_handlers)
+            out += _callbacks(handler.entry_points) + _callbacks(handler.fallbacks)
+        else:
+            out.append(getattr(handler.callback, "__name__", ""))
+    return out
+
+
+def test_media_handlers_are_wired_into_both_bots() -> None:
+    """B7: the media answers exist AND the applications route media to them (not just callable)."""
+    from bot.main import build_patient_app
+    from bot.therapist_bot.main import build_therapist_app
+
+    patient = [h for group in build_patient_app().handlers.values() for h in group]
+    therapist = [h for group in build_therapist_app().handlers.values() for h in group]
+    assert "relay_unsupported_media" in _callbacks(patient), "patient media in a relay"
+    assert "handle_therapist_media" in _callbacks(therapist), "therapist media"

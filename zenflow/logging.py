@@ -66,6 +66,11 @@ REDACTION_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}"),
         "<redacted:jwt>",
     ),
+    # Email addresses are patient contact details (T2): keep the domain, drop the person
+    (
+        re.compile(r"\b[A-Za-z0-9._%+-]+@((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})\b"),
+        r"<redacted:email>@\1",
+    ),
     # key=value / "key": "value" shaped secrets
     (
         re.compile(rf"(?i)\b({_SECRET_KEYS})(\"?\s*[:=]\s*\"?)([^\s\"',;&}}]+)"),
@@ -76,7 +81,7 @@ REDACTION_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 
 _MAYBE_SECRET = re.compile(
     r"(?i)\d{8,10}:|GOCSPX|ya29\.|1//0|AIza|sk-ant|gAAAA|bearer|eyJ|token|secret|password|"
-    r"passwd|api_?key|authorization"
+    r"passwd|api_?key|authorization|@"
 )
 
 

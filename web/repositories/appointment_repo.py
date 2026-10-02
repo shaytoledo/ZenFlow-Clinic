@@ -68,39 +68,35 @@ def list_active_by_patient(patient_id: int) -> list[dict[str, Any]]:
 
 
 def get_by_patient_date_time(
-    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
+    patient_id: int, apt_date: str, apt_time: str, therapist_id: str
 ) -> dict[str, Any] | None:
-    """Fetch a single appointment record (apt_time accepts HH:MM or HH-MM).
+    """Fetch one of THIS therapist's appointments (apt_time accepts HH:MM or HH-MM).
 
-    With `therapist_id` the lookup is tenant-scoped: another therapist's appointment is
-    simply "not found".
+    Always tenant-scoped: another therapist's appointment is simply "not found". `therapist_id`
+    is required — an unscoped read by patient/date/time is how F6 happened.
     """
     time_str = apt_time.replace("-", ":")
     sql = """SELECT a.*, i.history_json
            FROM appointments a
            LEFT JOIN intake_sessions i ON i.appointment_id = a.id
-           WHERE a.patient_id=? AND a.date=? AND a.time=?"""
-    params: list[Any] = [patient_id, apt_date, time_str]
-    if therapist_id:
-        sql += " AND a.therapist_id=?"
-        params.append(therapist_id)
-    sql += " ORDER BY a.created_at DESC LIMIT 1"
-    row = _conn().execute(sql, params).fetchone()
+           WHERE a.patient_id=? AND a.date=? AND a.time=? AND a.therapist_id=?
+           ORDER BY a.created_at DESC LIMIT 1"""
+    row = _conn().execute(sql, (patient_id, apt_date, time_str, therapist_id)).fetchone()
     return _parse(row) if row else None
 
 
-def get_id(
-    patient_id: int, apt_date: str, apt_time: str, therapist_id: str | None = None
-) -> int | None:
-    """Return just the appointment id (HH:MM or HH-MM accepted); tenant-scoped when given."""
+def get_id(patient_id: int, apt_date: str, apt_time: str, therapist_id: str) -> int | None:
+    """Return the id of THIS therapist's appointment (HH:MM or HH-MM accepted); always scoped."""
     time_str = apt_time.replace("-", ":")
-    sql = "SELECT id FROM appointments WHERE patient_id=? AND date=? AND time=?"
-    params: list[Any] = [patient_id, apt_date, time_str]
-    if therapist_id:
-        sql += " AND therapist_id=?"
-        params.append(therapist_id)
-    sql += " ORDER BY created_at DESC LIMIT 1"
-    row = _conn().execute(sql, params).fetchone()
+    row = (
+        _conn()
+        .execute(
+            """SELECT id FROM appointments WHERE patient_id=? AND date=? AND time=?
+               AND therapist_id=? ORDER BY created_at DESC LIMIT 1""",
+            (patient_id, apt_date, time_str, therapist_id),
+        )
+        .fetchone()
+    )
     return row[0] if row else None
 
 
