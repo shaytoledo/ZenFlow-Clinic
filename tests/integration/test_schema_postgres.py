@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+import uuid
 
 import pytest
 import sqlalchemy as sa
@@ -57,22 +58,26 @@ def test_the_audit_log_is_append_only_on_postgres(engine) -> None:
 
 
 def test_one_active_appointment_per_slot_on_postgres(engine) -> None:
+    therapist = f"pg-{uuid.uuid4().hex[:8]}"  # unique, so the test can re-run on one database
     insert = sa.text(
         "INSERT INTO appointments (patient_id, patient_name, therapist_id, date, time, status) "
-        "VALUES (:p, 'x', 'pg-t1', '2026-10-05', '10:00', :s)"
+        "VALUES (:p, 'x', :t, '2026-10-05', '10:00', :s)"
     )
     with engine.begin() as conn:
-        conn.execute(insert, {"p": 1, "s": "active"})
-        conn.execute(insert, {"p": 2, "s": "cancelled"})  # a cancelled one may share the slot
+        conn.execute(insert, {"p": 1, "t": therapist, "s": "active"})
+        conn.execute(insert, {"p": 2, "t": therapist, "s": "cancelled"})  # may share the slot
     with pytest.raises(sa.exc.IntegrityError), engine.begin() as conn:
-        conn.execute(insert, {"p": 3, "s": "active"})
+        conn.execute(insert, {"p": 3, "t": therapist, "s": "active"})
 
 
 def test_the_legacy_timestamp_default_works_on_postgres(engine) -> None:
+    therapist = f"pg-{uuid.uuid4().hex[:8]}"
     with engine.begin() as conn:
-        conn.execute(sa.text("INSERT INTO therapists (id, name) VALUES ('pg-t9', 'Dr PG')"))
+        conn.execute(
+            sa.text("INSERT INTO therapists (id, name) VALUES (:id, 'Dr PG')"), {"id": therapist}
+        )
         created = conn.execute(
-            sa.text("SELECT created_at FROM therapists WHERE id='pg-t9'")
+            sa.text("SELECT created_at FROM therapists WHERE id=:id"), {"id": therapist}
         ).scalar()
     assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d", created), created
 

@@ -21,6 +21,7 @@ revision "…"`, review the generated file under `migrations/versions/`. Never a
 from __future__ import annotations
 
 import argparse
+import re
 import sqlite3
 import sys
 from functools import lru_cache
@@ -38,11 +39,16 @@ def database_url() -> str:
     return f"sqlite:///{db_path()}"
 
 
+#: Postgres reflects every literal with its type: 'x'::text, timezone('UTC'::text, now())
+_PG_CAST = re.compile(r"::(?:character varying|double precision|[a-z_][a-z0-9_]*)")
+
+
 def _norm_default(value: object) -> str | None:
-    """`(datetime('now'))`, `'x'`, `''` → comparable text: outer parens and quotes do not matter."""
+    """`(datetime('now'))`, `'x'`, `''`, `'x'::text` → comparable text: outer parens, quotes and
+    Postgres casts do not matter; anything else (a different value, a different function) does."""
     if value is None:
         return None
-    text = str(getattr(value, "text", value)).strip()
+    text = _PG_CAST.sub("", str(getattr(value, "text", value))).strip()
     while text.startswith("(") and text.endswith(")"):
         text = text[1:-1].strip()
     return text.strip("'\"")
