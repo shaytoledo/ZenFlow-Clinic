@@ -52,11 +52,32 @@ resource "aws_vpc_security_group_ingress_rule" "app_from_alb" {
   referenced_security_group_id = aws_security_group.alb.id
 }
 
-resource "aws_vpc_security_group_egress_rule" "app_out" {
+# The tasks call public HTTPS APIs whose addresses are not fixed (Telegram, Google, AWS) and Ollama's
+# NLB on 443, so 443 to anywhere is the narrowest rule that works; nothing else leaves the VPC.
+#trivy:ignore:AVD-AWS-0104
+resource "aws_vpc_security_group_egress_rule" "app_https_out" {
   security_group_id = aws_security_group.app.id
-  description       = "HTTPS APIs (Telegram, Google, AWS), Postgres, Redis, Ollama over TLS"
-  ip_protocol       = "-1"
+  description       = "HTTPS only: Telegram, Google, AWS APIs, Ollama over TLS"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
   cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "app_to_db" {
+  security_group_id            = aws_security_group.app.id
+  ip_protocol                  = "tcp"
+  from_port                    = 5432
+  to_port                      = 5432
+  referenced_security_group_id = aws_security_group.db.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "app_to_redis" {
+  security_group_id            = aws_security_group.app.id
+  ip_protocol                  = "tcp"
+  from_port                    = 6379
+  to_port                      = 6379
+  referenced_security_group_id = aws_security_group.redis.id
 }
 
 resource "aws_security_group" "db" {
@@ -112,11 +133,15 @@ resource "aws_vpc_security_group_ingress_rule" "ollama_from_vpc" {
   cidr_ipv4         = var.vpc_cidr
 }
 
-resource "aws_vpc_security_group_egress_rule" "ollama_out" {
+# Packages (dnf over HTTPS), the pinned release from GitHub and the model from Ollama's registry.
+#trivy:ignore:AVD-AWS-0104
+resource "aws_vpc_security_group_egress_rule" "ollama_https_out" {
   count = var.ollama_enabled ? 1 : 0
 
   security_group_id = aws_security_group.ollama[0].id
-  description       = "Install packages and pull the model"
-  ip_protocol       = "-1"
+  description       = "HTTPS only: packages, the Ollama release and the model"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
   cidr_ipv4         = "0.0.0.0/0"
 }

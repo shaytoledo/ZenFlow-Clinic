@@ -1,8 +1,65 @@
 # Someone hears about it: alarms and the budget go to var.alert_email (confirm the subscription once).
 
+# CloudWatch cannot publish to a topic encrypted with the AWS-managed SNS key, so the topic has its
+# own key whose policy lets CloudWatch (and the account's admins) use it.
+data "aws_iam_policy_document" "alerts_key" {
+  statement {
+    sid       = "AccountAdmins"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+
+  statement {
+    sid       = "CloudWatchAlarmsPublish"
+    actions   = ["kms:Decrypt", "kms:GenerateDataKey*"]
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudwatch.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_kms_key" "alerts" {
+  description             = "${local.name}: the alarm topic (CloudWatch must be able to publish)"
+  enable_key_rotation     = true
+  deletion_window_in_days = 30
+  policy                  = data.aws_iam_policy_document.alerts_key.json
+}
+
 resource "aws_sns_topic" "alerts" {
   name              = "${local.name}-alerts"
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = aws_kms_key.alerts.arn
+}
+
+data "aws_iam_policy_document" "alerts_topic" {
+  statement {
+    sid       = "CloudWatchAlarms"
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.alerts.arn]
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudwatch.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+  }
+}
+
+resource "aws_sns_topic_policy" "alerts" {
+  arn    = aws_sns_topic.alerts.arn
+  policy = data.aws_iam_policy_document.alerts_topic.json
 }
 
 resource "aws_sns_topic_subscription" "email" {

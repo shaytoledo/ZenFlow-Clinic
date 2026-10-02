@@ -167,3 +167,23 @@ def test_each_environment_names_its_owner_inputs(env_file: str) -> None:
     text = (TF / "envs" / env_file).read_text(encoding="utf-8")
     for required in ("environment", "domain_name", "route53_zone_id", "alert_email", "image_tag"):
         assert re.search(rf"^{required}\s+=", text, re.M), required
+
+
+def test_nothing_leaves_the_vpc_except_https() -> None:
+    """Egress: 443 to the internet (APIs without fixed addresses); data stores by security group."""
+    sg = _hcl("security_groups.tf")
+    assert not re.search(r'ip_protocol\s+= "-1"', sg), "no all-protocol rules"
+    to_internet = re.findall(
+        r'resource "aws_vpc_security_group_egress_rule" "(\w+)" \{[^}]*?from_port\s+= (\d+)'
+        r'[^}]*?cidr_ipv4\s+= "0\.0\.0\.0/0"',
+        sg,
+    )
+    assert to_internet and all(port == "443" for _, port in to_internet), to_internet
+
+
+def test_alarms_can_actually_reach_the_owner() -> None:
+    """CloudWatch cannot publish to an SNS topic under the AWS-managed key: it needs its own."""
+    monitoring = _hcl("monitoring.tf")
+    assert "alias/aws/sns" not in monitoring
+    assert "kms_master_key_id = aws_kms_key.alerts.arn" in monitoring
+    assert '"cloudwatch.amazonaws.com"' in monitoring

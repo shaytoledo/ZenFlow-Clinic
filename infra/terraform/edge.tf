@@ -28,6 +28,8 @@ resource "aws_acm_certificate_validation" "main" {
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
 
+# The front door: public by design (TLS-only listener, WAF, tasks reachable only through it).
+#trivy:ignore:AVD-AWS-0053
 resource "aws_lb" "main" {
   name                       = local.name
   load_balancer_type         = "application"

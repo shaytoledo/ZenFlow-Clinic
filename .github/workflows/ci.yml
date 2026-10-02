@@ -261,9 +261,10 @@ jobs:
           terraform init -backend=false -input=false
           terraform validate
 
-      - name: Misconfiguration scan (trivy — advisory)
-        continue-on-error: true
+      - name: Misconfiguration scan (trivy, HIGH/CRITICAL fail the job)
+        # Each accepted exception is a `#trivy:ignore:<id>` comment next to the resource, with its
+        # reason (the public ALB; HTTPS-only egress to APIs that have no fixed addresses).
         working-directory: .
         run: |
-          docker run --rm -v "$PWD/infra/terraform:/src" aquasec/trivy:latest \
+          docker run --rm -v "$PWD/infra/terraform:/src" aquasec/trivy:0.75.0 \
             config --severity HIGH,CRITICAL --exit-code 1 /src
