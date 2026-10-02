@@ -1,5 +1,6 @@
 # Continuous integration (Phase 9.10, extended in 11.7): the quality gate + supply-chain scanners
-# on every push/PR, plus the e2e journeys and coverage upload.
+# on every push/PR, plus the e2e journeys and coverage upload, and (12.2.1) the container images:
+# built, the web container started and its /healthz answered, non-root checked, trivy (advisory).
 # Pipeline order: lint → type → unit+integration+security (with coverage) → e2e; supply-chain runs
 # alongside. Bandit fails the build on HIGH findings only (the pre-existing LOW/MEDIUM baseline is
 # tracked as debt T1, not a CI blocker).
@@ -121,3 +122,43 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  container:
+    name: container images (build · run · scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the three service images
+        run: |
+          docker build --target web -t zenflow-web:ci .
+          docker build --target bots -t zenflow-bots:ci .
+          docker build --target worker -t zenflow-worker:ci .
+
+      - name: The web container starts and answers /healthz
+        run: |
+          docker run -d --name zf-web -p 8080:8080 -e ENV=dev zenflow-web:ci
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:8080/healthz; then
+              echo; docker inspect --format '{{.State.Health.Status}}' zf-web; exit 0
+            fi
+            sleep 2
+          done
+          docker logs zf-web; exit 1
+
+      - name: Services never run as root
+        run: |
+          for image in zenflow-web:ci zenflow-bots:ci zenflow-worker:ci; do
+            uid=$(docker run --rm --entrypoint id "$image" -u)
+            echo "$image runs as uid $uid"; test "$uid" != "0"
+          done
+
+      - name: The compose stack is valid
+        run: docker compose config -q
+
+      - name: Image vulnerability scan (trivy — advisory)
+        # Advisory first, like pip-audit: surfaces CVEs in the base image and wheels.
+        continue-on-error: true
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest \
+            image --severity HIGH,CRITICAL --exit-code 1 --no-progress zenflow-web:ci

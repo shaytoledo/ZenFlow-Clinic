@@ -1,0 +1,94 @@
+# ZenFlow Clinic — the whole stack on one machine (Phase 12.2.1): dev/prod parity for the flags.
+#
+#   cp .env.example .env            # fill TELEGRAM_TOKEN etc. (never commit .env)
+#   docker compose up --build       # web on http://localhost:8080, bots, redis, minio
+#   docker compose --profile ai up  # + Ollama (large; or point OLLAMA_HOST at your own)
+#
+# Postgres is here for Phase 12.2.2 (ZF_DB_URL); until then the app keeps its SQLite file in the
+# `zenflow-data` volume. MinIO is a local S3 for ZF_STORAGE_S3=1 (S3_ENDPOINT_URL below).
+# Nothing here is for production: the passwords are local-only placeholders.
+
+name: zenflow
+
+x-app: &app
+  build: .
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    ENV: dev
+    ZF_LOG_FILES: "0"
+    ZENFLOW_DB_PATH: /data/zenflow.db
+    REDIS_URL: redis://redis:6379/0
+    OLLAMA_HOST: http://ollama:11434
+    S3_ENDPOINT_URL: http://minio:9000
+  volumes:
+    - zenflow-data:/data
+  depends_on:
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  web:
+    <<: *app
+    build:
+      context: .
+      target: web
+    ports:
+      - "8080:8080"
+
+  bots:
+    <<: *app
+    build:
+      context: .
+      target: bots
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: zenflow
+      POSTGRES_USER: zenflow
+      POSTGRES_PASSWORD: local-only-not-a-secret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zenflow -d zenflow"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest  # local S3 stand-in only; never deployed
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: zenflow
+      MINIO_ROOT_PASSWORD: local-only-not-a-secret
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9001:9001"
+
+  ollama:
+    image: ollama/ollama:latest  # local model server only; never deployed
+    profiles: ["ai"]
+    volumes:
+      - ollama-data:/root/.ollama
+
+volumes:
+  zenflow-data:
+  redis-data:
+  postgres-data:
+  minio-data:
+  ollama-data:

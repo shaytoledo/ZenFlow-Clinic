@@ -62,6 +62,7 @@ FLAG_NAMES: tuple[str, ...] = (
     "RETENTION_OPERATIONAL_DAYS",
     "RETENTION_CLINICAL_YEARS",
     "TRUSTED_PROXIES",
+    "LOG_FILES",
 )
 
 
@@ -124,6 +125,9 @@ class FeatureFlags(BaseSettings):
     # ZF_TRUSTED_PROXIES — IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's
     # subnet); X-Forwarded-For is believed only from these. Empty (default) = never (SF-022).
     trusted_proxies: str = ""
+    # ZF_LOG_FILES — also write logs/webLogs.text / botLogs.text; 0 = console only (containers,
+    # where the platform collects stdout/stderr and the app directory is read-only) (12.2.1)
+    log_files: bool = True
 
     @field_validator("trusted_proxies")
     @classmethod
