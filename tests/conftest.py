@@ -381,8 +381,6 @@ def fake_llm(monkeypatch: pytest.MonkeyPatch) -> FakeLLM:
         return histories.setdefault(user_id, InMemoryChatMessageHistory())
 
     monkeypatch.setattr(ai_intake, "_get_history", _get_history)
-    monkeypatch.setattr(ai_intake, "_history_cache", {})
-    monkeypatch.setattr(ai_intake, "_rolling_summaries", {})
     return fake
 
 

@@ -39,7 +39,7 @@ def isolated_intake(monkeypatch: pytest.MonkeyPatch) -> _FakeHistory:
         return None
 
     monkeypatch.setattr(ai_intake, "_maybe_compress", _no_compress)
-    monkeypatch.setattr(ai_intake, "_rolling_summaries", {})
+    monkeypatch.setattr(ai_intake, "_get_summary", lambda _uid: "")
     return hist
 
 
@@ -104,3 +104,28 @@ async def test_summary_falls_back_when_no_model_is_configured(
     monkeypatch.setattr(ai_intake, "_LLM_LONG", None)
     summary = await ai_intake.generate_summary(5, "done")
     assert summary == ai_intake.FALLBACK_SUMMARY
+
+
+def test_the_intake_keeps_no_state_in_the_process(fake_redis) -> None:
+    """12.2.4: a second bot container must be able to continue any patient's intake, so the
+    history and the rolling summary are in Redis — and the history uses the shared pool."""
+    from bot.redis_client import get_sync_redis
+
+    assert not hasattr(ai_intake, "_history_cache") and not hasattr(ai_intake, "_rolling_summaries")
+    ai_intake._set_summary(42, "pain in the lower back since March")
+    assert fake_redis.sync.ttl(ai_intake._summary_key(42)) == ai_intake.INTAKE_TTL_SECONDS
+    assert ai_intake._get_summary(42) == "pain in the lower back since March"
+    assert ai_intake._get_history(42).redis_client is get_sync_redis()
+    ai_intake._clear_summary(42)
+    assert ai_intake._get_summary(42) == ""
+
+
+def test_a_missing_redis_degrades_the_summary_to_nothing(monkeypatch) -> None:
+    import bot.redis_client as rc
+
+    class Down:
+        def get(self, *_a: object) -> None:
+            raise ConnectionError("redis down")
+
+    monkeypatch.setattr(rc, "_sync_client", Down())
+    assert ai_intake._get_summary(7) == ""

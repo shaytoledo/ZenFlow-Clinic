@@ -448,6 +448,20 @@ SPECS = [
         ],
     ),
     spec(
+        id="12.2.4 periodic once per interval",
+        file="zenflow/periodic.py",
+        edits=[
+            (
+                "ttl_seconds=periodic.every_seconds, renew=False)",
+                "ttl_seconds=periodic.every_seconds)",
+                False,
+            )
+        ],
+        tests=[
+            "tests/unit/test_periodic.py" "::test_a_due_task_runs_once_per_interval_across_workers"
+        ],
+    ),
+    spec(
         id="B6 /start says so",
         file="bot/patient_bot/start.py",
         edits=[

@@ -1848,3 +1848,31 @@ sign-ups the same id.
 **Consequences.** One query per therapist lookup on the bot's hot path (a relay message): SQLite
 ~0.1 ms, Postgres ~0.5 ms on the same network. Every process and container sees the same
 therapists at the same moment.
+
+---
+
+## ADR-48: Periodic Work Is a Lease-Guarded Task the Workers Share
+
+**Status:** Accepted (Phase 12.2.4, 2026-10-02)
+
+**Context.** The follow-up reconcile sweep (every 30 min) was an asyncio loop started by each bot
+process, so N bot containers meant N concurrent sweeps. The sweep is idempotent (idempotency keys),
+so the duplicates were wasted work, not a correctness bug. But "every process runs it" cannot scale,
+and the plan asks for one scheduled job.
+
+**Decision.** `zenflow/periodic.py` registers periodic tasks (`@periodic.task(name, every_seconds=…)`).
+Every worker calls `run_due()` at most once per poll. A task runs only when its lease
+(`periodic:<name>`) can be taken; the lease is held for the whole interval, with `renew=False`, so
+not even the same worker runs it twice. A task that fails waits for its next turn instead of being
+retried every poll. `python -m zenflow.periodic <name>` runs one task on demand. On AWS,
+EventBridge Scheduler can call that instead of relying on a worker's poll; the lease still
+prevents a double run. The bot no longer starts a loop.
+
+**Options rejected.**
+- **Enqueue a job per interval (bucketed idempotency key).** That adds a `jobs` row every 30 minutes
+  forever for something that needs no retry history.
+- **EventBridge only.** That would leave the single-host deployment (today's) without the sweep
+  unless it also ran cron. A worker poll works everywhere, and EventBridge is optional on top.
+
+**Consequences.** Exactly one sweep per interval across any number of bot/worker containers. The
+interval is measured from the start of the last run (the lease's expiry), not from its end.

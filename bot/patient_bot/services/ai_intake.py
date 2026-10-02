@@ -8,7 +8,8 @@ History is explicitly cleared after the appointment is saved or the flow is canc
 Speed optimisations applied:
 - Singleton LLM: ChatOllama created once at module level (not per call)
 - ConversationSummaryBuffer: rolls up old messages into a summary to keep context short
-- In-process history cache: RedisChatMessageHistory object reused per user (avoids LRANGE on every call)
+- No per-process state (12.2.4): the history AND the rolling summary are in Redis, on the
+  process's shared connection pool — any bot container can continue any patient's intake
 """
 
 import json
@@ -358,11 +359,39 @@ if USE_AI != "anthropic":
 
     _check_ollama_health()
 
-# ── in-process history cache — avoids Redis LRANGE on every call ─────────────
-_history_cache: dict[int, RedisChatMessageHistory] = {}
+# ── intake state lives in Redis only (12.2.4) ─────────────────────────────────
+INTAKE_TTL_SECONDS = 1800  # 30 minutes — cleared after the appointment is saved anyway
 
-# ── rolling summaries for ConversationSummaryBuffer pattern ──────────────────
-_rolling_summaries: dict[int, str] = {}
+
+def _summary_key(user_id: int) -> str:
+    return f"zenflow:intake:summary:{user_id}"
+
+
+def _get_summary(user_id: int) -> str:
+    """The rolling summary of this intake's older messages ('' when none, or Redis is down)."""
+    from bot.redis_client import get_sync_redis
+
+    try:
+        return str(get_sync_redis().get(_summary_key(user_id)) or "")
+    except Exception:  # noqa: BLE001 - the intake goes on with the recent messages alone
+        logger.warning(f"[{user_id}] rolling summary unavailable (Redis)")
+        return ""
+
+
+def _set_summary(user_id: int, summary: str) -> None:
+    from bot.redis_client import get_sync_redis
+
+    get_sync_redis().set(_summary_key(user_id), summary, ex=INTAKE_TTL_SECONDS)
+
+
+def _clear_summary(user_id: int) -> None:
+    from bot.redis_client import get_sync_redis
+
+    try:
+        get_sync_redis().delete(_summary_key(user_id))
+    except Exception:  # noqa: BLE001 - it expires on its own
+        logger.warning(f"[{user_id}] rolling summary not cleared (Redis); it expires in 30 min")
+
 
 # Number of messages to keep in live history before compressing older ones.
 # Max intake is 5 questions = 10 messages — set buffer above that so compression
@@ -372,13 +401,15 @@ _BUFFER_MAX = 12
 
 
 def _get_history(user_id: int) -> RedisChatMessageHistory:
-    if user_id not in _history_cache:
-        _history_cache[user_id] = RedisChatMessageHistory(
-            session_id=f"zenflow:intake:{user_id}",
-            url=REDIS_URL,
-            ttl=1800,  # 30 minutes — cleared after appointment saved anyway
-        )
-    return _history_cache[user_id]
+    """The patient's intake history in Redis, over the process's shared connection pool (one
+    pool per process, not one per patient — and nothing cached here, 12.2.4)."""
+    from bot.redis_client import get_sync_redis
+
+    history = RedisChatMessageHistory(
+        session_id=f"zenflow:intake:{user_id}", url=REDIS_URL, ttl=INTAKE_TTL_SECONDS
+    )
+    history.redis_client = get_sync_redis()
+    return history
 
 
 async def _maybe_compress(user_id: int) -> None:
@@ -401,7 +432,7 @@ async def _maybe_compress(user_id: int) -> None:
         transcript_parts.append(f"{role}: {m.content}")
     transcript = "\n".join(transcript_parts)
 
-    existing = _rolling_summaries.get(user_id, "")
+    existing = _get_summary(user_id)
     if existing:
         prompt_text = (
             f"{BUFFER_SUMMARIZE_PROMPT}\n\n"
@@ -418,7 +449,7 @@ async def _maybe_compress(user_id: int) -> None:
             stage="intake.compress",
             timeout_seconds=COMPRESS_TIMEOUT,
         )
-        _rolling_summaries[user_id] = resp.content.strip()
+        _set_summary(user_id, resp.content.strip())
         logger.info(f"[{user_id}] History compressed: {len(to_compress)} msgs → summary")
     except Exception as e:
         logger.warning(f"[{user_id}] Compression failed: {e} — keeping full history")
@@ -438,8 +469,7 @@ async def _maybe_compress(user_id: int) -> None:
 
 def initialize_intake(user_id: int, opening_question: str) -> None:
     """Start a fresh intake: clear old history and record the opening question."""
-    _history_cache.pop(user_id, None)  # drop stale cache entry first
-    _rolling_summaries.pop(user_id, None)
+    _clear_summary(user_id)
     hist = _get_history(user_id)
     hist.clear()
     hist.add_ai_message(opening_question)
@@ -457,7 +487,7 @@ async def get_next_question(user_id: int, user_answer: str, lang: str = "en") ->
     sys_prompt = get_system_prompt(lang)
 
     # Build context: system prompt + optional rolling summary + recent messages
-    summary = _rolling_summaries.get(user_id)
+    summary = _get_summary(user_id)
     if summary:
         context_messages = [
             SystemMessage(content=sys_prompt),
@@ -495,7 +525,7 @@ async def generate_summary(user_id: int, final_answer: str) -> str:
     hist.add_user_message(final_answer)
 
     # Include rolling summary if one exists, so the acupuncturist sees everything
-    summary = _rolling_summaries.get(user_id)
+    summary = _get_summary(user_id)
     if summary:
         prefix = [
             SystemMessage(content=SYSTEM_PROMPT),
@@ -875,7 +905,7 @@ async def generate_diagnosis_only(
 async def generate_tcm_diagnosis(user_id: int, clinical_summary: str) -> dict:
     """Generate a structured TCM diagnosis then select 6-15 acupuncture points in a second call."""
     hist = _get_history(user_id)
-    summary = _rolling_summaries.get(user_id)
+    summary = _get_summary(user_id)
 
     # Build intake context string for the point-selection step
     intake_lines = []
@@ -969,6 +999,5 @@ def get_history_dicts(user_id: int) -> list[dict]:
 def clear_intake(user_id: int) -> None:
     """Drop the Redis intake history after the appointment is saved."""
     _get_history(user_id).clear()
-    _history_cache.pop(user_id, None)
-    _rolling_summaries.pop(user_id, None)
+    _clear_summary(user_id)
     logger.info(f"[{user_id}] Intake history cleared")

@@ -28,7 +28,7 @@ from typing import Any
 from bot.db import get_db
 from bot.redis_client import get_async_redis
 from bot.services import followup_checkin as checkin
-from zenflow import clock
+from zenflow import clock, periodic
 from zenflow.worker import JobDeferred
 
 logger = logging.getLogger(__name__)
@@ -509,26 +509,11 @@ def _reconcile_auto_followups(fj: Any) -> tuple[int, int]:
     return enqueued, errors
 
 
-async def _scheduler_loop() -> None:
-    from zenflow import logging as zlog
-
-    logger.info("follow-up reconciliation started — every %ss", RECONCILE_INTERVAL_SECONDS)
-    while True:
-        with zlog.log_context(request_id=f"job-reconcile-{zlog.new_request_id()}"):
-            try:
-                counts = await asyncio.to_thread(reconcile)
-                if any(counts.values()):
-                    logger.info("reconciliation checked %s", counts)
-            except asyncio.CancelledError:
-                logger.info("follow-up reconciliation cancelled")
-                raise
-            except Exception as e:
-                logger.error(f"follow-up reconciliation failed: {e}")
-        await asyncio.sleep(RECONCILE_INTERVAL_SECONDS)
-
-
-def start_followup_scheduler() -> asyncio.Task:
-    return asyncio.create_task(_scheduler_loop(), name="zenflow-followup")
+@periodic.task("followup.reconcile", every_seconds=RECONCILE_INTERVAL_SECONDS)
+def reconcile_periodically() -> dict[str, int] | None:
+    """The sweep, once per interval across every worker (12.2.4 — it used to loop in each bot)."""
+    counts = reconcile()
+    return counts if any(counts.values()) else None
 
 
 # ── Conversation handler (called from bot/patient_bot/start.py) ───────────────

@@ -647,6 +647,17 @@ When it is empty (the default), nothing changes: the SQLite file above.
 - `numeric` reads as `float`;
 - a `SAVEPOINT` outside a transaction opens one, and its `RELEASE` commits.
 
+### Connection budget (12.2.4)
+
+Each thread holds one connection (`bot.db.get_db()`). A process therefore holds at most its threads:
+the event-loop thread plus asyncio's default thread pool, which is `min(32, CPUs + 4)`, so 5 to 9 on
+a 1–4 vCPU container. Budget for one stack (web + bots + worker) on 2 vCPU containers: about 3 × 7 =
+**~21 connections** per running copy of the stack. A `db.t4g.micro` RDS instance allows roughly 80–110
+connections (RDS derives `max_connections` from memory: `DBInstanceClassMemory / 9531392`), which leaves room for a second copy during a
+rolling deploy and for admin sessions. More containers than that means RDS Proxy (12.2.6) in front,
+not a bigger instance. Every connection is named `zenflow` (`pg_stat_activity.application_name`)
+and gives up connecting after 10 s.
+
 ### Writing SQL that runs on both
 
 | Don't (SQLite only) | Do (both) |
