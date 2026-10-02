@@ -5,16 +5,15 @@ Gather everything the clinic holds about one patient — the GDPR "right of acce
 
     python -m zenflow.patient_export <patient_id>            # JSON to stdout
     python -m zenflow.patient_export <patient_id> --out p.json
+    python -m zenflow.patient_export <patient_id> --out p.json --encrypt   # p.json.enc (9.9)
 
 `export_patient(patient_id)` reads every table that holds patient data (`docs/DATA_LAYER.md`) filtered
 to that patient, and returns one JSON-serialisable dict — one section per data class. It is
 **read-only** and strictly scoped: each query filters by `patient_id` (the AI-call section by the
 patient's own appointment ids), so no other patient's data can leak into the export.
 
-This is the access half of the data-subject procedures. Deletion/erasure and the retention periods
-are a separate, owner-gated task (retention lengths and the legal basis are owner decision Q5, and
-deletion has to reconcile with the append-only audit trail and clinical-record retention) — see
-`docs/DATA_LAYER.md`.
+This is the access half of the data-subject procedures; erasure is `zenflow.patient_erasure` and
+the retention sweep `zenflow.retention` — see `docs/DATA_PROTECTION.md`.
 """
 
 from __future__ import annotations
@@ -78,7 +77,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("patient_id", type=int, help="the internal patients.id")
     parser.add_argument("--out", help="write JSON to this file instead of stdout")
+    parser.add_argument(
+        "--encrypt",
+        action="store_true",
+        help="write <out>.enc with BACKUP_ENCRYPTION_KEY instead of plaintext (needs --out)",
+    )
     args = parser.parse_args(argv)
+    if args.encrypt:
+        from zenflow.file_crypto import EncryptionUnavailable, require_fernet
+
+        if not args.out:
+            parser.error("--encrypt needs --out")
+        try:
+            require_fernet()
+        except EncryptionUnavailable as exc:
+            print(f"refused: {exc}", file=sys.stderr)
+            return 2
 
     data = export_patient(args.patient_id)
     if data["patient"] is None:
@@ -87,10 +101,18 @@ def main(argv: list[str] | None = None) -> int:
 
     text = json.dumps(data, indent=2, ensure_ascii=False, default=str)
     if args.out:
-        with open(args.out, "w", encoding="utf-8") as handle:
-            handle.write(text)
         counts = {k: len(v) for k, v in data.items() if isinstance(v, list)}
-        print(f"wrote {args.out} — {counts}")
+        if args.encrypt:
+            from zenflow.file_crypto import SUFFIX, encrypt_bytes
+
+            out = args.out + SUFFIX
+            with open(out, "wb") as raw:
+                raw.write(encrypt_bytes(text.encode("utf-8")))  # plaintext never touches disk
+        else:
+            out = args.out
+            with open(out, "w", encoding="utf-8") as handle:
+                handle.write(text)
+        print(f"wrote {out} — {counts}")
     else:
         print(text)
     return 0

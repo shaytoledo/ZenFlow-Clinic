@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 SECRET_NAMES: tuple[str, ...] = (
     "SESSION_SECRET",
     "TOKEN_ENCRYPTION_KEY",
+    "BACKUP_ENCRYPTION_KEY",
     "TELEGRAM_TOKEN",
     "THERAPIST_BOT_TOKEN",
     "WHATSAPP_TOKEN",

@@ -35,6 +35,12 @@ python -m zenflow.export_routes             # re-publish the route authorization
 
 # Patient data-subject access request (Phase 9.9) — everything the clinic holds about one patient
 python -m zenflow.patient_export <patient_id> [--out file.json]
+# ... and erasure (anonymize by default; plan only without --apply) + the retention sweep
+python -m zenflow.patient_erasure <patient_id> --reason "..." [--mode purge] [--apply]
+python -m zenflow.retention [--apply | --policy]
+# Backups / exports that leave the host are encrypted first (BACKUP_ENCRYPTION_KEY)
+python -m zenflow.db_backup --encrypt
+python -m zenflow.file_crypto decrypt <file>.enc --out <file>
 ```
 
 > Work follows `docs/MASTER_PLAN_EN.md`; the living checklist is `docs/PROGRESS.md`.
@@ -80,6 +86,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/AUTHZ.md` | Phase 9.1: every route, its auth level, its object-level check and the test that proves it |
 | `docs/SECRETS.md` | Phase 9.6: the secrets inventory, the `SecretsProvider` seam (EnvSecrets → AWS Secrets Manager) and token-key rotation |
 | `docs/TRANSPORT.md` | Phase 9.11: data in transit — HTTPS/`rediss://` everywhere (ADR-14), no `verify=False`, the Telegram-not-e2e posture (Q5), Phase-12 TLS infra |
+| `docs/DATA_PROTECTION.md` | Phase 9.9: legal posture (Q5), the retention policy per data class, patient export + erasure (anonymize / purge) and how erasure reconciles with the append-only audit trail |
 | `docs/THREAT_MODEL.md` | Phase 10.1: STRIDE threat model — assets, entry points, attacker profiles, and the A1–A14 attack scenarios each mapped to its `tests/security/` regression |
 
 > Start guide: `startup/START.md`
@@ -229,6 +236,7 @@ Any message / /start → SELECTING (main menu)
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
 - Read configuration through `zenflow.settings.get_settings()` — never `os.getenv` (exceptions: `bot/db.py`, `startup/launch.py`). New flags go in `FeatureFlags` with both paths tested.
+- Patient data (ADR-43, 9.9): a new table or column holding patient data is added to `zenflow/patient_export.py` (access), `zenflow/patient_erasure.py` (anonymize/purge) and `POLICY` in `zenflow/retention.py` — `tests/integration/test_retention.py` and `test_patient_erasure.py` fail on an export section the policy or the erasure does not handle. Never hard-delete a patient from the app; erasure is the host-side command.
 - Secrets (ADR-41, 9.6): secret values enter through the `SecretsProvider` seam (`zenflow/secrets.py`) — `EnvSecrets` by default, `AwsSecretsManagerSecrets` under `ZF_CLOUD`+`AWS_SECRETS_ID` (Phase 12) — wired as settings' lowest-precedence source, so the environment always wins. A new secret is added to `SECRET_NAMES` and to the `Settings` field. Never log a secret; rotate the token-encryption key with `python -m zenflow.rotate_token_key` (`docs/SECRETS.md`).
 - Background work (ADR-20): never `asyncio.ensure_future(...)` fire-and-forget for anything that must happen — `get_default_queue().enqueue(name, payload, run_at=..., idempotency_key=...)` and register the handler with `@default_registry.handler(name)` in `zenflow/worker.py` consumers.
 - Time (ADR-19): use `zenflow.clock` — `iso_now()`, `hours_ahead(n)`, `today()` (clinic-local), `SQL_NOW` in SQL. Never `datetime.now()` / `date.today()` / `datetime('now')`; ruff `DTZ` fails the build. Stored instants are `YYYY-MM-DDTHH:MM:SSZ`.
@@ -265,6 +273,7 @@ Any message / /start → SELECTING (main menu)
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
 | `SESSION_SECRET` | — | Signs `zf_session` cookie (web dashboard); default refused outside dev |
 | `TOKEN_ENCRYPTION_KEY` | — | Fernet material for stored Google tokens; required outside dev, must differ from `SESSION_SECRET` |
+| `BACKUP_ENCRYPTION_KEY` | — | Fernet material for `db_backup --encrypt` / `patient_export --encrypt` (9.9); optional, ≥ 32 chars, different from the other two keys |
 | `ENV` | `dev` | `dev` / `test` / `staging` / `prod` — enables fail-fast + HTTPS-only validation |
 | `LOG_FORMAT` / `LOG_LEVEL` | `auto` / `INFO` | console in dev, JSON otherwise; root level |
 | `CLINIC_TZ` | `Asia/Jerusalem` | clinic zone for `today()`; stored instants are always UTC |
@@ -284,6 +293,8 @@ Any message / /start → SELECTING (main menu)
 | `ZF_AI_RATE_PER_MINUTE` | `20` | AI diagnosis/point-generation requests per therapist per minute before the endpoints 429 (9.5); `0` = off |
 | `ZF_SIGNUP_PER_MINUTE` | `10` | Public sign-ups per minute per source IP before 429 (9.5); `0` = off |
 | `ZF_BOT_FLOOD_PER_MINUTE` | `20` | Telegram messages per user per minute on each bot surface (relay/intake/activation) before throttling (9.5, ADR-40); `0` = off |
+| `ZF_RETENTION_OPERATIONAL_DAYS` | `730` | Days operational patient rows (message metadata, AI meters, read notifications, finished jobs) are kept before `zenflow.retention --apply` removes them (9.9); `0` = forever |
+| `ZF_RETENTION_CLINICAL_YEARS` | `0` | Years after a patient's last appointment before the clinical record may be purged (9.9); `0` = forever until owner decision Q5 |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |

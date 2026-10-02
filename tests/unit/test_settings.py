@@ -198,6 +198,24 @@ def test_bot_flood_flag_parses(env) -> None:
     assert env({"ZF_BOT_FLOOD_PER_MINUTE": "15"}).flags.bot_flood_per_minute == 15
 
 
+def test_retention_knobs_parse_and_refuse_negatives(env) -> None:
+    s = env({})
+    assert (s.flags.retention_operational_days, s.flags.retention_clinical_years) == (730, 0)
+    s = env({"ZF_RETENTION_OPERATIONAL_DAYS": "0", "ZF_RETENTION_CLINICAL_YEARS": "10"})
+    assert (s.flags.retention_operational_days, s.flags.retention_clinical_years) == (0, 10)
+    with pytest.raises(S.SettingsError):
+        env({"ZF_RETENTION_CLINICAL_YEARS": "-1"})
+
+
+def test_backup_key_is_optional_but_must_be_strong_and_separate(env) -> None:
+    assert env(PROD_BASE).backup_encryption_key is None
+    assert env({**PROD_BASE, "BACKUP_ENCRYPTION_KEY": "b" * 48}).backup_encryption_key == "b" * 48
+    with pytest.raises(S.SettingsError, match="BACKUP_ENCRYPTION_KEY"):
+        env({**PROD_BASE, "BACKUP_ENCRYPTION_KEY": "short"})
+    with pytest.raises(S.SettingsError, match="BACKUP_ENCRYPTION_KEY"):
+        env({**PROD_BASE, "BACKUP_ENCRYPTION_KEY": GOOD_KEY})  # same as TOKEN_ENCRYPTION_KEY
+
+
 def test_flags_snapshot_has_exactly_the_documented_flags(env) -> None:
     snap = env({}).flags.snapshot()
     assert set(snap) == set(S.FLAG_NAMES)

@@ -46,14 +46,14 @@ system will reconstruct the data from SQLite (or Google Calendar) on the next ac
 | Table | Rows grow when | Rows shrink when | Max size concern |
 |---|---|---|---|
 | `therapists` | New therapist registers | Never | Negligible (< 100 rows ever) |
-| `patients` / `patient_channels` | First booking (bot: per Telegram user; dashboard: per new patient) | Never | Small — one row per person / channel identity |
-| `appointments` | Patient books | Never (soft delete only) | Grows forever — clinical record |
+| `patients` / `patient_channels` | First booking (bot: per Telegram user; dashboard: per new patient) | Erasure (9.9): identity anonymized, channels deleted; purge after clinical retention | Small — one row per person / channel identity |
+| `appointments` | Patient books | Cancel = soft delete; purged after `ZF_RETENTION_CLINICAL_YEARS` (0 = never, 9.9) | Grows forever — clinical record |
 | `intake_sessions` | Patient completes intake | Never | 1:1 with appointments |
 | `availability` | Therapist drags slot on calendar | Slot is booked or deleted | Small — active slots only |
 | `treatment_notes` | Appointment saved (AI data) or session completed (therapist data) | Never | 1:1 with appointments |
-| `message_log` | Any message to or from a patient (6.6, 7.3, 8.3) | Never | Metadata only — a few per session, plus one per relay message |
-| `audit_log` | Any clinical mutation (8.1) | Never — append-only by trigger | One row per change; part of the clinical record (9.9 / Q5) |
-| `ai_calls` | Any model call (8.2) | Never; `forget_prompts()` clears dev-only prompt copies | Small rows (hashes + numbers); a few per appointment |
+| `message_log` | Any message to or from a patient (6.6, 7.3, 8.3) | Retention sweep after `ZF_RETENTION_OPERATIONAL_DAYS`; erasure (9.9) | Metadata only — a few per session, plus one per relay message |
+| `audit_log` | Any clinical mutation (8.1) | Append-only by trigger; only erasure/purge touches it (9.9, `docs/DATA_PROTECTION.md`) | One row per change; part of the clinical record (9.9 / Q5) |
+| `ai_calls` | Any model call (8.2) | Retention sweep after `ZF_RETENTION_OPERATIONAL_DAYS`; `forget_prompts()` clears dev-only prompt copies | Small rows (hashes + numbers); a few per appointment |
 
 ### What lives in Redis (temporary)
 
@@ -460,20 +460,21 @@ patient data store, and is deliberately immutable (triggers refuse UPDATE/DELETE
 patient into a single JSON document, one section per class. Read-only, strictly scoped by
 `patient_id` (never another patient's data). Use it to answer a data-subject access request.
 
-### Retention & deletion — **owner decision Q5 (blocked)**
+### Retention & deletion (implemented — periods are owner decision Q5)
 
-The retention *periods* per class and the legal basis (GDPR vs. local medical-records law, which
-often mandates a **minimum** retention for clinical records that overrides an erasure request) are an
-owner decision — **Q5** — and are not yet implemented. Design notes for when Q5 is answered:
+The full posture, the per-class policy and both procedures are in **`docs/DATA_PROTECTION.md`**.
+In short:
 
-- A retention job would purge/anonymise each class after its period; clinical classes
-  (`treatment_notes`, `intake_sessions`, `appointments`) likely have a legally-mandated minimum and
-  cannot simply be deleted on request.
-- A deletion/erasure procedure must reconcile with (a) the append-only `audit_log` (erasure records
-  the fact of deletion; it does not rewrite history), (b) soft-deleted cancelled appointments kept
-  for clinical history, and (c) any legal-hold. It should anonymise the identity/channel classes
-  while preserving the de-identified clinical record where the law requires.
-- Encryption at rest (the DB file / future RDS) and encrypted backups are Phase 12 (cloud) concerns.
-
-Until Q5 is answered, the clinic can honour an **access** request today (the export above) but a
-**deletion** request must be handled manually with legal guidance.
+- **Retention** — `python -m zenflow.retention [--apply]` (policy: `POLICY` in
+  `zenflow/retention.py`). Operational rows (message metadata, AI-call meters, read/resolved
+  notifications, finished jobs) go after `ZF_RETENTION_OPERATIONAL_DAYS` (730). The clinical record
+  goes after `ZF_RETENTION_CLINICAL_YEARS` — **0 = keep forever**, the default until Q5 is answered.
+- **Erasure** — `python -m zenflow.patient_erasure <patient_id> --reason "..." [--apply]`.
+  `anonymize` (default) removes every identifier and every way to reach the patient and keeps the
+  de-identified clinical record; `purge` deletes everything and is refused inside the retention
+  period without `--override-retention`. Both reconcile with the append-only `audit_log` in one
+  transaction (guard lifted, rows scrubbed/deleted, guard restored) and record the erasure without
+  the identity.
+- **Encrypted copies**: `db_backup --encrypt` / `patient_export --encrypt` write Fernet files keyed by
+  `BACKUP_ENCRYPTION_KEY` — the plaintext never touches disk. Encryption at rest of the live DB
+  (host disk today, RDS in Phase 12) is a deployment control.

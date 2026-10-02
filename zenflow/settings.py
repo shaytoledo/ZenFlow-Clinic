@@ -59,6 +59,8 @@ FLAG_NAMES: tuple[str, ...] = (
     "AI_RATE_PER_MINUTE",
     "SIGNUP_PER_MINUTE",
     "BOT_FLOOD_PER_MINUTE",
+    "RETENTION_OPERATIONAL_DAYS",
+    "RETENTION_CLINICAL_YEARS",
 )
 
 
@@ -112,6 +114,13 @@ class FeatureFlags(BaseSettings):
     # ZF_BOT_FLOOD_PER_MINUTE — Telegram messages one user may send per minute on each bot surface
     # (relay, intake, activation-code entry) before the bot throttles them (9.5). 0 = no limit.
     bot_flood_per_minute: int = 20
+    # ZF_RETENTION_OPERATIONAL_DAYS — how long operational rows about patients (message metadata,
+    # AI-call meters, read/resolved notifications, finished jobs) are kept before
+    # `python -m zenflow.retention` removes them (9.9). 0 = keep forever.
+    retention_operational_days: int = Field(default=730, ge=0)
+    # ZF_RETENTION_CLINICAL_YEARS — years after a patient's last appointment before the clinical
+    # record may be purged (9.9). 0 (default) = keep forever: the legal minimum is owner decision Q5.
+    retention_clinical_years: int = Field(default=0, ge=0)
 
     @field_validator("ai_provider", mode="before")
     @classmethod
@@ -219,6 +228,9 @@ class Settings(BaseSettings):
     # ── web / secrets ──
     session_secret: str = DEFAULT_SESSION_SECRET
     token_encryption_key: str | None = None
+    # BACKUP_ENCRYPTION_KEY — Fernet material for backups and patient exports that leave the host
+    # (9.9). Optional; `--encrypt` refuses without it. Must differ from the two secrets above.
+    backup_encryption_key: str | None = None
 
     # ── google oauth ──
     google_client_id: str = ""
@@ -280,6 +292,13 @@ class Settings(BaseSettings):
             problems.append(f"TOKEN_ENCRYPTION_KEY must be at least {MIN_SECRET_LEN} characters")
         elif self.token_encryption_key == self.session_secret:
             problems.append("TOKEN_ENCRYPTION_KEY must differ from SESSION_SECRET (F7)")
+        if self.backup_encryption_key:
+            if len(self.backup_encryption_key) < MIN_SECRET_LEN:
+                problems.append(
+                    f"BACKUP_ENCRYPTION_KEY must be at least {MIN_SECRET_LEN} characters"
+                )
+            elif self.backup_encryption_key in (self.session_secret, self.token_encryption_key):
+                problems.append("BACKUP_ENCRYPTION_KEY must differ from the other secrets (9.9)")
         problems.extend(self._url_problems())
         if problems:
             raise ValueError(f"invalid configuration for ENV={self.env}: " + "; ".join(problems))
