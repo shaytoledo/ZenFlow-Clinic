@@ -63,6 +63,8 @@ FLAG_NAMES: tuple[str, ...] = (
     "RETENTION_CLINICAL_YEARS",
     "TRUSTED_PROXIES",
     "LOG_FILES",
+    "BACKUP_HOURS",
+    "BACKUP_KEEP",
 )
 
 
@@ -117,6 +119,12 @@ class FeatureFlags(BaseSettings):
     # ZF_BOT_FLOOD_PER_MINUTE — Telegram messages one user may send per minute on each bot surface
     # (relay, intake, activation-code entry) before the bot throttles them (9.5). 0 = no limit.
     bot_flood_per_minute: int = 20
+    # ZF_BACKUP_HOURS — on SQLite (the single-host deployment), take an automatic backup when the
+    # newest is this many hours old (12.2.7; encrypted when BACKUP_ENCRYPTION_KEY is set). 0 = off.
+    # Postgres is never backed up this way: RDS keeps snapshots + point-in-time recovery.
+    backup_hours: int = Field(default=24, ge=0)
+    # ZF_BACKUP_KEEP — how many automatic backups to keep beside the database (oldest go first).
+    backup_keep: int = Field(default=14, ge=1)
     # ZF_RETENTION_OPERATIONAL_DAYS — how long operational rows about patients (message metadata,
     # AI-call meters, read/resolved notifications, finished jobs) are kept before
     # `python -m zenflow.retention` removes them (9.9). 0 = keep forever.

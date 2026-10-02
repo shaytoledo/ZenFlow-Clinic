@@ -43,7 +43,8 @@ python -m zenflow.patient_export <patient_id> [--out file.json]
 python -m zenflow.patient_erasure <patient_id> --reason "..." [--mode purge] [--apply]
 python -m zenflow.retention [--apply | --policy]
 # Backups / exports that leave the host are encrypted first (BACKUP_ENCRYPTION_KEY)
-python -m zenflow.db_backup --encrypt
+python -m zenflow.db_backup --encrypt          # SQLite: online backup; Postgres: pg_dump (12.2.7)
+python -m zenflow.restore_drill                # back up → restore into a scratch copy → compare every table
 python -m zenflow.file_crypto decrypt <file>.enc --out <file>
 ```
 
@@ -75,6 +76,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
 | `docs/BOT_AUDIT.md` | Phase 2.1 handler-by-handler bot audit, ranked defects B1–B17 |
 | `docs/AWS_READINESS.md` | Phase 12.1: the AWS gap analysis — every concern, today vs target, the flag, the work and the 12.2 task; findings made while measuring |
+| `docs/BACKUP_DR.md` | Phase 12.2.7: backups (automatic on the single host, RDS PITR on AWS), RPO/RTO per deployment, the restore drill and its recorded runs |
 | `docs/AWS_COST_ESTIMATE.md` | Phase 12.2.8: the monthly AWS cost in il-central-1 from the public price list — the managed option (≈ $325 with CPU Ollama) vs the one-server option (≈ $156–189), the levers, the recommendation; the owner decides before anything is applied |
 | `docs/INFRA.md` | Phase 12.2.6: the Terraform in `infra/terraform/` — what it builds, the task environment that is the switch to AWS, the order of operations after the owner's go-ahead (nothing applied) |
 | `docs/CONTAINERS.md` | Phase 12.2.1: the Dockerfile targets (web/bots/worker), compose parity stack, what the images guarantee and how it is checked |
@@ -313,6 +315,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_DB_URL` | — | A Postgres URL (`postgresql+psycopg://…`) instead of the SQLite file (12.2.2, ADR-46); non-local hosts need `?sslmode=require`. Tests: `ZF_TEST_DB_URL=… pytest` runs the suite on Postgres |
 | `ZF_LOG_FILES` | `1` | `0` = log to the console only, no `logs/*.text` files (containers; 12.2.1) |
 | `ZF_TRUSTED_PROXIES` | — | IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's subnet); `X-Forwarded-For` is believed only from these — empty = never (SF-022, `web/client_ip.py`) |
+| `ZF_BACKUP_HOURS` / `ZF_BACKUP_KEEP` | `24` / `14` | On SQLite, an automatic backup when the newest is this old (encrypted with `BACKUP_ENCRYPTION_KEY`), keeping this many; `0` hours = off. Postgres: RDS backs itself up (12.2.7) |
 | `ZF_RETENTION_OPERATIONAL_DAYS` | `730` | Days operational patient rows (message metadata, AI meters, read notifications, finished jobs) are kept before `zenflow.retention --apply` removes them (9.9); `0` = forever |
 | `ZF_RETENTION_CLINICAL_YEARS` | `7` | Years after a patient's last appointment before the clinical record may be purged (9.9); 7 = owner decision Q5 (Israeli outpatient-record period), `0` = forever |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |

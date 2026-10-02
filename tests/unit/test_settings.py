@@ -277,3 +277,13 @@ def test_webhook_mode_with_a_secret_and_https_starts(env) -> None:
         }
     )
     assert s.flags.webhook_mode is True and (s.bots_host, s.bots_port) == ("127.0.0.1", 8081)
+
+
+def test_automatic_backups_default_to_daily_keeping_two_weeks(env) -> None:
+    """12.2.7: ZF_BACKUP_HOURS / ZF_BACKUP_KEEP, both paths; keeping zero backups is refused."""
+    s = env({})
+    assert (s.flags.backup_hours, s.flags.backup_keep) == (24, 14)
+    s = env({"ZF_BACKUP_HOURS": "0", "ZF_BACKUP_KEEP": "3"})
+    assert (s.flags.backup_hours, s.flags.backup_keep) == (0, 3)
+    with pytest.raises(S.SettingsError):
+        env({"ZF_BACKUP_KEEP": "0"})
