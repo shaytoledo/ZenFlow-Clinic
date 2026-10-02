@@ -31,17 +31,40 @@ def db_path() -> Path:
     return Path(override) if override else _DEFAULT_DB_PATH
 
 
-def db_url() -> str:
-    """`ZF_DB_URL` (env, then .env via settings) — empty means the SQLite file (db_path())."""
-    url = os.environ.get("ZF_DB_URL")
-    if url is None:
+def _setting(env_name: str, field: str) -> str:
+    value = os.environ.get(env_name)
+    if value is None:
         try:
             from zenflow.settings import get_settings
 
-            url = get_settings().zf_db_url
+            value = getattr(get_settings(), field)
         except Exception:
-            url = ""
-    return (url or "").strip()
+            value = ""
+    return (value or "").strip()
+
+
+def db_url() -> str:
+    """`ZF_DB_URL` (env, then .env via settings) — empty means the SQLite file (db_path()).
+
+    `ZF_DB_PASSWORD`, when set, fills in the password of a URL that has a user but none: on AWS
+    the password is the one RDS manages (and rotates) in Secrets Manager, injected on its own,
+    while the URL itself holds no secret (12.2.6). A password already in the URL wins.
+    """
+    url = _setting("ZF_DB_URL", "zf_db_url")
+    password = _setting("ZF_DB_PASSWORD", "zf_db_password")
+    return _with_password(url, password) if url and password else url
+
+
+def _with_password(url: str, password: str) -> str:
+    from urllib.parse import quote, urlsplit, urlunsplit
+
+    parts = urlsplit(url)
+    if parts.password is not None or not parts.username or not parts.hostname:
+        return url
+    host = f"[{parts.hostname}]" if ":" in parts.hostname else parts.hostname
+    port = f":{parts.port}" if parts.port else ""
+    netloc = f"{parts.username}:{quote(password, safe='')}@{host}{port}"
+    return urlunsplit(parts._replace(netloc=netloc))
 
 
 def is_postgres() -> bool:

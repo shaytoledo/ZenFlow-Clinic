@@ -75,6 +75,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
 | `docs/BOT_AUDIT.md` | Phase 2.1 handler-by-handler bot audit, ranked defects B1–B17 |
 | `docs/AWS_READINESS.md` | Phase 12.1: the AWS gap analysis — every concern, today vs target, the flag, the work and the 12.2 task; findings made while measuring |
+| `docs/INFRA.md` | Phase 12.2.6: the Terraform in `infra/terraform/` — what it builds, the task environment that is the switch to AWS, the order of operations after the owner's go-ahead (nothing applied) |
 | `docs/CONTAINERS.md` | Phase 12.2.1: the Dockerfile targets (web/bots/worker), compose parity stack, what the images guarantee and how it is checked |
 | `docs/HOSTING_AND_MONITORING.md` | Hosting options and free log-monitoring research |
 | `docs/POINT_CARD_DESIGN.md` | Phase 4.2 research + design of the acupuncture point cards (anatomy, selection, a11y, tokens) |

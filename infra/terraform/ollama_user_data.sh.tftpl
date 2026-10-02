@@ -1,0 +1,47 @@
+#!/bin/bash
+# Ollama on first boot (12.2.6): the PINNED release from GitHub, its checksum verified before it is
+# unpacked (no piping a remote script into a shell), listening on the VPC side only (the security
+# group admits the VPC; TLS is terminated by the internal NLB), then the model the app uses.
+set -euo pipefail
+
+release="https://github.com/ollama/ollama/releases/download/v${ollama_version}"
+asset="ollama-linux-amd64.tar.zst"
+workdir="$(mktemp -d)"
+cd "$workdir"
+
+dnf install -y zstd
+curl -fsSLO "$release/$asset"
+curl -fsSLO "$release/sha256sum.txt"
+# lines look like "<sha256>  ./ollama-linux-amd64.tar.zst"; a mismatch (or no line) stops the boot
+grep -F "  ./$asset" sha256sum.txt | sed 's#  \./#  #' | sha256sum --check --strict -
+tar --use-compress-program=unzstd -xf "$asset" -C /usr
+
+id ollama >/dev/null 2>&1 || useradd --system --shell /sbin/nologin --create-home --home-dir /usr/share/ollama ollama
+
+cat > /etc/systemd/system/ollama.service <<'UNIT'
+[Unit]
+Description=Ollama
+After=network-online.target
+
+[Service]
+User=ollama
+Group=ollama
+ExecStart=/usr/bin/ollama serve
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_KEEP_ALIVE=24h"
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now ollama
+
+for _ in $(seq 1 30); do
+  curl -fsS http://127.0.0.1:11434/ >/dev/null && break
+  sleep 2
+done
+sudo -u ollama env HOME=/usr/share/ollama /usr/bin/ollama pull "${model}"
+rm -rf "$workdir"
