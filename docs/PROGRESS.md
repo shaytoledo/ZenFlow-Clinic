@@ -213,7 +213,12 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **App side:** `ZF_DB_PASSWORD` fills the password into `ZF_DB_URL`.
 - **Checks:** CI job `infra` (`fmt`, `validate`, trivy scan); `tests/unit/test_infra.py` (the task env boots the app in prod mode, secrets never plain, one bots replica, encryption at rest, only the ALB is open); 2 mutation specs VERIFIED |
 | 12.2.7 | Backups & tested restore drill | [ ] | | | |
-| 12.2.8 | Cost estimate + minimal-viable alternative | [ ] | | | |
+| 12.2.8 | Cost estimate + minimal-viable alternative | [x] | 2026-10-03 | _pending_ | `docs/AWS_COST_ESTIMATE.md`. Prices read from the public AWS Price List for **il-central-1** on 2026-10-02 (unit-price table included, so the sums are reproducible).
+- **Option A, managed** (the Terraform): **≈ $325/month** with Ollama on CPU `c7i.xlarge`; ≈ $472 on `c7i.2xlarge`; ≈ $1,039 with the GPU `g5.xlarge`.
+- **Option B, smallest viable** (one EC2 server with the compose stack): **≈ $156–189**, with the trade-offs: daily snapshots instead of PITR, our own patching, a single point of failure.
+- **Ollama is the largest line**, and `g4dn` is not offered in Tel Aviv. The Terraform default became the CPU option.
+- **Levers:** NAT +$30, Multi-AZ +$17, Graviton −$12, a Savings Plan ~−25–40%, a staging copy ~$11/day.
+- **Recommendation:** A with CPU Ollama, a budget alarm at $400, and measure CPU speed on staging before any GPU. **The owner decides** |
 | 12.2.9 | Migration runbook + rollback | [ ] | | | |
 
 ## Phase 13 — Documentation & maintenance
