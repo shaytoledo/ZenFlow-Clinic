@@ -15,7 +15,6 @@ backup cannot be restored.
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -45,23 +44,12 @@ def encrypt_bytes(data: bytes, *, material: str | None = None) -> bytes:
     return require_fernet(material).encrypt(data)
 
 
-def encrypt_file(
-    path: str | Path, *, remove_plain: bool = True, material: str | None = None
-) -> str:
-    """Write `<path>.enc` and (by default) delete the plaintext. Returns the encrypted path."""
-    src = Path(path)
-    token = encrypt_bytes(src.read_bytes(), material=material)
-    dest = src.with_name(src.name + SUFFIX)
-    dest.write_bytes(token)
-    if remove_plain:
-        os.remove(src)
-    return str(dest)
-
-
 def decrypt_file(path: str | Path, out: str | Path, *, material: str | None = None) -> str:
     """Decrypt `path` into `out`. Raises `InvalidToken` on a wrong key or a damaged file."""
+    from bot.db import write_owner_only
+
     data = require_fernet(material).decrypt(Path(path).read_bytes())
-    Path(out).write_bytes(data)
+    write_owner_only(out, data)  # the decrypted copy is the plaintext database / export again
     return str(out)
 
 

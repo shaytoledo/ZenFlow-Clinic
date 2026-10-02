@@ -102,16 +102,16 @@ def main(argv: list[str] | None = None) -> int:
     text = json.dumps(data, indent=2, ensure_ascii=False, default=str)
     if args.out:
         counts = {k: len(v) for k, v in data.items() if isinstance(v, list)}
+        from bot.db import write_owner_only  # a patient's whole record: owner-only (A10)
+
         if args.encrypt:
             from zenflow.file_crypto import SUFFIX, encrypt_bytes
 
             out = args.out + SUFFIX
-            with open(out, "wb") as raw:
-                raw.write(encrypt_bytes(text.encode("utf-8")))  # plaintext never touches disk
+            write_owner_only(out, encrypt_bytes(text.encode("utf-8")))  # plaintext never on disk
         else:
             out = args.out
-            with open(out, "w", encoding="utf-8") as handle:
-                handle.write(text)
+            write_owner_only(out, text.encode("utf-8"))
         print(f"wrote {out} — {counts}")
     else:
         print(text)

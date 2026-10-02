@@ -107,6 +107,61 @@ _SCHEMA_STMTS = [
 ]
 
 
+#: owner read/write only — the database holds identifiable health data (A10)
+OWNER_ONLY = 0o600
+
+
+def restrict_to_owner(path: str | os.PathLike[str], *, warn: bool = True) -> bool:
+    """Make `path` readable and writable by its owner alone (threat model A10).
+
+    POSIX only: on Windows a file inherits the ACL of the user's profile directory, which already
+    excludes other users. Returns True when the mode had to be tightened (logged as a warning unless
+    `warn=False`, for a file this process has just written). Never raises — a file we cannot chmod
+    (owned by someone else) is logged, not fatal.
+    """
+    if os.name != "posix":
+        return False
+    p = Path(path)
+    try:
+        mode = p.stat().st_mode & 0o777
+        if mode & 0o077:
+            os.chmod(p, OWNER_ONLY)
+            if warn:
+                logger.warning(
+                    f"{p.name} was open to other users ({oct(mode)}); now {oct(OWNER_ONLY)}"
+                )
+            return True
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        logger.error(f"could not restrict {p.name} to its owner: {exc}")
+    return False
+
+
+def create_owner_only(path: str | os.PathLike[str]) -> None:
+    """Create an empty file as 0600 if it does not exist, so it never exists with the umask's looser
+    mode (an empty file is also a valid empty SQLite database). POSIX only."""
+    if os.name != "posix":
+        return
+    with contextlib.suppress(FileExistsError):
+        os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, OWNER_ONLY))
+
+
+def write_owner_only(path: str | os.PathLike[str], data: bytes) -> None:
+    """Write `data` to `path` with owner-only permissions from the first byte (A10)."""
+    create_owner_only(path)
+    restrict_to_owner(path, warn=False)  # an existing file is overwritten — tighten it first
+    with open(path, "wb") as handle:
+        handle.write(data)
+
+
+def _restrict_database(path: Path) -> None:
+    """The database and its WAL/SHM side files. SQLite creates side files with the database file's
+    own permissions, so tightening the main file covers the ones it creates later."""
+    for p in (path, path.with_name(path.name + "-wal"), path.with_name(path.name + "-shm")):
+        restrict_to_owner(p)
+
+
 def get_db() -> sqlite3.Connection:
     """Return a thread-local SQLite connection (WAL mode, Row factory, autocommit)."""
     path = db_path()
@@ -117,7 +172,8 @@ def get_db() -> sqlite3.Connection:
         close_db()
         conn = None
     if conn is None:
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        create_owner_only(path)
         # isolation_level=None = autocommit: Python never issues an implicit BEGIN,
         # so there are no stale open transactions when a thread is reused from the pool.
         conn = sqlite3.connect(
@@ -127,6 +183,7 @@ def get_db() -> sqlite3.Connection:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=30000")
         conn.execute("PRAGMA foreign_keys=ON")
+        _restrict_database(path)
         _local.conn = conn
         _local.path = path
     return conn
