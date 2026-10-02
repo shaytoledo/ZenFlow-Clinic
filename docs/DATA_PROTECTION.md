@@ -158,6 +158,8 @@ the trail from the application; anyone who can run this command already holds th
   the session and token keys). Restore with `python -m zenflow.file_crypto decrypt <file>.enc --out
   <file>`. **Keep a copy of the key off the host** — without it an encrypted backup is lost.
   Stored Google tokens are Fernet-encrypted (`TOKEN_ENCRYPTION_KEY`, rotation in `docs/SECRETS.md`).
+- **File permissions** (A10, SF-020): the database, its WAL/SHM files, every backup, restore and
+  export are owner-only (`0600`) from creation; a database found looser is tightened on open.
 - **In transit**: HTTPS / `rediss://` everywhere outside dev (ADR-14, `docs/TRANSPORT.md`).
 - **Minimum-necessary access**: every dashboard and API route is scoped to the signed-in therapist's
   own patients (9.1, `docs/AUTHZ.md`, `tests/security/test_tenant_isolation.py`); the export and

@@ -73,7 +73,7 @@ Each row is (or becomes) a test in `tests/security/`. **Covered** = a regression
 | **A7** | Registration-code brute force (8 chars) | malicious patient | **Covered** — per-user flood on code entry (9.5, `test_abuse_limits.py`); search-space `[A-Z0-9]{8}` ≈ 2.8×10¹² + single-use code (see below) |
 | **A8** | Prompt injection through intake → poisoned/oversized diagnosis, JSON breakout (9.8) | malicious patient | **Covered** — `test_llm_injection.py` (bounds) + `test_ai_parser_fuzz.py` (8000 malformed/truncated/injected/deep-nested inputs prove the parsers never raise → no 500); output bounds (ADR-42) |
 | **A9** | Redis reachable without auth → read relay history, forge mappings, flush the "already sent" guard | network | **Covered** — settings refuse a non-local `REDIS_URL` that lacks TLS **or** a password/AUTH (`test_transit.py`); on a private box Redis is localhost-only (exempt) |
-| **A10** | SQLite file perms / path traversal / world-readable WAL | host insider | Path traversal **Covered** (`storage.check_key` + `is_relative_to`); **Deployment** — file permissions are an OS/host control (Phase 12) |
+| **A10** | SQLite file perms / path traversal / world-readable WAL | host insider | **Covered** — path traversal: `storage.check_key` + `is_relative_to`; file modes (SF-020): the database is created `0600` before SQLite opens it (its WAL/SHM inherit the mode), an existing looser file is tightened on open with a warning, and backups / restores / patient exports are written `0600` from the first byte (`bot.db.write_owner_only`) — `test_file_permissions.py` |
 | **A11** | Resource exhaustion: unbounded intake → Ollama pinned; concurrent regenerate; poller amplification | malicious patient / tenant | **Covered** — AI per-therapist rate limit + input caps (`test_abuse_limits.py`, `test_input_limits.py`); regenerate serialised by the per-appointment lease |
 | **A12** | OAuth: open redirect on `redirect_uri`, missing state, scope creep, token replay after disconnect | network | **Covered** — `state` is now generated and verified on both callbacks (SF-018, `test_oauth_state.py`); the `next` redirect target is validated (`test_google_oauth_next.py`); `redirect_uri` is a fixed server value; disconnect deletes the token |
 | **A13** | Secrets in git history and logs (F8) | repo insider | **Covered** — gitleaks over history in CI (9.10, `.github/workflows/ci.yml`); redaction (`zenflow/logging.py`); tokens gitignored |
@@ -89,9 +89,7 @@ is possible in theory but costly; a shorter code TTL would tighten it further �
 
 ## Follow-ups (a later pass)
 
-- **A10** — document/enforce the DB file mode (`0600`) in the deployment runbook (Phase 12).
-
-_(A9 — non-local Redis TLS+AUTH — and A12 — OAuth `state` verification (SF-018) — closed 2026-09-24.)_
+None — every scenario A1–A14 is covered by a regression test. _(A9 — non-local Redis TLS+AUTH, SF-019 — and A12 — OAuth `state` verification, SF-018 — closed 2026-09-24; A10 — owner-only database/backup/export files, SF-020 — closed 2026-10-02.)_
 
 Run everything: `python tasks.py security` (bandit at HIGH + `tests/security/`). CI additionally runs
 pip-audit and gitleaks (9.10).

@@ -35,9 +35,9 @@ def backup_database(suffix: str = "bak", *, encrypt: bool = False) -> str:
         finally:
             mem.close()
         dest_path += SUFFIX
-        with open(dest_path, "wb") as handle:
-            handle.write(token)
+        dbmod.write_owner_only(dest_path, token)
         return dest_path
+    dbmod.create_owner_only(dest_path)  # a full copy of the database: owner-only from the start
     dest = sqlite3.connect(dest_path)
     try:
         src.backup(dest)
