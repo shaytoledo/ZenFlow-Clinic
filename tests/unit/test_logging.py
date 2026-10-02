@@ -188,3 +188,33 @@ def test_an_email_keeps_only_its_domain() -> None:
 
 def test_a_bot_username_is_not_an_email() -> None:
     assert zlog.redact("Open @ZenFlowBot") == "Open @ZenFlowBot"
+
+
+@pytest.mark.parametrize(("value", "writes_file"), [("1", True), ("0", False)])
+def test_log_files_can_be_switched_off_for_containers(
+    value: str, writes_file: bool, tmp_path, monkeypatch
+) -> None:
+    """12.2.1: in a container the platform collects the console; the app dir is not writable."""
+    import logging
+
+    import zenflow.settings as settings_mod
+
+    monkeypatch.setenv("ENV", "dev")
+    monkeypatch.setenv("ZF_LOG_FILES", value)
+    settings_mod.reset_settings()
+    root = logging.getLogger()
+    saved = list(root.handlers)
+    try:
+        zlog.configure_logging("svc", file_path=tmp_path / "logs" / "svc.text")
+        has_file = any(  # ours only: pytest's logging plugin keeps a FileHandler of its own
+            isinstance(h, logging.FileHandler) and getattr(h, "_zenflow", False)
+            for h in root.handlers
+        )
+        assert has_file is writes_file
+        assert (tmp_path / "logs").exists() is writes_file
+    finally:
+        for h in root.handlers:
+            if h not in saved:
+                h.close()
+        root.handlers = saved
+        settings_mod.reset_settings()

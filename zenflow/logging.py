@@ -275,7 +275,12 @@ def configure_logging(
     console._zenflow = True  # type: ignore[attr-defined]
     root.addHandler(console)
 
-    if install_file_handler and file_path is not None and settings.env != "test":
+    if (
+        install_file_handler
+        and file_path is not None
+        and settings.env != "test"
+        and settings.flags.log_files
+    ):
         file_path.parent.mkdir(parents=True, exist_ok=True)
         fh = logging.FileHandler(file_path, encoding="utf-8", mode=file_mode)
         fh.setFormatter(formatter)

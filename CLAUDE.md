@@ -71,6 +71,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
 | `docs/BOT_AUDIT.md` | Phase 2.1 handler-by-handler bot audit, ranked defects B1–B17 |
 | `docs/AWS_READINESS.md` | Phase 12.1: the AWS gap analysis — every concern, today vs target, the flag, the work and the 12.2 task; findings made while measuring |
+| `docs/CONTAINERS.md` | Phase 12.2.1: the Dockerfile targets (web/bots/worker), compose parity stack, what the images guarantee and how it is checked |
 | `docs/HOSTING_AND_MONITORING.md` | Hosting options and free log-monitoring research |
 | `docs/POINT_CARD_DESIGN.md` | Phase 4.2 research + design of the acupuncture point cards (anatomy, selection, a11y, tokens) |
 | `docs/POINT_IMAGE_SOURCING.md` | Phase 4.3d shortlist of point-image sources with licences (owner decision Q4) |
@@ -296,6 +297,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_AI_RATE_PER_MINUTE` | `20` | AI diagnosis/point-generation requests per therapist per minute before the endpoints 429 (9.5); `0` = off |
 | `ZF_SIGNUP_PER_MINUTE` | `10` | Public sign-ups per minute per source IP before 429 (9.5); `0` = off |
 | `ZF_BOT_FLOOD_PER_MINUTE` | `20` | Telegram messages per user per minute on each bot surface (relay/intake/activation) before throttling (9.5, ADR-40); `0` = off |
+| `ZF_LOG_FILES` | `1` | `0` = log to the console only, no `logs/*.text` files (containers; 12.2.1) |
 | `ZF_TRUSTED_PROXIES` | — | IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's subnet); `X-Forwarded-For` is believed only from these — empty = never (SF-022, `web/client_ip.py`) |
 | `ZF_RETENTION_OPERATIONAL_DAYS` | `730` | Days operational patient rows (message metadata, AI meters, read notifications, finished jobs) are kept before `zenflow.retention --apply` removes them (9.9); `0` = forever |
 | `ZF_RETENTION_CLINICAL_YEARS` | `0` | Years after a patient's last appointment before the clinical record may be purged (9.9); `0` = forever until owner decision Q5 |
