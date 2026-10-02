@@ -294,7 +294,9 @@ Any message / /start → SELECTING (main menu)
 | `ZF_CONV_TIMEOUT_MINUTES` | `30` | Idle minutes before a patient flow is closed; `0` = never |
 | `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TOKEN` / `WHATSAPP_APP_SECRET` / `WHATSAPP_VERIFY_TOKEN` / `WHATSAPP_API_VERSION` | — / — / — / — / `v23.0` | WhatsApp Cloud API (only with `ZF_CHANNEL_WHATSAPP=1`; `docs/WHATSAPP.md`) |
 | `WHATSAPP_TEMPLATE_FOLLOWUP` / `WHATSAPP_TEMPLATE_CONFIRMATION` | — | Approved template names for messages outside WhatsApp's 24-hour window |
-| `TELEGRAM_WEBHOOK_SECRET` | — | Secret Telegram echoes on webhook calls (7.1); empty ⇒ every webhook refused |
+| `TELEGRAM_WEBHOOK_SECRET` | — | Master secret for webhook mode (≥ 32 chars); each bot's `secret_token` is derived from it (12.2.5, ADR-49); empty ⇒ every webhook refused |
+| `TELEGRAM_WEBHOOK_URL` | — | Public `https://` base Telegram posts to with `ZF_WEBHOOK_MODE=1` (`/telegram/patient`, `/telegram/therapist`) |
+| `BOTS_HOST` / `BOTS_PORT` | `127.0.0.1` / `8081` | The bots process's HTTP server: `/healthz` always, webhook routes in webhook mode (image: `0.0.0.0`) |
 | `ZF_API_RATE_PER_MINUTE` | `60` | Booking API requests per minute per caller (`0` = no limit) |
 | `ZF_AI_DEBUG_PROMPTS` | `0` | `1` = keep AI prompts/answers in `ai_calls` in the clear; dev and tests only (8.2) |
 | `ZF_METRICS_PROMETHEUS` | `0` | `1` = `/api/admin/metrics?format=prometheus` serves the text exposition format (8.4) |

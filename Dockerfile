@@ -56,6 +56,11 @@ CMD ["sh", "-c", "exec uvicorn web.app:app --host 0.0.0.0 --port 8080 --proxy-he
 
 # ── bots: the patient + therapist Telegram bots (and, with ZF_QUEUE_BACKEND=inprocess, the worker) ─
 FROM runtime AS bots
+# /healthz in both modes; the webhook routes with ZF_WEBHOOK_MODE=1 (12.2.5). ONE replica (ADR-49).
+ENV BOTS_HOST=0.0.0.0 BOTS_PORT=8081
+EXPOSE 8081
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8081/healthz', timeout=4).status == 200 else 1)"]
 CMD ["python", "startup/run_bots.py"]
 
 # ── worker: the background-job worker on its own (any ZF_QUEUE_BACKEND) ──────────────────────

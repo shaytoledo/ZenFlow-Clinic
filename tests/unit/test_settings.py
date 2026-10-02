@@ -157,8 +157,14 @@ BOOL_FLAGS = [
 @pytest.mark.parametrize("flag", BOOL_FLAGS)
 @pytest.mark.parametrize("value", ["1", "0"])
 def test_boolean_flags_parse_both_values(env, flag: str, value: str) -> None:
-    extra = {"S3_BUCKET": "media-bucket"} if flag == "STORAGE_S3" else {}
-    s = env({f"ZF_{flag}": value, **extra})
+    needs: dict[str, dict[str, str]] = {  # flags that are refused without their settings
+        "STORAGE_S3": {"S3_BUCKET": "media-bucket"},
+        "WEBHOOK_MODE": {
+            "TELEGRAM_WEBHOOK_SECRET": "w" * 40,
+            "TELEGRAM_WEBHOOK_URL": "https://bots.clinic.example",
+        },
+    }
+    s = env({f"ZF_{flag}": value, **needs.get(flag, {})})
     assert getattr(s.flags, flag.lower()) is (value == "1")
 
 
@@ -237,3 +243,37 @@ def test_get_settings_is_cached_until_reset(env) -> None:
     assert S.get_settings() is a
     S.reset_settings()
     assert S.get_settings() is not a
+
+
+# ── webhook mode (12.2.5): never on without a real secret and a public https URL ──
+@pytest.mark.parametrize(
+    "values",
+    [
+        {"ZF_WEBHOOK_MODE": "1"},
+        {
+            "ZF_WEBHOOK_MODE": "1",
+            "TELEGRAM_WEBHOOK_SECRET": "short",
+            "TELEGRAM_WEBHOOK_URL": "https://b.example",
+        },
+        {
+            "ZF_WEBHOOK_MODE": "1",
+            "TELEGRAM_WEBHOOK_SECRET": "w" * 40,
+            "TELEGRAM_WEBHOOK_URL": "http://b.example",
+        },
+        {"ZF_WEBHOOK_MODE": "1", "TELEGRAM_WEBHOOK_SECRET": "w" * 40, "TELEGRAM_WEBHOOK_URL": ""},
+    ],
+)
+def test_webhook_mode_refuses_to_start_without_a_secret_and_https(env, values) -> None:
+    with pytest.raises(S.SettingsError, match="ZF_WEBHOOK_MODE"):
+        env(values)  # in dev too: a forged update would reach real patients' conversations
+
+
+def test_webhook_mode_with_a_secret_and_https_starts(env) -> None:
+    s = env(
+        {
+            "ZF_WEBHOOK_MODE": "1",
+            "TELEGRAM_WEBHOOK_SECRET": "w" * 40,
+            "TELEGRAM_WEBHOOK_URL": "https://bots.clinic.example",
+        }
+    )
+    assert s.flags.webhook_mode is True and (s.bots_host, s.bots_port) == ("127.0.0.1", 8081)

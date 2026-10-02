@@ -462,6 +462,34 @@ SPECS = [
         ],
     ),
     spec(
+        id="12.2.5 webhook secret per bot",
+        file="bot/webhooks.py",
+        edits=[
+            (
+                "        if not master_secret or not hmac.compare_digest(",
+                "        if False and not hmac.compare_digest(",
+                False,
+            )
+        ],
+        tests=[
+            "tests/integration/test_bot_webhooks.py::test_without_this_bots_secret_nothing_is_queued"
+        ],
+    ),
+    spec(
+        id="12.2.5 webhook mode needs a secret",
+        file="zenflow/settings.py",
+        edits=[
+            (
+                "        if self.flags.webhook_mode:\n            self._check_webhook_mode()",
+                "",
+                False,
+            )
+        ],
+        tests=[
+            "tests/unit/test_settings.py::test_webhook_mode_refuses_to_start_without_a_secret_and_https"
+        ],
+    ),
+    spec(
         id="B6 /start says so",
         file="bot/patient_bot/start.py",
         edits=[
