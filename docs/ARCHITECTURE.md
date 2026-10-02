@@ -403,7 +403,7 @@ in `web/app.py`, `configure_logging("bots")` in `bot/main.py`). Every record car
 | File | Created by | Purpose | Commit? |
 |---|---|---|---|
 | `data/zenflow.db` | `bot/db.py` on first run | Primary database — all clinical and operational data | No |
-| `data/google_tokens/{id}.json` | `web/gcal.py` OAuth flow | Per-therapist Google OAuth credentials. Auto-created on Calendar connect. | **Never** |
+| `data/google_tokens/{id}.json` | legacy only | Pre-0.5 per-therapist OAuth file; `web/gcal.py` moves it into the encrypted `google_tokens` table and deletes it on first use. Nothing writes it any more. | **Never** |
 | `logs/botLogs.text` | `startup/run_bots.py` | Combined log — patient + therapist bots | No |
 | `logs/webLogs.text` | `startup/run_web.py` | Web dashboard uvicorn log | No |
 
