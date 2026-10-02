@@ -62,9 +62,9 @@ def test_the_trail_cannot_be_rewritten(db) -> None:
     (row,) = _rows()
 
     conn = dbmod.get_db()
-    with pytest.raises(sqlite3.DatabaseError, match="append-only"):
+    with pytest.raises(dbmod.DatabaseError, match="append-only"):
         conn.execute("UPDATE audit_log SET action='nothing' WHERE id=?", (row["id"],))
-    with pytest.raises(sqlite3.DatabaseError, match="append-only"):
+    with pytest.raises(dbmod.DatabaseError, match="append-only"):
         conn.execute("DELETE FROM audit_log WHERE id=?", (row["id"],))
     assert _actions() == ["appointment.created"]
 

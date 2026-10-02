@@ -24,6 +24,7 @@ def _use_tz(monkeypatch: pytest.MonkeyPatch, zone: str) -> None:
 
 
 # ── finding 5: date-only strings must not be "normalised" into the previous day ──
+@pytest.mark.sqlite_only
 def test_date_only_values_are_classified_as_date_and_left_alone(
     db, make_completed_session, monkeypatch
 ) -> None:

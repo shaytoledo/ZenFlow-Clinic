@@ -237,15 +237,15 @@ def _clear_redis(channel_ids: list[str], apply: bool) -> int:
 
 
 def _lift_audit_guard(conn: sqlite3.Connection) -> None:
-    conn.execute("DROP TRIGGER IF EXISTS audit_log_is_append_only_update")
-    conn.execute("DROP TRIGGER IF EXISTS audit_log_is_append_only_delete")
+    from web.services.audit import lift_guard
+
+    lift_guard(conn)
 
 
 def _restore_audit_guard(conn: sqlite3.Connection) -> None:
-    from web.services.audit import CREATE_AUDIT_GUARDS
+    from web.services.audit import restore_guard
 
-    for ddl in CREATE_AUDIT_GUARDS:
-        conn.execute(ddl)
+    restore_guard(conn)
 
 
 def erase_patient(

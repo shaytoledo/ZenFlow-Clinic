@@ -7,7 +7,6 @@ patient can be messaged is now a property of the patient (a linked channel), nev
 from __future__ import annotations
 
 import re
-import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
@@ -89,7 +88,7 @@ def test_the_primary_channel_wins(db) -> None:
 )
 def test_the_channel_table_guards_its_values(db, channel: str, external_id: str) -> None:
     pid = patient_repo.create("D")
-    with pytest.raises((sqlite3.IntegrityError, ValueError)):
+    with pytest.raises((*dbmod.IntegrityError, ValueError)):
         patient_repo.link_channel(pid, channel, external_id)
 
 

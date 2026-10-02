@@ -22,7 +22,10 @@ import sqlalchemy as sa
 
 import bot.db as dbmod
 
-pytestmark = pytest.mark.integration
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.sqlite_only,
+]  # the legacy SQLite schema (Postgres: test_schema_postgres)
 
 INTERNAL = {"sqlite_sequence", "alembic_version"}
 

@@ -9,7 +9,6 @@ Redis flush (open item from 6.1), adoption of a pre-6.3 Redis conversation, and 
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import timedelta
 from typing import Any
 
@@ -17,6 +16,7 @@ import pytest
 from freezegun import freeze_time
 
 import bot.db as dbmod
+from tests.dbutil import columns as table_columns
 from web.repositories import followup_repo, treatment_repo
 from zenflow import clock
 from zenflow import queue as q
@@ -61,7 +61,7 @@ def session(authenticated_client, make_appointment, make_treatment_notes):
 # ── schema ──
 def test_the_table_guards_its_values(db) -> None:
     conn = dbmod.get_db()
-    columns = {r["name"] for r in conn.execute("PRAGMA table_info(followups)")}
+    columns = table_columns("followups")
     assert {
         "appointment_id",
         "patient_id",
@@ -91,10 +91,10 @@ def test_the_table_guards_its_values(db) -> None:
         "created_at, updated_at) VALUES (1, 1, ?, ?, 'x', 'x')"
     )
     for status, pain in (("lost", 1), ("sent", 11)):
-        with pytest.raises(sqlite3.IntegrityError):
+        with pytest.raises(dbmod.IntegrityError):
             conn.execute(base, (status, pain))
     conn.execute(base, ("sent", 0))
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(dbmod.IntegrityError):
         conn.execute(base, ("sent", 3))  # one row per appointment
 
 
@@ -259,6 +259,7 @@ def _notes(apt: dict[str, Any], **fields: Any) -> None:
     )
 
 
+@pytest.mark.sqlite_only
 def test_backfill_derives_every_state_once(
     make_appointment, make_patient, make_treatment_notes
 ) -> None:
@@ -339,6 +340,7 @@ def test_backfill_derives_every_state_once(
     assert followup_repo.get(apts["open"]["id"]) is None
 
 
+@pytest.mark.sqlite_only
 def test_backfill_runs_at_start_up(db, make_appointment, make_treatment_notes) -> None:
     apt = make_appointment()
     make_treatment_notes(apt)

@@ -169,10 +169,11 @@ class SqliteTaskQueue(TaskQueue):
         now = clock.iso_now()
         when = clock.normalize(run_at) if run_at else now
         cur = conn.execute(
-            """INSERT OR IGNORE INTO jobs
+            """INSERT INTO jobs
                (name, payload_json, run_at, status, attempts, max_attempts, idempotency_key,
                 created_at, updated_at)
-               VALUES (?, ?, ?, 'pending', 0, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, 'pending', 0, ?, ?, ?, ?)
+               ON CONFLICT DO NOTHING""",
             (
                 name,
                 json.dumps(payload, ensure_ascii=False, default=str),
@@ -277,7 +278,9 @@ class SqliteTaskQueue(TaskQueue):
 
     def release(self, job_id: int, *, worker_id: str) -> bool:
         cur = self._conn().execute(
-            """UPDATE jobs SET status='pending', attempts=MAX(attempts - 1, 0), updated_at=?,
+            """UPDATE jobs SET status='pending',
+                               attempts=CASE WHEN attempts > 0 THEN attempts - 1 ELSE 0 END,
+                               updated_at=?,
                                locked_by=NULL, locked_at=NULL
                WHERE id=? AND status='running' AND locked_by=?""",
             (clock.iso_now(), job_id, worker_id),
@@ -287,7 +290,8 @@ class SqliteTaskQueue(TaskQueue):
     def defer(self, job_id: int, *, run_at: str, reason: str, worker_id: str | None = None) -> bool:
         clause, extra = self._owner_clause(worker_id)
         cur = self._conn().execute(
-            f"""UPDATE jobs SET status='pending', run_at=?, attempts=MAX(attempts - 1, 0),
+            f"""UPDATE jobs SET status='pending', run_at=?,
+                                attempts=CASE WHEN attempts > 0 THEN attempts - 1 ELSE 0 END,
                                 last_error=?, updated_at=?, locked_by=NULL, locked_at=NULL
                 WHERE id=? AND {clause}""",
             (

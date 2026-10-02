@@ -41,9 +41,7 @@ def save_appointment(
     The check and the insert share one `BEGIN IMMEDIATE` transaction, and the partial unique index
     `ux_appointments_active_slot` is the backstop for any writer that does not go through here.
     """
-    import sqlite3
-
-    from bot.db import get_db
+    from bot.db import IntegrityError, get_db
 
     conn = get_db()
     conn.execute("BEGIN IMMEDIATE")
@@ -93,7 +91,7 @@ def save_appointment(
         conn.execute("COMMIT")
     except SlotTaken:
         raise
-    except sqlite3.IntegrityError as e:
+    except IntegrityError as e:
         conn.execute("ROLLBACK")
         if "ux_appointments_active_slot" in str(e):
             raise SlotTaken(therapist_id, day, time_slot) from e
@@ -259,17 +257,17 @@ def save_treatment_notes(appointment_id: int, patient_id: int, notes: dict) -> N
                    ?,?,?,?,?,?,?,?,?,?,?,
                    strftime('%Y-%m-%dT%H:%M:%SZ','now'),strftime('%Y-%m-%dT%H:%M:%SZ','now'))
            ON CONFLICT(appointment_id) DO UPDATE SET
-             tcm_pattern=COALESCE(excluded.tcm_pattern, tcm_pattern),
-             treatment_principles=COALESCE(excluded.treatment_principles, treatment_principles),
-             diagnosis_certainty=COALESCE(excluded.diagnosis_certainty, diagnosis_certainty),
-             ai_suggested_points=COALESCE(excluded.ai_suggested_points, ai_suggested_points),
-             ai_recommendations=COALESCE(excluded.ai_recommendations, ai_recommendations),
-             tongue_observation=COALESCE(excluded.tongue_observation, tongue_observation),
-             pulse_observation=COALESCE(excluded.pulse_observation, pulse_observation),
-             session_notes=COALESCE(excluded.session_notes, session_notes),
-             used_points=COALESCE(excluded.used_points, used_points),
-             recommendations_sent_at=COALESCE(excluded.recommendations_sent_at, recommendations_sent_at),
-             completed_at=COALESCE(excluded.completed_at, completed_at),
+             tcm_pattern=COALESCE(excluded.tcm_pattern, treatment_notes.tcm_pattern),
+             treatment_principles=COALESCE(excluded.treatment_principles, treatment_notes.treatment_principles),
+             diagnosis_certainty=COALESCE(excluded.diagnosis_certainty, treatment_notes.diagnosis_certainty),
+             ai_suggested_points=COALESCE(excluded.ai_suggested_points, treatment_notes.ai_suggested_points),
+             ai_recommendations=COALESCE(excluded.ai_recommendations, treatment_notes.ai_recommendations),
+             tongue_observation=COALESCE(excluded.tongue_observation, treatment_notes.tongue_observation),
+             pulse_observation=COALESCE(excluded.pulse_observation, treatment_notes.pulse_observation),
+             session_notes=COALESCE(excluded.session_notes, treatment_notes.session_notes),
+             used_points=COALESCE(excluded.used_points, treatment_notes.used_points),
+             recommendations_sent_at=COALESCE(excluded.recommendations_sent_at, treatment_notes.recommendations_sent_at),
+             completed_at=COALESCE(excluded.completed_at, treatment_notes.completed_at),
              updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')""",
         (
             appointment_id,

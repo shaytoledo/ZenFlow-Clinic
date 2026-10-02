@@ -1,9 +1,11 @@
 """
-db.py — SQLite singleton for ZenFlow.
+db.py — the database connection for ZenFlow.
 
-- One connection per thread (threading.local)
-- WAL mode for concurrent reads from bot + web processes
-- Auto-creates tables and runs schema migrations on first call to init_db()
+- SQLite (default): one connection per thread, WAL mode, the file at ZENFLOW_DB_PATH.
+- Postgres (Phase 12.2.2, ADR-46): when `ZF_DB_URL` is a Postgres URL, `get_db()` returns a
+  `zenflow.pg.Connection` — the same sqlite3-shaped API, so the repositories run unchanged.
+- init_db() builds/verifies the schema: legacy statements + Alembic stamp on SQLite, Alembic
+  `upgrade head` on Postgres.
 """
 
 import contextlib
@@ -27,6 +29,39 @@ def db_path() -> Path:
     """
     override = os.environ.get("ZENFLOW_DB_PATH") or _settings_db_path()
     return Path(override) if override else _DEFAULT_DB_PATH
+
+
+def db_url() -> str:
+    """`ZF_DB_URL` (env, then .env via settings) — empty means the SQLite file (db_path())."""
+    url = os.environ.get("ZF_DB_URL")
+    if url is None:
+        try:
+            from zenflow.settings import get_settings
+
+            url = get_settings().zf_db_url
+        except Exception:
+            url = ""
+    return (url or "").strip()
+
+
+def is_postgres() -> bool:
+    from zenflow.pg import is_postgres_url
+
+    return is_postgres_url(db_url())
+
+
+def _errors(name: str) -> tuple[type[Exception], ...]:
+    errors: list[type[Exception]] = [getattr(sqlite3, name)]
+    with contextlib.suppress(ImportError):
+        import psycopg
+
+        errors.append(getattr(psycopg, name))
+    return tuple(errors)
+
+
+#: catch these, not sqlite3's: the same failure on either database (both are DB-API 2 names)
+IntegrityError = _errors("IntegrityError")  # a unique / foreign-key / not-null violation
+DatabaseError = _errors("DatabaseError")  # anything the database refused (incl. the audit guard)
 
 
 def _settings_db_path() -> str | None:
@@ -163,7 +198,10 @@ def _restrict_database(path: Path) -> None:
 
 
 def get_db() -> sqlite3.Connection:
-    """Return a thread-local SQLite connection (WAL mode, Row factory, autocommit)."""
+    """Return this thread's connection: SQLite (WAL, Row factory, autocommit) or, with a Postgres
+    `ZF_DB_URL`, the sqlite3-shaped `zenflow.pg.Connection` (typed as sqlite3 for the callers)."""
+    if is_postgres():
+        return _get_postgres()
     path = db_path()
     conn = getattr(_local, "conn", None)
     if conn is not None and getattr(_local, "path", None) != path:
@@ -189,6 +227,24 @@ def get_db() -> sqlite3.Connection:
     return conn
 
 
+def _get_postgres() -> sqlite3.Connection:
+    url = db_url()
+    conn = getattr(_local, "conn", None)
+    if conn is not None and getattr(_local, "path", None) != url:
+        close_db()
+        conn = None
+    if conn is None:
+        from zenflow.pg import Connection
+
+        conn = Connection(url)
+        _local.conn = conn
+        _local.path = url
+    return conn  # type: ignore[return-value]  # sqlite3-shaped (zenflow.pg), not sqlite3
+
+
+_migrated_urls: set[str] = set()
+
+
 def init_db() -> None:
     """Create all tables and run schema migrations on every startup.
 
@@ -197,6 +253,16 @@ def init_db() -> None:
     any newer Alembic revision (Phase 12.2.3, ADR-45). The legacy ALTER list is FROZEN — a schema
     change is a new revision (`python -m zenflow.migrate revision "…"`), never a new line here.
     """
+    if is_postgres():
+        # Postgres is built by Alembic alone; the legacy statements are SQLite history (12.2.2).
+        url = db_url()
+        if url not in _migrated_urls:
+            from zenflow.migrate import upgrade
+
+            upgrade(url)
+            _migrated_urls.add(url)
+        seed_reference_data(get_db())
+        return
     conn = get_db()
     # Use individual execute() calls (not executescript) so busy_timeout is respected
     for stmt in _SCHEMA_STMTS:
@@ -372,13 +438,20 @@ def _create_acupoints(conn: sqlite3.Connection) -> None:
     `python -m zenflow.ingest_images <folder>` (Phase 4.3b).
     """
     from zenflow.ingest_images import CREATE_ACUPOINT_IMAGES, CREATE_ACUPOINT_IMAGES_INDEX
-    from zenflow.seed import CREATE_ACUPOINTS, seed_acupoints
+    from zenflow.seed import CREATE_ACUPOINTS
 
     conn.execute(CREATE_ACUPOINTS)
-    if conn.execute("SELECT COUNT(*) FROM acupoints").fetchone()[0] == 0:
-        seed_acupoints(conn)
+    seed_reference_data(conn)
     conn.execute(CREATE_ACUPOINT_IMAGES)
     conn.execute(CREATE_ACUPOINT_IMAGES_INDEX)
+
+
+def seed_reference_data(conn: sqlite3.Connection) -> None:
+    """Reference data an empty database starts with (the acupoints), on either database."""
+    from zenflow.seed import seed_acupoints
+
+    if conn.execute("SELECT COUNT(*) FROM acupoints").fetchone()[0] == 0:
+        seed_acupoints(conn)
 
 
 def _create_active_slot_index(conn: sqlite3.Connection) -> None:

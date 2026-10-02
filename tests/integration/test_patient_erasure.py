@@ -9,7 +9,6 @@ audit trail's append-only guard back, and record the erasure in the trail withou
 from __future__ import annotations
 
 import json
-import sqlite3
 from typing import Any
 
 import pytest
@@ -109,13 +108,13 @@ def _audit_guard_holds() -> bool:
     conn = dbmod.get_db()
     try:
         conn.execute("UPDATE audit_log SET action='tampered'")
-    except sqlite3.DatabaseError:
+    except dbmod.DatabaseError:
         pass
     else:
         return False
     try:
         conn.execute("DELETE FROM audit_log")
-    except sqlite3.DatabaseError:
+    except dbmod.DatabaseError:
         return True
     return False
 

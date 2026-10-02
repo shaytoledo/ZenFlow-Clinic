@@ -24,6 +24,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from bot.db import IntegrityError
 from zenflow import clock
 
 logger = logging.getLogger(__name__)
@@ -203,7 +204,7 @@ def for_channel(channel: str, external_id: str | int, full_name: str = "") -> in
                        VALUES (?, ?, ?, 1, ?, ?)""",
                     (created, channel, ext, now, now),
                 )
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             owner = find_by_channel(channel, ext)  # a concurrent first contact won
             if owner is None:
                 raise

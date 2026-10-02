@@ -55,6 +55,7 @@ def fresh_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     dbmod.close_db()
 
 
+@pytest.mark.sqlite_only
 def test_a_new_database_and_its_wal_are_owner_only(fresh_db: Path, loose_umask) -> None:
     conn = dbmod.get_db()
     conn.execute("CREATE TABLE t (x TEXT)")
@@ -66,11 +67,13 @@ def test_a_new_database_and_its_wal_are_owner_only(fresh_db: Path, loose_umask) 
         assert _mode(side_file) == 0o600, side
 
 
+@pytest.mark.sqlite_only
 def test_the_data_directory_is_created_owner_only(fresh_db: Path, loose_umask) -> None:
     dbmod.get_db()
     assert _mode(fresh_db.parent) & 0o077 == 0
 
 
+@pytest.mark.sqlite_only
 def test_an_existing_world_readable_database_is_tightened_with_a_warning(
     fresh_db: Path, loose_umask, caplog
 ) -> None:
@@ -87,6 +90,7 @@ def test_restrict_to_owner_never_raises_on_a_missing_file(tmp_path: Path) -> Non
     assert dbmod.restrict_to_owner(tmp_path / "nope.db") is False
 
 
+@pytest.mark.sqlite_only
 def test_backups_are_owner_only(loose_umask, monkeypatch: pytest.MonkeyPatch) -> None:
     import zenflow.settings as settings_mod
     from zenflow.db_backup import backup_database
@@ -101,6 +105,7 @@ def test_backups_are_owner_only(loose_umask, monkeypatch: pytest.MonkeyPatch) ->
         settings_mod.reset_settings()
 
 
+@pytest.mark.sqlite_only
 def test_restores_and_exports_are_owner_only(
     loose_umask, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, make_patient
 ) -> None:

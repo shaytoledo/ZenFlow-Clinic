@@ -15,7 +15,10 @@ import pytest
 
 import bot.db as dbmod
 
-pytestmark = pytest.mark.integration
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.sqlite_only,
+]  # a one-time migration of SQLite databases
 
 TG = 555_000_111  # a Telegram user id
 MANUAL = -1_700_000_000_001  # a manual booking's negative id

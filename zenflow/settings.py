@@ -204,6 +204,9 @@ class Settings(BaseSettings):
     # ── runtime ──
     env: Env = "dev"
     zenflow_db_path: str | None = None  # mirrored for documentation; bot/db.py reads it itself
+    # ZF_DB_URL — a Postgres URL (postgresql+psycopg://…) moves the app off SQLite (12.2.2,
+    # ADR-46); empty = the SQLite file. bot/db.py reads it itself; validated here.
+    zf_db_url: str = ""
     log_format: Literal["auto", "console", "json"] = "auto"  # auto = console in dev, json otherwise
     log_level: str = "INFO"
     clinic_tz: str = "Asia/Jerusalem"  # IANA zone; the clinic's wall clock for "today" (ADR-19)
@@ -351,6 +354,18 @@ class Settings(BaseSettings):
             out.append(
                 f"REDIS_URL={self.redis_url!r} must include a password (AUTH) "
                 "for a non-localhost host"
+            )
+        # Postgres holds the whole clinical record: a non-local server must be reached over TLS.
+        db = urlsplit(self.zf_db_url) if self.zf_db_url else None
+        if (
+            db
+            and (db.hostname or "") not in LOCAL_HOSTS
+            and "sslmode=require" not in db.query
+            and "sslmode=verify" not in db.query
+        ):
+            out.append(
+                "ZF_DB_URL must use TLS for a non-localhost host "
+                "(add ?sslmode=require, or verify-full) (ADR-14)"
             )
         return out
 

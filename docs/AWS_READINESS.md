@@ -40,12 +40,13 @@ Measured against `master` on 2026-10-02 by reading the code, not the docs.
 | `ZF_WEBHOOK_MODE` looks like a working switch but nothing reads it | Filed → 12.2.5 (until then the flag is documented as "not implemented") |
 | Schema creation at import time races with several containers | Filed → 12.2.3 |
 | `bot.config.THERAPISTS` copies drift between the web and bot processes today | Filed → 12.2.4 |
+| Running the suite on Postgres (12.2.2) found code that only worked on SQLite: patient search took contact details from SQLite's bare columns beside `MAX()`; patient erasure lifted the audit guard by dropping SQLite triggers; the treatment-notes upsert had ambiguous columns; a nullable `? IS NULL` parameter; `INSERT OR IGNORE`, `json_each`, `rowid`; a fresh Postgres database had no acupoints; `db_backup` and the token-rotation backup copy the SQLite file | **Fixed** in 12.2.2 (ADR-46): portable SQL, `audit.lift_guard()` per database, the seed after `upgrade`, a clear refusal / a row backup on Postgres |
 
 ## 3. Order of work (each step keeps `master` deployable on today's single host)
 
 1. **12.2.1** Dockerfiles + compose parity stack; logs to stdout behind a flag.
 2. **12.2.3** Alembic baseline (`0001` = today's schema), schema out of import time.
-3. **12.2.2** SQLAlchemy Core behind the repositories + `ZF_DB_URL`; the whole suite on Postgres in CI.
+3. **12.2.2** `ZF_DB_URL` + a sqlite3-shaped Postgres adapter (ADR-46: the repositories keep their SQL, made portable; Core was not needed for the proof); the whole suite on Postgres in CI (`postgres-suite`). **Done.**
 4. **12.2.4** Remove mutable globals; reconcile loop → scheduled job; Redis pool settings.
 5. **12.2.5** Telegram webhooks (both bots) behind `ZF_WEBHOOK_MODE`.
 6. **12.2.6** IaC skeleton (Terraform or CDK — an ADR first), no `apply`.

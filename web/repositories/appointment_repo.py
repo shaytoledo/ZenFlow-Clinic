@@ -125,17 +125,24 @@ def search_patients(
     where: list[str] = []
     params: list[Any] = []
     if q:
-        where.append("patient_name LIKE ?")
-        params.append(f"%{q}%")
+        where.append("lower(patient_name) LIKE ?")
+        params.append(f"%{q.lower()}%")
     if therapist_id:
         where.append("therapist_id = ?")
         params.append(therapist_id)
+    # the latest appointment's contact details per patient (a window function, not SQLite's
+    # bare columns beside MAX(), which no other database allows)
     sql = """SELECT patient_id, patient_name, patient_phone, patient_email, source,
-                  MAX(created_at) AS last_seen
+                  created_at AS last_seen,
+                  ROW_NUMBER() OVER (PARTITION BY patient_id
+                                     ORDER BY created_at DESC, id DESC) AS rn
            FROM appointments"""
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += " GROUP BY patient_id ORDER BY last_seen DESC LIMIT ?"
+    sql = (
+        "SELECT patient_id, patient_name, patient_phone, patient_email, source, last_seen "
+        f"FROM ({sql}) latest WHERE rn = 1 ORDER BY last_seen DESC LIMIT ?"
+    )
     params.append(limit)
     rows = _conn().execute(sql, params).fetchall()
     return [dict(r) for r in rows]

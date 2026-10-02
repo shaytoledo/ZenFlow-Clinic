@@ -197,12 +197,20 @@ def start_points_regeneration(appointment_id: int, patient_id: int, lang: str = 
     return run
 
 
+def _payload_appointment(payload_json: str | None) -> int | None:
+    try:
+        value = json.loads(payload_json or "{}").get("appointment_id")
+    except (ValueError, AttributeError):
+        return None
+    return int(value) if isinstance(value, int) else None
+
+
 def cancel_generation(appointment_id: int) -> tuple[bool, int]:
     """Stop whatever is generating for the session. Returns (was_generating, jobs_cancelled).
 
     The status flips to CANCELLED first, so a stage already inside an AI call discards its result
     when it returns (its write expects the status it started with). Its queued successors are
-    cancelled here and never run. The SQL reaches into the SQLite `jobs` table (ADR-20).
+    cancelled here and never run (the job's payload is matched here, portably — 12.2.2).
     """
     from bot.db import get_db
     from web.repositories.treatment_repo import advance_points_status
@@ -213,16 +221,16 @@ def cancel_generation(appointment_id: int) -> tuple[bool, int]:
     rows = (
         get_db()
         .execute(
-            """SELECT id FROM jobs
+            f"""SELECT id, payload_json FROM jobs
            WHERE status IN ('pending', 'running')
-             AND name IN (SELECT value FROM json_each(?))
-             AND json_extract(payload_json, '$.appointment_id') = ?""",
-            (json.dumps(list(_NAMES)), int(appointment_id)),
+             AND name IN ({",".join("?" * len(_NAMES))})""",
+            tuple(_NAMES),
         )
         .fetchall()
     )
     queue = get_default_queue()
-    cancelled = sum(1 for row in rows if queue.cancel(int(row["id"])))
+    mine = [row for row in rows if _payload_appointment(row["payload_json"]) == int(appointment_id)]
+    cancelled = sum(1 for row in mine if queue.cancel(int(row["id"])))
     logger.info("generation cancelled (was running: %s, jobs: %s)", was_generating, cancelled)
     return was_generating, cancelled
 

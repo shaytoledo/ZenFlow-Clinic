@@ -112,6 +112,7 @@ def test_stats_counts_every_status(queue, frozen_clock) -> None:
     assert queue.stats() == {"pending": 1, "running": 0, "done": 1, "dead": 1, "cancelled": 1}
 
 
+@pytest.mark.sqlite_only  # on Postgres the schema is Alembic's, built once — not per process
 def test_standalone_worker_main_initialises_the_schema(db, monkeypatch) -> None:
     """`python -m zenflow.worker` must create the jobs table itself (bot.config is not imported)."""
     dbmod.get_db().execute("DROP TABLE jobs")

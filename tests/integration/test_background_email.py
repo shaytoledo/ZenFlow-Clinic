@@ -52,8 +52,9 @@ def _alerts(kind: str, *, open_only: bool = True) -> int:
 
 def _connect(therapist_id: str) -> None:
     dbmod.get_db().execute(
-        """INSERT OR REPLACE INTO google_tokens (therapist_id, encrypted_token, scopes, updated_at)
-           VALUES (?, 'x', '', '2026-01-01T00:00:00Z')""",
+        """INSERT INTO google_tokens (therapist_id, encrypted_token, scopes, updated_at)
+           VALUES (?, 'x', '', '2026-01-01T00:00:00Z')
+           ON CONFLICT(therapist_id) DO UPDATE SET encrypted_token=excluded.encrypted_token""",
         (therapist_id,),
     )
 

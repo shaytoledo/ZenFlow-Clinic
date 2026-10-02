@@ -196,13 +196,12 @@ async def test_the_dashboard_refuses_a_slot_the_bot_already_holds(
 # ── B4 is two independent layers; each must hold on its own ──
 def test_the_database_alone_refuses_a_second_active_row(db, make_therapist) -> None:
     """The partial unique index is the last line: even an INSERT that skips save_appointment."""
-    import sqlite3
 
     import bot.db as dbmod
 
     t = make_therapist(therapist_id="t1")
     _book(t["id"], 101)
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(dbmod.IntegrityError):
         dbmod.get_db().execute(
             "INSERT INTO appointments (patient_id, patient_name, therapist_id, date, time, status) "
             "VALUES (102, 'x', ?, ?, ?, 'active')",

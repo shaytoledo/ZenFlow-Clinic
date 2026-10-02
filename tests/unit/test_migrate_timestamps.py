@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 import bot.db as dbmod
 from zenflow import migrate_timestamps as mig
+
+pytestmark = pytest.mark.sqlite_only  # a one-time migration of SQLite databases
 
 
 def _seed_legacy(make_completed_session) -> int:

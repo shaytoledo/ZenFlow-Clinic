@@ -31,21 +31,32 @@ def _rows(conn: sqlite3.Connection, sql: str, params: tuple[Any, ...]) -> list[d
     return [dict(row) for row in conn.execute(sql, params).fetchall()]
 
 
+def _key(table: str) -> str:
+    """The table's primary key, for a stable order (SQLite's `rowid` exists nowhere else)."""
+    from zenflow.schema import metadata
+
+    return ", ".join(c.name for c in metadata.tables[table].primary_key.columns)
+
+
 def export_patient(patient_id: int) -> dict[str, Any]:
     """Everything the clinic holds about `patient_id`, one section per data class."""
     from bot.db import get_db
 
     conn = get_db()
-    patient = _rows(conn, "SELECT * FROM patients WHERE id=? ORDER BY rowid", (patient_id,))
+    patient = _rows(
+        conn, f"SELECT * FROM patients WHERE id=? ORDER BY {_key('patients')}", (patient_id,)
+    )
     appointments = _rows(
-        conn, "SELECT * FROM appointments WHERE patient_id=? ORDER BY rowid", (patient_id,)
+        conn,
+        f"SELECT * FROM appointments WHERE patient_id=? ORDER BY {_key('appointments')}",
+        (patient_id,),
     )
     apt_ids = [a["id"] for a in appointments]
     if apt_ids:
         placeholders = ",".join("?" * len(apt_ids))
         ai_calls = _rows(
             conn,
-            f"SELECT * FROM ai_calls WHERE appointment_id IN ({placeholders}) ORDER BY rowid",  # noqa: S608 - ids are ints from our own query
+            f"SELECT * FROM ai_calls WHERE appointment_id IN ({placeholders}) ORDER BY id",  # noqa: S608 - ids are ints from our own query
             tuple(apt_ids),
         )
     else:
@@ -53,7 +64,7 @@ def export_patient(patient_id: int) -> dict[str, Any]:
 
     def by_patient(table: str) -> list[dict[str, Any]]:
         return _rows(
-            conn, f"SELECT * FROM {table} WHERE patient_id=? ORDER BY rowid", (patient_id,)
+            conn, f"SELECT * FROM {table} WHERE patient_id=? ORDER BY {_key(table)}", (patient_id,)
         )
 
     return {
