@@ -119,7 +119,7 @@ variable "google_client_id" {
 variable "app_secret_keys" {
   description = "Keys of the person-filled app secret injected into every task (docs/INFRA.md has the template). A key missing from the secret stops the task from starting — on purpose."
   type        = list(string)
-  default     = [
+  default = [
     "SESSION_SECRET",
     "TOKEN_ENCRYPTION_KEY",
     "BACKUP_ENCRYPTION_KEY",
@@ -176,15 +176,15 @@ variable "ollama_enabled" {
 }
 
 variable "ollama_instance_type" {
-  description = "g4dn.xlarge = NVIDIA T4 (fast); a CPU type such as m7i.xlarge is cheaper and much slower."
+  description = "il-central-1 on-demand (2026-10): c7i.xlarge CPU $0.20/h (~$147/month); c7i.2xlarge $0.40/h; g5.xlarge GPU $1.18/h (~$861/month, set ollama_gpu = true). g4dn is not offered in il-central-1."
   type        = string
-  default     = "g4dn.xlarge"
+  default     = "c7i.xlarge"
 }
 
 variable "ollama_gpu" {
-  description = "true = the NVIDIA deep-learning AMI (drivers included); false = plain Amazon Linux."
+  description = "true = the NVIDIA deep-learning AMI (drivers included) for a g5 instance; false = plain Amazon Linux."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "ollama_model" {

@@ -9,5 +9,5 @@ alert_email     = "owner@clinic.example"   # ← who gets alarms and budget emai
 monthly_budget_usd = 120
 image_tag          = "set-by-ci"
 
-ollama_instance_type = "m7i.xlarge" # CPU only: slow answers, fine for testing the wiring
+ollama_instance_type = "c7i.xlarge" # CPU only: slow answers, fine for testing the wiring
 ollama_gpu           = false

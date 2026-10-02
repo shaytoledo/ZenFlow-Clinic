@@ -85,11 +85,11 @@ resource "aws_ecr_lifecycle_policy" "app" {
   for_each = aws_ecr_repository.app
 
   repository = each.value.name
-  policy     = jsonencode({
+  policy = jsonencode({
     rules = [{
       rulePriority = 1
       description  = "keep the last 20 images"
-      selection    = {
+      selection = {
         tagStatus   = "any"
         countType   = "imageCountMoreThan"
         countNumber = 20
@@ -132,7 +132,7 @@ resource "aws_iam_role_policy_attachment" "execution_managed" {
 
 data "aws_iam_policy_document" "execution_secrets" {
   statement {
-    actions   = ["secretsmanager:GetSecretValue"]
+    actions = ["secretsmanager:GetSecretValue"]
     resources = [
       aws_secretsmanager_secret.app.arn,
       aws_secretsmanager_secret.generated.arn,
@@ -224,9 +224,9 @@ resource "aws_ecs_task_definition" "app" {
       readonlyRootFilesystem = false
       environment            = local.container_environment
       secrets                = local.app_secrets
-      logConfiguration       = {
+      logConfiguration = {
         logDriver = "awslogs"
-        options   = {
+        options = {
           awslogs-group         = aws_cloudwatch_log_group.app[each.key].name
           awslogs-region        = var.region
           awslogs-stream-prefix = each.key

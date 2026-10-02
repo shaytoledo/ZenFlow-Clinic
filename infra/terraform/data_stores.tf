@@ -74,9 +74,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "media" {
 
 data "aws_iam_policy_document" "media_tls_only" {
   statement {
-    sid       = "DenyPlainHttp"
-    effect    = "Deny"
-    actions   = ["s3:*"]
+    sid     = "DenyPlainHttp"
+    effect  = "Deny"
+    actions = ["s3:*"]
     resources = [
       aws_s3_bucket.media.arn,
       "${aws_s3_bucket.media.arn}/*",
@@ -222,7 +222,7 @@ resource "aws_secretsmanager_secret" "generated" {
 }
 
 resource "aws_secretsmanager_secret_version" "generated" {
-  secret_id     = aws_secretsmanager_secret.generated.id
+  secret_id = aws_secretsmanager_secret.generated.id
   secret_string = jsonencode({
     REDIS_URL = "rediss://:${random_password.redis_auth.result}@${aws_elasticache_replication_group.main.primary_endpoint_address}:6379/0"
   })

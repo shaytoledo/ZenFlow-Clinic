@@ -12,5 +12,7 @@ image_tag          = "set-by-ci"
 db_backup_retention_days = 14
 db_multi_az              = false # true doubles the database cost (12.2.8)
 
-ollama_instance_type = "g4dn.xlarge" # NVIDIA T4
-ollama_gpu           = true
+# ← the owner's choice (docs/AWS_COST_ESTIMATE.md): CPU c7i.xlarge ~$147/month (slower answers) or
+#   GPU g5.xlarge ~$861/month with ollama_gpu = true. g4dn is not offered in il-central-1.
+ollama_instance_type = "c7i.xlarge"
+ollama_gpu           = false

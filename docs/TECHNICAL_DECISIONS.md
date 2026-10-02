@@ -1952,7 +1952,8 @@ runbook (12.2.9), not a week of console clicking.
    - ElastiCache Redis 7: TLS + AUTH, encrypted at rest;
    - S3 media: SSE-KMS, versioned, private, TLS-only;
    - one KMS key, Secrets Manager, ECR, CloudWatch logs/alarms with SNS email, and a **budget alarm**.
-4. **Ollama stays (owner decision Q3).** It runs on an EC2 instance, GPU by default, reached only
+4. **Ollama stays (owner decision Q3).** It runs on an EC2 instance: CPU `c7i.xlarge` by default, or
+   `g5.xlarge` for a GPU (`g4dn` is not offered in il-central-1). It is reached only
    over **TLS** through an internal NLB at `ollama.<domain>`, with an ACM certificate. The app
    refuses plain HTTP to a non-local host (ADR-14), and intake answers are health data.
 5. **The switch is the task definitions.** They set every flag the app already has: `ZF_DB_URL` (no

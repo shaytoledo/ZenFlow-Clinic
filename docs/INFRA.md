@@ -16,7 +16,7 @@ Internet ──HTTPS──► WAF ─► ALB (TLS 1.2/1.3, ACM, app.<domain>)
    tasks ──► RDS Postgres 16      (private, encrypted, force_ssl, PITR, password managed by RDS)
          ──► ElastiCache Redis 7  (private, TLS + AUTH, encrypted)
          ──► S3 media             (private, SSE-KMS, versioned, TLS-only)
-         ──► ollama.<domain>:443  → internal NLB (TLS, ACM) → EC2 Ollama (GPU, SSM-only admin)
+         ──► ollama.<domain>:443  → internal NLB (TLS, ACM) → EC2 Ollama (CPU or GPU, SSM-only admin)
    everything ─► CloudWatch logs + alarms → SNS email;  monthly budget alarm → email
 ```
 
@@ -115,7 +115,7 @@ Then, in this order:
 |---|---|---|
 | `nat_gateway` | `false`: tasks in public subnets with public IPs, inbound from the ALB only | `true`: private subnets behind a NAT gateway (+ ~$35/month + data) |
 | `db_multi_az` | `false` | `true`: a standby in a second AZ (database cost × 2) |
-| `ollama_instance_type` / `ollama_gpu` | `g4dn.xlarge` / `true` (prod), `m7i.xlarge` / `false` (staging) | a smaller CPU type; or `ollama_enabled = false` if the owner moves to a hosted model |
+| `ollama_instance_type` / `ollama_gpu` | `c7i.xlarge` / `false` (CPU, ~$147/month) | `g5.xlarge` / `true` (GPU, ~$861/month; `g4dn` is not offered in il-central-1); or `ollama_enabled = false` for a hosted model |
 | `container_insights` | `false` | `true` (more metrics, billed per metric) |
 | `waf_enabled` | `true` | `false` saves ~$10/month and removes a layer of protection |
 | `log_retention_days` | 30 | longer costs storage |
