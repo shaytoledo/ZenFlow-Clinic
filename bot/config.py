@@ -37,42 +37,4 @@ from bot.db import init_db as _init_db
 
 _init_db()
 
-
-def _load_therapists_from_db() -> list[dict]:
-    from bot.db import get_db
-
-    conn = get_db()
-    rows = conn.execute("SELECT * FROM therapists").fetchall()
-    result = [dict(row) for row in rows]
-    for t in result:
-        t["active"] = bool(t.get("active"))
-    return result
-
-
-# Therapist registry — loaded from SQLite
-THERAPISTS: list[dict] = _load_therapists_from_db()
-# Lookup by telegram_id (int) → therapist dict (exclude telegram_id=0)
-THERAPIST_MAP: dict[int, dict] = {
-    t["telegram_id"]: t for t in THERAPISTS if t.get("active") and t.get("telegram_id")
-}
-# Lookup by therapist id string ("t1", …) → therapist dict
-THERAPIST_BY_ID: dict[str, dict] = {t["id"]: t for t in THERAPISTS if t.get("active")}
-
-
-def reload_therapists() -> None:
-    """Refresh the in-memory therapist registry from SQLite.
-
-    Mutates the three containers in place. Handler modules hold direct references to them
-    (`from bot.config import THERAPIST_BY_ID`), so rebinding the globals would leave those modules
-    reading a registry frozen at import time — a therapist deactivated in the dashboard would still
-    receive patient messages (BOT_AUDIT B5).
-    """
-    rows = _load_therapists_from_db()
-    THERAPISTS.clear()
-    THERAPISTS.extend(rows)
-    THERAPIST_MAP.clear()
-    THERAPIST_MAP.update(
-        {t["telegram_id"]: t for t in rows if t.get("active") and t.get("telegram_id")}
-    )
-    THERAPIST_BY_ID.clear()
-    THERAPIST_BY_ID.update({t["id"]: t for t in rows if t.get("active")})
+# The therapist registry is `bot.therapists` (read from the database on every call, 12.2.4).

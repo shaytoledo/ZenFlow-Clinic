@@ -21,7 +21,6 @@ PW = "pw-Test-123"
 
 @pytest.fixture
 def therapist(db, make_therapist):
-    from bot import config as botcfg
 
     t = make_therapist(
         name="Dr Echo",
@@ -30,7 +29,6 @@ def therapist(db, make_therapist):
         telegram_id=THERAPIST_TG,
         therapist_id="t1",
     )
-    botcfg.reload_therapists()
     return t
 
 

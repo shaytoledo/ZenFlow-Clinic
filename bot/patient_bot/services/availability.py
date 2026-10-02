@@ -58,9 +58,9 @@ def _gcal_service(therapist_id: str | None = None):
 def _cal_name_for_therapist(therapist_id: str | None) -> str:
     """Return the Google Calendar name for a given therapist id."""
     if therapist_id:
-        from bot.config import THERAPIST_BY_ID
+        from bot import therapists
 
-        t = THERAPIST_BY_ID.get(therapist_id)
+        t = therapists.get_active(therapist_id)
         if t:
             return t.get("calendar_name", _AVAILABILITY_CAL_NAME)
     return _AVAILABILITY_CAL_NAME

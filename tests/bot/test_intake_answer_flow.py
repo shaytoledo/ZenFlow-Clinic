@@ -29,9 +29,7 @@ DAY = date(2026, 3, 12)
 
 
 def _reload() -> None:
-    from bot import config as botcfg
-
-    botcfg.reload_therapists()
+    pass
 
 
 @pytest.fixture

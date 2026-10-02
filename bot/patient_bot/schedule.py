@@ -5,7 +5,7 @@ from typing import Any
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bot.config import THERAPISTS
+from bot import therapists
 from bot.locales import get_lang, t
 from bot.patient_bot.services.ai_intake import (
     clear_intake,
@@ -53,7 +53,7 @@ async def show_therapist_choice(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data["therapist_flow"] = "schedule"
 
     lang = _lang(context)
-    active = [th for th in THERAPISTS if th.get("active")]
+    active = therapists.active()
     if not active:
         await query.edit_message_text(
             t("bot_no_therapists_contact", lang),
@@ -97,7 +97,7 @@ async def select_therapist_and_continue(update: Update, context: ContextTypes.DE
         return THERAPIST_INPUT
 
     if flow == "welcome":
-        therapist = next((th for th in THERAPISTS if th["id"] == therapist_id), None)
+        therapist = therapists.get(therapist_id)
         t_name = therapist["name"] if therapist else "your therapist"
         await query.answer()
         await query.edit_message_text(

@@ -12,7 +12,8 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from bot.config import OLLAMA_HOST, OLLAMA_MODEL, TELEGRAM_TOKEN, THERAPIST_BOT_TOKEN, THERAPISTS
+from bot import therapists
+from bot.config import OLLAMA_HOST, OLLAMA_MODEL, TELEGRAM_TOKEN, THERAPIST_BOT_TOKEN
 from web.deps import (
     _active_therapist_or_redirect,
     _generate_reg_code,
@@ -98,7 +99,7 @@ async def get_system_status(request: Request):
         out["relay"] = {"ok": False, "label": "Active Chats", "detail": "Redis unavailable"}
 
     # Therapists
-    active = [t for t in THERAPISTS if t.get("active")]
+    active = therapists.active()
     out["therapists"] = {
         "ok": len(active) > 0,
         "label": "Therapists",
@@ -240,13 +241,6 @@ async def set_my_language(request: Request):
             "UPDATE therapists SET language=? WHERE id=?", (lang, therapist["id"])
         )
     )
-    # Refresh in-memory therapist list
-    try:
-        from bot.config import reload_therapists
-
-        reload_therapists()
-    except Exception:
-        pass
     return JSONResponse({"ok": True, "language": lang})
 
 

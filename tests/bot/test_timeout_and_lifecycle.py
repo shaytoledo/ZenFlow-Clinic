@@ -52,10 +52,8 @@ def test_the_app_can_actually_fire_timeouts(db) -> None:
 
 
 async def test_the_timeout_tells_the_patient_and_clears_the_flow(db, fake_redis, make_therapist):
-    from bot import config as botcfg
 
     make_therapist(name="Dr Only", therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
 
     update = make_update("(no reply for half an hour)", user_id=PATIENT)
     context = make_context(
@@ -71,10 +69,8 @@ async def test_the_timeout_tells_the_patient_and_clears_the_flow(db, fake_redis,
 
 async def test_the_timeout_works_without_a_message_to_reply_to(db, fake_redis, make_therapist):
     """The last update may have been a button press, or nothing at all."""
-    from bot import config as botcfg
 
     make_therapist(therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
 
     update = make_update(None, user_id=PATIENT)
     update.message = None
@@ -133,10 +129,8 @@ async def test_relay_says_so_when_the_bots_are_not_wired(
     db, fake_redis, make_therapist, monkeypatch
 ):
     import bot.patient_bot.therapist as pt
-    from bot import config as botcfg
 
     t = make_therapist(therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
     monkeypatch.setattr(pt, "_therapist_channel", None)
 
     update = make_update("hello?", user_id=PATIENT)

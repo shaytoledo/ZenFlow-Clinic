@@ -2,7 +2,8 @@ import logging
 
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-from bot.config import THERAPIST_BOT_TOKEN, THERAPISTS
+from bot import therapists
+from bot.config import THERAPIST_BOT_TOKEN
 from bot.errors import on_error
 from bot.therapist_bot.handlers import (
     handle_therapist_media,
@@ -36,7 +37,7 @@ def build_therapist_app() -> Application | None:
 
     app.add_error_handler(on_error)
 
-    active = [t for t in THERAPISTS if t.get("active")]
+    active = therapists.active()
     logger.info(
         f"Therapist bot started with {len(active)} active therapist(s). "
         "New therapists can self-register via the web portal."

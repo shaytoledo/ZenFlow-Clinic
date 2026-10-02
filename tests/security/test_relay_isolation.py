@@ -44,7 +44,6 @@ def patient_bot(monkeypatch: pytest.MonkeyPatch) -> FakeBot:
 
 @pytest.fixture
 def therapists(db, make_therapist):
-    from bot import config as botcfg
 
     a = make_therapist(
         name="Dr A", email="ra@example.com", password=PW, telegram_id=A_TG, therapist_id="t1"
@@ -52,7 +51,6 @@ def therapists(db, make_therapist):
     b = make_therapist(
         name="Dr B", email="rb@example.com", password=PW, telegram_id=B_TG, therapist_id="t2"
     )
-    botcfg.reload_therapists()
     return a, b
 
 

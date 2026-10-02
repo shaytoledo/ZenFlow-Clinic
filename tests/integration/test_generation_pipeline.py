@@ -71,10 +71,8 @@ def llm(fake_llm, monkeypatch):
 
 @pytest.fixture
 def therapist(db, make_therapist):
-    from bot import config as botcfg
 
     t = make_therapist(name="Dr Pipe", therapist_id="t1", telegram_id=730_001)
-    botcfg.reload_therapists()
     return t
 
 

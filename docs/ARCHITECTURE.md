@@ -32,7 +32,7 @@ Clinic/
 │
 ├── bot/                           # All Telegram bot code
 │   ├── main.py                    # Wires ConversationHandler; asyncio.run(_run(patient, therapist))
-│   ├── config.py                  # Loads .env; calls init_db(); loads THERAPISTS from SQLite
+│   ├── config.py                  # Constants from zenflow.settings; calls init_db()
 │   ├── db.py                      # SQLite singleton: get_db(), init_db(), 5-table schema
 │   ├── redis_client.py            # get_async_redis() / get_sync_redis() singletons
 │   ├── states.py                  # 10 integer conversation state constants
@@ -177,7 +177,7 @@ To stop the integration entirely, disconnect the Git repository in the Vercel pr
 import bot.config
     → load_dotenv()
     → init_db()        # creates tables, runs schema migrations
-    → load THERAPISTS, THERAPIST_MAP, THERAPIST_BY_ID from SQLite
+    → (therapists are read from the database on every lookup: bot/therapists.py, 12.2.4)
 
 import bot.patient_bot.services.ai_intake
     → create ChatOllama singleton (_LLM)

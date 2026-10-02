@@ -3,7 +3,7 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bot.config import THERAPIST_BY_ID, THERAPISTS
+from bot import therapists
 from bot.interfaces import TelegramChannel
 from bot.patient_bot.services.relay import append_history, end_relay, save_relay_mapping
 from bot.states import SELECTING, THERAPIST_INPUT, THERAPIST_RELAY, THERAPIST_SELECT
@@ -30,9 +30,9 @@ def _get_therapist(context) -> dict | None:
     """
     tid = context.user_data.get("selected_therapist")
     if tid:
-        chosen = THERAPIST_BY_ID.get(tid)
+        chosen = therapists.get_active(tid)
         return chosen if chosen and chosen.get("active") else None
-    active = [t for t in THERAPISTS if t.get("active")]
+    active = therapists.active()
     return active[0] if len(active) == 1 else None
 
 
@@ -84,7 +84,7 @@ async def show_therapist_for_contact(update: Update, context: ContextTypes.DEFAU
     query = update.callback_query
     await query.answer()
 
-    active = [t for t in THERAPISTS if t.get("active")]
+    active = therapists.active()
     if not active:
         await query.edit_message_text(
             "No therapists are available right now. Please try again later.",

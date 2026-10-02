@@ -218,7 +218,7 @@ must never see "could not deliver" because a log row failed. See `docs/MESSAGE_L
 | Threat | Mitigation |
 |---|---|
 | Therapist A reads Therapist B's patient messages | Relay mapping stores `therapist_id`; reply is rejected if IDs don't match |
-| Unregistered user impersonates therapist | `THERAPIST_MAP` checked by `telegram_id`; unknown users get "not registered" |
+| Unregistered user impersonates therapist | `therapists.get_by_telegram(telegram_id)` (the table, ADR-47); unknown users get "not registered" |
 | Replay attack via old forwarded message IDs | Relay msg keys expire after 24h |
 | Patient sends to wrong therapist | `selected_therapist` is chosen before relay starts; can't be changed mid-session |
 | Patient floods the therapist with messages | Per-user flood control (`bot/services/flood.py`, `ZF_BOT_FLOOD_PER_MINUTE`, 9.5/ADR-40): over budget, `relay_to_therapist` replies "wait" and does not forward, staying in the relay |
@@ -229,7 +229,7 @@ must never see "could not deliver" because a log row failed. See `docs/MESSAGE_L
 ## Multi-Therapist Relay
 
 When multiple therapists are active:
-- Each therapist has a separate `telegram_id` in `THERAPIST_MAP`
+- Each therapist has a separate `telegram_id` in the `therapists` table
 - The relay key stores `therapist_id` in addition to `patient_id`
 - The therapist bot has ONE `MessageHandler` that routes ALL therapists
 - No per-therapist polling connections needed

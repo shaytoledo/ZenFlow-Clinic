@@ -12,8 +12,6 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  LAYER 1 — In-process Python dicts  (bot process only, lost on restart) │
-│  THERAPIST_MAP       dict[int, dict]   telegram_id → therapist          │
-│  THERAPIST_BY_ID     dict[str, dict]   "t1"        → therapist          │
 │  _history_cache      dict[str, obj]    intake key  → RedisChatHistory   │
 │  _rolling_summaries  dict[str, str]    intake key  → compressed text    │
 └───────────────────────────┬─────────────────────────────────────────────┘
@@ -276,7 +274,7 @@ Shows exactly what gets written where at each step:
 
 ```
 1. Patient selects therapist
-   └─ READS:  THERAPIST_BY_ID (in-process dict)
+   └─ READS:  therapists table (bot/therapists.py — no in-process copy since 12.2.4)
 
 2. Patient selects week / day
    └─ READS:  zenflow:avail:days:{tid}:{week}  (Redis, 10 min TTL)

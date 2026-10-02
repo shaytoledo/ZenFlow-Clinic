@@ -106,7 +106,8 @@ bot/
 ├── db.py              # SQLite singleton: get_db(), init_db(), 5-table schema
 ├── redis_client.py    # get_async_redis() / get_sync_redis() singletons
 ├── states.py          # 10 integer state constants (SELECTING, THERAPIST_SELECT, …)
-├── config.py          # Constants sourced from zenflow.settings; calls init_db(); loads THERAPISTS from SQLite
+├── config.py          # Constants sourced from zenflow.settings; calls init_db()
+├── therapists.py      # The therapist registry: reads the table on every call (ADR-47) — never a module-level copy
 ├── utils.py           # Shared: get_main_keyboard(show_change_therapist)
 ├── interfaces/        # ChannelAdapter (channel.py), TelegramChannel + WhatsAppChannel (the only provider callers), factory
 ├── patient_bot/

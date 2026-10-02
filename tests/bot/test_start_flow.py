@@ -17,9 +17,7 @@ PATIENT = 900_000_777
 
 
 def _reload() -> None:
-    from bot import config as botcfg
-
-    botcfg.reload_therapists()
+    pass
 
 
 async def test_no_active_therapists_greets_and_stays_in_menu() -> None:

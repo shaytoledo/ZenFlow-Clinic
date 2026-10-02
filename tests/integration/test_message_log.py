@@ -27,10 +27,8 @@ def _rows(kind: str | None = None) -> list[dict]:
 
 @pytest.fixture
 def therapist(make_therapist):
-    from bot import config as botcfg
 
     t = make_therapist(name="Dr Lee", therapist_id="t1", telegram_id=THERAPIST_TG)
-    botcfg.reload_therapists()
     return t
 
 

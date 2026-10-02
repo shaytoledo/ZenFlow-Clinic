@@ -160,11 +160,9 @@ async def test_a_bot_booking_is_the_patients(db, fake_redis, make_therapist, mon
 
 
 async def test_an_api_booking_names_the_client(client, make_therapist) -> None:
-    from bot import config as botcfg
     from web.repositories import api_client_repo
 
     make_therapist(therapist_id="t1")
-    botcfg.reload_therapists()
     _id, key = api_client_repo.create("whatsapp-bridge")
     client.headers["Authorization"] = f"Bearer {key}"
 

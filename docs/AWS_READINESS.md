@@ -39,7 +39,7 @@ Measured against `master` on 2026-10-02 by reading the code, not the docs.
 | `X-Forwarded-For` trusted from any client → the per-IP sign-in lock and sign-up cap could be dodged, audit IPs forged (SF-022) | **Fixed** 2026-10-02 (#110) |
 | `ZF_WEBHOOK_MODE` looks like a working switch but nothing reads it | Filed → 12.2.5 (until then the flag is documented as "not implemented") |
 | Schema creation at import time races with several containers | Filed → 12.2.3 |
-| `bot.config.THERAPISTS` copies drift between the web and bot processes today | Filed → 12.2.4 |
+| `bot.config.THERAPISTS` copies drift between the web and bot processes today | **Fixed** in 12.2.4 part 1 (ADR-47): the registry is the table; therapist ids are allocated race-safely by the database |
 | Running the suite on Postgres (12.2.2) found code that only worked on SQLite: patient search took contact details from SQLite's bare columns beside `MAX()`; patient erasure lifted the audit guard by dropping SQLite triggers; the treatment-notes upsert had ambiguous columns; a nullable `? IS NULL` parameter; `INSERT OR IGNORE`, `json_each`, `rowid`; a fresh Postgres database had no acupoints; `db_backup` and the token-rotation backup copy the SQLite file | **Fixed** in 12.2.2 (ADR-46): portable SQL, `audit.lift_guard()` per database, the seed after `upgrade`, a clear refusal / a row backup on Postgres |
 
 ## 3. Order of work (each step keeps `master` deployable on today's single host)

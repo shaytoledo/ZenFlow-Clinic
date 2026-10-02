@@ -125,10 +125,6 @@ def db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     dbmod.init_db()
     if _PG_URL:
         _empty_postgres()
-    # bot.config caches the therapist registry at import time — refresh it for the new file.
-    from bot import config as botcfg
-
-    botcfg.reload_therapists()
     yield path
     dbmod.close_db()
 
@@ -422,9 +418,6 @@ def make_therapist():
             }
         )
         dbmod.get_db().execute("UPDATE therapists SET language=? WHERE id=?", (language, tid))
-        from bot import config as botcfg
-
-        botcfg.reload_therapists()
         return {
             "id": tid,
             "name": name,

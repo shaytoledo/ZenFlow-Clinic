@@ -65,11 +65,9 @@ def _step(data: str, user_data: dict):
 async def test_one_therapist_is_chosen_for_the_patient(
     db, fake_redis, make_therapist, availability
 ):
-    from bot import config as botcfg
     from bot.patient_bot.schedule import show_therapist_choice
 
     make_therapist(name="Dr Only", therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
 
     update, context, query = _step("schedule", {})
     state = await show_therapist_choice(update, context)
@@ -80,12 +78,10 @@ async def test_one_therapist_is_chosen_for_the_patient(
 
 
 async def test_two_therapists_are_offered(db, fake_redis, make_therapist, availability):
-    from bot import config as botcfg
     from bot.patient_bot.schedule import show_therapist_choice
 
     make_therapist(name="Dr A", therapist_id="t1", telegram_id=700_001)
     make_therapist(name="Dr B", therapist_id="t2", telegram_id=700_002)
-    botcfg.reload_therapists()
 
     update, context, query = _step("schedule", {})
     assert await show_therapist_choice(update, context) == THERAPIST_SELECT
@@ -94,11 +90,9 @@ async def test_two_therapists_are_offered(db, fake_redis, make_therapist, availa
 
 
 async def test_the_whole_booking_walk(db, fake_redis, make_therapist, availability):
-    from bot import config as botcfg
     from bot.patient_bot import schedule
 
     t = make_therapist(name="Dr Only", therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
     user_data: dict = {"selected_therapist": t["id"]}
 
     update, context, _ = _step("week_0", user_data)
@@ -133,11 +127,9 @@ async def test_the_whole_booking_walk(db, fake_redis, make_therapist, availabili
 async def test_yes_to_intake_asks_the_first_question(
     db, fake_redis, make_therapist, availability, monkeypatch
 ):
-    from bot import config as botcfg
     from bot.patient_bot import schedule
 
     make_therapist(therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
     monkeypatch.setattr(schedule, "initialize_intake", lambda *a, **k: None)
 
     user_data: dict[str, Any] = {
@@ -152,11 +144,9 @@ async def test_yes_to_intake_asks_the_first_question(
 
 
 async def test_a_week_with_no_free_day_says_so(db, fake_redis, make_therapist, availability):
-    from bot import config as botcfg
     from bot.patient_bot import schedule
 
     make_therapist(therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
     availability["days"] = []
 
     update, context, query = _step("week_1", {"selected_therapist": "t1"})
@@ -165,11 +155,9 @@ async def test_a_week_with_no_free_day_says_so(db, fake_redis, make_therapist, a
 
 
 async def test_a_day_with_no_free_hour_says_so(db, fake_redis, make_therapist, availability):
-    from bot import config as botcfg
     from bot.patient_bot import schedule
 
     make_therapist(therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
     availability["hours"] = []
 
     update, context, query = _step(f"day_{DAY.isoformat()}", {"selected_therapist": "t1"})

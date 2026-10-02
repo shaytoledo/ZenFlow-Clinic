@@ -236,11 +236,9 @@ def _state(app: Application) -> object:
 @pytest.fixture
 def booking_world(db, fake_redis, make_therapist, monkeypatch):
     """One therapist, free hours, and a calendar that accepts the booking."""
-    from bot import config as botcfg
     from bot.patient_bot import schedule
 
     make_therapist(name="Dr Only", therapist_id="t1", telegram_id=700_001)
-    botcfg.reload_therapists()
 
     async def _days(week_offset: int = 0, therapist_id: str | None = None):
         return [DAY]

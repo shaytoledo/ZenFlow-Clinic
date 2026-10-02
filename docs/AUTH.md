@@ -1,7 +1,7 @@
 # ZenFlow — Authentication & Registration
 
 > Only the web dashboard requires authentication.
-> The Telegram bots are secured by Telegram user ID matching (THERAPIST_MAP).
+> The Telegram bots are secured by Telegram user ID matching (`bot.therapists.get_by_telegram`, read from the database).
 
 ---
 
@@ -114,7 +114,7 @@ def _verify_password(password: str, stored: str) -> bool:
       → Redis GET zenflow:reg:{CODE} → {name, email}
       → find therapist row by email (upsert telegram_id, active=1)
       → Redis DEL zenflow:reg:{CODE}
-      → mutate THERAPIST_MAP, THERAPIST_BY_ID in-memory
+      → (nothing in memory: every process reads the therapists table — ADR-47)
       → bot replies: "✅ Activation successful! You can now access the dashboard."
 ```
 
@@ -175,7 +175,7 @@ def handle_therapist_message(update, context):
     user_id = update.effective_user.id
     text    = update.message.text.strip()
 
-    if user_id in THERAPIST_MAP:
+    if therapists.get_by_telegram(user_id):
         # Known therapist — relay or forward
         _handle_relay(update, context)
 
@@ -207,9 +207,7 @@ def handle_therapist_message(update, context):
 
 4. Redis DEL zenflow:reg:{code}
 
-5. Mutate in-memory maps (immediate effect, no restart needed):
-   THERAPIST_MAP[user_id] = therapist_dict
-   THERAPIST_BY_ID[therapist_id] = therapist_dict
+5. Nothing to refresh: every process reads the therapists table on its next lookup (ADR-47)
 
 6. Reply: "✅ Activation successful! Welcome, {name}."
 ```
@@ -233,7 +231,7 @@ a. Redis GET zenflow:reg:{code}
 b. Find therapist row by email (or telegram_id)
 c. UPDATE therapists SET active=1
 d. Redis DEL zenflow:reg:{code}
-e. Mutate in-memory maps (THERAPIST_MAP, THERAPIST_BY_ID) for immediate effect
+e. (No in-memory state — every process sees the change on its next lookup, ADR-47)
 f. Return success — therapist can now log in
 ```
 

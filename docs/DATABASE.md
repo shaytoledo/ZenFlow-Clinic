@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS therapists (
 |---|---|
 | `id` | Text string assigned at registration (`t1`, `t2`, … incremented from max existing id). |
 | `telegram_id` | `0` for web-registered therapists who haven't completed bot activation. Non-zero after bot activation |
-| `active` | `0` until therapist sends bot activation code. Only `active=1` therapists appear in `THERAPIST_MAP` and are offered to patients |
+| `active` | `0` until therapist sends bot activation code. Only `active=1` therapists are routable (`bot.therapists`) and are offered to patients |
 | `password_hash` | `NULL` for Google-only accounts. Format: `"{64-hex-salt}:{64-hex-hash}"` |
 | `google_id` | Google's unique stable identifier for the user (from `id_token.sub`) |
 | `calendar_name` | Name of the therapist's Google Calendar that holds "✅ Available" events |

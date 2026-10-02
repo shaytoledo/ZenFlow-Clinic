@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from bot.config import THERAPISTS
+from bot import therapists
 from bot.locales import get_lang, t
 from bot.patient_bot.commands import clear_in_flight
 from bot.states import SELECTING, THERAPIST_SELECT
@@ -65,7 +65,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             t("bot_booking_dropped", get_lang(context.user_data.get("selected_therapist")))
         )
 
-    active = [th for th in THERAPISTS if th.get("active")]
+    active = therapists.active()
     existing_therapist_id = context.user_data.get("selected_therapist")
 
     # Therapist already chosen this session → go straight to menu
