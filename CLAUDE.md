@@ -33,6 +33,10 @@ python -m zenflow.api_keys create <name>    # a machine client's key, printed on
 python -m zenflow.export_openapi            # re-publish docs/api/booking-v1.openapi.json
 python -m zenflow.export_routes             # re-publish the route authorization table (9.1)
 
+# Schema migrations (Phase 12.2.3) — the schema is zenflow/schema.py; Alembic owns changes
+python -m zenflow.migrate upgrade | current | check
+python -m zenflow.migrate revision "add x"   # after editing zenflow/schema.py; review the file
+
 # Patient data-subject access request (Phase 9.9) — everything the clinic holds about one patient
 python -m zenflow.patient_export <patient_id> [--out file.json]
 # ... and erasure (anonymize by default; plan only without --apply) + the retention sweep
@@ -239,6 +243,7 @@ Any message / /start → SELECTING (main menu)
 - `cancel_appointment(appointment_id: int)` takes an integer row ID from SQLite.
 - All Ollama calls are wrapped in `asyncio.wait_for(..., timeout=100)`. Fallback questions used if unavailable.
 - Read configuration through `zenflow.settings.get_settings()` — never `os.getenv` (exceptions: `bot/db.py`, `startup/launch.py`). New flags go in `FeatureFlags` with both paths tested.
+- Schema (ADR-45, 12.2.3): a schema change edits `zenflow/schema.py` AND adds an Alembic revision (`python -m zenflow.migrate revision "…"`, then review it) — never a new `ALTER TABLE` in `bot/db.py` (frozen; a test counts it). `tests/integration/test_schema_baseline.py` fails when the schema module and the migrations drift.
 - Fixes are proven, not claimed: when you fix a bug, add a spec to `tests/mutation/specs.py` (the edit that undoes it + the tests that must then fail); `python tests/mutation/run.py <id>` must report VERIFIED (`docs/FIX_VERIFICATION.md`).
 - Patient data (ADR-43, 9.9): a new table or column holding patient data is added to `zenflow/patient_export.py` (access), `zenflow/patient_erasure.py` (anonymize/purge) and `POLICY` in `zenflow/retention.py` — `tests/integration/test_retention.py` and `test_patient_erasure.py` fail on an export section the policy or the erasure does not handle. Never hard-delete a patient from the app; erasure is the host-side command. A file holding patient data (backup, export, restore) is written with `bot.db.write_owner_only` — `0600` from the first byte (A10, `tests/security/test_file_permissions.py`).
 - Secrets (ADR-41, 9.6): secret values enter through the `SecretsProvider` seam (`zenflow/secrets.py`) — `EnvSecrets` by default, `AwsSecretsManagerSecrets` under `ZF_CLOUD`+`AWS_SECRETS_ID` (Phase 12) — wired as settings' lowest-precedence source, so the environment always wins. A new secret is added to `SECRET_NAMES` and to the `Settings` field. Never log a secret; rotate the token-encryption key with `python -m zenflow.rotate_token_key` (`docs/SECRETS.md`).

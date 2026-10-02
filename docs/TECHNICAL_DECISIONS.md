@@ -1722,3 +1722,43 @@ call any global).
 **Consequences.** A Chrome test loads every page under the enforcing policy and fails on any CSP
 violation or any `on*` attribute in the live DOM. Delegation means a click fires only the nearest
 action — where a page relied on bubbling to two handlers, the inner handler now calls both.
+
+---
+
+## ADR-45: The Schema as Data (SQLAlchemy Core) and Alembic Migrations
+
+**Status:** Accepted (Phase 12.2.3, 2026-10-02)
+
+**Context.** The schema was built by raw `CREATE TABLE` statements spread over a dozen modules, plus
+a list of 17 `ALTER TABLE … ADD COLUMN` statements run inside `try/except: pass` on every start.
+That cannot move to Postgres (12.2.2), it cannot be reviewed as one thing, and a failed `ALTER` was
+indistinguishable from "already applied".
+
+**Decision.**
+1. **`zenflow/schema.py`** describes the whole schema (22 tables, 15 indexes, the contacts view, the
+   audit guard) as one SQLAlchemy Core `MetaData`, portable between SQLite and Postgres: the old
+   `datetime('now')` defaults compile per dialect, booleans stay `INTEGER`, and the append-only
+   trigger is `RAISE(ABORT)` on SQLite and a plpgsql function on Postgres.
+2. **Alembic** owns schema changes. `0001_baseline` was generated from that metadata and frozen. A
+   test proves it equals, column for column, the schema the legacy statements build on SQLite (with
+   one documented normalisation: SQLite's nullable non-integer primary keys).
+3. **Existing databases are stamped, never rebuilt.** `init_db()` still runs the legacy statements
+   (they build or verify the baseline). Then `zenflow.migrate.ensure_sqlite` stamps `0001` on a
+   database Alembic has never seen, and applies newer revisions only when the stored revision is
+   not the head. The common case costs one query.
+4. **The legacy ALTER list is frozen** (a test counts it). A schema change edits `zenflow/schema.py`
+   and adds a revision (`python -m zenflow.migrate revision "…"`). `alembic check` (a test, on
+   SQLite and on Postgres in CI) fails when the two drift.
+
+**Options rejected.**
+- **Rewrite every query in SQLAlchemy Core now.** That is the 12.2.2 work and doesn't need to block
+  migrations. The repositories keep their SQL until the Postgres suite says otherwise.
+- **`metadata.create_all` at start-up instead of Alembic.** It never alters an existing table, and
+  that was the failure mode we are leaving.
+- **Hand-written SQL migrations.** Two dialects double the work, and Alembic's autogenerate plus
+  `check` keep the metadata honest.
+
+**Consequences.** CI's `postgres` job builds the baseline on a real Postgres and tests the audit
+guard, the partial unique index and the legacy default there. Deployments run
+`python -m zenflow.migrate upgrade` as a one-off step before the new code starts; the start-up
+path on SQLite keeps working as before.
