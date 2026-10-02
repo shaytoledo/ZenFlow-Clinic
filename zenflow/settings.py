@@ -82,7 +82,9 @@ class FeatureFlags(BaseSettings):
     queue_backend: QueueBackend = "inprocess"  # ZF_QUEUE_BACKEND — TaskQueue impl (Phase 1.2)
     channel_whatsapp: bool = False  # ZF_CHANNEL_WHATSAPP — WhatsApp adapter (Phase 7.4)
     ai_provider: AIProvider | None = None  # ZF_AI_PROVIDER — None ⇒ legacy USE_AI
-    webhook_mode: bool = False  # ZF_WEBHOOK_MODE — bots via webhooks, not polling (12.2.5)
+    # ZF_WEBHOOK_MODE — the bots receive updates by webhook (Telegram posts to TELEGRAM_WEBHOOK_URL)
+    # instead of long polling (12.2.5, ADR-49); needs TELEGRAM_WEBHOOK_SECRET. Off = polling (dev).
+    webhook_mode: bool = False
     sse_updates: bool = False  # ZF_SSE_UPDATES — server-sent events instead of polling (3.4)
     point_images: bool = False  # ZF_POINT_IMAGES — acupoint image store (4.3)
     # ZF_CONV_TIMEOUT_MINUTES — how long a patient flow may sit idle; 0 = never expire (2.2d)
@@ -227,8 +229,16 @@ class Settings(BaseSettings):
     whatsapp_template_followup: str = ""  # WHATSAPP_TEMPLATE_FOLLOWUP — the 24h check-in
     whatsapp_template_confirmation: str = ""  # WHATSAPP_TEMPLATE_CONFIRMATION — a booking
     # TELEGRAM_WEBHOOK_SECRET — the secret_token Telegram echoes on webhook calls (7.1); empty ⇒
-    # every webhook is refused. Polling (today's mode) does not use it.
+    # every webhook is refused. Polling (today's mode) does not use it. Each bot gets its own
+    # secret derived from this one (bot/webhooks.py, 12.2.5).
     telegram_webhook_secret: str = ""
+    # TELEGRAM_WEBHOOK_URL — the public https base Telegram posts to with ZF_WEBHOOK_MODE=1, e.g.
+    # https://bots.clinic.example → /telegram/patient and /telegram/therapist (12.2.5).
+    telegram_webhook_url: str = ""
+    # BOTS_HOST / BOTS_PORT — the bots process's own HTTP server: /healthz always, the webhook
+    # routes in webhook mode. Loopback by default; the container image listens on all interfaces.
+    bots_host: str = "127.0.0.1"
+    bots_port: int = Field(default=8081, ge=1, le=65535)
 
     # ── ai ──
     use_ai: AIProvider = "ollama"  # legacy name; ZF_AI_PROVIDER wins when set
@@ -303,6 +313,8 @@ class Settings(BaseSettings):
             self.flags.ai_provider = self.use_ai
         if self.flags.storage_s3 and not self.s3_bucket.strip():
             raise ValueError("S3_BUCKET is required when ZF_STORAGE_S3=1")
+        if self.flags.webhook_mode:
+            self._check_webhook_mode()
         if self.is_dev:
             return self
         problems: list[str] = []
@@ -327,6 +339,21 @@ class Settings(BaseSettings):
         if problems:
             raise ValueError(f"invalid configuration for ENV={self.env}: " + "; ".join(problems))
         return self
+
+    def _check_webhook_mode(self) -> None:
+        """ZF_WEBHOOK_MODE=1 (12.2.5) without a real secret or a public https URL would either refuse
+        every update or accept forged ones — so the process does not start, in any environment."""
+        secret = self.telegram_webhook_secret
+        if len(secret) < MIN_SECRET_LEN:
+            raise ValueError(
+                f"ZF_WEBHOOK_MODE=1 needs TELEGRAM_WEBHOOK_SECRET of at least {MIN_SECRET_LEN} chars"
+            )
+        url = urlsplit(self.telegram_webhook_url)
+        if url.scheme != "https" or not url.hostname:
+            raise ValueError(
+                "ZF_WEBHOOK_MODE=1 needs TELEGRAM_WEBHOOK_URL=https://<public host> "
+                "(Telegram only delivers webhooks over HTTPS)"
+            )
 
     def _url_problems(self) -> list[str]:
         checks: list[tuple[str, str, frozenset[str]]] = [

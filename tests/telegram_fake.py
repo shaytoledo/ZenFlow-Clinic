@@ -87,7 +87,7 @@ class FakeBotApi:
         result: Any
         if method == "getMe":
             result = self.BOT_USER
-        elif method == "sendChatAction":
+        elif method in ("sendChatAction", "setWebhook", "deleteWebhook"):
             result = True
         else:
             if method == "editMessageText":

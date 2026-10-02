@@ -1876,3 +1876,47 @@ prevents a double run. The bot no longer starts a loop.
 
 **Consequences.** Exactly one sweep per interval across any number of bot/worker containers. The
 interval is measured from the start of the last run (the lease's expiry), not from its end.
+
+---
+
+## ADR-49: Webhook Mode for Both Bots; One Bots Replica
+
+**Status:** Accepted (Phase 12.2.5, 2026-10-02)
+
+**Context.** The bots only long-polled Telegram. `ZF_WEBHOOK_MODE` was declared but nothing read it.
+Behind an AWS load balancer, webhooks are the normal shape: Telegram pushes each update to an HTTPS
+URL, no connection is held open, and the service has a health check. The bots process had no HTTP
+endpoint at all, so no health check either.
+
+**Decision.**
+1. The bots process serves a small Starlette app (`bot/webhooks.py`) on `BOTS_HOST:BOTS_PORT`
+   (loopback:8081 by default, all interfaces in the image):
+   - `GET /healthz` in both modes: 503 while any bot application is not running;
+   - `POST /telegram/patient` and `/telegram/therapist` in webhook mode only (404 otherwise).
+2. With `ZF_WEBHOOK_MODE=1`, start-up calls `setWebhook(url=TELEGRAM_WEBHOOK_URL + path,
+   secret_token=…)` for each bot instead of polling.
+   - The secret token is **per bot**: `HMAC(TELEGRAM_WEBHOOK_SECRET, bot name)`, so a header
+     captured for one bot cannot feed the other.
+   - A request without the right `X-Telegram-Bot-Api-Secret-Token` is refused (403) before its body
+     is read. Bodies are capped at 1 MB and never logged; the server's access log is off.
+   - A verified update goes onto the application's own update queue, exactly as polling delivers
+     it. Telegram gets its 200 at once, so a slow AI call never makes Telegram redeliver.
+3. The settings refuse to start webhook mode, in any environment, without a secret of at least 32
+   chars and an `https://` URL.
+4. **One bots replica.** python-telegram-bot keeps each conversation's state in process memory,
+   and the persistence is write-behind (`bot/persistence.py`). Two replicas would split one
+   patient's conversation between two memories. The ECS bots service therefore runs
+   `desired_count = 1` with a stop-then-start deploy. A second replica would need conversation
+   state read through to the database on every update, which this ADR does not do.
+
+**Options rejected.**
+- **The webhook routes inside the web app.** The update has to reach the process that owns the
+  conversation state. Forwarding it from web to bots adds a hop and a second failure point.
+- **PTB's built-in `start_webhook` (its own tornado server, one per bot).** That means two ports for
+  two bots, and no `/healthz`.
+
+**Consequences.** Local development is unchanged: polling, and `/healthz` on 127.0.0.1:8081.
+Optionally, an ALB/WAF rule can allow only Telegram's published ranges (149.154.160.0/20,
+91.108.4.0/22) to reach `/telegram/*`. That is defence in depth: the per-bot secret is the actual
+check. Deploys have a few seconds without a bots replica; Telegram queues updates and retries, so
+nothing is lost.

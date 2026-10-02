@@ -3,6 +3,7 @@ import contextlib
 import logging
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import ollama
 from telegram import Update
@@ -261,23 +262,72 @@ def build_patient_app(*, request: BaseRequest | None = None) -> Application:
     return app
 
 
-async def _run(patient_app: Application, therapist_app: Application | None) -> None:
-    if therapist_app is None:
-        async with patient_app:
-            await patient_app.start()
-            await patient_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-            logger.info("Patient bot running — press Ctrl+C to stop")
-            await asyncio.Event().wait()
-        return
+async def _start_receiving(apps: dict[str, Application], settings: Any) -> None:
+    """Webhook mode: tell Telegram where each bot's updates go, with that bot's secret token.
+    Polling (default, local dev): start each application's updater."""
+    if settings.flags.webhook_mode:
+        from bot.webhooks import bot_secret, webhook_path
 
-    wire_bots(patient_app.bot, therapist_app.bot)
-    async with patient_app, therapist_app:
-        await patient_app.start()
-        await therapist_app.start()
-        await patient_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-        await therapist_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-        logger.info("Both bots running — press Ctrl+C to stop")
-        await asyncio.Event().wait()
+        base = settings.telegram_webhook_url.rstrip("/")
+        for name, app in apps.items():
+            await app.bot.set_webhook(
+                url=base + webhook_path(name),
+                secret_token=bot_secret(name, settings.telegram_webhook_secret),
+                allowed_updates=Update.ALL_TYPES,
+            )
+            logger.info("%s bot: receiving by webhook at %s", name, base + webhook_path(name))
+        return
+    for app in apps.values():
+        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+
+
+async def _run(patient_app: Application, therapist_app: Application | None) -> None:
+    """Start the bots, then serve /healthz (+ the webhook routes in webhook mode) until SIGTERM.
+
+    One bots process at a time (ADR-49): python-telegram-bot keeps each conversation's state in
+    this process, so a second replica would split a patient's conversation between two memories.
+    """
+    import uvicorn
+
+    from bot.webhooks import build_app
+    from zenflow.settings import get_settings
+
+    settings = get_settings()
+    apps: dict[str, Application] = {"patient": patient_app}
+    if therapist_app is not None:
+        apps["therapist"] = therapist_app
+        wire_bots(patient_app.bot, therapist_app.bot)
+    async with contextlib.AsyncExitStack() as stack:
+        for app in apps.values():
+            await stack.enter_async_context(app)
+            await app.start()
+        await _start_receiving(apps, settings)
+        http = build_app(
+            apps,
+            webhook_mode=settings.flags.webhook_mode,
+            master_secret=settings.telegram_webhook_secret,
+        )
+        server = uvicorn.Server(
+            uvicorn.Config(
+                http,
+                host=settings.bots_host,
+                port=settings.bots_port,
+                log_config=None,  # zenflow.logging owns the root logger
+                access_log=False,  # a webhook body is a patient's message: never log requests
+                lifespan="off",
+            )
+        )
+        logger.info(
+            "Bots running (%s) — /healthz on %s:%s",
+            "webhook" if settings.flags.webhook_mode else "polling",
+            settings.bots_host,
+            settings.bots_port,
+        )
+        await server.serve()  # returns on SIGINT / SIGTERM
+        for app in apps.values():
+            if app.updater is not None and app.updater.running:
+                await app.updater.stop()
+            await app.stop()
 
 
 def main() -> None:

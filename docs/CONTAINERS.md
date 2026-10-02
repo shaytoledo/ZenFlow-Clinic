@@ -40,5 +40,7 @@ from the task definition / AWS Secrets Manager on AWS (`docs/SECRETS.md`) — ne
 ## Not yet (later 12.2 tasks)
 
 - Postgres is in compose for 12.2.2; the app still uses SQLite until `ZF_DB_URL` exists.
-- The bots poll Telegram, so run **one** `bots` container (webhooks: 12.2.5).
-- The bots and worker images have no HTTP health endpoint yet (12.2.4).
+- Run **one** `bots` container, polling or webhook (ADR-49): conversation state lives in that process.
+  `ZF_WEBHOOK_MODE=1` + `TELEGRAM_WEBHOOK_URL` + `TELEGRAM_WEBHOOK_SECRET` switch it to webhooks (12.2.5).
+- The bots image answers `GET :8081/healthz` (both modes; Docker `HEALTHCHECK`). The worker image has no
+  HTTP endpoint: its liveness is the jobs it completes (`/api/admin/metrics`).

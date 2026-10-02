@@ -37,7 +37,7 @@ Measured against `master` on 2026-10-02 by reading the code, not the docs.
 |---|---|
 | The booking bot read Google tokens from `data/google_tokens/*.json`, which the dashboard moves into the DB and deletes → the bot silently lost every therapist's calendar | **Fixed** 2026-10-02 (#108) |
 | `X-Forwarded-For` trusted from any client → the per-IP sign-in lock and sign-up cap could be dodged, audit IPs forged (SF-022) | **Fixed** 2026-10-02 (#110) |
-| `ZF_WEBHOOK_MODE` looks like a working switch but nothing reads it | Filed → 12.2.5 (until then the flag is documented as "not implemented") |
+| `ZF_WEBHOOK_MODE` looks like a working switch but nothing reads it | **Fixed** in 12.2.5 (ADR-49): webhook mode with a per-bot secret token, `/healthz` on the bots process, one bots replica |
 | Schema creation at import time races with several containers | Filed → 12.2.3 |
 | `bot.config.THERAPISTS` copies drift between the web and bot processes today | **Fixed** in 12.2.4 part 1 (ADR-47): the registry is the table; therapist ids are allocated race-safely by the database |
 | The follow-up reconcile loop ran in every bot process (N containers = N sweeps); the intake's rolling summary was a per-process dict; one Redis pool per patient's intake history; `CONFIG SET maxmemory` at start-up (ElastiCache refuses it); no Redis timeouts | **Fixed** in 12.2.4 part 2 (ADR-48): `zenflow.periodic` (lease-guarded, once per interval across workers; `python -m zenflow.periodic` for EventBridge); summary in Redis; one bounded pool per process with timeouts/health checks; memory policy in the server config. The Postgres connection budget is documented (`docs/DATABASE.md`) |
@@ -49,7 +49,7 @@ Measured against `master` on 2026-10-02 by reading the code, not the docs.
 2. **12.2.3** Alembic baseline (`0001` = today's schema), schema out of import time.
 3. **12.2.2** `ZF_DB_URL` + a sqlite3-shaped Postgres adapter (ADR-46: the repositories keep their SQL, made portable; Core was not needed for the proof); the whole suite on Postgres in CI (`postgres-suite`). **Done.**
 4. **12.2.4** Remove mutable globals; reconcile loop → scheduled job; Redis pool settings.
-5. **12.2.5** Telegram webhooks (both bots) behind `ZF_WEBHOOK_MODE`.
+5. **12.2.5** Telegram webhooks (both bots) behind `ZF_WEBHOOK_MODE`. **Done.**
 6. **12.2.6** IaC skeleton (Terraform or CDK — an ADR first), no `apply`.
 7. **12.2.7–12.2.9** Backups/DR drill on the compose stack, cost estimate + smallest-viable option, migration runbook with rollback.
 

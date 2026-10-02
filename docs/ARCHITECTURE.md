@@ -308,7 +308,7 @@ app refuse to start with a non-local `http://` URL when `ENV != dev`.
 | `ZF_QUEUE_BACKEND` | `inprocess` | Feature flag — `inprocess` / `celery` / `temporal` / `aws` (Phase 1.2 / 12) |
 | `ZF_CHANNEL_WHATSAPP` | `0` | Feature flag — WhatsApp adapter (Phase 7.4) |
 | `ZF_AI_PROVIDER` | — | Feature flag — `ollama` / `anthropic`; empty ⇒ `USE_AI` |
-| `ZF_WEBHOOK_MODE` | `0` | Feature flag — bot webhooks instead of polling. **Not implemented yet** (nothing reads it; the bots always poll) — Phase 12.2.5 |
+| `ZF_WEBHOOK_MODE` | `0` | `1` = the bots receive Telegram updates by webhook at `TELEGRAM_WEBHOOK_URL` (per-bot secret token, `bot/webhooks.py`, ADR-49); `0` = long polling. One bots replica either way |
 | `ZF_SSE_UPDATES` | `0` | Feature flag — SSE instead of polling (Phase 3.4) |
 | `ZF_POINT_IMAGES` | `0` | Feature flag — acupoint images (Phase 4.3) |
 
