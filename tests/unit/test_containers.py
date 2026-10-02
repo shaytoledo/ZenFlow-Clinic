@@ -84,5 +84,6 @@ def test_compose_never_carries_a_real_secret() -> None:
 def test_the_image_ships_everything_the_app_reads_at_start() -> None:
     """init_db() stamps/upgrades through Alembic (12.2.3) — its config and revisions must ship."""
     runtime = _stages()["runtime"]
+    copied = [line.split() for line in runtime.splitlines() if line.startswith("COPY ")]
     for path in ("bot", "web", "zenflow", "startup", "locales", "alembic.ini", "migrations"):
-        assert re.search(rf"(?m)^COPY .*{re.escape(path)}", runtime), path
+        assert any(path in tokens for tokens in copied), path
