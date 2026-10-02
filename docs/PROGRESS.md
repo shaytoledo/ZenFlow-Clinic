@@ -176,7 +176,7 @@ worker keeps crashing dead-letters in `claim()` without an alert → Phase 8.
 ## Phase 12 — AWS readiness
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 12.1 | Gap-analysis table | [ ] | | | |
+| 12.1 | Gap-analysis table | [x] | 2026-10-02 | _pending_ | `docs/AWS_READINESS.md`: all 16 concerns of the plan's table measured against the code (database, schema/migrations, Redis, files, jobs, periodic work, LLM, bots, in-process state, sessions, secrets, logs, health/ops, email/OAuth, static, containers/IaC) — today's evidence, the AWS target, the flag, the work and the 12.2 task. **Measuring found two live bugs, fixed immediately:** the bot had silently lost every therapist's Google Calendar (read tokens from a file the dashboard migrates away — #108) and a forged `X-Forwarded-For` dodged the per-IP limits (SF-022, #110). Filed: `ZF_WEBHOOK_MODE` is declared but unread (→12.2.5), schema creation at import races across containers (→12.2.3), the `THERAPISTS` copies drift between processes today (→12.2.4). Order of work set; Q3 (budget/region/LLM) gates the LLM row. No provisioning. |
 | 12.2.1 | Dockerfiles + docker-compose parity stack | [ ] | | | |
 | 12.2.2 | Full suite green against Postgres in CI | [ ] | | | the key proof |
 | 12.2.3 | Alembic migrations (0001 = current schema) | [ ] | | | |
