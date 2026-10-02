@@ -429,6 +429,12 @@ the target for a cooldown that starts at 60 s and doubles with each further fail
 A locked sign-in returns **`429` with a `Retry-After` header** and re-renders the form with a wait
 message — the password is never checked while locked. A **correct** password clears both counters.
 
+**Which address is "the source" (SF-022).** The socket peer — `X-Forwarded-For` is a header the client
+writes and is believed only when the connection comes from a proxy listed in `ZF_TRUSTED_PROXIES`
+(the load balancer's subnet in Phase 12); then the client is the right-most hop that is not a trusted
+proxy (`web/client_ip.py`). Rotating a forged header therefore cannot dodge the IP lock or the
+sign-up cap.
+
 **Design points:**
 
 - Account failures are counted **whether or not the account exists**, so lockout timing does not

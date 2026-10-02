@@ -61,6 +61,7 @@ FLAG_NAMES: tuple[str, ...] = (
     "BOT_FLOOD_PER_MINUTE",
     "RETENTION_OPERATIONAL_DAYS",
     "RETENTION_CLINICAL_YEARS",
+    "TRUSTED_PROXIES",
 )
 
 
@@ -120,6 +121,22 @@ class FeatureFlags(BaseSettings):
     # ZF_RETENTION_CLINICAL_YEARS — years after a patient's last appointment before the clinical
     # record may be purged (9.9). 0 (default) = keep forever: the legal minimum is owner decision Q5.
     retention_clinical_years: int = Field(default=0, ge=0)
+    # ZF_TRUSTED_PROXIES — IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's
+    # subnet); X-Forwarded-For is believed only from these. Empty (default) = never (SF-022).
+    trusted_proxies: str = ""
+
+    @field_validator("trusted_proxies")
+    @classmethod
+    def _valid_networks(cls, value: str) -> str:
+        import ipaddress
+
+        try:
+            for part in value.split(","):
+                if part.strip():
+                    ipaddress.ip_network(part.strip(), strict=False)
+        except ValueError as exc:
+            raise ValueError(f"ZF_TRUSTED_PROXIES={value!r}: {exc}") from exc
+        return value
 
     @field_validator("ai_provider", mode="before")
     @classmethod

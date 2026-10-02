@@ -73,9 +73,10 @@ _REQUEST_ID_MAX = 64
 
 
 def _client_ip(request: Request) -> str | None:
-    """The caller's address, as the proxy in front of us reports it."""
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-    return forwarded or (request.client.host if request.client else None)
+    """The caller's address — X-Forwarded-For only from a trusted proxy (SF-022)."""
+    from web.client_ip import client_ip
+
+    return client_ip(request)
 
 
 async def request_context_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
