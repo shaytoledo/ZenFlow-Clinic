@@ -28,7 +28,7 @@
           {{ patient.name[:2] | upper }}
         </div>
         <div>
-          <a href="/patients/{{ patient.patient_id }}" style="font-size:18px;font-weight:800;color:#111827;text-decoration:none;" onmouseover="this.style.color='#0D9488'" onmouseout="this.style.color='#111827'">{{ patient.name }}</a>
+          <a href="/patients/{{ patient.patient_id }}" class="zf-hover-text-teal" style="font-size:18px;font-weight:800;color:#111827;text-decoration:none;">{{ patient.name }}</a>
           <div style="font-size:13px;color:#6B7280;margin-top:2px;">
             {{ session.date }} at {{ session.time }}
             {% if session.therapist_id %} · Therapist {{ session.therapist_id }}{% endif %}

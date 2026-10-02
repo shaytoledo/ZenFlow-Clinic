@@ -1690,3 +1690,35 @@ without quietly breaking the audit guarantee.
   and is itself audited. Tests prove the guard is back after success and after a rolled-back failure.
 - Google Calendar events and old backups are outside the command's reach; the plan lists them as
   manual steps (`docs/DATA_PROTECTION.md`).
+
+---
+
+## ADR-44: Delegated `data-*` Actions on Every Page; the CSP Enforces
+
+**Status:** Accepted (Phase 10.3, 2026-10-02)
+
+**Context.** ADR-37 shipped the Content-Security-Policy report-only because the dashboard pages wired
+their controls with ~68 inline `on*="…"` handlers — inline script that a nonce cannot cover and an
+enforcing `script-src` blocks (SF-016). Converting them also exposed that those pages wrote API values
+(patient names from Telegram, relay text, AI output) into `innerHTML` unescaped (SF-021).
+
+**Decision.**
+1. **One dispatcher, named handlers.** `static/js/actions.js` (loaded first on every page) listens at
+   the document for click / input / change / Enter / focus-out and runs the handler named by the
+   nearest `data-click` / `data-on-*` attribute; `data-confirm` asks first. Pages register handlers
+   with `ZF.actions.register({...})`. Only registered names run, so injected markup cannot call an
+   arbitrary global; arguments travel in `data-*` attributes, never in code. The treatment page keeps
+   its own `data-action` dispatcher (Phase 4.1b); the attribute sets never collide.
+2. **`ZF.esc` for every interpolation.** A test walks every `${…}` in every template; it must be
+   escaped, numeric, URL-encoded, a nested template, a literal ternary, or reviewed in that template
+   (`{# xss-reviewed: expr | reason #}`), so a new unescaped value fails the build.
+3. **Hover is CSS**, via `zf-hover-*` utilities.
+4. **Enforce by default.** `ZF_CSP_ENFORCE=1`; `0` stays as a report-only escape hatch.
+
+**Options rejected:** `'unsafe-hashes'` for the inline handlers (keeps inline script alive and every
+handler would need a hash); calling `window[name]` from a `data-call` attribute (lets injected markup
+call any global).
+
+**Consequences.** A Chrome test loads every page under the enforcing policy and fails on any CSP
+violation or any `on*` attribute in the live DOM. Delegation means a click fires only the nearest
+action — where a page relied on bubbling to two handlers, the inner handler now calls both.

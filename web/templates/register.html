@@ -130,8 +130,8 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn {% if tab == 'register' %}active{% endif %}" onclick="switchTab('register')">Register</button>
-    <button class="tab-btn {% if tab == 'signin' %}active{% endif %}"   onclick="switchTab('signin')">Sign In</button>
+    <button class="tab-btn {% if tab == 'register' %}active{% endif %}" data-click="switch-tab" data-tab="register">Register</button>
+    <button class="tab-btn {% if tab == 'signin' %}active{% endif %}"   data-click="switch-tab" data-tab="signin">Sign In</button>
   </div>
 
   {% if error %}
@@ -165,7 +165,7 @@
       Continue with Google
     </a>
     {% endif %}
-    <p class="hint">Already have an account? <a href="#" onclick="switchTab('signin')" style="color:#0D9488;font-weight:500;">Sign in</a></p>
+    <p class="hint">Already have an account? <a href="#" data-click="switch-tab" data-tab="signin" style="color:#0D9488;font-weight:500;">Sign in</a></p>
   </div>
 
   <!-- ── SIGN IN TAB ── -->
@@ -192,11 +192,12 @@
       Continue with Google
     </a>
     {% endif %}
-    <p class="hint">New here? <a href="#" onclick="switchTab('register')" style="color:#0D9488;font-weight:500;">Create an account</a></p>
+    <p class="hint">New here? <a href="#" data-click="switch-tab" data-tab="register" style="color:#0D9488;font-weight:500;">Create an account</a></p>
   </div>
 </div>
 
 <script src="/static/js/csrf.js"></script>
+<script src="/static/js/actions.js"></script>
 <script nonce="{{ csp_nonce() }}">
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -210,6 +211,10 @@ function switchTab(name) {
     }
   });
 }
+
+ZF.actions.register({
+  'switch-tab': (el, ev) => { ev.preventDefault(); switchTab(el.dataset.tab); },
+});
 </script>
 </body>
 </html>

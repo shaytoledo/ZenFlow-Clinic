@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
+    .continue-btn:hover { background: #0f766e !important; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', sans-serif;
@@ -142,7 +143,7 @@
 
   <div class="code-box">
     <div class="code" id="code-text">{{ code }}</div>
-    <button class="copy-btn" onclick="copyCode()">Copy Code</button>
+    <button class="copy-btn" data-click="copy-code">Copy Code</button>
   </div>
 
   {% if therapist_bot_link %}
@@ -186,12 +187,13 @@
 
   <p class="expiry">This code expires in 10 minutes and can only be used once.</p>
 
-  <a href="/" style="display:block;width:100%;background:#0D9488;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;font-family:inherit;text-align:center;text-decoration:none;margin-top:16px;transition:background 0.15s;" onmouseover="this.style.background='#0f766e'" onmouseout="this.style.background='#0D9488'">
+  <a href="/" style="display:block;width:100%;background:#0D9488;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;font-family:inherit;text-align:center;text-decoration:none;margin-top:16px;transition:background 0.15s;" class="continue-btn">
     Continue to Dashboard →
   </a>
   {% endif %}
 </div>
 
+<script src="/static/js/actions.js"></script>
 <script nonce="{{ csp_nonce() }}">
 function copyCode() {
   const code = document.getElementById('code-text').textContent.trim();
@@ -202,6 +204,10 @@ function copyCode() {
     setTimeout(() => { btn.textContent = 'Copy Code'; btn.classList.remove('copied'); }, 2000);
   });
 }
+
+ZF.actions.register({
+  'copy-code': () => copyCode(),
+});
 </script>
 </body>
 </html>

@@ -6,10 +6,9 @@ sniffing was allowed, and a full URL (patient ids live in paths) leaked to any e
 referrer.
 
 This closes the static headers hard (they break nothing) and ships a Content-Security-Policy. The
-CSP starts **report-only** — the plan's "report-only first, then enforce" — because the pages still
-carry inline `on*=` handlers and inline `style=` attributes that a strict policy would block; the
-per-request script nonce is already wired, so the flip to enforce (`ZF_CSP_ENFORCE=1`) needs only
-that template cleanup, not new plumbing.
+CSP started **report-only** — the plan's "report-only first, then enforce" — while the pages still
+carried inline `on*=` handlers; since SF-016 (10.3) removed them it **enforces** by default, and
+`ZF_CSP_ENFORCE=0` is the report-only escape hatch.
 """
 
 from __future__ import annotations
@@ -21,12 +20,13 @@ import pytest
 
 pytestmark = pytest.mark.security
 
+_CSP_ENFORCE = "content-security-policy"
 _CSP_REPORT = "content-security-policy-report-only"
 
 
 def _csp(resp: httpx.Response) -> str:
-    value = resp.headers.get(_CSP_REPORT)
-    assert value, "a Content-Security-Policy-Report-Only header should be present"
+    value = resp.headers.get(_CSP_ENFORCE) or resp.headers.get(_CSP_REPORT)
+    assert value, "a Content-Security-Policy header should be present"
     return value
 
 
@@ -50,7 +50,7 @@ async def test_static_security_headers_ride_every_response(client) -> None:
 async def test_the_headers_are_on_api_responses_too(client) -> None:
     resp = await client.get("/api/my/status")  # 401 without a session — headers still ride
     assert resp.headers.get("x-content-type-options") == "nosniff"
-    assert _CSP_REPORT in resp.headers
+    assert _csp(resp)
 
 
 # ── the policy ──
@@ -99,11 +99,30 @@ async def test_the_header_nonce_is_the_one_rendered_into_the_page(client) -> Non
 
 
 # ── report-only vs enforce ──
-def test_report_only_by_default_enforce_by_flag() -> None:
+def test_the_header_name_follows_the_flag() -> None:
     from web import csp
 
     assert csp.header_name(enforce=False) == "Content-Security-Policy-Report-Only"
     assert csp.header_name(enforce=True) == "Content-Security-Policy"
+
+
+async def test_the_policy_enforces_by_default(client) -> None:
+    """SF-016: no page needs inline script any more, so the default is the enforcing header."""
+    resp = await client.get("/register")
+    assert resp.headers.get(_CSP_ENFORCE), "the enforcing Content-Security-Policy is sent"
+    assert _CSP_REPORT not in resp.headers
+
+
+async def test_report_only_is_an_escape_hatch(client, monkeypatch) -> None:
+    import zenflow.settings as settings_mod
+
+    monkeypatch.setenv("ZF_CSP_ENFORCE", "0")
+    settings_mod.reset_settings()
+    try:
+        resp = await client.get("/register")
+        assert resp.headers.get(_CSP_REPORT) and _CSP_ENFORCE not in resp.headers
+    finally:
+        settings_mod.reset_settings()
 
 
 def test_the_policy_pins_exactly_the_nonce_it_is_given() -> None:

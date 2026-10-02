@@ -1,4 +1,12 @@
 {% extends "base.html" %}
+{# xss-reviewed: Math.round(220 - t*198) | arithmetic on a number #}
+{# xss-reviewed: Math.round(38 + t*125) | arithmetic on a number #}
+{# xss-reviewed: numCols | a computed column count (number) #}
+{# xss-reviewed: IMP_COLORS[last.val] | literal colour map #}
+{# xss-reviewed: IMP_LABELS[last.val] | literal label map #}
+{# xss-reviewed: trend | one of three literal strings #}
+{# xss-reviewed: s.color | literal colour in the slices array built in this function #}
+{# xss-reviewed: s.label | literal label in the slices array built in this function #}
 {% block page_title_tag %}{{ patient.name }}{% endblock %}
 {% block page_heading %}{{ t['profile_title'] if t else 'Patient Profile' }}{% endblock %}
 
@@ -329,7 +337,7 @@
 
       // X-axis dates
       document.getElementById('improvement-x-labels').innerHTML =
-        improveData.map(d => `<span>${(d.date||'').slice(5)}</span>`).join('');
+        improveData.map(d => `<span>${ZF.esc((d.date||'').slice(5))}</span>`).join('');
 
       // Legend chip
       const last  = improveData[improveData.length - 1];
@@ -416,7 +424,7 @@
         `<div style="display:flex;align-items:center;gap:8px;">
           <div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
           <div>
-            <div style="font-size:12px;font-weight:600;color:#374151;">${s.val} / ${total}</div>
+            <div style="font-size:12px;font-weight:600;color:#374151;">${Number(s.val)} / ${Number(total)}</div>
             <div style="font-size:11px;color:#9CA3AF;">${s.label}</div>
           </div>
         </div>`

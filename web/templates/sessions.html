@@ -1,13 +1,28 @@
 {% extends "base.html" %}
+{# xss-reviewed: _ZF_SESSIONS_T.error | translation constant, already HTML-escaped by Jinja autoescape (ZF.esc would double-escape) #}
+{# xss-reviewed: _ZF_SESSIONS_T.no_sessions | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.completed | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.in_progress | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.not_diagnosed | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.open | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.col_patient | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.col_pattern | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.col_certainty | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.col_status | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.col_updated | translation constant, already HTML-escaped by Jinja autoescape #}
+{# xss-reviewed: _ZF_SESSIONS_T.sessions_count | translation constant, and it is set as textContent, not markup #}
+{# xss-reviewed: s.tcm_pattern ? ZF.esc(s.tcm_pattern) : notDiag | the pattern is escaped; notDiag is the fixed span built above from a translation constant #}
+{# xss-reviewed: completedBadge | one of two fixed spans built just above, each around a translation constant #}
+{# xss-reviewed: rows | markup built above in renderTable from ZF.esc / Number / encodeURIComponent parts and reviewed constants #}
 {% block page_title_tag %}{{ t['sessions_title'] if t else 'Session History' }}{% endblock %}
 {% block page_heading %}{{ t['sessions_title'] if t else 'Session History' }}{% endblock %}
 
 {% block topbar_actions %}
 <div style="display:flex;gap:8px;align-items:center;">
   <span style="font-size:12px;color:#9CA3AF;">{% if t and t.get('sessions_sort_by') %}{{ t['sessions_sort_by'] }}{% else %}Sort by:{% endif %}</span>
-  <button class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;" id="sort-date" onclick="loadSessions('date')">{% if t and t.get('sessions_sort_date') %}{{ t['sessions_sort_date'] }}{% else %}Date{% endif %}</button>
-  <button class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;" id="sort-name" onclick="loadSessions('name')">{% if t and t.get('sessions_sort_name') %}{{ t['sessions_sort_name'] }}{% else %}Name{% endif %}</button>
-  <button class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;" id="sort-last" onclick="loadSessions('last_access')">{% if t and t.get('sessions_sort_last') %}{{ t['sessions_sort_last'] }}{% else %}Last Access{% endif %}</button>
+  <button class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;" id="sort-date" data-click="sort-sessions" data-sort="date">{% if t and t.get('sessions_sort_date') %}{{ t['sessions_sort_date'] }}{% else %}Date{% endif %}</button>
+  <button class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;" id="sort-name" data-click="sort-sessions" data-sort="name">{% if t and t.get('sessions_sort_name') %}{{ t['sessions_sort_name'] }}{% else %}Name{% endif %}</button>
+  <button class="zf-btn zf-btn-outline" style="font-size:12px;padding:5px 12px;" id="sort-last" data-click="sort-sessions" data-sort="last_access">{% if t and t.get('sessions_sort_last') %}{{ t['sessions_sort_last'] }}{% else %}Last Access{% endif %}</button>
 </div>
 {% endblock %}
 
@@ -19,7 +34,7 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" style="position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
-    <input type="text" class="zf-input" id="search-input" placeholder="{{ t['sessions_search_placeholder'] if t and t.get('sessions_search_placeholder') else 'Search patient name or TCM pattern…' }}" style="padding-inline-start:36px;" oninput="filterSessions(this.value)" />
+    <input type="text" class="zf-input" id="search-input" placeholder="{{ t['sessions_search_placeholder'] if t and t.get('sessions_search_placeholder') else 'Search patient name or TCM pattern…' }}" style="padding-inline-start:36px;" data-on-input="filter-sessions" />
   </div>
 
   <!-- Stats row -->
@@ -86,7 +101,7 @@ async function loadSessions(sort = 'date') {
   });
 
   try {
-    const data = await fetch(`/api/treatment-notes/sessions/history?sort=${sort}`).then(r => r.json());
+    const data = await fetch(`/api/treatment-notes/sessions/history?sort=${encodeURIComponent(sort)}`).then(r => r.json());
     _allSessions = data;
     updateStats(data);
     renderTable(data);
@@ -124,7 +139,7 @@ function _certaintyColor(pct) {
 
 function renderTable(sessions) {
   const locale = _ZF_LANG === 'he' ? 'he-IL' : 'en-GB';
-  document.getElementById('session-count').textContent = `${sessions.length} ${_ZF_SESSIONS_T.sessions_count}`;
+  document.getElementById('session-count').textContent = `${Number(sessions.length)} ${_ZF_SESSIONS_T.sessions_count}`;
 
   if (sessions.length === 0) {
     document.getElementById('sessions-table').innerHTML =
@@ -144,32 +159,32 @@ function renderTable(sessions) {
     const timeSlug = (s.time || '').replace(':', '-');
     const notDiag = `<span style="color:#9CA3AF;">${_ZF_SESSIONS_T.not_diagnosed}</span>`;
 
-    return `<tr style="border-bottom:1px solid #F9FAFB;cursor:pointer;" onclick="window.location='/treatment/${s.patient_id}/${s.date}/${timeSlug}'" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background=''">
+    return `<tr class="zf-hover-bg-subtle" style="border-bottom:1px solid #F9FAFB;cursor:pointer;" data-click="open-session" data-href="/treatment/${Number(s.patient_id)}/${encodeURIComponent(s.date)}/${encodeURIComponent(timeSlug)}">
       <td style="padding:14px 20px;white-space:nowrap;">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div class="zf-avatar" style="width:32px;height:32px;font-size:11px;flex-shrink:0;">${initials}</div>
+          <div class="zf-avatar" style="width:32px;height:32px;font-size:11px;flex-shrink:0;">${ZF.esc(initials)}</div>
           <div>
-            <div style="font-size:13px;font-weight:600;color:#111827;">${s.patient_name || '—'}</div>
-            <div style="font-size:11px;color:#9CA3AF;">${dateStr} · ${s.time || ''}</div>
+            <div style="font-size:13px;font-weight:600;color:#111827;">${ZF.esc(s.patient_name || '—')}</div>
+            <div style="font-size:11px;color:#9CA3AF;">${ZF.esc(dateStr)} · ${ZF.esc(s.time || '')}</div>
           </div>
         </div>
       </td>
       <td style="padding:14px 16px;">
-        <div dir="auto" style="font-size:13px;color:#374151;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.tcm_pattern || notDiag}</div>
+        <div dir="auto" style="font-size:13px;color:#374151;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.tcm_pattern ? ZF.esc(s.tcm_pattern) : notDiag}</div>
       </td>
       <td style="padding:14px 16px;">
         ${certPct > 0 ? `
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:60px;height:6px;background:#F3F4F6;border-radius:999px;overflow:hidden;">
-            <div style="height:100%;background:${certCol};width:${certPct}%;"></div>
+            <div style="height:100%;background:${ZF.esc(certCol)};width:${Number(certPct)}%;"></div>
           </div>
-          <span style="font-size:12px;font-weight:600;color:${certCol};">${certPct}%</span>
+          <span style="font-size:12px;font-weight:600;color:${ZF.esc(certCol)};">${Number(certPct)}%</span>
         </div>` : '<span style="color:#9CA3AF;font-size:12px;">—</span>'}
       </td>
       <td style="padding:14px 16px;">${completedBadge}</td>
-      <td style="padding:14px 16px;font-size:12px;color:#9CA3AF;">${updatedStr}</td>
+      <td style="padding:14px 16px;font-size:12px;color:#9CA3AF;">${ZF.esc(updatedStr)}</td>
       <td style="padding:14px 20px;">
-        <a href="/treatment/${s.patient_id}/${s.date}/${timeSlug}" class="zf-btn zf-btn-outline" style="font-size:11px;padding:5px 12px;text-decoration:none;" onclick="event.stopPropagation()">
+        <a href="/treatment/${Number(s.patient_id)}/${encodeURIComponent(s.date)}/${encodeURIComponent(timeSlug)}" class="zf-btn zf-btn-outline" style="font-size:11px;padding:5px 12px;text-decoration:none;" data-click="session-open-link">
           ${_ZF_SESSIONS_T.open} →
         </a>
       </td>
@@ -194,5 +209,13 @@ function renderTable(sessions) {
 }
 
 loadSessions('date');
+
+ZF.actions.register({
+  'sort-sessions': (el) => loadSessions(el.dataset.sort),
+  'filter-sessions': (el) => filterSessions(el.value),
+  'open-session': (el) => { window.location = el.dataset.href; },
+  // the row's own link keeps its click so the row does not navigate as well (ctrl-click = new tab only)
+  'session-open-link': () => {},
+});
 </script>
 {% endblock %}

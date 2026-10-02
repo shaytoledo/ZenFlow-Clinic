@@ -18,13 +18,14 @@ protection we want.
 
 **Style keeps `'unsafe-inline'` for now.** A nonce cannot cover an inline `style="…"` *attribute*
 (only a `<style>` element), and the templates still use many. Styles cannot execute script, so this
-is a far smaller exposure than an inline-script allowance; it is tracked as tightening work
-(SF-016) and is why the policy ships report-only first.
+is a far smaller exposure than an inline-script allowance (moving the remaining `style=` attributes to
+classes would let `style-src` drop it — optional tightening).
 
-**Report-only first, then enforce.** `ZF_CSP_ENFORCE=0` (the default) sends the policy as
-`Content-Security-Policy-Report-Only`: the browser reports what *would* be blocked but blocks
-nothing, so a page with a leftover inline handler keeps working while we watch. Once the markup is
-clean, `ZF_CSP_ENFORCE=1` sends it as the enforcing `Content-Security-Policy`.
+**Enforcing (since SF-016, Phase 10.3).** It shipped report-only first while the pages still carried
+inline `on*=` handlers; those are gone (`static/js/actions.js`), every page is driven under the
+enforcing policy in Chrome (`tests/e2e/test_csp_enforced.py`), so `ZF_CSP_ENFORCE=1` — the
+enforcing `Content-Security-Policy` — is the default. `ZF_CSP_ENFORCE=0` sends
+`Content-Security-Policy-Report-Only` instead: an escape hatch if a page ever breaks.
 """
 
 from __future__ import annotations
