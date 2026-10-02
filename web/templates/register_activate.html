@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{# xss-reviewed: String(s).padStart(2, '0') | seconds remaining, a number; assigned to textContent #}
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -222,8 +223,8 @@
     <div class="code-label">Your activation code</div>
     <div class="code" id="code-text">––––––––</div>
     <div class="code-actions">
-      <button class="copy-btn" id="copy-btn" onclick="copyCode()" disabled>Copy</button>
-      <button class="refresh-btn" id="refresh-btn" onclick="getNewCode()">New Code</button>
+      <button class="copy-btn" id="copy-btn" data-click="copy-code" disabled>Copy</button>
+      <button class="refresh-btn" id="refresh-btn" data-click="new-code">New Code</button>
     </div>
   </div>
 
@@ -280,6 +281,7 @@
   </div>
 </div>
 
+<script src="/static/js/actions.js"></script>
 <script nonce="{{ csp_nonce() }}">
 let expiryTimer = null;
 let expiresAt = null;
@@ -330,7 +332,7 @@ function updateExpiry() {
   const s = remaining % 60;
   document.getElementById('expiry').textContent =
     remaining > 0
-      ? `Code expires in ${m}:${s.toString().padStart(2, '0')}`
+      ? `Code expires in ${Number(m)}:${String(s).padStart(2, '0')}`
       : 'Code expired — click "New Code" to get a fresh one';
   if (remaining === 0) clearInterval(expiryTimer);
 }
@@ -364,6 +366,11 @@ const pollTimer = setInterval(checkActivation, 4000);
 
 // Auto-generate a code on load
 getNewCode();
+
+ZF.actions.register({
+  'copy-code': () => copyCode(),
+  'new-code': () => getNewCode(),
+});
 </script>
 </body>
 </html>

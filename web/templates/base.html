@@ -1,4 +1,17 @@
 <!DOCTYPE html>
+{# xss-reviewed: _ZF_NOTIF_STR.empty | translation rendered by Jinja (autoescaped), a constant #}
+{# xss-reviewed: _ZF_NOTIF_STR.failed | translation rendered by Jinja (autoescaped), a constant #}
+{# xss-reviewed: _ZF_NOTIF_STR.resolved | translation rendered by Jinja (autoescaped), a constant #}
+{# xss-reviewed: _formatNotifTime(n.created_at) | a number + autoescaped translation, or toLocaleDateString() #}
+{# xss-reviewed: _notifIcon(n.severity || 'info') | markup from the literal map in _notifIcon #}
+{# xss-reviewed: _notifLinkHtml(n.link) | prefix-checked and attribute-escaped inside _notifLinkHtml #}
+{# xss-reviewed: action | a constant button with Number(n.id), or '' #}
+{# xss-reviewed: bgColor | one of three literal colours #}
+{# xss-reviewed: href | escaped with the esc map in _notifLinkHtml #}
+{# xss-reviewed: label | escaped with the esc map in _notifLinkHtml #}
+{# xss-reviewed: m.bg | literal map in _notifIcon #}
+{# xss-reviewed: m.color | literal map in _notifIcon #}
+{# xss-reviewed: m.svg | literal map in _notifIcon #}
 <html lang="{{ therapist.language if therapist and therapist.language else 'en' }}"
       dir="{{ 'rtl' if therapist and therapist.language == 'he' else 'ltr' }}">
 <head>
@@ -104,7 +117,7 @@
 
         <!-- Language switcher -->
         <button id="lang-toggle-btn"
-                onclick="toggleLanguage()"
+                data-click="toggle-language"
                 title="{{ t['lang_switch_title'] if t else 'Switch language' }}"
                 style="background:none;border:1px solid #E5E7EB;border-radius:10px;padding:6px 11px;cursor:pointer;color:#374151;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;letter-spacing:.4px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -116,7 +129,7 @@
 
         <!-- Notification bell -->
         <div style="position:relative;margin:0 2px;">
-          <button id="notif-bell" onclick="toggleNotifPanel(event)" title="{{ t['notif_title'] if t else 'Notifications' }}"
+          <button id="notif-bell" data-click="toggle-notif-panel" title="{{ t['notif_title'] if t else 'Notifications' }}"
                   style="background:none;border:1px solid #E5E7EB;border-radius:10px;padding:7px 10px;cursor:pointer;color:#374151;display:flex;align-items:center;position:relative;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="notif-badge" class="hidden" style="position:absolute;top:-4px;right:-4px;background:#DC2626;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:999px;min-width:16px;text-align:center;line-height:14px;"></span>
@@ -124,7 +137,7 @@
           <div id="notif-panel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:360px;max-height:480px;overflow-y:auto;background:#fff;border:1px solid #E5E7EB;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.16);z-index:1000;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #F3F4F6;">
               <strong style="font-size:13px;color:#111827;">{{ t['notif_title'] if t else 'Notifications' }}</strong>
-              <button onclick="markAllNotifsRead()" style="background:none;border:none;color:#0D9488;cursor:pointer;font-size:11px;text-decoration:underline;padding:0;">{{ t['notif_mark_all_read'] if t else 'Mark all read' }}</button>
+              <button data-click="mark-all-notifs-read" style="background:none;border:none;color:#0D9488;cursor:pointer;font-size:11px;text-decoration:underline;padding:0;">{{ t['notif_mark_all_read'] if t else 'Mark all read' }}</button>
             </div>
             <div id="notif-list" style="padding:6px 0;">
               <div style="padding:24px 16px;text-align:center;color:#9CA3AF;font-size:12px;">{{ t['notif_loading'] if t else 'Loading…' }}</div>
@@ -146,6 +159,7 @@
 
 </div>
 
+<script src="/static/js/actions.js"></script>
 <script nonce="{{ csp_nonce() }}">
   const _ZF_LANG = "{{ therapist.language if therapist and therapist.language else 'en' }}";
   const _ZF_NOTIF_STR = {
@@ -286,13 +300,13 @@
         const persist = n.persistent && !n.resolved_at;
         const bgColor = persist ? '#FEFCE8' : (unread ? '#F0FDFA' : '#fff');
         const action = persist
-          ? `<button onclick="resolveNotif(${n.id})" style="background:#0D9488;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:6px;">${_ZF_NOTIF_STR.resolved}</button>`
+          ? `<button data-click="resolve-notif" data-id="${Number(n.id)}" style="background:#0D9488;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:6px;">${_ZF_NOTIF_STR.resolved}</button>`
           : '';
-        return `<div onclick="markNotifRead(${n.id})" style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid #F3F4F6;cursor:pointer;background:${bgColor};">
+        return `<div data-click="mark-notif-read" data-id="${Number(n.id)}" style="display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid #F3F4F6;cursor:pointer;background:${bgColor};">
           ${_notifIcon(n.severity || 'info')}
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:${unread ? '600' : '500'};color:#111827;line-height:1.35;">${(n.title||'').replace(/[<>]/g, '')}</div>
-            ${n.body ? `<div style="font-size:11px;color:#6B7280;margin-top:2px;line-height:1.45;">${(n.body||'').replace(/[<>]/g, '')}</div>` : ''}
+            <div style="font-size:12px;font-weight:${unread ? '600' : '500'};color:#111827;line-height:1.35;">${ZF.esc(n.title)}</div>
+            ${n.body ? `<div style="font-size:11px;color:#6B7280;margin-top:2px;line-height:1.45;">${ZF.esc(n.body)}</div>` : ''}
             <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">${_formatNotifTime(n.created_at)}</div>
             ${_notifLinkHtml(n.link)}
             ${action}
@@ -305,7 +319,7 @@
   }
 
   async function markNotifRead(id) {
-    try { await fetch(`/api/notifications/${id}/read`, { method: 'POST' }); } catch (_) {}
+    try { await fetch(`/api/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }); } catch (_) {}
     refreshNotifBadge();
   }
 
@@ -316,13 +330,23 @@
   }
 
   async function resolveNotif(id) {
-    try { await fetch(`/api/notifications/${id}/resolve`, { method: 'POST' }); } catch (_) {}
+    try { await fetch(`/api/notifications/${encodeURIComponent(id)}/resolve`, { method: 'POST' }); } catch (_) {}
     refreshNotifBadge();
     await loadNotifList();
   }
 
   refreshNotifBadge();
   setInterval(refreshNotifBadge, 15000);
+
+  ZF.actions.register({
+    'toggle-language': () => toggleLanguage(),
+    'toggle-notif-panel': (el, ev) => toggleNotifPanel(ev),
+    'mark-all-notifs-read': () => markAllNotifsRead(),
+    'mark-notif-read': (el) => markNotifRead(el.dataset.id),
+    // The button sits inside the notification's row: resolving it also marks it read, as the
+    // click used to bubble to the row's own handler.
+    'resolve-notif': (el) => { markNotifRead(el.dataset.id); resolveNotif(el.dataset.id); },
+  });
 </script>
 <script src="/static/js/csrf.js"></script>
 <script src="/static/js/shell.js"></script>

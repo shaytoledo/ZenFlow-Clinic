@@ -1723,3 +1723,15 @@ body {
 
 /* 10. Star-rating row: keep numeric order 1→5 reading left-to-right */
 [dir="rtl"] #mf-stars { flex-direction: row-reverse; }
+
+/* ── Hover states (SF-016) ───────────────────────────────────────────────────────────────────────
+   Hover feedback used to be inline `onmouseover="this.style…"` handlers, which an enforcing CSP
+   blocks. These utilities do it in CSS; `!important` beats the inline `style="background:…"` the
+   element still carries. */
+.zf-hover-bg-subtle:hover { background: #F9FAFB !important; }
+.zf-hover-bg-teal-tint:hover { background: #F0FDFA !important; }
+.zf-hover-bg-blue-tint:hover { background: #EFF6FF !important; }
+.zf-hover-bg-red-tint:hover { background: #FEF2F2 !important; }
+.zf-hover-bg-red:hover { background: #FEE2E2 !important; border-color: #FCA5A5 !important; }
+.zf-hover-bg-teal-dark:hover { background: #0f766e !important; }
+.zf-hover-text-teal:hover { color: #0D9488 !important; }

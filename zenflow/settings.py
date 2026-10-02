@@ -99,10 +99,9 @@ class FeatureFlags(BaseSettings):
     session_idle_minutes: int = 720
     # ZF_SESSION_MAX_HOURS — however busy, a session ends this long after sign-in (9.2)
     session_max_hours: int = 168
-    # ZF_CSP_ENFORCE — send the Content-Security-Policy as enforcing, not report-only (9.4).
-    # Default off: the templates still carry inline handlers and style attributes a strict policy
-    # would block, so the policy bakes in report-only until that markup is cleaned up.
-    csp_enforce: bool = False
+    # ZF_CSP_ENFORCE — send the Content-Security-Policy as enforcing (default since SF-016 removed
+    # every inline handler, 10.3); 0 = report-only, an escape hatch if a page ever breaks (9.4).
+    csp_enforce: bool = True
     # ZF_LOGIN_MAX_ATTEMPTS — consecutive failed sign-ins before the account and source IP are
     # locked for a growing cooldown (9.5). 0 = no lockout.
     login_max_attempts: int = 5

@@ -24,7 +24,7 @@
   <span class="dot-available"></span>
   <span>Drag to add a slot · Click event to view details</span>
 </div>
-<button id="cal-refresh-btn" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 12px;margin-left:10px;" title="Re-pull the next 14 days from Google Calendar" onclick="refreshCalendar(this)">
+<button id="cal-refresh-btn" class="zf-btn zf-btn-outline" style="font-size:12px;padding:6px 12px;margin-left:10px;" title="Re-pull the next 14 days from Google Calendar" data-click="refresh-calendar">
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
   Update Calendar
 </button>
@@ -44,6 +44,10 @@ async function refreshCalendar(btn) {
     setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2000);
   }
 }
+
+ZF.actions.register({
+  'refresh-calendar': (el) => refreshCalendar(el),
+});
 </script>
 {% endblock %}
 
