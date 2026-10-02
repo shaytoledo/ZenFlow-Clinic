@@ -72,6 +72,14 @@ def test_prod_with_default_session_secret_refuses_to_boot(env) -> None:
         env({**PROD_BASE, "SESSION_SECRET": S.DEFAULT_SESSION_SECRET})
 
 
+def test_the_default_secret_is_refused_whatever_its_length(env, monkeypatch) -> None:
+    """The equality check stands on its own — not only because today's default is short."""
+    long_default = "d" * 48
+    monkeypatch.setattr(S, "DEFAULT_SESSION_SECRET", long_default)
+    with pytest.raises(S.SettingsError, match="SESSION_SECRET"):
+        env({**PROD_BASE, "SESSION_SECRET": long_default})
+
+
 def test_prod_with_short_session_secret_refuses_to_boot(env) -> None:
     with pytest.raises(S.SettingsError, match="SESSION_SECRET"):
         env({**PROD_BASE, "SESSION_SECRET": "short"})

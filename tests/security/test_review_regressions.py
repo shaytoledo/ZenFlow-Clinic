@@ -231,3 +231,17 @@ async def test_treatment_page_for_foreign_appointment_redirects(
     assert resp.status_code in (302, 303, 307)
     assert resp.headers["location"] == "/patients"
     assert "application/json" not in resp.headers.get("content-type", "")
+
+
+@pytest.mark.parametrize("value", ["", "0", "false", "no", "off", "OFF"])
+def test_every_off_value_disables_the_dotenv_file(value: str, monkeypatch) -> None:
+    """A missing file would also load nothing — so check the decision itself, not its effect."""
+    monkeypatch.setenv("ZENFLOW_DOTENV", value)
+    assert S._env_file() is None
+
+
+def test_a_dotenv_path_is_used_and_absence_means_the_project_file(monkeypatch) -> None:
+    monkeypatch.setenv("ZENFLOW_DOTENV", "/somewhere/custom.env")
+    assert S._env_file() == Path("/somewhere/custom.env")
+    monkeypatch.delenv("ZENFLOW_DOTENV")
+    assert S._env_file() == S.ENV_FILE

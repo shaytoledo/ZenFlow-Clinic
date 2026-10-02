@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {# xss-reviewed: href | /treatment/ + Number() + encodeURIComponent() parts #}
 {# xss-reviewed: intakeBadge | one of two literal badges #}
-{# xss-reviewed: a.patient_name | row.append() inserts text, never markup (SF-012) #}
-{# xss-reviewed: a.message || 'requires follow-up' | row.append() inserts text, never markup (SF-012) #}
 {% block page_title_tag %}{{ t['dashboard_title'] if t else 'Dashboard' }}{% endblock %}
 {% block page_heading %}{{ t['dashboard_title'] if t else 'Dashboard' }}{% endblock %}
 
@@ -473,7 +471,7 @@ async function loadAlerts() {
       document.getElementById('alerts-banner').style.display = 'flex';
       document.getElementById('alerts-list').replaceChildren(...d.alerts.map((a) => {
         const row = document.createElement('div');
-        row.append(`${a.patient_name} — ${a.message || 'requires follow-up'} `);
+        row.append(a.patient_name + ' — ' + (a.message || 'requires follow-up') + ' ');
         if (typeof a.link === 'string' && a.link.startsWith('/treatment/')) {
           const link = document.createElement('a');
           link.href = a.link;

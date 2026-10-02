@@ -78,6 +78,17 @@ def test_no_inline_event_handlers_on_any_page_or_script() -> None:
     assert offenders == {}, "use data-click / data-on-* and ZF.actions.register (SF-016)"
 
 
+def test_no_raw_html_sink_bypasses_the_interpolation_rule() -> None:
+    """Template-literal innerHTML is checked above; these sinks take a plain string and would let
+    an unescaped API value straight in (the mutation run used one to undo SF-012 unnoticed)."""
+    sinks = re.compile(r"insertAdjacentHTML|outerHTML\s*=|document\.write|createContextualFragment")
+    sources = [*TEMPLATES.rglob("*.html"), *(WEB / "static").rglob("*.js")]
+    offenders = sorted(
+        str(p.relative_to(WEB)) for p in sources if sinks.search(p.read_text(encoding="utf-8"))
+    )
+    assert offenders == [], "build DOM nodes, or use innerHTML with ZF.esc()/escHtml() values"
+
+
 def test_every_declared_action_is_registered() -> None:
     base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
     missing = {}

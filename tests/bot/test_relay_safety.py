@@ -223,6 +223,36 @@ async def test_registry_reload_is_visible_to_handlers(
     assert _get_therapist(context) is None, "deactivation must apply without a bot restart"
 
 
+def test_reload_keeps_every_imported_reference_current(db, make_therapist) -> None:
+    """B5: modules that imported the registry by name must see a reload — the list, the map and
+    the by-id dict alike (rebinding any one of them freezes that module's copy)."""
+    from bot import config as botcfg
+    from bot.patient_bot import schedule, start, therapist
+    from bot.therapist_bot import handlers
+
+    def held(module: object, name: str):  # the module's own reference, as its code sees it
+        return vars(module)[name]
+
+    make_therapist(name="Dr New", telegram_id=700_009, therapist_id="t9")
+    botcfg.reload_therapists()
+    for module in (start, schedule, therapist):
+        assert any(t["id"] == "t9" for t in held(module, "THERAPISTS")), module.__name__
+    assert "t9" in held(therapist, "THERAPIST_BY_ID")
+    assert any(t["id"] == "t9" for t in held(handlers, "THERAPIST_MAP").values())
+
+
+def test_no_choice_and_several_therapists_means_nobody(db, make_therapist) -> None:
+    """B12: without the patient's own choice, only a clinic with exactly ONE active therapist has
+    an unambiguous recipient — with two, the message must not go to whichever is first."""
+    from bot import config as botcfg
+    from bot.patient_bot.therapist import _get_therapist
+
+    make_therapist(name="Dr A", telegram_id=700_001, therapist_id="t1")
+    make_therapist(name="Dr B", telegram_id=700_002, therapist_id="t2")
+    botcfg.reload_therapists()
+    assert _get_therapist(make_context({})) is None
+
+
 async def test_media_from_a_stranger_is_not_treated_as_a_therapist(
     db, fake_redis, patient_bot
 ) -> None:
