@@ -293,6 +293,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_AI_RATE_PER_MINUTE` | `20` | AI diagnosis/point-generation requests per therapist per minute before the endpoints 429 (9.5); `0` = off |
 | `ZF_SIGNUP_PER_MINUTE` | `10` | Public sign-ups per minute per source IP before 429 (9.5); `0` = off |
 | `ZF_BOT_FLOOD_PER_MINUTE` | `20` | Telegram messages per user per minute on each bot surface (relay/intake/activation) before throttling (9.5, ADR-40); `0` = off |
+| `ZF_TRUSTED_PROXIES` | — | IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's subnet); `X-Forwarded-For` is believed only from these — empty = never (SF-022, `web/client_ip.py`) |
 | `ZF_RETENTION_OPERATIONAL_DAYS` | `730` | Days operational patient rows (message metadata, AI meters, read notifications, finished jobs) are kept before `zenflow.retention --apply` removes them (9.9); `0` = forever |
 | `ZF_RETENTION_CLINICAL_YEARS` | `0` | Years after a patient's last appointment before the clinical record may be purged (9.9); `0` = forever until owner decision Q5 |
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |

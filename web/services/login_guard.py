@@ -46,9 +46,11 @@ def max_attempts() -> int:
 
 
 def client_ip(request: Request) -> str:
-    """The caller's address as the proxy in front of us reports it, else the socket peer."""
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-    return forwarded or (request.client.host if request.client else "unknown")
+    """The caller's address. A client-sent X-Forwarded-For is never believed: it would let one
+    attacker pose as a new address on every attempt and never trip the IP lock (SF-022)."""
+    from web.client_ip import client_ip as _resolve
+
+    return _resolve(request) or "unknown"
 
 
 def _lockout_for(failures: int, limit: int) -> int:
