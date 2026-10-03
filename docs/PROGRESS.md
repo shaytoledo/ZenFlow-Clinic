@@ -219,7 +219,7 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **`zenflow.restore_drill`:** fingerprints every table (row count + SHA-256 of the rows), backs up with the production path, restores into a scratch copy, and compares. `--compare-url` is for the AWS PITR drill.
 - **Performed for real** on a synthetic clinic: SQLite (952 rows, encrypted) and Postgres 16 (949 rows, pg_dump → pg_restore, 1.4 s). Both **identical**, cleaned up afterwards.
 - **Tests:** the drill notices one lost row and one changed value; the automatic backup takes, skips and prunes; 2 mutation specs VERIFIED. The AWS drill procedure is written for after the go-ahead |
-| 12.2.8 | Cost estimate + minimal-viable alternative | [x] | 2026-10-03 | _pending_ | `docs/AWS_COST_ESTIMATE.md`. Prices read from the public AWS Price List for **il-central-1** on 2026-10-02 (unit-price table included, so the sums are reproducible).
+| 12.2.8 | Cost estimate + minimal-viable alternative | [x] | 2026-10-03 | 5639f5c (#120) | `docs/AWS_COST_ESTIMATE.md`. Prices read from the public AWS Price List for **il-central-1** on 2026-10-02 (unit-price table included, so the sums are reproducible).
 - **Option A, managed** (the Terraform): **≈ $325/month** with Ollama on CPU `c7i.xlarge`; ≈ $472 on `c7i.2xlarge`; ≈ $1,039 with the GPU `g5.xlarge`.
 - **Option B, smallest viable** (one EC2 server with the compose stack): **≈ $156–189**, with the trade-offs: daily snapshots instead of PITR, our own patching, a single point of failure.
 - **Ollama is the largest line**, and `g4dn` is not offered in Tel Aviv. The Terraform default became the CPU option.
