@@ -68,6 +68,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/MASTER_PLAN_EN.md` | The long-term plan, Phases 0–13 (the working agreement is §1) |
 | `docs/MASTER_PLAN_HE.md` | The same plan in Hebrew |
 | `docs/PROGRESS.md` | The living checklist of the plan: every task, its commit and PR, the review logs, the open owner questions |
+| `docs/RETRO.md` | Phase 13.4: what broke in each phase, what the plan got wrong, what to reorder, and the lessons that became rules |
 | `docs/RUNBOOK.md` | Phase 13.3: operating it — "the bot is down", restarts, dead-lettered jobs (`python -m zenflow.jobs`), secret rotation, restores, patient data requests, routine, the AWS alarms |
 | `docs/SECURITY_FINDINGS.md` | Every security finding SF-001… with severity, fix and regression test |
 | `docs/ARCHITECTURE.md` | System overview, file tree, component map, env vars |
