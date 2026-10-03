@@ -287,3 +287,13 @@ def test_automatic_backups_default_to_daily_keeping_two_weeks(env) -> None:
     assert (s.flags.backup_hours, s.flags.backup_keep) == (0, 3)
     with pytest.raises(S.SettingsError):
         env({"ZF_BACKUP_KEEP": "0"})
+
+
+def test_media_relay_is_off_until_switched_on_and_capped_at_telegrams_limit(env) -> None:
+    """Q6: ZF_RELAY_MEDIA both ways; the size cap stays within Telegram's 20 MB bot download."""
+    s = env({})
+    assert (s.flags.relay_media, s.flags.relay_media_max_mb) == (False, 10)
+    s = env({"ZF_RELAY_MEDIA": "1", "ZF_RELAY_MEDIA_MAX_MB": "20"})
+    assert (s.flags.relay_media, s.flags.relay_media_max_mb) == (True, 20)
+    with pytest.raises(S.SettingsError):
+        env({"ZF_RELAY_MEDIA_MAX_MB": "50"})

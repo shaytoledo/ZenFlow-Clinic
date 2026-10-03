@@ -85,36 +85,73 @@ async def handle_therapist_message(update: Update, context: ContextTypes.DEFAULT
 
 
 async def handle_therapist_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Non-text message from a therapist: say so instead of dropping it (BOT_AUDIT B7).
+    """Non-text message from a therapist.
 
-    Forwarding media is a clinical/PHI decision (open question Q6); until it is answered the bot
-    refuses clearly rather than silently ignoring the message.
+    With ZF_RELAY_MEDIA=1 (owner decision Q6) it reaches the patient by the same routing rule as
+    text (`_resolve_patient`), downloaded and re-sent in memory and never stored. Otherwise, or for
+    a type/size that may not be relayed, the therapist is told so instead of it being dropped (B7).
     """
+    from bot.services import media_relay
+    from zenflow.settings import get_settings
+
     user_id = update.effective_user.id
-    if therapists.get_by_telegram(user_id) is None:
+    me = therapists.get_by_telegram(user_id)
+    if me is None:
         await update.message.reply_text(
             "👋 You're not registered as a therapist on this bot.\n"
             "Visit the clinic web portal to register and get your activation code."
         )
         return
-    lang = _therapist_lang(user_id)
-    await update.message.reply_text(
-        "📎 Photos, voice notes and files can't be delivered to patients yet — "
-        "please send your reply as text."
-        if lang == "en"
-        else "📎 לא ניתן עדיין לשלוח תמונות, הודעות קוליות או קבצים למטופלים — נא לכתוב את התשובה כטקסט."
+    lang = me.get("language") or "en"
+    msg = update.message
+    on = get_settings().flags.relay_media
+    attachment = media_relay.attachment_of(msg) if on else None
+    if attachment is None:
+        await msg.reply_text(
+            "📎 Photos, voice notes and files can't be delivered to patients yet — "
+            "please send your reply as text."
+            if lang == "en"
+            else "📎 לא ניתן עדיין לשלוח תמונות, הודעות קוליות או קבצים למטופלים — נא לכתוב את התשובה כטקסט."
+        )
+        return
+    patient_id = await _resolve_patient(msg, me["id"], lang)
+    if patient_id is None:
+        return
+    therapist_name = msg.from_user.full_name or "Therapist"
+    caption = f"👨‍⚕️ {therapist_name}" + (
+        f":\n{msg.caption}" if getattr(msg, "caption", None) else ""
     )
+    try:
+        sent = await media_relay.relay(
+            attachment,
+            from_bot=context.bot,
+            channel=_patient_channel,
+            recipient_id=patient_id,
+            caption=caption,
+        )
+    except media_relay.MediaRefused as refused:
+        await msg.reply_text(f"📎 {refused}")
+        return
+    except Exception as e:
+        logger.error(
+            f"Could not deliver a {attachment.kind} to patient {patient_id}: {type(e).__name__}"
+        )
+        _log_relay(patient_id, me["id"], "failed", error=str(e))
+        await msg.reply_text(f"⚠️ Could not deliver to patient {patient_id}.")
+        return
+    _log_relay(patient_id, me["id"], "sent", provider_message_id=sent.message_id)
+    append_history(patient_id, "therapist", f"[{attachment.kind}]", me["id"])
+    await msg.reply_text("✅ Delivered." if lang == "en" else "✅ נמסר למטופל.")
 
 
-async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
-    """Route a therapist message back to the correct patient.
+async def _resolve_patient(msg, therapist_id: str, lang: str = "en") -> int | None:
+    """The patient a therapist message is for, or None after telling the therapist why not.
 
     A reply uses the mapping of the message it replies to. Free typing is delivered only while
     exactly one patient chat is open for this therapist. When the intended patient is not certain
-    the message is refused rather than guessed (BOT_AUDIT B1) - see docs/RELAY.md.
+    the message is refused rather than guessed (BOT_AUDIT B1) - see docs/RELAY.md. Text and media
+    (Q6) go through the same rule.
     """
-    therapist_name = msg.from_user.full_name or "Therapist"
-
     if msg.reply_to_message:
         info = get_patient_for_msg(msg.reply_to_message.message_id, therapist_id)
         if info is None:
@@ -129,13 +166,13 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
             )
             await msg.reply_text(expired_msg)
             logger.warning(f"Therapist {therapist_id} replied to an expired relay mapping")
-            return
+            return None
         if info.get("therapist_id") and info["therapist_id"] != therapist_id:
             await msg.reply_text(_t("bot_unauthorized", lang))
             logger.warning(
                 f"Therapist {therapist_id} tried to reply to a message owned by {info['therapist_id']}"
             )
-            return
+            return None
         patient_id = info["patient_id"]
     else:
         # Free typing is only unambiguous while exactly one chat is open (BOT_AUDIT B1).
@@ -149,7 +186,7 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
                 "כדי שההודעה תגיע לאדם הנכון."
             )
             await msg.reply_text(ambiguous_msg)
-            return
+            return None
         patient_id = active[0] if active else None
         if patient_id is None:
             no_active_msg = (
@@ -158,7 +195,7 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
                 else "⚠️ אין שיחת מטופל פעילה. המתן/י עד שמטופל ישלח הודעה."
             )
             await msg.reply_text(no_active_msg)
-            return
+            return None
 
     if _patient_channel is None:  # startup wiring did not run (BOT_AUDIT B14)
         logger.error("relay not wired: no patient bot client")
@@ -167,6 +204,16 @@ async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
             if lang == "en"
             else "⚠️ הבוט למטופלים אינו מחובר כרגע. נסה/י שוב בעוד מספר רגעים."
         )
+        return None
+
+    return patient_id
+
+
+async def _handle_relay(msg, therapist_id: str, lang: str = "en") -> None:
+    """Route a therapist text message back to the correct patient (see `_resolve_patient`)."""
+    therapist_name = msg.from_user.full_name or "Therapist"
+    patient_id = await _resolve_patient(msg, therapist_id, lang)
+    if patient_id is None:
         return
 
     try:

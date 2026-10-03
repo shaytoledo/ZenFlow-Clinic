@@ -33,6 +33,55 @@ class FakeBot:
     def texts(self) -> list[str]:
         return [m["text"] for m in self.sent]
 
+    # ── files (media relay, Q6): get_file + the four send_<media> methods ──
+    files: dict[str, bytes]
+    downloads: list[str]
+
+    def serve(self, file_id: str, data: bytes) -> None:
+        """Make `file_id` downloadable through this bot."""
+        if not hasattr(self, "files"):
+            self.files, self.downloads = {}, []
+        self.files[file_id] = data
+
+    async def get_file(self, file_id: str) -> Any:
+        if not hasattr(self, "files"):
+            self.files, self.downloads = {}, []
+        data = self.files[file_id]
+        self.downloads.append(file_id)
+
+        async def download_as_bytearray() -> bytearray:
+            return bytearray(data)
+
+        return SimpleNamespace(file_size=len(data), download_as_bytearray=download_as_bytearray)
+
+    async def _send_file(self, method: str, chat_id: int, upload: Any, **kw: Any) -> Any:
+        if self.fail_with is not None:
+            raise self.fail_with
+        self._next_id += 1
+        self.sent.append(
+            {
+                "method": method,
+                "chat_id": chat_id,
+                "bytes": upload.input_file_content,
+                "filename": upload.filename,
+                "text": kw.get("caption") or "",
+                **kw,
+            }
+        )
+        return SimpleNamespace(message_id=self._next_id)
+
+    async def send_photo(self, chat_id: int, photo: Any, **kw: Any) -> Any:
+        return await self._send_file("photo", chat_id, photo, **kw)
+
+    async def send_audio(self, chat_id: int, audio: Any, **kw: Any) -> Any:
+        return await self._send_file("audio", chat_id, audio, **kw)
+
+    async def send_video(self, chat_id: int, video: Any, **kw: Any) -> Any:
+        return await self._send_file("video", chat_id, video, **kw)
+
+    async def send_document(self, chat_id: int, document: Any, **kw: Any) -> Any:
+        return await self._send_file("document", chat_id, document, **kw)
+
 
 class FakeMessage:
     def __init__(
