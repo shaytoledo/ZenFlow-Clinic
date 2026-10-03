@@ -234,9 +234,9 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 ## Phase 13 — Documentation & maintenance
 | # | Task | Status | Date | Commit | Notes |
 |---|---|---|---|---|---|
-| 13.1 | Keep docs/ current per PR | [ ] | | | ongoing |
-| 13.2 | ADRs in TECHNICAL_DECISIONS.md | [ ] | | | ongoing |
-| 13.3 | `docs/RUNBOOK.md` | [ ] | | | |
+| 13.1 | Keep docs/ current per PR | [x] | 2026-10-03 | _pending_ | Ongoing by rule; now **enforced** by `tests/unit/test_docs_current.py`: every `python -m zenflow.X` a doc quotes exists and runs; every `docs/*.md` is in CLAUDE.md's index (4 were missing); every variable in CLAUDE.md's env table is a real setting; ADRs are numbered once and in order. CLAUDE.md "What works"/"Planned" and the module tree brought up to date |
+| 13.2 | ADRs in TECHNICAL_DECISIONS.md | [x] | 2026-10-03 | _pending_ | ADR-1…ADR-50, one per architectural decision (context, options, decision, consequences, status/date); ADR-11 marked superseded by ADR-47. Numbering checked by `test_docs_current.py`. Ongoing: each new decision appends one |
+| 13.3 | `docs/RUNBOOK.md` | [x] | 2026-10-03 | _pending_ | `docs/RUNBOOK.md`, host and AWS side by side: where to look first; "the bot is down" step by step; restarts; **dead-lettered jobs**; rotating every secret and what it costs; restores; patient data requests; routine (daily/monthly/quarterly); every AWS alarm and its first step. New: `python -m zenflow.jobs` (stats, dead, replay, cancel) and `TaskQueue.requeue` (dead jobs only, fresh attempts, last error kept; mutation spec VERIFIED) |
 | 13.4 | Per-phase retro | [ ] | | | ongoing |
 
 ---

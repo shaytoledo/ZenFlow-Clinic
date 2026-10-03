@@ -45,6 +45,7 @@ python -m zenflow.retention [--apply | --policy]
 # Backups / exports that leave the host are encrypted first (BACKUP_ENCRYPTION_KEY)
 python -m zenflow.db_backup --encrypt          # SQLite: online backup; Postgres: pg_dump (12.2.7)
 python -m zenflow.restore_drill                # back up → restore into a scratch copy → compare every table
+python -m zenflow.jobs dead | replay <id> | stats   # the background-job queue: see and replay dead-lettered jobs
 python -m zenflow.move_data --from <db|s3://…|app> --to <db|s3://…|app>   # verified copy between databases (12.2.9)
 python -m zenflow.file_crypto decrypt <file>.enc --out <file>
 ```
@@ -64,6 +65,11 @@ All technical documentation lives in `docs/` — one file per topic:
 | File | Topic |
 |---|---|
 | `docs/QUESTIONS_FOR_SHAI.md` | **Every open owner decision in one place** (Hebrew): what is asked, the options, the recommendation, what follows. Mirrored in PROGRESS's open-questions table; answered together at the end |
+| `docs/MASTER_PLAN_EN.md` | The long-term plan, Phases 0–13 (the working agreement is §1) |
+| `docs/MASTER_PLAN_HE.md` | The same plan in Hebrew |
+| `docs/PROGRESS.md` | The living checklist of the plan: every task, its commit and PR, the review logs, the open owner questions |
+| `docs/RUNBOOK.md` | Phase 13.3: operating it — "the bot is down", restarts, dead-lettered jobs (`python -m zenflow.jobs`), secret rotation, restores, patient data requests, routine, the AWS alarms |
+| `docs/SECURITY_FINDINGS.md` | Every security finding SF-001… with severity, fix and regression test |
 | `docs/ARCHITECTURE.md` | System overview, file tree, component map, env vars |
 | `docs/MEMORY_MANAGEMENT.md` | All memory layers: Redis, in-process dicts, SQLite, sessions — full lifecycle |
 | `docs/REDIS.md` | Redis key schema, TTLs, eviction, invalidation patterns |
@@ -195,6 +201,12 @@ zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── db_backup.py             # backup_database() via SQLite online backup (WAL-safe)
 ├── logging.py               # Structured logging: context (request_id…), redaction, console/JSON formatters, timed()
 ├── token_key.py             # Fernet derivation for google_tokens + rotate()
+├── pg.py                    # Postgres behind the sqlite3-shaped connection (ZF_DB_URL, ADR-46)
+├── schema.py / migrate.py   # the schema as data + Alembic (python -m zenflow.migrate …, ADR-45)
+├── jobs.py                  # python -m zenflow.jobs — queue stats, dead letters, replay (RUNBOOK §3)
+├── restore_drill.py         # back up → restore into a scratch copy → compare every table (12.2.7)
+├── move_data.py             # verified copy between SQLite / Postgres / S3 — the AWS cut-over (12.2.9)
+├── patient_export.py / patient_erasure.py / retention.py   # patient data rights + retention (9.9)
 └── rotate_token_key.py      # python -m zenflow.rotate_token_key [--dry-run]
 
 startup/
@@ -349,6 +361,20 @@ Any message / /start → SELECTING (main menu)
 - In-flight flows survive a bot restart (`bot/persistence.py`, table `bot_persistence`; scheduling keys only, never clinical text)
 - Test harness (`tests/`): per-test SQLite, fakeredis, ASGI client, fake Telegram/LLM, factories; `python tasks.py test`
 - Multi-tenant isolation: every API/page route scoped to the session therapist; attack suite in `tests/security/`
+- Patients have an internal identity independent of Telegram (`patients` + `patient_channels`); a booking API (`/api/v1`) for machine clients; a WhatsApp adapter (built, off)
+- Audit trail (`audit_log`, append-only), AI-call meter, message log; per-session "Record history"
+- Security hardening: route authz table, sessions with idle/absolute expiry, CSRF, enforcing CSP, rate limits and lockout, secrets provider + key rotation, prompt-injection defences, TLS-only transport; threat model A1–A14 as tests; every recorded fix mutation-verified (`python tasks.py verify-fixes`)
+- Patient data: export, erasure (anonymize/purge), retention sweep (clinical record 7 years after the last visit)
+- Runs on SQLite (default) **or Postgres** (`ZF_DB_URL`; the whole suite runs on both in CI); schema owned by Alembic
+- Ready for several instances: no per-process registries, periodic work runs once across workers, bounded Redis pool
+- Bots by polling or by webhook (`ZF_WEBHOOK_MODE`), with `/healthz` on the bots process
+- Backups: automatic and encrypted on a single host; a restore drill (`python -m zenflow.restore_drill`); a verified data mover (`python -m zenflow.move_data`)
+- Containers (web / bots / worker) and the whole AWS deployment as Terraform (`infra/terraform/`) — validated in CI, **never applied**
+- Photo/voice relay between patient and therapist (built, off: `ZF_RELAY_MEDIA`)
+- Operations: `docs/RUNBOOK.md`, dead-letter replay (`python -m zenflow.jobs`)
 
-## Planned
-- Switch `USE_AI=anthropic` for production Claude API
+## Planned (waiting on the owner — `docs/QUESTIONS_FOR_SHAI.md`)
+- The move to AWS: choose the shape and budget (`docs/AWS_COST_ESTIMATE.md`), then `docs/INFRA.md` → `docs/MIGRATION_RUNBOOK.md`
+- Point images (licensed set found; download on approval) and `ZF_POINT_IMAGES=1`
+- Switching on the photo/voice relay; the WhatsApp channel
+- The AI stays on Ollama (owner decision Q3); `USE_AI=anthropic` exists if that changes
