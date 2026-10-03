@@ -225,7 +225,7 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **Ollama is the largest line**, and `g4dn` is not offered in Tel Aviv. The Terraform default became the CPU option.
 - **Levers:** NAT +$30, Multi-AZ +$17, Graviton −$12, a Savings Plan ~−25–40%, a staging copy ~$11/day.
 - **Recommendation:** A with CPU Ollama, a budget alarm at $400, and measure CPU speed on staging before any GPU. **The owner decides** |
-| 12.2.9 | Migration runbook + rollback | [x] | 2026-10-03 | _pending_ | `docs/MIGRATION_RUNBOOK.md`: T−1 checklist, a ≈30-minute cut-over, a 10-minute verification checklist, and **two rollbacks** (before real use: start the old host, since polling removes the webhook; after: export RDS back through S3).
+| 12.2.9 | Migration runbook + rollback | [x] | 2026-10-03 | 57f866b (#122) | `docs/MIGRATION_RUNBOOK.md`: T−1 checklist, a ≈30-minute cut-over, a 10-minute verification checklist, and **two rollbacks** (before real use: start the old host, since polling removes the webhook; after: export RDS back through S3).
 - **`zenflow.move_data`:** moves the whole database between SQLite, Postgres, the app's own database and S3 (encrypted `.enc`).
 - **Its guarantees:** the source is opened read-only; an empty target is required; one transaction in foreign-key order, ids kept; Postgres sequences reset; a fingerprint verification after the move (exit 1 on any difference).
 - **Performed for real:** SQLite → Postgres 16 (952 rows, identical, 0.85 s) → back to SQLite (identical); a repeat was refused; the source's SHA-256 was unchanged.
