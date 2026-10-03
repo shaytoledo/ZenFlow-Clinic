@@ -202,7 +202,7 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **Settings** refuse webhook mode without a 32+ char secret and an https URL, in any environment.
 - **One bots replica** (conversation state is in-process; documented). The SIGTERM shutdown stops the apps cleanly.
 - **Tests:** `test_bot_webhooks.py` (13, incl. `_run` end to end against the fake Telegram) + settings tests; 2 mutation specs VERIFIED |
-| 12.2.6 | IaC skeleton (Terraform/CDK) | [x] | 2026-10-03 | _pending_ | ADR-50, `docs/INFRA.md`. **Not applied, and nothing provisioned.** Terraform in `infra/terraform/`, one root module, staging/prod `.tfvars`, S3+DynamoDB state.
+| 12.2.6 | IaC skeleton (Terraform/CDK) | [x] | 2026-10-03 | bb7bd1b (#119) | ADR-50, `docs/INFRA.md`. **Not applied, and nothing provisioned.** Terraform in `infra/terraform/`, one root module, staging/prod `.tfvars`, S3+DynamoDB state.
 - **Region:** `il-central-1`, so patient data stays in Israel.
 - **Network and edge:** VPC over 2 AZs; ALB with ACM TLS 1.2/1.3 and WAF (managed rules, a rate limit, `/telegram/*` only from Telegram's ranges).
 - **App:** ECS Fargate `web` / `bots` (one replica, stop-then-start) / `worker`, plus a one-off `migrate` task.
@@ -213,7 +213,12 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **App side:** `ZF_DB_PASSWORD` fills the password into `ZF_DB_URL`.
 - **Checks:** CI job `infra` (`fmt`, `validate`, trivy scan); `tests/unit/test_infra.py` (the task env boots the app in prod mode, secrets never plain, one bots replica, encryption at rest, only the ALB is open); 2 mutation specs VERIFIED |
 | 12.2.7 | Backups & tested restore drill | [ ] | | | |
-| 12.2.8 | Cost estimate + minimal-viable alternative | [ ] | | | |
+| 12.2.8 | Cost estimate + minimal-viable alternative | [x] | 2026-10-03 | _pending_ | `docs/AWS_COST_ESTIMATE.md`. Prices read from the public AWS Price List for **il-central-1** on 2026-10-02 (unit-price table included, so the sums are reproducible).
+- **Option A, managed** (the Terraform): **≈ $325/month** with Ollama on CPU `c7i.xlarge`; ≈ $472 on `c7i.2xlarge`; ≈ $1,039 with the GPU `g5.xlarge`.
+- **Option B, smallest viable** (one EC2 server with the compose stack): **≈ $156–189**, with the trade-offs: daily snapshots instead of PITR, our own patching, a single point of failure.
+- **Ollama is the largest line**, and `g4dn` is not offered in Tel Aviv. The Terraform default became the CPU option.
+- **Levers:** NAT +$30, Multi-AZ +$17, Graviton −$12, a Savings Plan ~−25–40%, a staging copy ~$11/day.
+- **Recommendation:** A with CPU Ollama, a budget alarm at $400, and measure CPU speed on staging before any GPU. **The owner decides** |
 | 12.2.9 | Migration runbook + rollback | [ ] | | | |
 
 ## Phase 13 — Documentation & maintenance
