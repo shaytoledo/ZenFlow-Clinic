@@ -529,6 +529,18 @@ SPECS = [
         ],
     ),
     spec(
+        id="12.2.9 only into an empty database",
+        file="zenflow/move_data.py",
+        edits=[
+            (
+                "    if busy:\n        raise MoveRefused(",
+                "    if False:\n        raise MoveRefused(",
+                False,
+            )
+        ],
+        tests=["tests/integration/test_move_data.py::test_a_target_that_holds_data_is_refused"],
+    ),
+    spec(
         id="B6 /start says so",
         file="bot/patient_bot/start.py",
         edits=[

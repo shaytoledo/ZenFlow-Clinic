@@ -212,7 +212,7 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **The switch:** the task environment sets every app flag. Secrets are injected from Secrets Manager, never plain env and never in Terraform.
 - **App side:** `ZF_DB_PASSWORD` fills the password into `ZF_DB_URL`.
 - **Checks:** CI job `infra` (`fmt`, `validate`, trivy scan); `tests/unit/test_infra.py` (the task env boots the app in prod mode, secrets never plain, one bots replica, encryption at rest, only the ALB is open); 2 mutation specs VERIFIED |
-| 12.2.7 | Backups & tested restore drill | [x] | 2026-10-03 | _pending_ | `docs/BACKUP_DR.md`.
+| 12.2.7 | Backups & tested restore drill | [x] | 2026-10-03 | 7944d68 (#121) | `docs/BACKUP_DR.md`.
 - **RPO/RTO stated:** today (SQLite) ≤ 24 h / ≈ 15 min; AWS RDS ≤ 5 min (PITR) / ≈ 1 h; one EC2 server ≤ 24 h / ≈ 30–60 min.
 - **Backups now run themselves on the single host:** before this, a backup was taken only when someone ran the command. `db.backup`, a `zenflow.periodic` task, runs every `ZF_BACKUP_HOURS` (24), encrypted when the key is set, and keeps `ZF_BACKUP_KEEP` (14).
 - **`db_backup` works on Postgres** (`pg_dump`, with the password in `PGPASSWORD`, never on the command line).
@@ -225,7 +225,11 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **Ollama is the largest line**, and `g4dn` is not offered in Tel Aviv. The Terraform default became the CPU option.
 - **Levers:** NAT +$30, Multi-AZ +$17, Graviton −$12, a Savings Plan ~−25–40%, a staging copy ~$11/day.
 - **Recommendation:** A with CPU Ollama, a budget alarm at $400, and measure CPU speed on staging before any GPU. **The owner decides** |
-| 12.2.9 | Migration runbook + rollback | [ ] | | | |
+| 12.2.9 | Migration runbook + rollback | [x] | 2026-10-03 | _pending_ | `docs/MIGRATION_RUNBOOK.md`: T−1 checklist, a ≈30-minute cut-over, a 10-minute verification checklist, and **two rollbacks** (before real use: start the old host, since polling removes the webhook; after: export RDS back through S3).
+- **`zenflow.move_data`:** moves the whole database between SQLite, Postgres, the app's own database and S3 (encrypted `.enc`).
+- **Its guarantees:** the source is opened read-only; an empty target is required; one transaction in foreign-key order, ids kept; Postgres sequences reset; a fingerprint verification after the move (exit 1 on any difference).
+- **Performed for real:** SQLite → Postgres 16 (952 rows, identical, 0.85 s) → back to SQLite (identical); a repeat was refused; the source's SHA-256 was unchanged.
+- **Tests:** both directions, the S3 encrypted round trip (moto), the refusal, and that sequences continue after the largest id; mutation spec VERIFIED |
 
 ## Phase 13 — Documentation & maintenance
 | # | Task | Status | Date | Commit | Notes |
