@@ -139,6 +139,12 @@ class TaskQueue(ABC):
     def dead_letters(self) -> list[Job]: ...
 
     @abstractmethod
+    def requeue(self, job_id: int) -> bool:
+        """Give a `dead` job a fresh start: pending now, its attempts reset, the last error kept
+        (an operator replaying it after fixing the cause — docs/RUNBOOK.md). Only dead jobs;
+        handlers are idempotent, so a replay never does the work twice. Returns True if applied."""
+
+    @abstractmethod
     def stats(self) -> dict[str, int]: ...
 
 
@@ -329,6 +335,16 @@ class SqliteTaskQueue(TaskQueue):
             """UPDATE jobs SET status='cancelled', updated_at=?, locked_by=NULL, locked_at=NULL
                WHERE id=? AND status IN ('pending', 'running')""",
             (clock.iso_now(), job_id),
+        )
+        return int(cur.rowcount or 0) > 0
+
+    def requeue(self, job_id: int) -> bool:
+        now = clock.iso_now()
+        cur = self._conn().execute(
+            """UPDATE jobs SET status='pending', attempts=0, run_at=?, updated_at=?,
+                              locked_by=NULL, locked_at=NULL, completed_at=NULL
+               WHERE id=? AND status='dead'""",
+            (now, now, job_id),
         )
         return int(cur.rowcount or 0) > 0
 

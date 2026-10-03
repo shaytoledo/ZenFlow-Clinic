@@ -565,6 +565,19 @@ SPECS = [
         ],
     ),
     spec(
+        id="13.3 only dead jobs are replayed",
+        file="zenflow/queue.py",
+        anchor="class SqliteTaskQueue",
+        edits=[
+            (
+                '               WHERE id=? AND status=\'dead\'""",',
+                '               WHERE id=?""",',
+                False,
+            )
+        ],
+        tests=["tests/unit/test_jobs_cli.py::test_only_dead_jobs_are_replayed"],
+    ),
+    spec(
         id="B6 /start says so",
         file="bot/patient_bot/start.py",
         edits=[
