@@ -63,6 +63,7 @@ All technical documentation lives in `docs/` — one file per topic:
 
 | File | Topic |
 |---|---|
+| `docs/QUESTIONS_FOR_SHAI.md` | **Every open owner decision in one place** (Hebrew): what is asked, the options, the recommendation, what follows. Mirrored in PROGRESS's open-questions table; answered together at the end |
 | `docs/ARCHITECTURE.md` | System overview, file tree, component map, env vars |
 | `docs/MEMORY_MANAGEMENT.md` | All memory layers: Redis, in-process dicts, SQLite, sessions — full lifecycle |
 | `docs/REDIS.md` | Redis key schema, TTLs, eviction, invalidation patterns |
