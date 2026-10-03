@@ -98,6 +98,24 @@ question Q6 in `docs/BOT_AUDIT.md`.
 
 ---
 
+## Photos, voice notes and files (owner decision Q6, `ZF_RELAY_MEDIA`)
+
+**Off until the owner switches it on** with `ZF_RELAY_MEDIA=1`. Off means the bot asks for text,
+and the chat stays open (BOT_AUDIT B7).
+
+Neither bot can forward what the other bot received. So a file is **downloaded through the bot that
+received it and sent again through the other bot**, in memory (`bot/services/media_relay.py`):
+
+| | Rule |
+|---|---|
+| What may go | photos; voice notes and audio (ogg, mp3, m4a, aac); mp4 video; PDF. Anything else is refused with the reason |
+| How big | at most `ZF_RELAY_MEDIA_MAX_MB` (10; Telegram lets a bot download 20). Checked against the size Telegram declares **before** downloading, and again on the bytes |
+| What is kept | **nothing**: the bytes live for the length of the call, with no disk, no database and no storage. The relay history shows `[image]`/`[audio]`… and `message_log` records the delivery, never the content |
+| Who receives a therapist's file | exactly the rule for text (`_resolve_patient`): a reply follows its own mapping, and free sending works only with one open chat. An expired mapping is refused, never guessed (B1) |
+| File names | path and control characters removed, at most 80 characters |
+
+Patient captions travel with the file. The therapist sees `📎 <patient name>: <caption>`.
+
 ## Redis Keys Used by Relay
 
 ### `zenflow:relay:msg:{therapist_id}:{therapist_bot_msg_id}`

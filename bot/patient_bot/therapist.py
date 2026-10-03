@@ -226,17 +226,71 @@ async def relay_to_therapist(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def relay_unsupported_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Patient sent a photo/voice/file during a therapist chat (BOT_AUDIT B7).
+    """Patient sent a photo/voice/file during a therapist chat.
 
-    The chat stays open and the patient is told it was not delivered, instead of the message
-    silently ending the relay. Whether media should be forwarded (and stored — it may be PHI)
-    is open question Q6.
+    With ZF_RELAY_MEDIA=1 (owner decision Q6) it reaches the therapist like a text message does —
+    downloaded and re-sent in memory, never stored (bot/services/media_relay.py). Without it, or
+    for a type/size that may not be relayed, the chat stays open and the patient is told why
+    (BOT_AUDIT B7), instead of the message silently ending the relay.
     """
-    await update.message.reply_text(
-        "📎 I can't send photos, voice notes or files to your therapist yet — "
-        "please describe it in text, or bring it to your session.",
-        reply_markup=_END_KB,
+    from bot.services import media_relay
+    from zenflow.settings import get_settings
+
+    user = update.effective_user
+    on = get_settings().flags.relay_media
+    attachment = media_relay.attachment_of(update.message) if on else None
+    if attachment is None:
+        await update.message.reply_text(
+            "📎 I can't send photos, voice notes or files to your therapist yet — "
+            "please describe it in text, or bring it to your session.",
+            reply_markup=_END_KB,
+        )
+        return THERAPIST_RELAY
+    therapist = _get_therapist(context)
+    if not _therapist_channel or not therapist:
+        await update.message.reply_text("⚠️ Therapist not available.", reply_markup=_END_KB)
+        return THERAPIST_RELAY
+
+    from bot.services import flood
+
+    if await flood.too_fast("relay", user.id):
+        await update.message.reply_text(
+            "⏳ You're sending messages very quickly — please wait a moment.",
+            reply_markup=_END_KB,
+        )
+        return THERAPIST_RELAY
+
+    patient_name = user.full_name or user.first_name or ""
+    caption = f"📎 {patient_name}" + (
+        f":\n{update.message.caption}" if getattr(update.message, "caption", None) else ""
     )
+    try:
+        sent = await media_relay.relay(
+            attachment,
+            from_bot=context.bot,
+            channel=_therapist_channel,
+            recipient_id=therapist["telegram_id"],
+            caption=caption,
+        )
+    except media_relay.MediaRefused as refused:
+        await update.message.reply_text(f"📎 {refused}", reply_markup=_END_KB)
+        return THERAPIST_RELAY
+    except Exception as e:
+        logger.error(f"[{user.id}] media relay failed: {type(e).__name__}")
+        _log_relay(user.id, therapist["id"], "failed", error=str(e))
+        await update.message.reply_text(
+            "⚠️ Could not forward your file. Please try again.", reply_markup=_END_KB
+        )
+        return THERAPIST_RELAY
+
+    # the history shows that a file was sent, never its content (it is not kept anywhere)
+    _record_relay(
+        user.id, int(sent.message_id or 0), therapist["id"], patient_name, f"[{attachment.kind}]"
+    )
+    logger.info(
+        f"[{user.id}] {attachment.kind} relayed via therapist bot, msg_id={sent.message_id}"
+    )
+    await update.message.reply_text("✅ Sent.", reply_markup=_END_KB)
     return THERAPIST_RELAY
 
 

@@ -541,6 +541,30 @@ SPECS = [
         tests=["tests/integration/test_move_data.py::test_a_target_that_holds_data_is_refused"],
     ),
     spec(
+        id="Q6 media type allow-list",
+        file="bot/services/media_relay.py",
+        anchor="def check(",
+        edits=[
+            ('    if (attachment.mime_type or "").lower() not in allowed:', "    if False:", False)
+        ],
+        tests=["tests/bot/test_media_relay.py::test_refused_before_anything_is_downloaded"],
+    ),
+    spec(
+        id="Q6 media replies routed like text (B1)",
+        file="bot/therapist_bot/handlers.py",
+        anchor="async def handle_therapist_media",
+        edits=[
+            (
+                '    patient_id = await _resolve_patient(msg, me["id"], lang)',
+                '    patient_id = (list_active_patients(me["id"]) or [None])[0]',
+                False,
+            )
+        ],
+        tests=[
+            "tests/bot/test_media_relay.py::test_a_media_reply_to_an_expired_mapping_goes_nowhere"
+        ],
+    ),
+    spec(
         id="B6 /start says so",
         file="bot/patient_bot/start.py",
         edits=[

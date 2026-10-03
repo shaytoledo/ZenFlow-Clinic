@@ -317,6 +317,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_DB_URL` | — | A Postgres URL (`postgresql+psycopg://…`) instead of the SQLite file (12.2.2, ADR-46); non-local hosts need `?sslmode=require`. Tests: `ZF_TEST_DB_URL=… pytest` runs the suite on Postgres |
 | `ZF_LOG_FILES` | `1` | `0` = log to the console only, no `logs/*.text` files (containers; 12.2.1) |
 | `ZF_TRUSTED_PROXIES` | — | IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's subnet); `X-Forwarded-For` is believed only from these — empty = never (SF-022, `web/client_ip.py`) |
+| `ZF_RELAY_MEDIA` / `ZF_RELAY_MEDIA_MAX_MB` | `0` / `10` | `1` = photos, voice notes and files are relayed between patient and therapist (owner decision Q6), in memory only, never stored; allowed types only, at most this many MB (`docs/RELAY.md`) |
 | `ZF_BACKUP_HOURS` / `ZF_BACKUP_KEEP` | `24` / `14` | On SQLite, an automatic backup when the newest is this old (encrypted with `BACKUP_ENCRYPTION_KEY`), keeping this many; `0` hours = off. Postgres: RDS backs itself up (12.2.7) |
 | `ZF_RETENTION_OPERATIONAL_DAYS` | `730` | Days operational patient rows (message metadata, AI meters, read notifications, finished jobs) are kept before `zenflow.retention --apply` removes them (9.9); `0` = forever |
 | `ZF_RETENTION_CLINICAL_YEARS` | `7` | Years after a patient's last appointment before the clinical record may be purged (9.9); 7 = owner decision Q5 (Israeli outpatient-record period), `0` = forever |

@@ -64,6 +64,8 @@ FLAG_NAMES: tuple[str, ...] = (
     "TRUSTED_PROXIES",
     "LOG_FILES",
     "BACKUP_HOURS",
+    "RELAY_MEDIA",
+    "RELAY_MEDIA_MAX_MB",
     "BACKUP_KEEP",
 )
 
@@ -119,6 +121,12 @@ class FeatureFlags(BaseSettings):
     # ZF_BOT_FLOOD_PER_MINUTE — Telegram messages one user may send per minute on each bot surface
     # (relay, intake, activation-code entry) before the bot throttles them (9.5). 0 = no limit.
     bot_flood_per_minute: int = 20
+    # ZF_RELAY_MEDIA — photos, voice notes and files are relayed between patient and therapist
+    # (owner decision Q6), in memory only, never stored (bot/services/media_relay.py). Off until
+    # switched on; off = the bot asks for text instead (BOT_AUDIT B7).
+    relay_media: bool = False
+    # ZF_RELAY_MEDIA_MAX_MB — the largest file relayed (Telegram lets a bot download up to 20 MB).
+    relay_media_max_mb: int = Field(default=10, ge=1, le=20)
     # ZF_BACKUP_HOURS — on SQLite (the single-host deployment), take an automatic backup when the
     # newest is this many hours old (12.2.7; encrypted when BACKUP_ENCRYPTION_KEY is set). 0 = off.
     # Postgres is never backed up this way: RDS keeps snapshots + point-in-time recovery.
