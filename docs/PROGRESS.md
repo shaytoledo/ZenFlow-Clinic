@@ -212,7 +212,7 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **The switch:** the task environment sets every app flag. Secrets are injected from Secrets Manager, never plain env and never in Terraform.
 - **App side:** `ZF_DB_PASSWORD` fills the password into `ZF_DB_URL`.
 - **Checks:** CI job `infra` (`fmt`, `validate`, trivy scan); `tests/unit/test_infra.py` (the task env boots the app in prod mode, secrets never plain, one bots replica, encryption at rest, only the ALB is open); 2 mutation specs VERIFIED |
-| 12.2.7 | Backups & tested restore drill | [x] | 2026-10-03 | _pending_ | `docs/BACKUP_DR.md`.
+| 12.2.7 | Backups & tested restore drill | [x] | 2026-10-03 | 7944d68 (#121) | `docs/BACKUP_DR.md`.
 - **RPO/RTO stated:** today (SQLite) ≤ 24 h / ≈ 15 min; AWS RDS ≤ 5 min (PITR) / ≈ 1 h; one EC2 server ≤ 24 h / ≈ 30–60 min.
 - **Backups now run themselves on the single host:** before this, a backup was taken only when someone ran the command. `db.backup`, a `zenflow.periodic` task, runs every `ZF_BACKUP_HOURS` (24), encrypted when the key is set, and keeps `ZF_BACKUP_KEEP` (14).
 - **`db_backup` works on Postgres** (`pg_dump`, with the password in `PGPASSWORD`, never on the command line).
