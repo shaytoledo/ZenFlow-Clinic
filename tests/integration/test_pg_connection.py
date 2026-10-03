@@ -6,6 +6,7 @@ Runs only when the suite is pointed at Postgres (`ZF_TEST_DB_URL=postgresql://â€
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Any
 
@@ -122,10 +123,22 @@ def test_the_canonical_now_and_averages_come_back_as_sqlite_gave_them(db) -> Non
     assert isinstance(avg, float) and avg == 1.5
 
 
-def test_the_sqlite_file_backup_refuses_instead_of_crashing(db) -> None:
-    from zenflow.db_backup import NotSqlite, backup_database, main
+def test_a_postgres_backup_is_an_owner_only_pg_dump_or_a_clear_refusal(db, monkeypatch) -> None:
+    """12.2.7: pg_dump when it is installed; without it, a refusal that says so (exit 2)."""
+    import shutil
 
-    with pytest.raises(NotSqlite, match="pg_dump"):
+    from zenflow.db_backup import BackupUnavailable, backup_database, main
+
+    if shutil.which("pg_dump"):
+        path = backup_database()
+        try:
+            assert path.endswith(".pgdump")
+            with open(path, "rb") as dump:
+                assert dump.read(5) == b"PGDMP", "pg_dump's custom format"
+        finally:
+            os.remove(path)
+    monkeypatch.setattr(shutil, "which", lambda _tool: None)
+    with pytest.raises(BackupUnavailable, match="pg_dump is not on PATH"):
         backup_database()
     assert main([]) == 2
 

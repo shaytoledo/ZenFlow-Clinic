@@ -212,8 +212,14 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 - **The switch:** the task environment sets every app flag. Secrets are injected from Secrets Manager, never plain env and never in Terraform.
 - **App side:** `ZF_DB_PASSWORD` fills the password into `ZF_DB_URL`.
 - **Checks:** CI job `infra` (`fmt`, `validate`, trivy scan); `tests/unit/test_infra.py` (the task env boots the app in prod mode, secrets never plain, one bots replica, encryption at rest, only the ALB is open); 2 mutation specs VERIFIED |
-| 12.2.7 | Backups & tested restore drill | [ ] | | | |
-| 12.2.8 | Cost estimate + minimal-viable alternative | [x] | 2026-10-03 | _pending_ | `docs/AWS_COST_ESTIMATE.md`. Prices read from the public AWS Price List for **il-central-1** on 2026-10-02 (unit-price table included, so the sums are reproducible).
+| 12.2.7 | Backups & tested restore drill | [x] | 2026-10-03 | _pending_ | `docs/BACKUP_DR.md`.
+- **RPO/RTO stated:** today (SQLite) ≤ 24 h / ≈ 15 min; AWS RDS ≤ 5 min (PITR) / ≈ 1 h; one EC2 server ≤ 24 h / ≈ 30–60 min.
+- **Backups now run themselves on the single host:** before this, a backup was taken only when someone ran the command. `db.backup`, a `zenflow.periodic` task, runs every `ZF_BACKUP_HOURS` (24), encrypted when the key is set, and keeps `ZF_BACKUP_KEEP` (14).
+- **`db_backup` works on Postgres** (`pg_dump`, with the password in `PGPASSWORD`, never on the command line).
+- **`zenflow.restore_drill`:** fingerprints every table (row count + SHA-256 of the rows), backs up with the production path, restores into a scratch copy, and compares. `--compare-url` is for the AWS PITR drill.
+- **Performed for real** on a synthetic clinic: SQLite (952 rows, encrypted) and Postgres 16 (949 rows, pg_dump → pg_restore, 1.4 s). Both **identical**, cleaned up afterwards.
+- **Tests:** the drill notices one lost row and one changed value; the automatic backup takes, skips and prunes; 2 mutation specs VERIFIED. The AWS drill procedure is written for after the go-ahead |
+| 12.2.8 | Cost estimate + minimal-viable alternative | [x] | 2026-10-03 | 5639f5c (#120) | `docs/AWS_COST_ESTIMATE.md`. Prices read from the public AWS Price List for **il-central-1** on 2026-10-02 (unit-price table included, so the sums are reproducible).
 - **Option A, managed** (the Terraform): **≈ $325/month** with Ollama on CPU `c7i.xlarge`; ≈ $472 on `c7i.2xlarge`; ≈ $1,039 with the GPU `g5.xlarge`.
 - **Option B, smallest viable** (one EC2 server with the compose stack): **≈ $156–189**, with the trade-offs: daily snapshots instead of PITR, our own patching, a single point of failure.
 - **Ollama is the largest line**, and `g4dn` is not offered in Tel Aviv. The Terraform default became the CPU option.

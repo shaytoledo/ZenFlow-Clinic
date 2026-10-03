@@ -98,6 +98,7 @@ DEFAULT_HANDLER_MODULES: tuple[str, ...] = (
     "bot.services.followup_jobs",
     "bot.services.followup_scheduler",
     "bot.services.pipeline_jobs",
+    "zenflow.db_backup",  # the automatic backup on a single host (12.2.7)
 )
 
 

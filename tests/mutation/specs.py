@@ -511,6 +511,24 @@ SPECS = [
         ],
     ),
     spec(
+        id="12.2.7 the drill compares",
+        file="zenflow/restore_drill.py",
+        anchor="def differences",
+        edits=[("        if live.get(key) != restored.get(key):", "        if False:", False)],
+        tests=[
+            "tests/integration/test_restore_drill.py::test_the_drill_fails_when_the_restore_lost_a_row"
+        ],
+    ),
+    spec(
+        id="12.2.7 old backups pruned",
+        file="zenflow/db_backup.py",
+        edits=[("    for old in automatic_backups()[:-keep]:", "    for old in []:", False)],
+        tests=[
+            "tests/integration/test_restore_drill.py"
+            "::test_an_automatic_backup_is_taken_when_due_and_old_ones_are_pruned"
+        ],
+    ),
+    spec(
         id="B6 /start says so",
         file="bot/patient_bot/start.py",
         edits=[
