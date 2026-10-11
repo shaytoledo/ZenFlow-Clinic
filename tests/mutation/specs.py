@@ -953,4 +953,36 @@ SPECS = [
         edits=[("token = fernet.encrypt(mem.serialize())", "token = mem.serialize()", False)],
         tests=["tests/integration/test_encrypted_backups.py"],
     ),
+    # ── reference data (Phase 14) ──
+    spec(
+        id="14.1 an existing database receives new seed points",
+        file="bot/db.py",
+        # the original behaviour: only an empty table was ever seeded
+        edits=[
+            (
+                "        report = seed_acupoints(conn)\n",
+                "        report = seed_acupoints(\n"
+                '            conn, dry_run=conn.execute("SELECT COUNT(*) FROM acupoints").fetchone()[0] > 0\n'
+                "        )\n",
+                False,
+            )
+        ],
+        tests=[
+            "tests/integration/test_acupoints.py::test_an_existing_database_receives_the_points_a_release_adds"
+        ],
+    ),
+    spec(
+        id="14.1 a summary names whole point codes",
+        file="web/static/js/treatment/render-points.js",
+        edits=[
+            (
+                ".filter((code) => summaryNames(summary, code))",
+                ".filter((code) => summary.includes(code))",
+                False,
+            )
+        ],
+        tests=[
+            "tests/integration/test_point_cards.py::test_old_notes_and_odd_entries_are_normalised"
+        ],
+    ),
 ]

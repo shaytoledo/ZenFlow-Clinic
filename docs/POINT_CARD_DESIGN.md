@@ -127,7 +127,10 @@ From that, the order of importance on a card is:
 - **Yintang:** `YIN` duplicated `YINTANG` (EX-HN3; GV29 in the 2006 WHO locations). It is now
   one row with those aliases.
 - **Cautions:** pregnancy cautions come from the table's `contraindications` column. BL60, BL67,
-  CV3 and CV4 were given reference rows so their caution has a source. A caution is traditional
+  CV3 and CV4 were given reference rows so their caution has a source. Since Phase 14.1 the table
+  holds all 361 WHO points, and the caution covers 44 of them: the classic forbidden points, the
+  abdominal points at or below the umbilicus, and the sacral points (the list is in
+  `docs/DATABASE.md`). A caution is traditional
   guidance shown to a licensed therapist, not medical advice. The texts are the clinic's own
   summaries (`source`, `licence` columns); a vetted dataset can replace them through the seed
   file.

@@ -455,9 +455,9 @@ def _create_followups(conn: sqlite3.Connection) -> None:
 
 
 def _create_acupoints(conn: sqlite3.Connection) -> None:
-    """Acupoint reference data (Phase 4.3a): created here, filled from the repo's seed when empty.
+    """Acupoint reference data (Phase 4.3a): created here and brought up to the repo's seed.
 
-    Updates to the seed are applied with `python -m zenflow.seed acupoints`; images are added with
+    `python -m zenflow.seed acupoints --dry-run` previews a seed change; images are added with
     `python -m zenflow.ingest_images <folder>` (Phase 4.3b).
     """
     from zenflow.ingest_images import CREATE_ACUPOINT_IMAGES, CREATE_ACUPOINT_IMAGES_INDEX
@@ -470,11 +470,25 @@ def _create_acupoints(conn: sqlite3.Connection) -> None:
 
 
 def seed_reference_data(conn: sqlite3.Connection) -> None:
-    """Reference data an empty database starts with (the acupoints), on either database."""
+    """Bring the reference data (the acupoints) up to the shipped seed, on either database.
+
+    Applied at every start-up, not only to an empty table: a database created when the seed held
+    26 points must receive the rest (Phase 14.1). One SELECT when nothing changed; rows that are
+    not in the seed are kept. A failure here must not stop the app from starting.
+    """
     from zenflow.seed import seed_acupoints
 
-    if conn.execute("SELECT COUNT(*) FROM acupoints").fetchone()[0] == 0:
-        seed_acupoints(conn)
+    try:
+        report = seed_acupoints(conn)
+    except Exception:
+        logger.exception("acupoints: applying the reference seed failed; the table is unchanged")
+        return
+    if report.inserted or report.updated:
+        logger.info(
+            "acupoints: %d point(s) added, %d updated from the seed",
+            len(report.inserted),
+            len(report.updated),
+        )
 
 
 def _create_active_slot_index(conn: sqlite3.Connection) -> None:

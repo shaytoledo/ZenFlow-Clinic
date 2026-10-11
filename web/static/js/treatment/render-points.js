@@ -6,6 +6,7 @@
 const CHANNEL_ICONS = {
   'Stomach':           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a9 9 0 0 1 9 9 9 9 0 0 1-9 9 9 9 0 0 1-9-9 9 9 0 0 1 9-9z"/><path d="M8 12h8"/></svg>',
   'Large Intestine':   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6c0 0 2-2 8-2s8 2 8 2"/><path d="M4 18s2 2 8 2 8-2 8-2"/><line x1="4" y1="6" x2="4" y2="18"/><line x1="20" y1="6" x2="20" y2="18"/></svg>',
+  'Small Intestine':   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7c4-4 6 4 10 0s6 0 6 0"/><path d="M4 13c4-4 6 4 10 0s6 0 6 0"/><path d="M4 19c4-4 6 4 10 0s6 0 6 0"/></svg>',
   'Pericardium':       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>',
   'Liver':             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="12" rx="10" ry="7"/><path d="M7 12s2-4 5-4 5 4 5 4"/></svg>',
   'Spleen':            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12c0-2 1.5-4 4-4s4 2 4 4-1.5 4-4 4"/></svg>',
@@ -26,6 +27,7 @@ const CHANNEL_ICONS = {
 const CHANNEL_THEMES = {
   'Stomach': 'stomach',
   'Large Intestine': 'large-intestine',
+  'Small Intestine': 'small-intestine',
   'Pericardium': 'pericardium',
   'Liver': 'liver',
   'Spleen': 'spleen',
@@ -107,8 +109,18 @@ function normalizeSuggestedPoints(notes, rawSummary) {
   const summary = String(rawSummary || '').toUpperCase();
   if (!summary) return [];
   return Object.keys(POINT_INFO)
-    .filter((code) => summary.includes(code))
+    .filter((code) => summaryNames(summary, code))
     .map((code) => ({ code, rationale: '' }));
+}
+
+// Whether an upper-cased summary names `code` as a whole word: "ST36" names ST36, not ST3.
+function summaryNames(summary, code) {
+  for (let at = summary.indexOf(code); at >= 0; at = summary.indexOf(code, at + 1)) {
+    const before = at > 0 ? summary[at - 1] : ' ';
+    const after = summary[at + code.length] || ' ';
+    if (!/[A-Z0-9]/.test(before) && !/[A-Z0-9]/.test(after)) return true;
+  }
+  return false;
 }
 
 function pointToggleHtml(code, selected) {

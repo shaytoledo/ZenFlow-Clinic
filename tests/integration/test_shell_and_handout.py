@@ -120,13 +120,12 @@ def test_the_handout_escapes_everything() -> None:
 
 def test_handout_points_come_from_the_reference_data_only() -> None:
     """Codes in, names and locations out: no AI rationale can reach the patient's copy."""
+    from zenflow.seed import load_acupoints_seed
+
+    lr3 = next(p for p in load_acupoints_seed() if p["code"] == "LR3")
     points = run_js("handoutPoints(['LR3', 'KI3', 'XX9'])")
     assert points == [
-        {
-            "code": "LR3",
-            "name": "Taichong",
-            "location": "Dorsum of foot, depression between 1st and 2nd metatarsal bones",
-        },
+        {"code": "LR3", "name": "Taichong", "location": lr3["location"]},
         {"code": "KI3", "name": "Taixi", "location": points[1]["location"]},
         {"code": "XX9", "name": "", "location": ""},
     ]

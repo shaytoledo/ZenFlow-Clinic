@@ -100,10 +100,12 @@ def test_a_card_has_the_designed_anatomy() -> None:
 
 def test_the_channel_colour_always_comes_with_the_channel_name() -> None:
     """No colour-only meaning: every themed card names its channel."""
-    codes = run_js("Object.keys(POINT_INFO)")
-    cards = run_js(f"{json.dumps(codes)}.map((code) => pointCardHtml({{ code }}, false))")
-    for code, html in zip(codes, cards, strict=True):
-        channel = run_js(f"POINT_INFO[{json.dumps(code)}].channel")
+    cards = run_js(
+        "Object.keys(POINT_INFO).map((code) =>"
+        " [code, POINT_INFO[code].channel, pointCardHtml({ code }, false)])"
+    )
+    assert len(cards) > 361, "every WHO point and the extra points"
+    for code, channel, html in cards:
         assert "tp-ch-default" not in html, f"{code}: {channel} has no colour theme"
         assert f"</span>{channel}</p>" in html, code
 
@@ -194,11 +196,13 @@ def test_old_notes_and_odd_entries_are_normalised() -> None:
     result = run_js(
         "[normalizeSuggestedPoints({ ai_suggested_points: ['LR3', null, { code: '' }, { code: 'GB20', rationale: 'r' }] }),"
         " normalizeSuggestedPoints(null, 'Consider LI4 and ST36'),"
-        " normalizeSuggestedPoints(null, null)]"
+        " normalizeSuggestedPoints(null, null),"
+        " normalizeSuggestedPoints(null, 'LI11, then (cv12) and Yintang; a taiyangshu is no point')]"
     )
     assert result[0] == [{"code": "LR3", "rationale": ""}, {"code": "GB20", "rationale": "r"}]
-    assert {p["code"] for p in result[1]} == {"LI4", "ST36"}
+    assert {p["code"] for p in result[1]} == {"LI4", "ST36"}, "ST36 is not also ST3"
     assert result[2] == []
+    assert {p["code"] for p in result[3]} == {"LI11", "CV12", "YINTANG"}, "whole codes only"
 
 
 # ── markup & styles ──

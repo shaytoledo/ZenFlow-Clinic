@@ -196,6 +196,7 @@
 /* channel themes: a tp-ch-* class sets the colours its card or chip uses */
 .tp-ch-stomach { --ch-soft: var(--zf-ch-stomach-soft); --ch-border: var(--zf-ch-stomach-border); --ch-ink: var(--zf-ch-stomach-ink); }
 .tp-ch-large-intestine { --ch-soft: var(--zf-ch-large-intestine-soft); --ch-border: var(--zf-ch-large-intestine-border); --ch-ink: var(--zf-ch-large-intestine-ink); }
+.tp-ch-small-intestine { --ch-soft: var(--zf-ch-small-intestine-soft); --ch-border: var(--zf-ch-small-intestine-border); --ch-ink: var(--zf-ch-small-intestine-ink); }
 .tp-ch-pericardium { --ch-soft: var(--zf-ch-pericardium-soft); --ch-border: var(--zf-ch-pericardium-border); --ch-ink: var(--zf-ch-pericardium-ink); }
 .tp-ch-liver { --ch-soft: var(--zf-ch-liver-soft); --ch-border: var(--zf-ch-liver-border); --ch-ink: var(--zf-ch-liver-ink); }
 .tp-ch-spleen { --ch-soft: var(--zf-ch-spleen-soft); --ch-border: var(--zf-ch-spleen-border); --ch-ink: var(--zf-ch-spleen-ink); }

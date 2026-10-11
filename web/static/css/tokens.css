@@ -69,6 +69,7 @@
   /* acupuncture channels — soft background · border · ink (text on soft, ≥ 4.5:1) */
   --zf-ch-stomach-soft: #FEF3C7;           --zf-ch-stomach-border: #FDE68A;           --zf-ch-stomach-ink: #B45309;
   --zf-ch-large-intestine-soft: #E0F2FE;   --zf-ch-large-intestine-border: #BAE6FD;   --zf-ch-large-intestine-ink: #0369A1;
+  --zf-ch-small-intestine-soft: #FFEDD5;   --zf-ch-small-intestine-border: #FDBA74;   --zf-ch-small-intestine-ink: #C2410C;
   --zf-ch-pericardium-soft: #FCE7F3;       --zf-ch-pericardium-border: #F9A8D4;       --zf-ch-pericardium-ink: #BE185D;
   --zf-ch-liver-soft: #DCFCE7;             --zf-ch-liver-border: #BBF7D0;             --zf-ch-liver-ink: #15803D;
   --zf-ch-spleen-soft: #FEF9C3;            --zf-ch-spleen-border: #FDE047;            --zf-ch-spleen-ink: #A16207;
@@ -116,6 +117,7 @@
 
   --zf-ch-stomach-soft: #1F2937;           --zf-ch-stomach-border: #92400E;           --zf-ch-stomach-ink: #FCD34D;
   --zf-ch-large-intestine-soft: #1F2937;   --zf-ch-large-intestine-border: #075985;   --zf-ch-large-intestine-ink: #7DD3FC;
+  --zf-ch-small-intestine-soft: #1F2937;   --zf-ch-small-intestine-border: #9A3412;   --zf-ch-small-intestine-ink: #FDBA74;
   --zf-ch-pericardium-soft: #1F2937;       --zf-ch-pericardium-border: #9D174D;       --zf-ch-pericardium-ink: #F9A8D4;
   --zf-ch-liver-soft: #1F2937;             --zf-ch-liver-border: #166534;             --zf-ch-liver-ink: #86EFAC;
   --zf-ch-spleen-soft: #1F2937;            --zf-ch-spleen-border: #854D0E;            --zf-ch-spleen-ink: #FDE047;

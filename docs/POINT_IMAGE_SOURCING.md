@@ -11,8 +11,9 @@ download time: licences on shared collections are set **per file**.
 
 ## What the treatment page needs
 
-- **Coverage:** one clear **diagram per point** for the 26 points in `acupoints` today, with the
-  location marked on the body region. The 361 standard points come later.
+- **Coverage:** one clear **diagram per point**, with the location marked on the body region.
+  When this was written `acupoints` held 26 points; since Phase 14.1 it holds the 361 standard
+  points and 33 extra points.
 - **Accuracy:** it must match the WHO standard location that the card text describes.
 - **Clean files:** no watermark, and nothing that clashes with the card design. SVG or high-res
   PNG.

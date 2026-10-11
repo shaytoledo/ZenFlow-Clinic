@@ -3,14 +3,17 @@
     python -m zenflow.seed acupoints --dry-run   # report what would change
     python -m zenflow.seed acupoints             # insert new points, update changed ones
 
-The seed lives in ``zenflow/seed_data/acupoints.json``. Loading is idempotent: a point is keyed
-by its WHO code, unchanged rows are left alone, and rows that are not in the file are kept.
-``bot.db.init_db()`` loads it automatically into an empty table.
+The seed lives in ``zenflow/seed_data/acupoints.json``: the 361 points of the WHO standard and
+the common extra points. Loading is idempotent: a point is keyed by its code, unchanged rows are
+left alone, and rows that are not in the file are kept. ``bot.db.init_db()`` applies it at every
+start-up, so a release that ships new or corrected points reaches an existing database without a
+manual step. The file is the source of truth: to change a point, edit the file.
 """
 
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import sqlite3
 from dataclasses import dataclass, field
@@ -64,7 +67,14 @@ CREATE_ACUPOINTS = """CREATE TABLE IF NOT EXISTS acupoints (
 
 def load_acupoints_seed(path: Path = ACUPOINTS_SEED) -> list[dict[str, Any]]:
     """The seed's points, validated. Raises ValueError on a malformed file."""
-    data = json.loads(path.read_text(encoding="utf-8"))
+    return [dict(point) for point in _load(str(path), path.stat().st_mtime_ns)]
+
+
+@functools.lru_cache(maxsize=4)
+def _load(path: str, mtime_ns: int) -> tuple[dict[str, Any], ...]:
+    """Parse and validate once per file version: every start-up and every test reads the seed."""
+    del mtime_ns  # part of the cache key only
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
     points = data.get("points") if isinstance(data, dict) else None
     if not isinstance(points, list) or not points:
         raise ValueError(f"{path}: expected an object with a non-empty 'points' list")
@@ -83,7 +93,13 @@ def load_acupoints_seed(path: Path = ACUPOINTS_SEED) -> list[dict[str, Any]]:
         unknown = set(point["contraindications"]) - CONTRAINDICATIONS
         if unknown:
             raise ValueError(f"{path}: {point['code']} has unknown contraindications {unknown}")
-    return points
+    return tuple(points)
+
+
+@functools.lru_cache(maxsize=4)
+def _rows(path: str, mtime_ns: int) -> tuple[tuple[str, ...], ...]:
+    """The shipped seed as table rows, built once per file version."""
+    return tuple(_row(point) for point in _load(path, mtime_ns))
 
 
 def _row(point: dict[str, Any]) -> tuple[str, ...]:
@@ -114,6 +130,10 @@ class SeedReport:
         )
 
 
+#: rows per INSERT: one statement per batch keeps a 400-point seed to a handful of round trips
+_BATCH = 50
+
+
 def seed_acupoints(
     conn: sqlite3.Connection, points: list[dict[str, Any]] | None = None, dry_run: bool = False
 ) -> SeedReport:
@@ -121,24 +141,45 @@ def seed_acupoints(
     conn.execute(CREATE_ACUPOINTS)
     report = SeedReport(dry_run=dry_run)
     columns = ", ".join(ACUPOINT_COLUMNS)
-    placeholders = ", ".join("?" for _ in ACUPOINT_COLUMNS)
-    updates = ", ".join(f"{c}=excluded.{c}" for c in ACUPOINT_COLUMNS[1:])
-    for point in points if points is not None else load_acupoints_seed():
-        row = _row(point)
-        current = conn.execute(
-            f"SELECT {columns} FROM acupoints WHERE code=?", (point["code"],)  # noqa: S608
-        ).fetchone()
-        if current is not None and tuple(current) == row:
+    current = {
+        str(row[0]): tuple(row)
+        for row in conn.execute(f"SELECT {columns} FROM acupoints").fetchall()  # noqa: S608
+    }
+    rows = (
+        tuple(_row(point) for point in points)
+        if points is not None
+        else _rows(str(ACUPOINTS_SEED), ACUPOINTS_SEED.stat().st_mtime_ns)
+    )
+    changed: list[tuple[str, ...]] = []
+    for row in rows:
+        if current.get(row[0]) == row:
             report.unchanged += 1
             continue
-        (report.updated if current is not None else report.inserted).append(point["code"])
-        if dry_run:
-            continue
-        conn.execute(
-            f"""INSERT INTO acupoints ({columns}, updated_at) VALUES ({placeholders}, ?)
-                ON CONFLICT(code) DO UPDATE SET {updates}, updated_at=excluded.updated_at""",  # noqa: S608
-            (*row, iso_now()),
-        )
+        (report.updated if row[0] in current else report.inserted).append(row[0])
+        changed.append(row)
+    if dry_run or not changed:
+        return report
+    one = "(" + ", ".join("?" for _ in ACUPOINT_COLUMNS) + ", ?)"
+    updates = ", ".join(f"{c}=excluded.{c}" for c in ACUPOINT_COLUMNS[1:])
+    now = iso_now()
+    # one transaction: one commit instead of one per batch (unless the caller already opened one)
+    own_transaction = not getattr(conn, "in_transaction", False)
+    if own_transaction:
+        conn.execute("BEGIN")
+    try:
+        for start in range(0, len(changed), _BATCH):
+            batch = changed[start : start + _BATCH]
+            conn.execute(
+                f"""INSERT INTO acupoints ({columns}, updated_at) VALUES {", ".join(one for _ in batch)}
+                    ON CONFLICT(code) DO UPDATE SET {updates}, updated_at=excluded.updated_at""",  # noqa: S608
+                [value for row in batch for value in (*row, now)],
+            )
+        if own_transaction:
+            conn.execute("COMMIT")
+    except BaseException:
+        if own_transaction:
+            conn.execute("ROLLBACK")
+        raise
     return report
 
 
