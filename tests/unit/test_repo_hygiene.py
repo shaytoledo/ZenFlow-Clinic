@@ -33,6 +33,7 @@ REQUIRED_GITIGNORE_RULES = [
     "logs/*.text",
     ".env",
     "data/",
+    "keys/",
 ]
 
 

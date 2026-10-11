@@ -2,6 +2,9 @@
 .env
 .env.*
 !.env.example
+# The keys this project generates (python -m zenflow.keys): one secret per file, plus the bundle
+# assembled for AWS. Owner decision Q15: kept in the project folder, never in git.
+keys/
 # Per-developer Claude Code permissions file — has contained bot tokens before
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
