@@ -33,8 +33,13 @@
 
 - [ ] Staging rehearsal of this whole page done, timings written down.
 - [ ] `terraform apply` done for prod; `terraform output` saved.
-- [ ] The app secret is filled. It uses the **same** `TOKEN_ENCRYPTION_KEY` and `BACKUP_ENCRYPTION_KEY`
-      as the host today, and a **new** `TELEGRAM_WEBHOOK_SECRET`.
+- [ ] The host runs on the keys in `keys/`: `python -m zenflow.keys adopt`, then
+      `python -m zenflow.rotate_token_key --dry-run` and `python -m zenflow.rotate_token_key`, then a
+      restart. Until this is done the host has **no** `TOKEN_ENCRYPTION_KEY` and **no**
+      `BACKUP_ENCRYPTION_KEY` (found 2026-10-12), and step 2 below cannot encrypt the final backup.
+- [ ] The app secret is filled from the same folder (`python -m zenflow.keys app-secret`). So it
+      holds the **same** `TOKEN_ENCRYPTION_KEY` and `BACKUP_ENCRYPTION_KEY` as the host, and a
+      **new** `TELEGRAM_WEBHOOK_SECRET`.
 - [ ] Images pushed to ECR with the release's `image_tag`. The `migrate` task has run once (schema built).
 - [ ] Google Cloud console: add `https://<domain>/auth/callback`, `/register/google/callback` and
       `/auth/gmail/callback` to the OAuth client's redirect URIs. Keep the old ones until the end.

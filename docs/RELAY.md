@@ -100,8 +100,10 @@ question Q6 in `docs/BOT_AUDIT.md`.
 
 ## Photos, voice notes and files (owner decision Q6, `ZF_RELAY_MEDIA`)
 
-**Off until the owner switches it on** with `ZF_RELAY_MEDIA=1`. Off means the bot asks for text,
-and the chat stays open (BOT_AUDIT B7).
+**The owner switched it on for this clinic on 2026-10-12** (Q14): `ZF_RELAY_MEDIA=1` in the
+host's `.env`, in `.env.example` and in the AWS task environment. The code's own default stays
+`0`, so an installation that sets nothing relays text only. `ZF_RELAY_MEDIA=0` and a restart turn
+it off again: the bot then asks for text, and the chat stays open (BOT_AUDIT B7).
 
 Neither bot can forward what the other bot received. So a file is **downloaded through the bot that
 received it and sent again through the other bot**, in memory (`bot/services/media_relay.py`):

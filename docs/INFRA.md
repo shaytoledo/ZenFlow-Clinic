@@ -79,10 +79,16 @@ terraform apply prod.plan
 
 Then, in this order:
 
-1. **Fill the app secret** (`terraform output app_secret_name`) in the console or with
-   `aws secretsmanager put-secret-value`. Every key below must exist, or the tasks refuse to start.
-   That is on purpose. Generate the three keys freshly and keep a copy **off this computer** in the
-   owner's password manager: without `BACKUP_ENCRYPTION_KEY` an encrypted backup cannot be restored.
+1. **Fill the app secret** (`terraform output app_secret_name`). Every key below must exist, or
+   the tasks refuse to start. That is on purpose. The four generated keys are already in the
+   git-ignored `keys/` folder (`python -m zenflow.keys init`, owner decision Q15), and one command
+   assembles the whole bundle from them and from the host's `.env`, without showing a value:
+   ```bash
+   python -m zenflow.keys app-secret        # writes keys/app-secret.json
+   aws secretsmanager put-secret-value --secret-id <app_secret_name> --secret-string file://keys/app-secret.json
+   ```
+   Keep a second copy of `keys/` **off this computer**: without `BACKUP_ENCRYPTION_KEY` an
+   encrypted backup cannot be restored. The bundle has this shape:
    ```json
    {
      "SESSION_SECRET": "<48+ random chars>",
@@ -95,8 +101,9 @@ Then, in this order:
    }
    ```
    Moving the existing deployment's data needs the **same** `TOKEN_ENCRYPTION_KEY` (the stored
-   Google tokens are encrypted with it), or a rotation first (`python -m zenflow.rotate_token_key`).
-   The runbook (12.2.9) covers this.
+   Google tokens are encrypted with it). The host has none today: it encrypts them with its
+   `SESSION_SECRET`. So the host adopts the key first: `python -m zenflow.keys adopt`, then
+   `python -m zenflow.rotate_token_key` (`docs/AWS_MOVE_CHECKLIST.md`, step A).
 2. **Push the images** to the three ECR repositories (`terraform output ecr_repositories`), tagged with
    the same `image_tag`.
 3. **Run the migrations** once, before the services take traffic:

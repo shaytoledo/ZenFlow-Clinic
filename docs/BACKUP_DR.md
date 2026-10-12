@@ -18,6 +18,10 @@ backed up on purpose.
 **The keys are part of the backup.** An encrypted backup is useless without
 `BACKUP_ENCRYPTION_KEY`, and the stored Google tokens are useless without `TOKEN_ENCRYPTION_KEY`.
 Keep both in the owner's password manager, **off the machine that holds the backups**.
+Since 2026-10-12 they are generated into the git-ignored `keys/` folder (owner decision Q15,
+`python -m zenflow.keys`). That folder is on the same disk as the backups, so a second copy
+elsewhere is still needed. The host does not use them until `python -m zenflow.keys adopt`:
+until then its automatic backups are **not encrypted**.
 
 ## The tools
 
