@@ -18,6 +18,7 @@ AA = 4.5
 CHANNELS = (
     "stomach",
     "large-intestine",
+    "small-intestine",
     "pericardium",
     "liver",
     "spleen",

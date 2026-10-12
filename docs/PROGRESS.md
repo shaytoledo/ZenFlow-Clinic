@@ -239,6 +239,20 @@ Mutation spec `12.2.4 periodic once per interval` VERIFIED. The tests pass on SQ
 | 13.3 | `docs/RUNBOOK.md` | [x] | 2026-10-03 | 41d13e5 (#125) | `docs/RUNBOOK.md`, host and AWS side by side: where to look first; "the bot is down" step by step; restarts; **dead-lettered jobs**; rotating every secret and what it costs; restores; patient data requests; routine (daily/monthly/quarterly); every AWS alarm and its first step. New: `python -m zenflow.jobs` (stats, dead, replay, cancel) and `TaskQueue.requeue` (dead jobs only, fresh attempts, last error kept; mutation spec VERIFIED) |
 | 13.4 | Per-phase retro | [x] | 2026-10-03 | 41d13e5 (#125) | `docs/RETRO.md`: for every phase 0–12, what broke, what the plan got wrong and the lesson. Biggest: CI hung 6 h on every run for 37 PRs (#67–#104); 15 tests passed with their fix removed (now: a mutation spec per fix); patient identity (7.2) came after the flows that store patients. Five reorderings for a future plan; the lessons that became CLAUDE.md rules |
 
+## Phase 14 — The owner's answers (2026-10-12)
+
+The owner answered `docs/QUESTIONS_FOR_SHAI.md` on 2026-10-12. Each answer that needed work is a task here.
+
+| # | Task | Status | Date | Commit | Notes |
+|---|---|---|---|---|---|
+| 14.1 | The full acupoint reference ("many more points are needed") | [x] | 2026-10-12 | _pending_ | The table held 26 points; the owner looked and said it was far from complete.
+- **Now 394 points:** the **361 points of the WHO standard**, all 14 channels, and **33 extra points** (Yintang, Taiyang, Sishencong, Anmian, Huatuojiaji, Baxie, Bafeng, …). Each has pinyin, Han characters, the English name, a location following the WHO 2008 standard in our own wording, its categories (He-Sea, Yuan-Source, Back-Shu, Confluent, …) and actions, and Hebrew for all of it.
+- **Other spellings are aliases:** `KD3`/`K3`, `UB23`, `LV3`/`LIV3`, `P6`, `SJ5`/`TB5`/`TH5`/`TW5`, `REN12`/`RN12`, `DU20`, `H7`, the WHO extra codes (`EX-HN3`).
+- **"Avoided in pregnancy" now marks 44 points:** the classic forbidden ones, the abdominal points at or below the umbilicus, and the sacral points (`docs/DATABASE.md`).
+- **Found while doing it:** (1) **an existing database never received new points**: only an empty table was seeded, so the live clinic would have stayed at 26. `init_db()` now applies the seed at every start-up (one `SELECT` when nothing changed; a whole seed in one transaction). (2) Old notes without an AI list matched codes by substring, so "ST36" also added ST3. Whole codes only now. (3) The **Small Intestine channel had no colour theme** (no SI point existed before).
+- **Not reviewed by a clinician:** the text is a reminder written for this product. The owner should read through it and correct the seed file where needed.
+- **Tests:** all 361 WHO codes present and no others; aliases in the page's spelling; start-up brings an old database up to date; an unchanged start-up only reads; 2 mutation specs VERIFIED. Visual baselines refreshed (the cards show the new text) |
+
 ---
 
 ## Known tooling defects

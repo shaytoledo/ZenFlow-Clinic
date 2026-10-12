@@ -196,7 +196,7 @@ zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── periodic.py              # Periodic tasks run once per interval across all workers (lease-guarded, ADR-48); python -m zenflow.periodic
 ├── events.py                # Live-page wake-ups: notify_treatment() / subscribe_treatment() (Redis pub/sub, best effort)
 ├── migrate_timestamps.py    # python -m zenflow.migrate_timestamps [--dry-run] — legacy timestamps → canonical UTC
-├── seed.py                  # python -m zenflow.seed acupoints [--dry-run] — reference data from zenflow/seed_data/*.json
+├── seed.py                  # reference data from zenflow/seed_data/*.json (361 WHO points + extras), applied at every start-up; python -m zenflow.seed acupoints --dry-run previews
 ├── storage.py               # Storage ABC (put/get/exists/delete/url): LocalStorage (MEDIA_ROOT, served at /media) | S3Storage (ZF_STORAGE_S3; SSE-KMS, presigned links)
 ├── ingest_images.py         # python -m zenflow.ingest_images <folder> [--dry-run] — licensed images → WebP + thumb + acupoint_images
 ├── db_backup.py             # backup_database() via SQLite online backup (WAL-safe)
@@ -284,6 +284,7 @@ Any message / /start → SELECTING (main menu)
 - Audit (ADR-31): a clinical mutation records `audit.record(action, entity_type, id, before=…, after=…)`; the actor comes from context (`audit.acting_as(...)`), never from an argument.
 - Booking: write the appointment row first (`save_appointment` raises `SlotTaken`), then touch the calendar (BOT_AUDIT B4).
 - SQLite `active` column is `INTEGER` (0/1); always cast: `bool(t.get("active"))`.
+- Acupoints (14.1): the reference table is `zenflow/seed_data/acupoints.json`, applied by `init_db()` at every start-up — to add or correct a point, edit that file (never the table). A new point needs its code and aliases in the page's normalised spelling (`[A-Z0-9]+`), and a channel that has a colour theme (`CHANNEL_THEMES`); `tests/integration/test_acupoints.py` checks the 361 WHO points are all there.
 - Treatment page: no `<style>` or inline `<script>` in `templates/treatment*` (only the `#treatment-config` JSON island) — tests read the page through `tests/integration/treatment_source.py`.
 - Treatment page styles: never write `style="…"` (markup or JS strings) or inject `<style>`; add a `tp-*` class to `static/css/treatment.css` as `.tp .tp-x { … }` (elements outside `#treatment-root` need `tp` on their own root). Data-driven colours are classes that set variables (`tp-tone-*`, `tp-ch-*`); a data-driven size is set through the CSSOM (`el.style.width = …`). Hover/focus feedback is CSS, not JS.
 - New UI colours/sizes come from `static/css/tokens.css` (`var(--zf-…)`); text colours must keep ≥ 4.5:1 (`tests/unit/test_design_tokens.py`). Every `tp-*`/`pc-*` class the treatment page uses must be defined, and every defined one used (`tests/integration/test_treatment_template.py`); point-card CSS uses logical properties only (RTL).

@@ -160,7 +160,7 @@ def test_every_computed_class_is_defined_in_the_stylesheet() -> None:
     # the map's keys are channel names ('Large Intestine'); only its lowercase values match
     channels = {*literals(r"const CHANNEL_THEMES = \{(.*?)\};"), "default"}
 
-    assert tones == {"teal", "amber", "red"} and len(channels) == 15
+    assert tones == {"teal", "amber", "red"} and len(channels) == 16
     missing = {f"tp-tone-{t}" for t in tones} | {f"tp-ch-{c}" for c in channels}
     assert sorted(missing - _defined_classes()) == []
 

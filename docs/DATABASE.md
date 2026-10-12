@@ -96,14 +96,35 @@ CREATE TABLE IF NOT EXISTS therapists (
 
 ### Table: `acupoints` (Phase 4.3a)
 
-Reference data for the treatment page. Created by `init_db()`, which fills an empty table from
-`zenflow/seed_data/acupoints.json`; later changes to that file are applied with
-`python -m zenflow.seed acupoints [--dry-run]` (idempotent upsert by code; rows not in the file
-are kept). Read through `web/repositories/acupoint_repo.py` and served by `GET /api/acupoints`.
+Reference data for the treatment page. Read through `web/repositories/acupoint_repo.py` and
+served by `GET /api/acupoints`.
+
+- **What it holds (Phase 14.1):** 394 points. The **361 points of the WHO standard** (LU 11, LI 20,
+  ST 45, SP 21, HT 9, SI 19, BL 67, KI 27, PC 9, TE 23, GB 44, LR 14, CV 24, GV 28) and **33 extra
+  points** (Yintang, Taiyang, Sishencong, Anmian, Huatuojiaji, Baxie, Bafeng, …). Before 14.1 it
+  held 26.
+- **The seed file is the source of truth:** `zenflow/seed_data/acupoints.json`. `init_db()` applies
+  it at **every start-up**: new points are inserted and changed ones updated, so a release reaches
+  an existing database by itself. It costs one `SELECT` when nothing changed. Rows whose code is not
+  in the file are kept. To change a point, edit the file;
+  `python -m zenflow.seed acupoints --dry-run` previews the effect.
+- **Codes:** a meridian point is its WHO code (`LI4`, `KI3`). An extra point is its pinyin name in
+  capitals (`YINTANG`, `TAIYANG`), because that is what the AI and therapists write. Other spellings
+  are aliases: `KD3`/`K3`, `UB23`, `LV3`/`LIV3`, `P6`, `SJ5`/`TB5`/`TH5`/`TW5`, `REN12`/`RN12`,
+  `DU20`, `H7`, and the WHO extra codes (`EXHN3`). The page upper-cases a code and drops spaces and
+  dashes before the lookup, so `ex-hn3` and `st 36` are found.
+- **Text:** locations follow the WHO Standard Acupuncture Point Locations (2008), in the clinic's
+  own wording. Actions start with the point's categories (He-Sea, Yuan-Source, Back-Shu, …) and may
+  end with a needling caution. Hebrew is under `translations.he`. **The text was written for this
+  product and has not been reviewed by a clinician**: it is a reminder for a licensed therapist.
+- **`contraindications = ["pregnancy"]`** ("traditionally avoided in pregnancy") marks 44 points:
+  the classic forbidden points (LI4, SP6, BL60, BL67, GB21, ST12), the abdominal points at or below
+  the level of the umbilicus (CV1–CV8, ST25–ST30, SP12–SP15, KI11–KI16, GB26–GB28, LR12, Zigongxue)
+  and the sacral points (BL27–BL34, Shiqizhui).
 
 ```sql
 CREATE TABLE IF NOT EXISTS acupoints (
-    code              TEXT PRIMARY KEY,           -- WHO alphanumeric code: LI4, KI3, … (YINTANG for the extra point)
+    code              TEXT PRIMARY KEY,           -- WHO alphanumeric code: LI4, KI3, … (pinyin for an extra point: YINTANG)
     aliases           TEXT NOT NULL DEFAULT '[]', -- JSON list of other spellings, normalised: ["KD3"]
     name_pinyin       TEXT NOT NULL DEFAULT '',
     name_cn           TEXT NOT NULL DEFAULT '',   -- Han characters (simplified)

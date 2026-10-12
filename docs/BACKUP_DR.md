@@ -45,7 +45,7 @@ compares. Any difference fails it (exit 1). `tests/integration/test_restore_dril
 notices one lost row and one changed value.
 
 Both runs used the same synthetic clinic (no real patient data): 3 therapists, 40 patients, 200
-appointments with intakes and treatment notes, 200 audit rows, 40 queued jobs, the 26 acupoints.
+appointments with intakes and treatment notes, 200 audit rows, 40 queued jobs, the 26 acupoints of that time.
 
 | Run | Database | Backup | Backup took | Restore took | Tables | Rows | Result |
 |---|---|---|---|---|---|---|---|
