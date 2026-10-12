@@ -1,0 +1,1123 @@
+{
+ "source": {
+  "host": "www.neuroacupuncturerehab.com",
+  "credit": "© 2024 by HOPE Neuro-Acupuncture Rehab",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "source_url": "https://www.neuroacupuncturerehab.com/blog/meridian-points-chart/",
+  "checked": "2026-10-12"
+ },
+ "images": {
+  "LU1": {
+   "path": "/images/blog/d386986b_lung-meridian-1-acupuncture-point.webp"
+  },
+  "LU2": {
+   "path": "/images/blog/384103e0_lung-meridian-2-acupuncture-point.webp"
+  },
+  "LU3": {
+   "path": "/images/blog/8d4d779d_lung-meridian-3-acupuncture-point.webp"
+  },
+  "LU4": {
+   "path": "/images/blog/b4ea06e5_lung-meridian-4-acupuncture-point.webp"
+  },
+  "LU5": {
+   "path": "/images/blog/cc23429c_lung-meridian-5-acupuncture-point.webp"
+  },
+  "LU6": {
+   "path": "/images/blog/333a37fe_lung-meridian-6-acupuncture-point.webp"
+  },
+  "LU7": {
+   "path": "/images/blog/ea545fd6_lung-meridian-7-acupuncture-point.webp",
+   "sha256": "fc0dccc5ce288daa0720b00de2e0d8d8eb27bda029f045729b97591204c16a26"
+  },
+  "LU8": {
+   "path": "/images/blog/8bcf0c6d_lung-meridian-8-acupuncture-point.webp"
+  },
+  "LU9": {
+   "path": "/images/blog/b731c843_lung-meridian-9-acupuncture-point.webp"
+  },
+  "LU10": {
+   "path": "/images/blog/2660d098_lung-meridian-10-acupuncture-point.webp"
+  },
+  "LU11": {
+   "path": "/images/blog/0615bcbe_lung-meridian-1-acupuncture-point.webp"
+  },
+  "LI1": {
+   "path": "/images/blog/0c130fc6_large-intestine-meridian-1-acupuncture-point.webp"
+  },
+  "LI2": {
+   "path": "/images/blog/20804e05_large-intestine-meridian-2-acupuncture-point.webp"
+  },
+  "LI3": {
+   "path": "/images/blog/4d7a2096_large-intestine-meridian-3-acupuncture-point.webp"
+  },
+  "LI4": {
+   "path": "/images/blog/465e037d_large-intestine-meridian-4-acupuncture-point.webp",
+   "sha256": "b9cdab39bb76343ed0c7a16533db261a8b871f19824bc5113747ebbb3003b676"
+  },
+  "LI5": {
+   "path": "/images/blog/fc6c11e0_large-intestine-meridian-5-acupuncture-point.webp"
+  },
+  "LI6": {
+   "path": "/images/blog/902a59a7_large-intestine-meridian-6-acupuncture-point.webp"
+  },
+  "LI7": {
+   "path": "/images/blog/49d92bd5_large-intestine-meridian-7-acupuncture-point.webp"
+  },
+  "LI8": {
+   "path": "/images/blog/1c1edb2e_large-intestine-meridian-8-acupuncture-point.webp"
+  },
+  "LI9": {
+   "path": "/images/blog/29986df5_large-intestine-meridian-9-acupuncture-point.webp"
+  },
+  "LI10": {
+   "path": "/images/blog/0ef5ae3c_large-intestine-meridian-10-acupuncture-point.webp"
+  },
+  "LI11": {
+   "path": "/images/blog/80726f9f_large-intestine-meridian-11-acupuncture-point.webp",
+   "sha256": "2cee0f129f6ca49167ec38c09f8344267e5bc14745a479fe38a16e801c0f13b8"
+  },
+  "LI12": {
+   "path": "/images/blog/23720baa_large-intestine-meridian-12-acupuncture-point.webp"
+  },
+  "LI13": {
+   "path": "/images/blog/df087181_large-intestine-meridian-13-acupuncture-point.webp"
+  },
+  "LI14": {
+   "path": "/images/blog/7d971eec_large-intestine-meridian-14-acupuncture-point.webp"
+  },
+  "LI15": {
+   "path": "/images/blog/1aaf3184_large-intestine-meridian-15-acupuncture-point.webp"
+  },
+  "LI16": {
+   "path": "/images/blog/bd2cca51_large-intestine-meridian-16-acupuncture-point.webp"
+  },
+  "LI17": {
+   "path": "/images/blog/c871e47a_large-intestine-meridian-17-acupuncture-point.webp"
+  },
+  "LI18": {
+   "path": "/images/blog/ca671018_large-intestine-meridian-18-acupuncture-point.webp"
+  },
+  "LI19": {
+   "path": "/images/blog/5a093205_large-intestine-meridian-19-acupuncture-point.webp"
+  },
+  "LI20": {
+   "path": "/images/blog/387941cd_large-intestine-meridian-20-acupuncture-point.webp"
+  },
+  "ST1": {
+   "path": "/images/blog/6776bd23_stomach-meridian-1-acupuncture-point.webp"
+  },
+  "ST2": {
+   "path": "/images/blog/a8319b1b_stomach-meridian-2-acupuncture-point.webp"
+  },
+  "ST3": {
+   "path": "/images/blog/62052c22_stomach-meridian-3-acupuncture-point.webp"
+  },
+  "ST4": {
+   "path": "/images/blog/419d5732_stomach-meridian-4-acupuncture-point.webp"
+  },
+  "ST5": {
+   "path": "/images/blog/13279460_stomach-meridian-5-acupuncture-point.webp"
+  },
+  "ST6": {
+   "path": "/images/blog/31f02c93_stomach-meridian-6-acupuncture-point.webp"
+  },
+  "ST7": {
+   "path": "/images/blog/a840c241_stomach-meridian-7-acupuncture-point.webp"
+  },
+  "ST8": {
+   "path": "/images/blog/d1e93d1e_stomach-meridian-8-acupuncture-point.webp"
+  },
+  "ST9": {
+   "path": "/images/blog/624d7061_stomach-meridian-9-acupuncture-point.webp"
+  },
+  "ST10": {
+   "path": "/images/blog/d4484c8c_stomach-meridian-10-acupuncture-point.webp"
+  },
+  "ST11": {
+   "path": "/images/blog/ca5f2ab6_11.webp"
+  },
+  "ST12": {
+   "path": "/images/blog/c42bfb45_stomach-meridian-12-acupuncture-point.webp"
+  },
+  "ST13": {
+   "path": "/images/blog/6c04e241_stomach-meridian-13-acupuncture-point.webp"
+  },
+  "ST14": {
+   "path": "/images/blog/a1ad89be_stomach-meridian-14-acupuncture-point.webp"
+  },
+  "ST15": {
+   "path": "/images/blog/4d24ca84_stomach-meridian-15-acupuncture-point.webp"
+  },
+  "ST16": {
+   "path": "/images/blog/2f74f2c3_stomach-meridian-16-acupuncture-point.webp"
+  },
+  "ST17": {
+   "path": "/images/blog/b21148fe_stomach-meridian-17-acupuncture-point.webp"
+  },
+  "ST18": {
+   "path": "/images/blog/87909bd0_stomach-meridian-18-acupuncture-point.webp"
+  },
+  "ST19": {
+   "path": "/images/blog/3770fc8d_stomach-meridian-19-acupuncture-point.webp"
+  },
+  "ST20": {
+   "path": "/images/blog/b9568796_stomach-meridian-20-acupuncture-point.webp"
+  },
+  "ST21": {
+   "path": "/images/blog/ab6b632e_stomach-meridian-21-acupuncture-point.webp"
+  },
+  "ST22": {
+   "path": "/images/blog/4a33083d_stomach-meridian-22-acupuncture-point.webp"
+  },
+  "ST23": {
+   "path": "/images/blog/adece949_stomach-meridian-23-acupuncture-point.webp"
+  },
+  "ST24": {
+   "path": "/images/blog/bc876075_stomach-meridian-24-acupuncture-point.webp"
+  },
+  "ST25": {
+   "path": "/images/blog/418023a8_stomach-meridian-25-acupuncture-point.webp"
+  },
+  "ST26": {
+   "path": "/images/blog/e087dfe6_stomach-meridian-26-acupuncture-point.webp"
+  },
+  "ST27": {
+   "path": "/images/blog/c931ed15_stomach-meridian-27-acupuncture-point.webp"
+  },
+  "ST28": {
+   "path": "/images/blog/30e05d15_stomach-meridian-28-acupuncture-point.webp",
+   "note": "the caption on the source page reads ST-45; position and file name say 28"
+  },
+  "ST29": {
+   "path": "/images/blog/993faf1e_stomach-meridian-29-acupuncture-point.webp"
+  },
+  "ST30": {
+   "path": "/images/blog/b782bcb6_stomach-meridian-30-acupuncture-point.webp"
+  },
+  "ST31": {
+   "path": "/images/blog/73aa7604_stomach-meridian-31-acupuncture-point.webp"
+  },
+  "ST32": {
+   "path": "/images/blog/d47843d5_stomach-meridian-32-acupuncture-point.webp"
+  },
+  "ST33": {
+   "path": "/images/blog/33335f4c_stomach-meridian-33-acupuncture-point.webp"
+  },
+  "ST34": {
+   "path": "/images/blog/94889487_stomach-meridian-34-acupuncture-point.webp"
+  },
+  "ST35": {
+   "path": "/images/blog/bb7096f9_stomach-meridian-35-acupuncture-point.webp"
+  },
+  "ST36": {
+   "path": "/images/blog/a7974f68_stomach-meridian-36-acupuncture-point.webp",
+   "sha256": "11f02d47925e8775e0f22b298797d5c3bc046e7fa1f65bdae4d0062c7ed21765"
+  },
+  "ST37": {
+   "path": "/images/blog/affbfe50_stomach-meridian-37-acupuncture-point.webp"
+  },
+  "ST38": {
+   "path": "/images/blog/ec0653db_stomach-meridian-38-acupuncture-point.webp"
+  },
+  "ST39": {
+   "path": "/images/blog/fee738f2_stomach-meridian-39-acupuncture-point.webp"
+  },
+  "ST40": {
+   "path": "/images/blog/59e84928_stomach-meridian-40-acupuncture-point.webp",
+   "sha256": "3d34ed38626945ce9885816f6e92ef822a7f73b3ce677b3d9138b2090e7cf310"
+  },
+  "ST41": {
+   "path": "/images/blog/4f2dbcbf_stomach-meridian-41-acupuncture-point.webp"
+  },
+  "ST42": {
+   "path": "/images/blog/5c3aa284_stomach-meridian-42-acupuncture-point.webp"
+  },
+  "ST43": {
+   "path": "/images/blog/7138628e_stomach-meridian-43-acupuncture-point.webp"
+  },
+  "ST44": {
+   "path": "/images/blog/38a74baa_stomach-meridian-44-acupuncture-point.webp"
+  },
+  "ST45": {
+   "path": "/images/blog/8c72cfb0_stomach-meridian-45-acupuncture-point.webp"
+  },
+  "SP1": {
+   "path": "/images/blog/abca317a_spleen-meridian-1-acupuncture-point.webp"
+  },
+  "SP2": {
+   "path": "/images/blog/a2047d49_spleen-meridian-2-acupuncture-point.webp"
+  },
+  "SP3": {
+   "path": "/images/blog/79fad9b8_spleen-meridian-3-acupuncture-point.webp"
+  },
+  "SP4": {
+   "path": "/images/blog/f78178ce_spleen-meridian-4-acupuncture-point.webp"
+  },
+  "SP5": {
+   "path": "/images/blog/1520127b_spleen-meridian-5-acupuncture-point.webp"
+  },
+  "SP6": {
+   "path": "/images/blog/522498bd_spleen-meridian-6-acupuncture-point.webp",
+   "sha256": "d5baa6386787250799bd7de85f84c3bf9af9518ea7bc1f583a45dadd0e97e018"
+  },
+  "SP7": {
+   "path": "/images/blog/d7e6d9da_spleen-meridian-7-acupuncture-point.webp"
+  },
+  "SP8": {
+   "path": "/images/blog/681d338d_spleen-meridian-8-acupuncture-point.webp"
+  },
+  "SP9": {
+   "path": "/images/blog/f1078fcc_Diagram-Showing-Where-the-SP-9-Acupuncture-Point-also-known-as-Lougu-or-Leaking-Valley-is-within-the-Spleen-Meridians.webp",
+   "sha256": "7c39575b43e49c297238f289853f585a107ccd13bd89af2ae02504354e71cc0b"
+  },
+  "SP10": {
+   "path": "/images/blog/e4e25bba_spleen-meridian-10-acupuncture-point.webp"
+  },
+  "SP11": {
+   "path": "/images/blog/5e25131f_spleen-meridian-11-acupuncture-point.webp"
+  },
+  "SP12": {
+   "path": "/images/blog/7fecc90d_spleen-meridian-12-acupuncture-point.webp"
+  },
+  "SP13": {
+   "path": "/images/blog/1f6fe4e0_spleen-meridian-13-acupuncture-point.webp"
+  },
+  "SP14": {
+   "path": "/images/blog/af49a83c_spleen-meridian-14-acupuncture-point.webp"
+  },
+  "SP15": {
+   "path": "/images/blog/63e81f61_spleen-meridian-15-acupuncture-point.webp"
+  },
+  "SP16": {
+   "path": "/images/blog/03514237_spleen-meridian-16-acupuncture-point.webp"
+  },
+  "SP17": {
+   "path": "/images/blog/fc6b6020_spleen-meridian-17-acupuncture-point.webp"
+  },
+  "SP18": {
+   "path": "/images/blog/a2bf8c4e_spleen-meridian-18-acupuncture-point.webp"
+  },
+  "SP19": {
+   "path": "/images/blog/9765beb2_spleen-meridian-19-acupuncture-point.webp"
+  },
+  "SP20": {
+   "path": "/images/blog/4f4eefc8_spleen-meridian-20-acupuncture-point.webp"
+  },
+  "SP21": {
+   "path": "/images/blog/c105626f_spleen-meridian-21-acupuncture-point.webp"
+  },
+  "HT1": {
+   "path": "/images/blog/1288fa82_heart-meridian-1-acupuncture-point.webp"
+  },
+  "HT2": {
+   "path": "/images/blog/ca0e5828_heart-meridian-2-acupuncture-point.webp"
+  },
+  "HT3": {
+   "path": "/images/blog/0bf32caf_heart-meridian-3-acupuncture-point.webp"
+  },
+  "HT4": {
+   "path": "/images/blog/9a1bc724_heart-meridian-4-acupuncture-point.webp"
+  },
+  "HT5": {
+   "path": "/images/blog/e5a0f590_heart-meridian-5-acupuncture-point.webp"
+  },
+  "HT6": {
+   "path": "/images/blog/25a2ce38_heart-meridian-6-acupuncture-point.webp"
+  },
+  "HT7": {
+   "path": "/images/blog/99a6f56c_heart-meridian-7-acupuncture-point.webp",
+   "sha256": "04ff1fe226725e9a3b966d08f807a15da69e594c6c12fe73c5eff75eba002578"
+  },
+  "HT8": {
+   "path": "/images/blog/42cab170_heart-meridian-8-acupuncture-point.webp"
+  },
+  "HT9": {
+   "path": "/images/blog/79cb344e_heart-meridian-9-acupuncture-point.webp"
+  },
+  "SI1": {
+   "path": "/images/blog/3df638a9_small-intestine-meridian-1-acupuncture-point.webp"
+  },
+  "SI2": {
+   "path": "/images/blog/3955e862_small-intestine-meridian-2-acupuncture-point.webp"
+  },
+  "SI3": {
+   "path": "/images/blog/f350d5a0_small-intestine-meridian-3-acupuncture-point.webp"
+  },
+  "SI4": {
+   "path": "/images/blog/136763d3_small-intestine-meridian-4-acupuncture-point.webp"
+  },
+  "SI5": {
+   "path": "/images/blog/fad713ce_small-intestine-meridian-5-acupuncture-point.webp"
+  },
+  "SI6": {
+   "path": "/images/blog/9cefa753_small-intestine-meridian-6-acupuncture-point.webp"
+  },
+  "SI7": {
+   "path": "/images/blog/4a4ab5d4_small-intestine-meridian-7-acupuncture-point.webp"
+  },
+  "SI8": {
+   "path": "/images/blog/e327134e_small-intestine-meridian-8-acupuncture-point.webp"
+  },
+  "SI9": {
+   "path": "/images/blog/d3bd9458_small-intestine-meridian-9-acupuncture-point.webp"
+  },
+  "SI10": {
+   "path": "/images/blog/97124c50_small-intestine-meridian-10-acupuncture-point.webp"
+  },
+  "SI11": {
+   "path": "/images/blog/5203fb57_small-intestine-meridian-11-acupuncture-point.webp"
+  },
+  "SI12": {
+   "path": "/images/blog/8c66af58_small-intestine-meridian-12-acupuncture-point.webp"
+  },
+  "SI13": {
+   "path": "/images/blog/0c5dd334_13.webp"
+  },
+  "SI14": {
+   "path": "/images/blog/e4bca800_small-intestine-meridian-14-acupuncture-point.webp"
+  },
+  "SI15": {
+   "path": "/images/blog/a0fc14e6_small-intestine-meridian-15-acupuncture-point.webp"
+  },
+  "SI16": {
+   "path": "/images/blog/0d1b287a_small-intestine-meridian-16-acupuncture-point.webp"
+  },
+  "SI17": {
+   "path": "/images/blog/ad06d48c_small-intestine-meridian-17-acupuncture-point.webp"
+  },
+  "SI18": {
+   "path": "/images/blog/6aea7089_small-intestine-meridian-18-acupuncture-point.webp"
+  },
+  "SI19": {
+   "path": "/images/blog/92b4da3a_small-intestine-meridian-19-acupuncture-point.webp"
+  },
+  "BL1": {
+   "path": "/images/blog/d05dd8ff_bladder-meridian-1-acupuncture-point.webp"
+  },
+  "BL2": {
+   "path": "/images/blog/33d346d7_bladder-meridian-2-acupuncture-point.webp"
+  },
+  "BL3": {
+   "path": "/images/blog/38ee68df_3.webp"
+  },
+  "BL4": {
+   "path": "/images/blog/72997edd_bladder-meridian-4-acupuncture-point.webp"
+  },
+  "BL5": {
+   "path": "/images/blog/cf5fb39e_bladder-meridian-5-acupuncture-point.webp"
+  },
+  "BL6": {
+   "path": "/images/blog/d279a040_bladder-meridian-6-acupuncture-point.webp"
+  },
+  "BL7": {
+   "path": "/images/blog/a4060fd1_bladder-meridian-7-acupuncture-point.webp"
+  },
+  "BL8": {
+   "path": "/images/blog/11764ed0_bladder-meridian-8-acupuncture-point.webp"
+  },
+  "BL9": {
+   "path": "/images/blog/13ed8358_bladder-meridian-9-acupuncture-point.webp"
+  },
+  "BL10": {
+   "path": "/images/blog/fecde3cf_bladder-meridian-10-acupuncture-point.webp"
+  },
+  "BL11": {
+   "path": "/images/blog/6ae28dce_bladder-meridian-11-acupuncture-point.webp"
+  },
+  "BL12": {
+   "path": "/images/blog/64e82d5b_bladder-meridian-12-acupuncture-point.webp"
+  },
+  "BL13": {
+   "path": "/images/blog/88b44197_bladder-meridian-13-acupuncture-point.webp"
+  },
+  "BL14": {
+   "path": "/images/blog/326c878a_bladder-meridian-14-acupuncture-point.webp"
+  },
+  "BL15": {
+   "path": "/images/blog/cc94d6c5_bladder-meridian-15-acupuncture-point.webp"
+  },
+  "BL16": {
+   "path": "/images/blog/42849119_bladder-meridian-16-acupuncture-point.webp"
+  },
+  "BL17": {
+   "path": "/images/blog/04980d5d_bladder-meridian-17-acupuncture-point.webp"
+  },
+  "BL18": {
+   "path": "/images/blog/daa9965e_bladder-meridian-18-acupuncture-point.webp"
+  },
+  "BL19": {
+   "path": "/images/blog/0a061761_bladder-meridian-19-acupuncture-point.webp"
+  },
+  "BL20": {
+   "path": "/images/blog/0c15f09f_bladder-meridian-20-acupuncture-point.webp"
+  },
+  "BL21": {
+   "path": "/images/blog/d8321c2f_bladder-meridian-21-acupuncture-point.webp",
+   "note": "the caption on the source page reads BL-28; position and file name say 21"
+  },
+  "BL22": {
+   "path": "/images/blog/8a24bac0_bladder-meridian-22-acupuncture-point.webp"
+  },
+  "BL23": {
+   "path": "/images/blog/dcd97d24_bladder-meridian-23-acupuncture-point.webp",
+   "sha256": "44863f09a92d3d532b28223f38544dc8fae0a71610a046a8ddc827921dc0b771"
+  },
+  "BL24": {
+   "path": "/images/blog/23f2b11b_bladder-meridian-24-acupuncture-point.webp"
+  },
+  "BL25": {
+   "path": "/images/blog/bbadd980_bladder-meridian-25-acupuncture-point.webp"
+  },
+  "BL26": {
+   "path": "/images/blog/3f4b9bf2_bladder-meridian-26-acupuncture-point.webp"
+  },
+  "BL27": {
+   "path": "/images/blog/33e1c1a5_bladder-meridian-27-acupuncture-point.webp"
+  },
+  "BL28": {
+   "path": "/images/blog/e13c68c1_bladder-meridian-28-acupuncture-point.webp"
+  },
+  "BL29": {
+   "path": "/images/blog/f547e088_bladder-meridian-29-acupuncture-point.webp"
+  },
+  "BL30": {
+   "path": "/images/blog/cd65e65c_bladder-meridian-30-acupuncture-point.webp"
+  },
+  "BL31": {
+   "path": "/images/blog/7596af2c_bladder-meridian-31-acupuncture-point.webp"
+  },
+  "BL32": {
+   "path": "/images/blog/21552fb3_bladder-meridian-32-acupuncture-point.webp"
+  },
+  "BL33": {
+   "path": "/images/blog/d62c052a_bladder-meridian-33-acupuncture-point.webp"
+  },
+  "BL34": {
+   "path": "/images/blog/0b261b9d_bladder-meridian-34-acupuncture-point.webp"
+  },
+  "BL35": {
+   "path": "/images/blog/ed8a8ba1_bladder-meridian-35-acupuncture-point.webp"
+  },
+  "BL36": {
+   "path": "/images/blog/8231fb26_bladder-meridian-36-acupuncture-point.webp"
+  },
+  "BL37": {
+   "path": "/images/blog/a41cd600_bladder-meridian-37-acupuncture-point.webp"
+  },
+  "BL38": {
+   "path": "/images/blog/a6887a53_bladder-meridian-38-acupuncture-point.webp"
+  },
+  "BL39": {
+   "path": "/images/blog/bddc0170_bladder-meridian-39-acupuncture-point.webp"
+  },
+  "BL40": {
+   "path": "/images/blog/742a0b00_bladder-meridian-40-acupuncture-point.webp",
+   "sha256": "b60cf6465932948b8bfc1cdfd330e05f6df1f2c0d383e780d42474025bdd3842"
+  },
+  "BL41": {
+   "path": "/images/blog/8d3bf647_bladder-meridian-41-acupuncture-point.webp"
+  },
+  "BL42": {
+   "path": "/images/blog/d4398ada_bladder-meridian-42-acupuncture-point.webp"
+  },
+  "BL43": {
+   "path": "/images/blog/248828ce_bladder-meridian-43-acupuncture-point.webp"
+  },
+  "BL44": {
+   "path": "/images/blog/337f302c_bladder-meridian-44-acupuncture-point.webp"
+  },
+  "BL45": {
+   "path": "/images/blog/7532e42b_bladder-meridian-45-acupuncture-point.webp"
+  },
+  "BL46": {
+   "path": "/images/blog/c99281cb_bladder-meridian-46-acupuncture-point.webp"
+  },
+  "BL47": {
+   "path": "/images/blog/a42aa565_bladder-meridian-47-acupuncture-point.webp"
+  },
+  "BL48": {
+   "path": "/images/blog/e4b18b99_bladder-meridian-48-acupuncture-point.webp"
+  },
+  "BL49": {
+   "path": "/images/blog/3813fa51_bladder-meridian-49-acupuncture-point.webp"
+  },
+  "BL50": {
+   "path": "/images/blog/a3e70f7c_bladder-meridian-50-acupuncture-point.webp"
+  },
+  "BL51": {
+   "path": "/images/blog/484552fa_bladder-meridian-51-acupuncture-point.webp"
+  },
+  "BL52": {
+   "path": "/images/blog/182ae82b_bladder-meridian-52-acupuncture-point.webp"
+  },
+  "BL53": {
+   "path": "/images/blog/05f9afdf_bladder-meridian-53-acupuncture-point.webp"
+  },
+  "BL54": {
+   "path": "/images/blog/ec9d057a_bladder-meridian-54-acupuncture-point.webp"
+  },
+  "BL55": {
+   "path": "/images/blog/ae7e5b03_bladder-meridian-55-acupuncture-point.webp"
+  },
+  "BL56": {
+   "path": "/images/blog/614354a0_bladder-meridian-56-acupuncture-point.webp"
+  },
+  "BL57": {
+   "path": "/images/blog/d5b440aa_bladder-meridian-57-acupuncture-point.webp"
+  },
+  "BL58": {
+   "path": "/images/blog/c3b4f027_bladder-meridian-58-acupuncture-point.webp"
+  },
+  "BL59": {
+   "path": "/images/blog/844b958d_bladder-meridian-59-acupuncture-point.webp"
+  },
+  "BL60": {
+   "path": "/images/blog/b664cfd9_bladder-meridian-60-acupuncture-point.webp",
+   "sha256": "591561a54152d0562dd6672e1f96c050de06aa1fe020f8836f1934a75e8e8639"
+  },
+  "BL61": {
+   "path": "/images/blog/fe081c0f_bladder-meridian-61-acupuncture-point.webp"
+  },
+  "BL62": {
+   "path": "/images/blog/53e8bf58_bladder-meridian-62-acupuncture-point.webp"
+  },
+  "BL63": {
+   "path": "/images/blog/8f5bf7d8_bladder-meridian-63-acupuncture-point.webp"
+  },
+  "BL64": {
+   "path": "/images/blog/c430ef5a_bladder-meridian-64-acupuncture-point.webp"
+  },
+  "BL65": {
+   "path": "/images/blog/38ba0d6f_bladder-meridian-65-acupuncture-point.webp",
+   "note": "the caption on the source page reads BL-64; position and file name say 65"
+  },
+  "BL66": {
+   "path": "/images/blog/1517effb_bladder-meridian-66-acupuncture-point.webp"
+  },
+  "BL67": {
+   "path": "/images/blog/c7ac189e_bladder-meridian-67-acupuncture-point.webp",
+   "sha256": "9a48ba90faa041edc9fe359b929762b8820ca0e68cec04c8c4ab79faa402f67d"
+  },
+  "KI1": {
+   "path": "/images/blog/41568585_kidney-meridian-1-acupuncture-point.webp"
+  },
+  "KI2": {
+   "path": "/images/blog/3a212f85_kidney-meridian-2-acupuncture-point.webp"
+  },
+  "KI3": {
+   "path": "/images/blog/fb9fbc31_kidney-meridian-3-acupuncture-point.webp",
+   "sha256": "7f478b37ddc151262c035814402961c99b1906cebcb5ed40bc338460dbf31fd4"
+  },
+  "KI4": {
+   "path": "/images/blog/0d57113c_kidney-meridian-4-acupuncture-point.webp"
+  },
+  "KI5": {
+   "path": "/images/blog/fb11e2a4_kidney-meridian-5-acupuncture-point.webp"
+  },
+  "KI6": {
+   "path": "/images/blog/113e30d0_kidney-meridian-6-acupuncture-point.webp"
+  },
+  "KI7": {
+   "path": "/images/blog/b2f2cd07_kidney-meridian-7-acupuncture-point.webp"
+  },
+  "KI8": {
+   "path": "/images/blog/fede6f12_kidney-meridian-8-acupuncture-point.webp"
+  },
+  "KI9": {
+   "path": "/images/blog/28565fda_kidney-meridian-9-acupuncture-point.webp"
+  },
+  "KI10": {
+   "path": "/images/blog/4917cb8e_kidney-meridian-10-acupuncture-point.webp"
+  },
+  "KI11": {
+   "path": "/images/blog/f465af97_kidney-meridian-11-acupuncture-point.webp"
+  },
+  "KI12": {
+   "path": "/images/blog/50e6a173_kidney-meridian-12-acupuncture-point.webp"
+  },
+  "KI13": {
+   "path": "/images/blog/557cb859_kidney-meridian-13-acupuncture-point.webp"
+  },
+  "KI14": {
+   "path": "/images/blog/64c79fff_kidney-meridian-14-acupuncture-point.webp"
+  },
+  "KI15": {
+   "path": "/images/blog/15963cad_kidney-meridian-15-acupuncture-point.webp"
+  },
+  "KI16": {
+   "path": "/images/blog/087d1506_kidney-meridian-16-acupuncture-point.webp"
+  },
+  "KI17": {
+   "path": "/images/blog/94da274b_kidney-meridian-17-acupuncture-point.webp"
+  },
+  "KI18": {
+   "path": "/images/blog/27d836f4_18.webp"
+  },
+  "KI19": {
+   "path": "/images/blog/1d6a7c52_kidney-meridian-19-acupuncture-point.webp"
+  },
+  "KI20": {
+   "path": "/images/blog/54a8f261_kidney-meridian-20-acupuncture-point.webp"
+  },
+  "KI21": {
+   "path": "/images/blog/21a484f1_kidney-meridian-21-acupuncture-point.webp"
+  },
+  "KI22": {
+   "path": "/images/blog/41dfb516_kidney-meridian-22-acupuncture-point.webp"
+  },
+  "KI23": {
+   "path": "/images/blog/96857ef5_kidney-meridian-23-acupuncture-point.webp"
+  },
+  "KI24": {
+   "path": "/images/blog/b17e9000_kidney-meridian-24-acupuncture-point.webp"
+  },
+  "KI25": {
+   "path": "/images/blog/6a6c5390_kidney-meridian-25-acupuncture-point.webp"
+  },
+  "KI26": {
+   "path": "/images/blog/241e6b3b_kidney-meridian-26-acupuncture-point.webp"
+  },
+  "KI27": {
+   "path": "/images/blog/f0ee7d85_kidney-meridian-27-acupuncture-point.webp"
+  },
+  "PC1": {
+   "path": "/images/blog/98306724_pericardium-meridian-1-acupuncture-point.webp"
+  },
+  "PC2": {
+   "path": "/images/blog/130ea4e9_pericardium-meridian-2-acupuncture-point.webp"
+  },
+  "PC3": {
+   "path": "/images/blog/0b64fce8_pericardium-meridian-3-acupuncture-point.webp"
+  },
+  "PC4": {
+   "path": "/images/blog/009c1ba3_pericardium-meridian-4-acupuncture-point.webp"
+  },
+  "PC5": {
+   "path": "/images/blog/bb0cb03c_pericardium-meridian-5-acupuncture-point.webp"
+  },
+  "PC6": {
+   "path": "/images/blog/e189b341_pericardium-meridian-6-acupuncture-point.webp",
+   "sha256": "c46680d8ecc53e63c98b20d607effc6600d90b8077ca8a4fe2171ecbdd3b0199"
+  },
+  "PC7": {
+   "path": "/images/blog/145b76f1_pericardium-meridian-7-acupuncture-point.webp"
+  },
+  "PC8": {
+   "path": "/images/blog/c77807a2_pericardium-meridian-8-acupuncture-point.webp"
+  },
+  "PC9": {
+   "path": "/images/blog/e8a44606_pericardium-meridian-9-acupuncture-point.webp"
+  },
+  "TE1": {
+   "path": "/images/blog/a5420e96_triple-burner-meridian-1-acupuncture-point.webp"
+  },
+  "TE2": {
+   "path": "/images/blog/9899e668_triple-burner-meridian-2-acupuncture-point.webp"
+  },
+  "TE3": {
+   "path": "/images/blog/3d0198be_triple-burner-meridian-3-acupuncture-point.webp"
+  },
+  "TE4": {
+   "path": "/images/blog/9975c447_triple-burner-meridian-4-acupuncture-point.webp"
+  },
+  "TE5": {
+   "path": "/images/blog/909d2bc6_triple-burner-meridian-5-acupuncture-point.webp",
+   "sha256": "e637e4f8d933330f1abdefa2779e90f4ad59926349838ef6f10f580a91d51867"
+  },
+  "TE6": {
+   "path": "/images/blog/41f8024f_triple-burner-meridian-6-acupuncture-point.webp"
+  },
+  "TE7": {
+   "path": "/images/blog/84a6a2c5_triple-burner-meridian-7-acupuncture-point.webp"
+  },
+  "TE8": {
+   "path": "/images/blog/439091d9_triple-burner-meridian-8-acupuncture-point.webp"
+  },
+  "TE9": {
+   "path": "/images/blog/858bc2f0_triple-burner-meridian-9-acupuncture-point.webp"
+  },
+  "TE10": {
+   "path": "/images/blog/3659ff6a_triple-burner-meridian-10-acupuncture-point.webp"
+  },
+  "TE11": {
+   "path": "/images/blog/0ef036e1_triple-burner-meridian-11-acupuncture-point.webp"
+  },
+  "TE12": {
+   "path": "/images/blog/ddb14b21_triple-burner-meridian-12-acupuncture-point.webp"
+  },
+  "TE13": {
+   "path": "/images/blog/c9d43c5e_triple-burner-meridian-13-acupuncture-point.webp"
+  },
+  "TE14": {
+   "path": "/images/blog/d6ffee04_triple-burner-meridian-14-acupuncture-point.webp"
+  },
+  "TE15": {
+   "path": "/images/blog/b79bf6c9_triple-burner-meridian-15-acupuncture-point.webp"
+  },
+  "TE16": {
+   "path": "/images/blog/31aff498_triple-burner-meridian-16-acupuncture-point.webp"
+  },
+  "TE17": {
+   "path": "/images/blog/687be323_triple-burner-meridian-17-acupuncture-point.webp"
+  },
+  "TE18": {
+   "path": "/images/blog/79f26954_18.pngtriple-burner-meridian-18-acupuncture-point.webp"
+  },
+  "TE19": {
+   "path": "/images/blog/7a0f8a2e_triple-burner-meridian-19-acupuncture-point.webp"
+  },
+  "TE20": {
+   "path": "/images/blog/3b713fd7_triple-burner-meridian-20-acupuncture-point.webp"
+  },
+  "TE21": {
+   "path": "/images/blog/0ecd1052_triple-burner-meridian-21-acupuncture-point.webp"
+  },
+  "TE22": {
+   "path": "/images/blog/7bf12e48_triple-burner-meridian-22-acupuncture-point.webp"
+  },
+  "TE23": {
+   "path": "/images/blog/404fe952_triple-burner-meridian-23-acupuncture-point.webp"
+  },
+  "GB1": {
+   "path": "/images/blog/043098c8_1.webp"
+  },
+  "GB2": {
+   "path": "/images/blog/6df0bc54_2.webp"
+  },
+  "GB3": {
+   "path": "/images/blog/902aa0f2_3.webp"
+  },
+  "GB4": {
+   "path": "/images/blog/a83e4dcf_4.webp"
+  },
+  "GB5": {
+   "path": "/images/blog/6116b9c7_5.webp"
+  },
+  "GB6": {
+   "path": "/images/blog/91d494a4_6.webp"
+  },
+  "GB7": {
+   "path": "/images/blog/80745b53_7.webp"
+  },
+  "GB8": {
+   "path": "/images/blog/e74c106a_8.webp"
+  },
+  "GB9": {
+   "path": "/images/blog/b02516a0_9.webp"
+  },
+  "GB10": {
+   "path": "/images/blog/731f5296_10.webp"
+  },
+  "GB11": {
+   "path": "/images/blog/ece0edfc_11.webp"
+  },
+  "GB12": {
+   "path": "/images/blog/97d50a8c_12.webp"
+  },
+  "GB13": {
+   "path": "/images/blog/f3674765_gallbladder-1-.webp"
+  },
+  "GB14": {
+   "path": "/images/blog/0cfa99c4_14.webp"
+  },
+  "GB15": {
+   "path": "/images/blog/14ab231f_15.webp"
+  },
+  "GB16": {
+   "path": "/images/blog/d9996c43_16.webp"
+  },
+  "GB17": {
+   "path": "/images/blog/ce944658_17.webp"
+  },
+  "GB18": {
+   "path": "/images/blog/1d2c45ac_18.webp"
+  },
+  "GB19": {
+   "path": "/images/blog/3ee462b3_19.webp"
+  },
+  "GB20": {
+   "path": "/images/blog/17331a19_20.webp",
+   "sha256": "353e50e6a34416df0df0452b2f051f270718eddbf3a8845f5339e35001835254"
+  },
+  "GB21": {
+   "path": "/images/blog/d48cfb02_gallbladder.webp",
+   "sha256": "85cb971a82c90d3f16bf756c18aeb5ebafcfbbd69577f5df97eafce87d35f073"
+  },
+  "GB22": {
+   "path": "/images/blog/07b7bc74_22.webp"
+  },
+  "GB23": {
+   "path": "/images/blog/87d8d413_23.webp"
+  },
+  "GB24": {
+   "path": "/images/blog/21b45e19_24.webp"
+  },
+  "GB25": {
+   "path": "/images/blog/b1629fcf_25.webp"
+  },
+  "GB26": {
+   "path": "/images/blog/d7436abd_26.webp"
+  },
+  "GB27": {
+   "path": "/images/blog/621159f0_27.webp"
+  },
+  "GB28": {
+   "path": "/images/blog/2122bf97_28.webp"
+  },
+  "GB29": {
+   "path": "/images/blog/61520b10_29.webp"
+  },
+  "GB30": {
+   "path": "/images/blog/d626c9f5_30.webp"
+  },
+  "GB31": {
+   "path": "/images/blog/6cf2119c_31.webp"
+  },
+  "GB32": {
+   "path": "/images/blog/79229808_32.webp"
+  },
+  "GB33": {
+   "path": "/images/blog/df713ecb_33.webp"
+  },
+  "GB34": {
+   "path": "/images/blog/09f21c9f_34.webp"
+  },
+  "GB35": {
+   "path": "/images/blog/6f0ea5d2_35.webp"
+  },
+  "GB36": {
+   "path": "/images/blog/79e63c69_36.webp"
+  },
+  "GB37": {
+   "path": "/images/blog/609a83a6_37.webp"
+  },
+  "GB38": {
+   "path": "/images/blog/db89070e_38.webp"
+  },
+  "GB39": {
+   "path": "/images/blog/11f26c01_39.webp"
+  },
+  "GB40": {
+   "path": "/images/blog/bc375178_40.webp"
+  },
+  "GB41": {
+   "path": "/images/blog/95a21df7_41.webp"
+  },
+  "GB42": {
+   "path": "/images/blog/17f7fb61_42.webp"
+  },
+  "GB43": {
+   "path": "/images/blog/819aa1ad_43.webp"
+  },
+  "GB44": {
+   "path": "/images/blog/cf582d19_44.webp"
+  },
+  "LR1": {
+   "path": "/images/blog/ca640668_1.webp"
+  },
+  "LR2": {
+   "path": "/images/blog/bfed0275_2.webp"
+  },
+  "LR3": {
+   "path": "/images/blog/ef21d1a4_3.webp",
+   "sha256": "6950ac84462696ef89af96291cc535d11878890c65dd4e92b668aeb2fecec628"
+  },
+  "LR4": {
+   "path": "/images/blog/c9b19616_4.webp"
+  },
+  "LR5": {
+   "path": "/images/blog/2ceb705a_5.webp"
+  },
+  "LR6": {
+   "path": "/images/blog/bae3e11a_6.webp"
+  },
+  "LR7": {
+   "path": "/images/blog/48367c7c_7.webp"
+  },
+  "LR8": {
+   "path": "/images/blog/ae3db359_8.webp"
+  },
+  "LR9": {
+   "path": "/images/blog/5a34579b_9.webp"
+  },
+  "LR10": {
+   "path": "/images/blog/2d63d050_10.webp"
+  },
+  "LR11": {
+   "path": "/images/blog/bf863f57_11.webp"
+  },
+  "LR12": {
+   "path": "/images/blog/cbba1d8d_12.webp"
+  },
+  "LR13": {
+   "path": "/images/blog/1e146890_13.webp"
+  },
+  "LR14": {
+   "path": "/images/blog/8d0bb7fe_14.webp"
+  },
+  "CV1": {
+   "path": "/images/blog/b8deb392_1.webp"
+  },
+  "CV2": {
+   "path": "/images/blog/aa1e24c4_2.webp"
+  },
+  "CV3": {
+   "path": "/images/blog/4729ca73_3.webp",
+   "sha256": "2d3876e4d039a2eb01db6879adeef1fdf645d971c760320ff1486853b18d4817"
+  },
+  "CV4": {
+   "path": "/images/blog/e2485f04_4.webp",
+   "sha256": "2339228c17c74462d1960893f2b5100ac12fb08a31728ea6f61f0bf2727f4347"
+  },
+  "CV5": {
+   "path": "/images/blog/01ab38c4_5.webp"
+  },
+  "CV6": {
+   "path": "/images/blog/84dc890b_6.webp",
+   "sha256": "0e6325a924c8853626395b08b537a150f635e6f4a805fbdbacdd1f3e15ea5fd2"
+  },
+  "CV7": {
+   "path": "/images/blog/429491d2_7.webp"
+  },
+  "CV8": {
+   "path": "/images/blog/b6710e1c_8.webp"
+  },
+  "CV9": {
+   "path": "/images/blog/599685e4_9.webp"
+  },
+  "CV10": {
+   "path": "/images/blog/2ff01b62_10.webp"
+  },
+  "CV11": {
+   "path": "/images/blog/27a11967_11.webp"
+  },
+  "CV12": {
+   "path": "/images/blog/5e361ce0_12.webp",
+   "sha256": "323832a693c2ac21b45753eb4acfdfe7599353f919efa1e0cf4b6fa5bc1cb02f"
+  },
+  "CV13": {
+   "path": "/images/blog/22243e08_13.webp"
+  },
+  "CV14": {
+   "path": "/images/blog/e8798c83_14.webp"
+  },
+  "CV15": {
+   "path": "/images/blog/b35cb021_15.webp"
+  },
+  "CV16": {
+   "path": "/images/blog/b44fc10a_16.webp"
+  },
+  "CV17": {
+   "path": "/images/blog/093a338b_17.webp",
+   "sha256": "f7e96fa0ac75bb5f198c750b99a568c1490dab285a41df4aca40c0a217f5a4d2"
+  },
+  "CV18": {
+   "path": "/images/blog/98f74ec9_18.webp"
+  },
+  "CV19": {
+   "path": "/images/blog/db787eda_19.webp"
+  },
+  "CV20": {
+   "path": "/images/blog/263932d3_20.webp"
+  },
+  "CV21": {
+   "path": "/images/blog/b39549ab_21.webp"
+  },
+  "CV22": {
+   "path": "/images/blog/de7541bc_22.webp"
+  },
+  "CV23": {
+   "path": "/images/blog/f0dcb14b_23.webp"
+  },
+  "CV24": {
+   "path": "/images/blog/ce40ed03_24.webp"
+  },
+  "GV1": {
+   "path": "/images/blog/590d9a35_1.webp"
+  },
+  "GV2": {
+   "path": "/images/blog/20322162_2.webp"
+  },
+  "GV3": {
+   "path": "/images/blog/c48858dd_3.webp"
+  },
+  "GV4": {
+   "path": "/images/blog/f0b3047d_4.webp"
+  },
+  "GV5": {
+   "path": "/images/blog/706ae554_5.webp"
+  },
+  "GV6": {
+   "path": "/images/blog/8cf91811_6.webp"
+  },
+  "GV7": {
+   "path": "/images/blog/87b73f97_7.webp"
+  },
+  "GV8": {
+   "path": "/images/blog/ac81ceab_8.webp"
+  },
+  "GV9": {
+   "path": "/images/blog/f327fbf6_9.webp"
+  },
+  "GV10": {
+   "path": "/images/blog/76f4ae35_10.webp"
+  },
+  "GV11": {
+   "path": "/images/blog/acf13633_11.webp"
+  },
+  "GV12": {
+   "path": "/images/blog/8112085a_12.webp"
+  },
+  "GV13": {
+   "path": "/images/blog/fe9a7d2c_13.webp"
+  },
+  "GV14": {
+   "path": "/images/blog/bea01c74_14.webp",
+   "sha256": "9cfca8b2fa2405fe7b4a81dbc2c8d9e3252f55670550eece91fe813f1d0f342f"
+  },
+  "GV15": {
+   "path": "/images/blog/468781b4_15.webp"
+  },
+  "GV16": {
+   "path": "/images/blog/4e05ded8_16.webp"
+  },
+  "GV17": {
+   "path": "/images/blog/7bb1f4b8_17.webp"
+  },
+  "GV18": {
+   "path": "/images/blog/a1a7a470_18.webp"
+  },
+  "GV19": {
+   "path": "/images/blog/e7acadc3_19.webp"
+  },
+  "GV20": {
+   "path": "/images/blog/6a90e819_20.webp",
+   "sha256": "f3325b2930aca0364323cd14ad9f883a56dc1fa578bb0669bc1a8b0f7fb8613b"
+  },
+  "GV21": {
+   "path": "/images/blog/da03f690_21.webp"
+  },
+  "GV22": {
+   "path": "/images/blog/893d8c61_22.webp"
+  },
+  "GV23": {
+   "path": "/images/blog/74f9b0cb_23.webp"
+  },
+  "GV24": {
+   "path": "/images/blog/ffed3cf1_24.webp"
+  },
+  "GV25": {
+   "path": "/images/blog/2f8ca760_25.webp"
+  },
+  "GV26": {
+   "path": "/images/blog/3e5d69e0_26.webp"
+  },
+  "GV27": {
+   "path": "/images/blog/89cd0866_27.webp"
+  },
+  "GV28": {
+   "path": "/images/blog/27182053_28.webp"
+  }
+ }
+}

@@ -31,6 +31,9 @@ locals {
     # photos and voice notes between patient and therapist (owner decision Q14, 2026-10-12)
     ZF_RELAY_MEDIA = "1"
 
+    # licensed point diagrams on the treatment page (owner decision Q4); the files move with the media
+    ZF_POINT_IMAGES = "1"
+
     # The tasks accept connections from the ALB only (security group), so the peer is always the
     # ALB: uvicorn may believe X-Forwarded-* from any peer ("*" — this uvicorn takes no CIDR) and
     # takes the LAST X-Forwarded-For entry, the one the ALB appended (SF-022).

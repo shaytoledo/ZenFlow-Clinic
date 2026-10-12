@@ -20,6 +20,7 @@ T_QR = "tests/unit/test_task_queue_review.py"
 T_CLK = "tests/unit/test_clock_review.py"
 T_RS = "tests/bot/test_relay_safety.py"
 T_ROB = "tests/bot/test_robustness.py"
+T_FPI = "tests/unit/test_fetch_point_images.py"
 
 SPECS = [
     # ── web security ──
@@ -968,6 +969,30 @@ SPECS = [
         anchor="def init(",
         edits=[("        if _read(path):\n", "        if False:\n", False)],
         tests=["tests/unit/test_keys_cli.py::test_an_existing_key_is_never_replaced"],
+    ),
+    spec(
+        id="14.3 only a WebP image is kept",
+        file="zenflow/fetch_point_images.py",
+        edits=[("    if not _is_webp(data):", "    if False:", False)],
+        tests=[f"{T_FPI}::test_what_is_not_the_expected_image_is_refused"],
+    ),
+    spec(
+        id="14.3 a download has a size limit",
+        file="zenflow/fetch_point_images.py",
+        edits=[("            if size > MAX_BYTES:", "            if False:", False)],
+        tests=[f"{T_FPI}::test_what_is_not_the_expected_image_is_refused"],
+    ),
+    spec(
+        id="14.3 a pinned diagram must match its checksum",
+        file="zenflow/fetch_point_images.py",
+        edits=[
+            (
+                "                if pinned and hashlib.sha256(data).hexdigest() != pinned:",
+                "                if False:",
+                False,
+            )
+        ],
+        tests=[f"{T_FPI}::test_a_pinned_file_that_changed_at_the_source_is_refused"],
     ),
     # ── reference data (Phase 14) ──
     spec(
