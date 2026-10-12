@@ -49,6 +49,7 @@ python -m zenflow.jobs dead | replay <id> | stats   # the background-job queue: 
 python -m zenflow.move_data --from <db|s3://…|app> --to <db|s3://…|app>   # verified copy between databases (12.2.9)
 python -m zenflow.file_crypto decrypt <file>.enc --out <file>
 python -m zenflow.keys init | status | adopt | app-secret   # the generated keys, as files in the git-ignored keys/ (never printed)
+python -m zenflow.fetch_point_images <folder> <codes…|--all>   # the licensed point diagrams (CC BY-SA 4.0), then: python -m zenflow.ingest_images <folder>
 ```
 
 > Work follows `docs/MASTER_PLAN_EN.md`; the living checklist is `docs/PROGRESS.md`.
@@ -201,6 +202,7 @@ zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── seed.py                  # reference data from zenflow/seed_data/*.json (361 WHO points + extras), applied at every start-up; python -m zenflow.seed acupoints --dry-run previews
 ├── storage.py               # Storage ABC (put/get/exists/delete/url): LocalStorage (MEDIA_ROOT, served at /media) | S3Storage (ZF_STORAGE_S3; SSE-KMS, presigned links)
 ├── ingest_images.py         # python -m zenflow.ingest_images <folder> [--dry-run] — licensed images → WebP + thumb + acupoint_images
+├── fetch_point_images.py    # python -m zenflow.fetch_point_images — downloads the diagrams named in seed_data/point_images.json (one pinned host, WebP only); a download needs the owner's OK
 ├── db_backup.py             # backup_database() via SQLite online backup (WAL-safe)
 ├── logging.py               # Structured logging: context (request_id…), redaction, console/JSON formatters, timed()
 ├── token_key.py             # Fernet derivation for google_tokens + rotate()
@@ -343,7 +345,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_AUTO_FOLLOWUP` | `0` | `1` = sessions never marked complete still get the 24h check-in (owner decision Q7) |
 | `MEDIA_ROOT` | `data/media` | Where LocalStorage keeps acupoint images (Phase 4.3b) |
 | `S3_BUCKET` / `S3_PREFIX` / `S3_REGION` / `S3_KMS_KEY_ID` / `S3_ENDPOINT_URL` | — / `media/` / — / — / — | S3 media store when `ZF_STORAGE_S3=1` (bucket required; credentials from the AWS chain, never `.env`) |
-| `ZF_POINT_IMAGES` | `0` | `1` = `/api/acupoints` lists point images (needs licensed images, Q4) |
+| `ZF_POINT_IMAGES` | `0` | `1` = `/api/acupoints` lists point images. **On for this clinic** since the licensed diagrams were imported (Q4, 2026-10-12); a point without an image shows a placeholder |
 | `ZF_SSE_UPDATES` | `0` | `1` = the treatment page follows a generation over server-sent events instead of 2 s polling |
 | `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
@@ -383,6 +385,6 @@ Any message / /start → SELECTING (main menu)
 ## Planned (waiting on the owner — `docs/QUESTIONS_FOR_SHAI.md`)
 - The move to AWS: shape A is decided; there is no AWS account and none is being opened now. What is left: `docs/AWS_MOVE_CHECKLIST.md`
 - The host adopting its own token and backup keys (`python -m zenflow.keys adopt` + a rotation): until then its backups are not encrypted
-- Point images for every point (25 approved; the rest wait for the owner's OK) and `ZF_POINT_IMAGES=1`
+- Point images for the other 336 WHO points (25 are in; the rest wait for the owner's OK, Q18)
 - A clinician's read-through of the point texts; the WhatsApp channel
 - The AI stays on Ollama (owner decision Q3); `USE_AI=anthropic` exists if that changes

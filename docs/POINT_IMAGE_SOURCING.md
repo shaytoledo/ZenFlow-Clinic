@@ -63,6 +63,40 @@ image files only: we show them unmodified, with credit and licence in the lightb
 make the app itself CC BY-SA. **Next step:** the owner approves downloading the 25 files
 (~1 MB), then the steps below.
 
+## Done on 2026-10-12 (Phase 14.3)
+
+The owner answered Q4 with "whatever you think", and asked for many more points. The table now
+holds the 361 WHO points (14.1), and the source has a diagram for each.
+
+- **The manifest:** `zenflow/seed_data/point_images.json` names one diagram for each of the 361
+  WHO points, with the source's credit and licence. It was built from the source page on
+  2026-10-12: 361 figures in 14 sections whose sizes match the channels exactly, and **every figure
+  carries its own "CC BY-SA 4.0" caption**.
+- **Three captions on the source page name another point** (ST28 says ST-45, BL21 says BL-28,
+  BL65 says BL-64). Position and file name agree with each other, so the manifest follows them and
+  carries a `note`. Look at those three after fetching them.
+- **Fetched and imported: the 25 diagrams the owner approved** (the 26 original points without
+  Yintang): 1.1 MB. Each file's SHA-256 is pinned in the manifest. They are in the host's
+  database with credit, licence and source address, and `ZF_POINT_IMAGES=1` is set.
+- **Not fetched: the other 336** (about 15 MB more). That is a larger download than the one the
+  owner approved, so it waits for a yes (Q18).
+- **What the diagrams are:** a body silhouette with the point marked and its code, Han characters
+  and name. They show the region, not surface anatomy. The card's text gives the exact location.
+- **Shown as published:** the ingester resizes to 1600 px and strips metadata, and changes nothing
+  else. The lightbox shows the credit, the licence and a link to the source.
+
+```bash
+python -m zenflow.fetch_point_images --list                         # what the manifest offers
+python -m zenflow.fetch_point_images data/point_images_src LI4 ST36 # these points
+python -m zenflow.fetch_point_images data/point_images_src --all    # all 361 (after the owner's yes)
+python -m zenflow.ingest_images data/point_images_src --dry-run     # then without --dry-run
+```
+
+The fetch command refuses any host but the manifest's, anything but HTTPS, a redirect, a file over
+2 MB, bytes that are not WebP, and a file whose SHA-256 differs from a pinned one
+(`tests/unit/test_fetch_point_images.py`). The extra points have no diagram at this source; they
+keep the placeholder.
+
 ## How a chosen set gets in
 
 1. Put the files in a folder named by code (`LI4.png`, `ST-36_diagram.svg`→`.png`). The

@@ -92,7 +92,7 @@ def adopt(folder: Path, env_file: Path) -> dict[str, str]:
     for name in ADOPTED:
         value = _read(folder / name)
         if not value:
-            outcome[name] = "no key file — run init first"
+            outcome[name] = "no key file: run init first"
             continue
         line = re.search(rf"^{name}=(.*)$", text, re.MULTILINE)
         if line and line.group(1).strip():
@@ -136,9 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "init":
         for name, what in init(folder).items():
             print(f"{name}: {what}")  # noqa: T201
-        print(
-            f"keys are in {folder.resolve()} — keep a second copy off this computer"
-        )  # noqa: T201
+        print(f"keys are in {folder.resolve()}; keep a second copy off this computer")  # noqa: T201
         return 0
     if args.command == "status":
         present = status(folder)
@@ -163,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
     path, empty = app_secret(folder)
     print(f"wrote {path} ({len(GENERATED) + len(ISSUED)} keys, values not shown)")  # noqa: T201
     if empty:
-        print(f"still empty — fill before uploading: {empty}", file=sys.stderr)  # noqa: T201
+        print(f"still empty, fill before uploading: {empty}", file=sys.stderr)  # noqa: T201
         return 1
     return 0
 
