@@ -41,7 +41,7 @@ ISSUED: dict[str, str] = {
     "THERAPIST_BOT_TOKEN": "therapist_bot_token",
     "GOOGLE_CLIENT_SECRET": "google_client_secret",
 }
-APP_SECRET_FILE = "app-secret.json"
+BUNDLE_FILE = "app-secret.json"
 DEFAULT_DIR = "keys"
 
 
@@ -117,7 +117,7 @@ def app_secret(folder: Path) -> tuple[Path, list[str]]:
     settings = get_settings()
     bundle = {name: _read(folder / name) for name in GENERATED}
     bundle.update({name: str(getattr(settings, field) or "") for name, field in ISSUED.items()})
-    path = folder / APP_SECRET_FILE
+    path = folder / BUNDLE_FILE
     write_owner_only(path, json.dumps(bundle, indent=2).encode("utf-8"))
     return path, sorted(name for name, value in bundle.items() if not value)
 

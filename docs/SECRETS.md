@@ -40,6 +40,29 @@ from `S3_REGION` / `AWS_REGION`), populate that Secrets Manager entry with a JSO
 (`{"SESSION_SECRET": "...", "TOKEN_ENCRYPTION_KEY": "...", ...}`), and drop those secrets from the
 environment. No code changes.
 
+## The key folder — `keys/` (owner decision Q15, 2026-10-12)
+
+The owner chose to keep the encryption keys in the project folder, outside git. `keys/` is
+git-ignored (`tests/unit/test_keys_cli.py` checks it), and `python -m zenflow.keys` manages it:
+
+| Command | What it does |
+|---|---|
+| `python -m zenflow.keys init` | creates each missing key, one file per key, owner-only. An existing key is never replaced |
+| `python -m zenflow.keys status` | says which keys exist |
+| `python -m zenflow.keys adopt` | adds `TOKEN_ENCRYPTION_KEY` and `BACKUP_ENCRYPTION_KEY` to the host's `.env`, unless it already sets them |
+| `python -m zenflow.keys app-secret` | assembles `keys/app-secret.json`, the bundle AWS Secrets Manager expects |
+
+- **Which keys:** the four random values we own: `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`,
+  `BACKUP_ENCRYPTION_KEY`, `TELEGRAM_WEBHOOK_SECRET`. Bot tokens and the Google client secret come
+  from Telegram and Google, and stay in `.env`.
+- **No command prints a value.** A key is copied as a file, never read off a screen.
+- **`init` changes nothing about how the host runs.** The host keeps reading `.env`. `adopt` is
+  the deliberate step, and it must be followed by `python -m zenflow.rotate_token_key`: the host
+  encrypts Google tokens with its `SESSION_SECRET` until then.
+- **The risk the owner accepted:** the folder is on the same disk as the database and the
+  backups. If the disk is lost, the keys go with it. Keep a second copy of `keys/` somewhere else
+  (a password manager, or a USB stick kept apart).
+
 ## Rotating the token-encryption key
 
 Stored Google OAuth tokens are the one secret encrypted at rest (Fernet, key derived from

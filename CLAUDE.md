@@ -48,6 +48,7 @@ python -m zenflow.restore_drill                # back up → restore into a scra
 python -m zenflow.jobs dead | replay <id> | stats   # the background-job queue: see and replay dead-lettered jobs
 python -m zenflow.move_data --from <db|s3://…|app> --to <db|s3://…|app>   # verified copy between databases (12.2.9)
 python -m zenflow.file_crypto decrypt <file>.enc --out <file>
+python -m zenflow.keys init | status | adopt | app-secret   # the generated keys, as files in the git-ignored keys/ (never printed)
 ```
 
 > Work follows `docs/MASTER_PLAN_EN.md`; the living checklist is `docs/PROGRESS.md`.
@@ -85,6 +86,7 @@ All technical documentation lives in `docs/` — one file per topic:
 | `docs/TECHNICAL_DECISIONS.md` | Architecture decision records (ADRs) |
 | `docs/BOT_AUDIT.md` | Phase 2.1 handler-by-handler bot audit, ranked defects B1–B17 |
 | `docs/AWS_READINESS.md` | Phase 12.1: the AWS gap analysis — every concern, today vs target, the flag, the work and the 12.2 task; findings made while measuring |
+| `docs/AWS_MOVE_CHECKLIST.md` | **What is left for the move to AWS** (Hebrew, for the owner): what is ready, what only the owner can do, what happens after the go-ahead, what may surprise, the cost. Decided: option A; no account yet |
 | `docs/MIGRATION_RUNBOOK.md` | Phase 12.2.9: the cut-over from the single host to AWS and both rollbacks, step by step, with the verification checklist; `zenflow.move_data` and its recorded runs |
 | `docs/BACKUP_DR.md` | Phase 12.2.7: backups (automatic on the single host, RDS PITR on AWS), RPO/RTO per deployment, the restore drill and its recorded runs |
 | `docs/AWS_COST_ESTIMATE.md` | Phase 12.2.8: the monthly AWS cost in il-central-1 from the public price list — the managed option (≈ $325 with CPU Ollama) vs the one-server option (≈ $156–189), the levers, the recommendation; the owner decides before anything is applied |
@@ -205,6 +207,7 @@ zenflow/                     # Cross-cutting infrastructure (Phase 0.4+)
 ├── pg.py                    # Postgres behind the sqlite3-shaped connection (ZF_DB_URL, ADR-46)
 ├── schema.py / migrate.py   # the schema as data + Alembic (python -m zenflow.migrate …, ADR-45)
 ├── jobs.py                  # python -m zenflow.jobs — queue stats, dead letters, replay (RUNBOOK §3)
+├── keys.py                  # python -m zenflow.keys — the generated secrets as files in keys/ (git-ignored, Q15); adopt → .env, app-secret → the AWS bundle
 ├── restore_drill.py         # back up → restore into a scratch copy → compare every table (12.2.7)
 ├── move_data.py             # verified copy between SQLite / Postgres / S3 — the AWS cut-over (12.2.9)
 ├── patient_export.py / patient_erasure.py / retention.py   # patient data rights + retention (9.9)
@@ -269,6 +272,7 @@ Any message / /start → SELECTING (main menu)
 - SQL runs on SQLite AND Postgres (ADR-46, 12.2.2): `get_db()` is a Postgres adapter when `ZF_DB_URL` is set, so new SQL must be portable — `ON CONFLICT` not `INSERT OR …`, no `json_each`/`json_extract`/`PRAGMA`/`rowid`/two-argument `MAX`, `CAST(? AS TEXT) IS NULL` for a nullable parameter, catch `bot.db.IntegrityError`. The table of do/don't is in `docs/DATABASE.md` (Postgres). CI's `postgres-suite` job runs every test on Postgres; a test about SQLite itself is marked `@pytest.mark.sqlite_only`.
 - Fixes are proven, not claimed: when you fix a bug, add a spec to `tests/mutation/specs.py` (the edit that undoes it + the tests that must then fail); `python tests/mutation/run.py <id>` must report VERIFIED (`docs/FIX_VERIFICATION.md`).
 - Patient data (ADR-43, 9.9): a new table or column holding patient data is added to `zenflow/patient_export.py` (access), `zenflow/patient_erasure.py` (anonymize/purge) and `POLICY` in `zenflow/retention.py` — `tests/integration/test_retention.py` and `test_patient_erasure.py` fail on an export section the policy or the erasure does not handle. Never hard-delete a patient from the app; erasure is the host-side command. A file holding patient data (backup, export, restore) is written with `bot.db.write_owner_only` — `0600` from the first byte (A10, `tests/security/test_file_permissions.py`).
+- Keys (Q15, 14.2): a secret we generate ourselves is a file in the git-ignored `keys/` folder, made by `python -m zenflow.keys init` — add a new one to `GENERATED` in `zenflow/keys.py` (and to `app_secret_keys` in Terraform if the tasks need it). No command may print a value.
 - Secrets (ADR-41, 9.6): secret values enter through the `SecretsProvider` seam (`zenflow/secrets.py`) — `EnvSecrets` by default, `AwsSecretsManagerSecrets` under `ZF_CLOUD`+`AWS_SECRETS_ID` (Phase 12) — wired as settings' lowest-precedence source, so the environment always wins. A new secret is added to `SECRET_NAMES` and to the `Settings` field. Never log a secret; rotate the token-encryption key with `python -m zenflow.rotate_token_key` (`docs/SECRETS.md`).
 - Periodic work (ADR-48): never a `while True: … sleep` loop in a bot or web process — register `@periodic.task(name, every_seconds=…)` (`zenflow/periodic.py`) in a module listed in `DEFAULT_HANDLER_MODULES`; the workers run it once per interval across all processes. No module-level mutable registries either (ADR-47): read the database.
 - Background work (ADR-20): never `asyncio.ensure_future(...)` fire-and-forget for anything that must happen — `get_default_queue().enqueue(name, payload, run_at=..., idempotency_key=...)` and register the handler with `@default_registry.handler(name)` in `zenflow/worker.py` consumers.
@@ -332,7 +336,7 @@ Any message / /start → SELECTING (main menu)
 | `ZF_DB_URL` | — | A Postgres URL (`postgresql+psycopg://…`) instead of the SQLite file (12.2.2, ADR-46); non-local hosts need `?sslmode=require`. Tests: `ZF_TEST_DB_URL=… pytest` runs the suite on Postgres |
 | `ZF_LOG_FILES` | `1` | `0` = log to the console only, no `logs/*.text` files (containers; 12.2.1) |
 | `ZF_TRUSTED_PROXIES` | — | IPs/CIDRs of the proxies in front of the app (e.g. the load balancer's subnet); `X-Forwarded-For` is believed only from these — empty = never (SF-022, `web/client_ip.py`) |
-| `ZF_RELAY_MEDIA` / `ZF_RELAY_MEDIA_MAX_MB` | `0` / `10` | `1` = photos, voice notes and files are relayed between patient and therapist (owner decision Q6), in memory only, never stored; allowed types only, at most this many MB (`docs/RELAY.md`) |
+| `ZF_RELAY_MEDIA` / `ZF_RELAY_MEDIA_MAX_MB` | `0` / `10` | `1` = photos, voice notes and files are relayed between patient and therapist, in memory only, never stored; allowed types only, at most this many MB (`docs/RELAY.md`). **On for this clinic** (owner decision Q14, 2026-10-12: `.env`, `.env.example`, the AWS task environment); the code default stays `0` |
 | `ZF_BACKUP_HOURS` / `ZF_BACKUP_KEEP` | `24` / `14` | On SQLite, an automatic backup when the newest is this old (encrypted with `BACKUP_ENCRYPTION_KEY`), keeping this many; `0` hours = off. Postgres: RDS backs itself up (12.2.7) |
 | `ZF_RETENTION_OPERATIONAL_DAYS` | `730` | Days operational patient rows (message metadata, AI meters, read notifications, finished jobs) are kept before `zenflow.retention --apply` removes them (9.9); `0` = forever |
 | `ZF_RETENTION_CLINICAL_YEARS` | `7` | Years after a patient's last appointment before the clinical record may be purged (9.9); 7 = owner decision Q5 (Israeli outpatient-record period), `0` = forever |
@@ -372,11 +376,13 @@ Any message / /start → SELECTING (main menu)
 - Bots by polling or by webhook (`ZF_WEBHOOK_MODE`), with `/healthz` on the bots process
 - Backups: automatic and encrypted on a single host; a restore drill (`python -m zenflow.restore_drill`); a verified data mover (`python -m zenflow.move_data`)
 - Containers (web / bots / worker) and the whole AWS deployment as Terraform (`infra/terraform/`) — validated in CI, **never applied**
-- Photo/voice relay between patient and therapist (built, off: `ZF_RELAY_MEDIA`)
+- Photo/voice relay between patient and therapist (`ZF_RELAY_MEDIA`; on for this clinic since 2026-10-12)
+- The acupoint reference: all 361 WHO points and 33 extra points, English and Hebrew
 - Operations: `docs/RUNBOOK.md`, dead-letter replay (`python -m zenflow.jobs`)
 
 ## Planned (waiting on the owner — `docs/QUESTIONS_FOR_SHAI.md`)
-- The move to AWS: choose the shape and budget (`docs/AWS_COST_ESTIMATE.md`), then `docs/INFRA.md` → `docs/MIGRATION_RUNBOOK.md`
-- Point images (licensed set found; download on approval) and `ZF_POINT_IMAGES=1`
-- Switching on the photo/voice relay; the WhatsApp channel
+- The move to AWS: shape A is decided; there is no AWS account and none is being opened now. What is left: `docs/AWS_MOVE_CHECKLIST.md`
+- The host adopting its own token and backup keys (`python -m zenflow.keys adopt` + a rotation): until then its backups are not encrypted
+- Point images for every point (25 approved; the rest wait for the owner's OK) and `ZF_POINT_IMAGES=1`
+- A clinician's read-through of the point texts; the WhatsApp channel
 - The AI stays on Ollama (owner decision Q3); `USE_AI=anthropic` exists if that changes

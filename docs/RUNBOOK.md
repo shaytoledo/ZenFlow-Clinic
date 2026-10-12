@@ -80,7 +80,9 @@ run at all: `python -m zenflow.jobs cancel <id>`.
 | RDS password (AWS) | RDS rotates it in Secrets Manager; force a new deployment so tasks read it | seconds |
 | Redis AUTH (AWS) | `terraform apply -replace=random_password.redis_auth`, then a new deployment | relay and intake state is lost (short-lived) |
 
-Secrets never go into a log, a chat or a commit (ADR-41, `docs/SECRETS.md`).
+Secrets never go into a log, a chat or a commit (ADR-41, `docs/SECRETS.md`). The keys we
+generate ourselves live in the git-ignored `keys/` folder (`python -m zenflow.keys status`); keep a
+second copy of that folder off the machine.
 
 ## 5. Restore a backup
 

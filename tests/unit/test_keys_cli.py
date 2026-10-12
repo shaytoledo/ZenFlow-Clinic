@@ -108,7 +108,7 @@ def test_the_aws_bundle_holds_exactly_what_the_task_definitions_inject(
     keys.init(tmp_path)
     assert keys.main(["app-secret", "--dir", str(tmp_path)]) == 0
     shown = capsys.readouterr()
-    bundle = json.loads((tmp_path / keys.APP_SECRET_FILE).read_text(encoding="utf-8"))
+    bundle = json.loads((tmp_path / keys.BUNDLE_FILE).read_text(encoding="utf-8"))
     assert set(bundle) == set(
         _secret_keys()
     ), "a key missing from the secret stops the tasks from starting"

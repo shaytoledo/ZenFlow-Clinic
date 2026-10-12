@@ -953,6 +953,22 @@ SPECS = [
         edits=[("token = fernet.encrypt(mem.serialize())", "token = mem.serialize()", False)],
         tests=["tests/integration/test_encrypted_backups.py"],
     ),
+    spec(
+        id="14.2 the key folder is ignored by git",
+        file=".gitignore",
+        edits=[("keys/", "nokeys/", False)],
+        tests=[
+            "tests/unit/test_keys_cli.py::test_the_key_folder_is_ignored_by_git",
+            "tests/unit/test_repo_hygiene.py::test_gitignore_contains_required_rules",
+        ],
+    ),
+    spec(
+        id="14.2 an existing key is never replaced",
+        file="zenflow/keys.py",
+        anchor="def init(",
+        edits=[("        if _read(path):\n", "        if False:\n", False)],
+        tests=["tests/unit/test_keys_cli.py::test_an_existing_key_is_never_replaced"],
+    ),
     # ── reference data (Phase 14) ──
     spec(
         id="14.1 an existing database receives new seed points",

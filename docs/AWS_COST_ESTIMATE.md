@@ -3,6 +3,12 @@
 > **The decision this page is for:** whether, and in which shape, ZenFlow moves to AWS. Nothing has
 > been provisioned. The Terraform (`docs/INFRA.md`) is ready and is applied only after the owner
 > picks an option here.
+>
+> **Decided 2026-10-12: option A** (managed, Ollama on CPU), ≈ $325/month. There is no AWS account
+> yet and the owner is not opening one now: everything stays prepared, and
+> `docs/AWS_MOVE_CHECKLIST.md` lists what is left for the day of the move. The sub-choices the owner
+> did not answer run on the recommendation: no Multi-AZ, a $400 budget alarm, staging only for the
+> rehearsal.
 
 **Prices:** on-demand, region **il-central-1 (Tel Aviv)**, read from the public AWS Price List on
 2026-10-02. Monthly means 730 hours. VAT is not included. The arithmetic is reproducible: every unit
