@@ -55,6 +55,13 @@ def test_the_manifest_offers_one_diagram_for_every_who_point() -> None:
     assert source["credit"], "CC BY needs the credit line shown with the image"
     paths = [image["path"] for image in manifest["images"].values()]
     assert len(set(paths)) == len(paths), "two points share one file"
+    rejected = {code for code, image in manifest["images"].items() if image.get("reject")}
+    channel_of = {p["code"]: p["channel"] for p in load_acupoints_seed()}
+    assert {channel_of[code] for code in rejected} == {"Bladder", "Gallbladder"}
+    assert len(rejected) == 67 + 44, "the two sets whose drawings name the wrong point"
+    assert set(fpi.accepted(manifest)) == who - rejected
+    for code, image in manifest["images"].items():
+        assert re.fullmatch(r"[0-9a-f]{64}", image.get("sha256", "")), f"{code} is not pinned"
     for code in manifest["images"]:
         assert re.fullmatch(
             rf"https://{re.escape(source['host'])}/[\w./-]+\.webp", fpi.url_for(manifest, code)
@@ -160,6 +167,31 @@ def test_a_pinned_file_that_changed_at_the_source_is_refused(tmp_path: Path) -> 
     assert "SHA-256" in changed.refused["LI4"] and not (tmp_path / "b" / "LI4.webp").exists()
 
 
+def test_a_rejected_diagram_is_never_requested(tmp_path: Path) -> None:
+    """A drawing found to be wrong stays in the manifest with its reason, and is refused."""
+    manifest = json.loads(json.dumps(MANIFEST))
+    manifest["images"]["ST36"]["reject"] = "the drawing names another point"
+    seen: list[str] = []
+    report = fpi.fetch(
+        tmp_path,
+        ["LI4", "ST36"],
+        manifest=manifest,
+        client=_client(_serving(seen=seen)),
+        delay_seconds=0,
+    )
+    assert report.fetched == ["LI4"] and seen == [f"https://{HOST}/img/li4.webp"]
+    assert report.refused["ST36"] == "rejected: the drawing names another point"
+    assert fpi.accepted(manifest) == ["LI4"], "--all fetches the accepted ones only"
+    credits = json.loads((tmp_path / "credits.json").read_text(encoding="utf-8"))
+    assert set(credits["files"]) == {"LI4.webp"}
+
+    manifest["images"]["ST36"]["reject"] = " "
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="without a reason"):
+        fpi.load_manifest(path)
+
+
 def test_a_code_outside_the_manifest_stops_before_any_request(tmp_path: Path) -> None:
     seen: list[str] = []
     with pytest.raises(ValueError, match="not in the manifest"):
@@ -169,6 +201,8 @@ def test_a_code_outside_the_manifest_stops_before_any_request(tmp_path: Path) ->
 
 def test_the_command_lists_and_reports(tmp_path: Path, capsys, monkeypatch) -> None:
     assert fpi.main(["--list"]) == 0
-    assert "361 diagrams" in capsys.readouterr().out and fpi.main([str(tmp_path), "XX9"]) == 2
+    listed = capsys.readouterr().out
+    assert "361 diagrams" in listed and "111 rejected" in listed
+    assert fpi.main([str(tmp_path), "XX9"]) == 2
     with pytest.raises(SystemExit):
         fpi.main([str(tmp_path)])  # neither codes nor --all

@@ -85,10 +85,30 @@ holds the 361 WHO points (14.1), and the source has a diagram for each.
 - **Shown as published:** the ingester resizes to 1600 px and strips metadata, and changes nothing
   else. The lightbox shows the credit, the licence and a link to the source.
 
+## 2026-10-17: all 361 fetched; the Bladder and Gallbladder drawings rejected (Phase 14.5)
+
+The owner approved the other 336 (Q18). All 361 were fetched (15 MB) and pinned. **Then 27 of them
+were opened one by one**, covering every channel, and two whole sets turned out to be wrong:
+
+| Set | Opened | What is wrong |
+|---|---|---|
+| **Bladder (67)** | BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66 | **Every one** carries another point's Han characters: 臑俞 (SI10's), or 少澤 (SI1's) on BL1. Back points (BL10, BL20, BL21, BL23) are drawn on the **front** of the body, at the organs |
+| **Gallbladder (44)** | GB20, GB21, GB30, GB34 | **Every one** carries 關衝 (TE1's characters). **GB21 is drawn on the chest**, not on the top of the shoulder |
+| The other 12 channels | LU7, LI4, ST28, ST36, SP6, HT7, SI10, KI7, PC6, TE5, LR3, CV12, GV20 | Correct code, characters, name and region (SP6's pinyin is misspelled "Shanyijiao" in the drawing) |
+
+- **Decision:** the 111 Bladder and Gallbladder diagrams carry `reject` in the manifest, with the
+  evidence. The fetch command refuses them and `--all` skips them. On the host their files were
+  moved to `data/point_images_rejected/`, and the 6 already imported (BL23, BL40, BL60, BL67,
+  GB20, GB21) were deleted from the database and the media store.
+- **Imported: 250 diagrams**, from the 12 channels with no defect found. 223 of them were not
+  opened one by one: the check was a sample of every channel, not a review of every file.
+- **The Bladder and Gallbladder points, and the 33 extra points, show the placeholder.** A
+  commissioned set (option 1) or another licensed source would fill them.
+
 ```bash
 python -m zenflow.fetch_point_images --list                         # what the manifest offers
 python -m zenflow.fetch_point_images data/point_images_src LI4 ST36 # these points
-python -m zenflow.fetch_point_images data/point_images_src --all    # all 361 (after the owner's yes)
+python -m zenflow.fetch_point_images data/point_images_src --all    # every diagram not rejected
 python -m zenflow.ingest_images data/point_images_src --dry-run     # then without --dry-run
 ```
 

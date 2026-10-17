@@ -264,12 +264,17 @@ The owner answered `docs/QUESTIONS_FOR_SHAI.md` on 2026-10-12. Each answer that 
 - **Done on the host:** the **25 diagrams the owner approved** were fetched (1.1 MB) and imported with credit, licence and source address; `ZF_POINT_IMAGES=1` in its `.env`. `.env.example` and the AWS task environment set it too.
 - **Not done:** the other 336 diagrams (about 15 MB) are a larger download than the one approved: owner question Q18. The 33 extra points have no diagram at this source.
 - **Tests:** offline, with a stub HTTP client: the manifest covers exactly the 361 WHO points; a wrong host, path or code in a manifest is refused; HTML, an oversized file, a 404 and a redirect are refused and leave nothing on disk; a changed pinned file is refused; 3 mutation specs VERIFIED |
-| 14.4 | Why CI fails: the weekly fix verification and Dependabot | [x] | 2026-10-17 | _pending_ | The owner asked why CI/CD fails. Every PR and every push to `master` was green; three other workflows were not.
+| 14.4 | Why CI fails: the weekly fix verification and Dependabot | [x] | 2026-10-17 | 54ba70b (#135) | The owner asked why CI/CD fails. Every PR and every push to `master` was green; three other workflows were not.
 - **"Verify fixes" (weekly) failed since at least 2026-10-05**, two specs out of 106:
   - `11.1 RecursionError` **survived**: the test nested JSON 5 000 deep. CPython's C recursion limit is lower on Windows than on Linux, so the input raised there and not on CI's Linux, and the revert went unnoticed. Now 50 000 deep (above every platform's limit); VERIFIED.
   - `9.9 backup encryption` was **not found**: 12.2.7 moved the encryption line below the SQLite/pg_dump branches. The spec follows it; VERIFIED.
 - **Dependabot's dev-tools PR failed lint:** a newer ruff flags B039 (a mutable `ContextVar` default, in `zenflow/logging.py` and `web/services/audit.py`) and C420 (twice, in `web/services/metrics.py`). All four fixed; the defaults are now `None`, so no context can ever share one dict.
 - **Dependabot's own update job failed** to resolve `langchain-redis==0.2.5`: its resolver does not know which Python the project uses. `.python-version` now says 3.12 |
+| 14.5 | All the point diagrams (Q18: "download all 336") — and two sets rejected | [x] | 2026-10-17 | _pending_ | `docs/POINT_IMAGE_SOURCING.md` (2026-10-17).
+- **Fetched all 361** (15 MB), every file pinned by SHA-256 in the manifest.
+- **Then opened 27, from every channel. Two whole sets are wrong at the source:** every Bladder diagram opened (10) carries another point's Han characters (SI10's 臑俞, SI1's 少澤) and draws back points on the front; every Gallbladder one opened (4) carries TE1's 關衝, and GB21 is drawn on the chest instead of the shoulder. The 13 opened from the other 12 channels are right.
+- **Rejected, with the evidence in the manifest:** the 111 BL and GB diagrams. The fetch command refuses a rejected entry and `--all` skips them (mutation spec VERIFIED). On the host: their files moved aside, and the 6 already imported (BL23, BL40, BL60, BL67, GB20, GB21) deleted from the database and the media store, after a backup.
+- **Imported: 250** from the other 12 channels, each with credit and licence. 223 were not opened one by one: a sample of every channel, not a review of every file. BL, GB and the extra points show the placeholder |
 
 ---
 
@@ -302,7 +307,7 @@ The owner answered `docs/QUESTIONS_FOR_SHAI.md` on 2026-10-12. Each answer that 
 | Q15 | Where the encryption keys (`BACKUP_ENCRYPTION_KEY`, `TOKEN_ENCRYPTION_KEY`) are kept | 9.9 / 12.2 | **2026-10-12: in the project folder, excluded from git.** → the git-ignored `keys/` folder and `python -m zenflow.keys` (14.2). The same-disk risk was stated; a second copy elsewhere is recommended |
 | Q16 | Confirm the answers pasted on 2026-10-02 (Q3–Q7, the key location) are the owner's own | — | **2026-10-12: confirmed** ("continue as is") |
 | Q17 | Data protection follow-ups: operational retention 2 years OK? database registration / DPO thresholds; a Telegram consent text; any patients in the EU (GDPR)? | 9.9 | **2026-10-12: "continue as is"** — 2 years stays; no consent message was added. Registration and a DPO are the owner's matter with a lawyer, not code |
-| Q18 | Download the diagrams of the other 336 WHO points (same site, same CC BY-SA 4.0 licence, about 15 MB more)? | 14.3 | **Waiting** — `docs/QUESTIONS_FOR_SHAI.md` §א.1. One command once approved: `python -m zenflow.fetch_point_images data/point_images_src --all` |
+| Q18 | Download the diagrams of the other 336 WHO points (same site, same CC BY-SA 4.0 licence)? | 14.3 | **2026-10-17: yes.** All fetched; the Bladder and Gallbladder sets turned out wrong at the source and were rejected; 250 imported (14.5) |
 | Q19 | A clinician's read-through of the 394 point texts (written for this product, not reviewed) | 14.1 | **Waiting** — §א.3. Corrections go into `zenflow/seed_data/acupoints.json` |
 | Q20 | Move the host to its own token and backup keys now (`keys adopt` + `rotate_token_key` + a restart), so that its backups are encrypted — or only at the AWS move? | 14.2 | **Waiting** — §א.2. Recommended: now |
 | Q8 | Rewrite git history to purge leaked tokens/logs/rdb (public repo, 0 forks)? Delete orphan `origin/main`? | 0.1 / F8 | 2026-09-14: approved + done. Keep current bot tokens (owner decision). Backup: `ZenFlow_Clinic-pre-rewrite-2026-09-14.bundle` next to the repo |

@@ -10,7 +10,9 @@ source, with its credit and licence. This command only downloads: it writes ``<C
 re-encodes and stores. A download is something the owner approves first (docs/POINT_IMAGE_SOURCING.md).
 
 What it refuses: any host other than the manifest's, anything but HTTPS, a redirect, a file over
-the size limit, bytes that are not a WebP image, and a file whose SHA-256 differs from a pinned one.
+the size limit, bytes that are not a WebP image, a file whose SHA-256 differs from a pinned one,
+and a diagram the manifest marks ``reject`` (a drawing found to be wrong; the reason is kept with
+it). ``--all`` means every diagram that is not rejected.
 """
 
 from __future__ import annotations
@@ -50,7 +52,14 @@ def load_manifest(path: Path = MANIFEST) -> dict[str, Any]:
         location = str(image.get("path", ""))
         if not location.startswith("/") or ".." in location or not location.endswith(".webp"):
             raise ValueError(f"{path}: {code} has an unusable path {location!r}")
+        if "reject" in image and not str(image["reject"]).strip():
+            raise ValueError(f"{path}: {code} is rejected without a reason")
     return data
+
+
+def accepted(manifest: dict[str, Any]) -> list[str]:
+    """The codes whose diagram may be fetched and shown: every one not marked `reject`."""
+    return sorted(code for code, image in manifest["images"].items() if not image.get("reject"))
 
 
 def url_for(manifest: dict[str, Any], code: str) -> str:
@@ -117,6 +126,10 @@ def fetch(
     try:
         for code in codes:
             target = folder / f"{code}.webp"
+            reason = str(manifest["images"][code].get("reject", ""))
+            if reason:
+                report.refused[code] = f"rejected: {reason}"
+                continue
             pinned = str(manifest["images"][code].get("sha256", ""))
             if target.is_file() and (
                 not pinned or hashlib.sha256(target.read_bytes()).hexdigest() == pinned
@@ -171,14 +184,15 @@ def main(argv: list[str] | None = None) -> int:
     manifest = load_manifest()
     if args.list:
         source = manifest["source"]
+        rejected = len(manifest["images"]) - len(accepted(manifest))
         print(  # noqa: T201 - CLI output
             f"{len(manifest['images'])} diagrams from {source['host']}, {source['licence']}, "
-            f"credit: {source['credit']}"
+            f"credit: {source['credit']}; {rejected} rejected as wrong"
         )
         return 0
     if not args.folder or args.all == bool(args.codes):
         parser.error("give a folder, then point codes or --all")
-    codes = sorted(manifest["images"]) if args.all else [c.upper() for c in args.codes]
+    codes = accepted(manifest) if args.all else [c.upper() for c in args.codes]
     try:
         report = fetch(Path(args.folder), codes, manifest=manifest)
     except ValueError as exc:

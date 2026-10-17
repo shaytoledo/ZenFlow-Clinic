@@ -385,6 +385,6 @@ Any message / /start → SELECTING (main menu)
 ## Planned (waiting on the owner — `docs/QUESTIONS_FOR_SHAI.md`)
 - The move to AWS: shape A is decided; there is no AWS account and none is being opened now. What is left: `docs/AWS_MOVE_CHECKLIST.md`
 - The host adopting its own token and backup keys (`python -m zenflow.keys adopt` + a rotation): until then its backups are not encrypted
-- Point images for the other 336 WHO points (25 are in; the rest wait for the owner's OK, Q18)
+- Point images for the Bladder and Gallbladder points and the extra points: the free set's drawings for BL and GB are wrong (rejected in the manifest, 14.5); 250 points have one
 - A clinician's read-through of the point texts; the WhatsApp channel
 - The AI stays on Ollama (owner decision Q3); `USE_AI=anthropic` exists if that changes

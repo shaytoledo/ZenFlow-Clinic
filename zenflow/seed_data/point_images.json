@@ -5,962 +5,1366 @@
   "licence": "CC BY-SA 4.0",
   "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
   "source_url": "https://www.neuroacupuncturerehab.com/blog/meridian-points-chart/",
-  "checked": "2026-10-12"
+  "checked": "2026-10-17"
  },
  "images": {
   "LU1": {
-   "path": "/images/blog/d386986b_lung-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/d386986b_lung-meridian-1-acupuncture-point.webp",
+   "sha256": "76a286a8632f1968eeda73bdf9cf1b1240075e0044a0e20c2cefe807b518fb1e"
   },
   "LU2": {
-   "path": "/images/blog/384103e0_lung-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/384103e0_lung-meridian-2-acupuncture-point.webp",
+   "sha256": "9a38afaec5da1b5d14cc9c7f2f653339ef352a88baee0ce85755516f6b2aca68"
   },
   "LU3": {
-   "path": "/images/blog/8d4d779d_lung-meridian-3-acupuncture-point.webp"
+   "path": "/images/blog/8d4d779d_lung-meridian-3-acupuncture-point.webp",
+   "sha256": "67f9a331a9da90b521c6663767682bae689a94db5d1e1490b02a5013747df3b7"
   },
   "LU4": {
-   "path": "/images/blog/b4ea06e5_lung-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/b4ea06e5_lung-meridian-4-acupuncture-point.webp",
+   "sha256": "32444bc5033ba568f3cc1b27ee75c81a82579ce4536eaf90fde444753061d374"
   },
   "LU5": {
-   "path": "/images/blog/cc23429c_lung-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/cc23429c_lung-meridian-5-acupuncture-point.webp",
+   "sha256": "07737a922fa46a05e6e5fe67b0f5ca04f7a74cd37c9089cf863678da0b426ab6"
   },
   "LU6": {
-   "path": "/images/blog/333a37fe_lung-meridian-6-acupuncture-point.webp"
+   "path": "/images/blog/333a37fe_lung-meridian-6-acupuncture-point.webp",
+   "sha256": "4383c189fbb48445820cb180f874173632a77ac66e7146d0a80d3ab18be4efac"
   },
   "LU7": {
    "path": "/images/blog/ea545fd6_lung-meridian-7-acupuncture-point.webp",
    "sha256": "fc0dccc5ce288daa0720b00de2e0d8d8eb27bda029f045729b97591204c16a26"
   },
   "LU8": {
-   "path": "/images/blog/8bcf0c6d_lung-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/8bcf0c6d_lung-meridian-8-acupuncture-point.webp",
+   "sha256": "052a9ec99a5a3559ff49956a9e8b4d8a512c70f3dadef7da2ff4f75854f2f06f"
   },
   "LU9": {
-   "path": "/images/blog/b731c843_lung-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/b731c843_lung-meridian-9-acupuncture-point.webp",
+   "sha256": "446007efd65b2fc09e20e644e120a933143b8bca04c5336d6b95be48a673e039"
   },
   "LU10": {
-   "path": "/images/blog/2660d098_lung-meridian-10-acupuncture-point.webp"
+   "path": "/images/blog/2660d098_lung-meridian-10-acupuncture-point.webp",
+   "sha256": "3ad3d9382dbb68e3324c3cf0f8d00749f089ded3455033a0f494bc3f31d7499c"
   },
   "LU11": {
-   "path": "/images/blog/0615bcbe_lung-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/0615bcbe_lung-meridian-1-acupuncture-point.webp",
+   "sha256": "70c0ee2a3c45d3f523861c2242ee68620decbb7681525aef1a82e6acac472c43"
   },
   "LI1": {
-   "path": "/images/blog/0c130fc6_large-intestine-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/0c130fc6_large-intestine-meridian-1-acupuncture-point.webp",
+   "sha256": "7e6a29cc9c56e19f987c88142702e764c86c17f0def90b0dac205035a3c7d32f"
   },
   "LI2": {
-   "path": "/images/blog/20804e05_large-intestine-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/20804e05_large-intestine-meridian-2-acupuncture-point.webp",
+   "sha256": "3232007ec216af4e6947970705f18d8046261f641a71cef41554120c01a405f2"
   },
   "LI3": {
-   "path": "/images/blog/4d7a2096_large-intestine-meridian-3-acupuncture-point.webp"
+   "path": "/images/blog/4d7a2096_large-intestine-meridian-3-acupuncture-point.webp",
+   "sha256": "3b7bf437e7169a4e32569a6988404c3c792784a4c4170b3d937fef86eccb2188"
   },
   "LI4": {
    "path": "/images/blog/465e037d_large-intestine-meridian-4-acupuncture-point.webp",
    "sha256": "b9cdab39bb76343ed0c7a16533db261a8b871f19824bc5113747ebbb3003b676"
   },
   "LI5": {
-   "path": "/images/blog/fc6c11e0_large-intestine-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/fc6c11e0_large-intestine-meridian-5-acupuncture-point.webp",
+   "sha256": "557d1dcb3ea4c8cafcd2a3e93d29579acfb9b0f6f761c320f4b2203a60d19f55"
   },
   "LI6": {
-   "path": "/images/blog/902a59a7_large-intestine-meridian-6-acupuncture-point.webp"
+   "path": "/images/blog/902a59a7_large-intestine-meridian-6-acupuncture-point.webp",
+   "sha256": "505ded61f4dea39fcd7a4d977ccc168651aa25857581193ec7489f82e6cd0d81"
   },
   "LI7": {
-   "path": "/images/blog/49d92bd5_large-intestine-meridian-7-acupuncture-point.webp"
+   "path": "/images/blog/49d92bd5_large-intestine-meridian-7-acupuncture-point.webp",
+   "sha256": "89483ebde5be2f32131632cbc4881faf408a82dcf94472d3cedab86430ca3695"
   },
   "LI8": {
-   "path": "/images/blog/1c1edb2e_large-intestine-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/1c1edb2e_large-intestine-meridian-8-acupuncture-point.webp",
+   "sha256": "58b2ffd5d2ee5f834bbe727e4e43d9d84f19f2fc20309cb2fd0e2a1392eedbe5"
   },
   "LI9": {
-   "path": "/images/blog/29986df5_large-intestine-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/29986df5_large-intestine-meridian-9-acupuncture-point.webp",
+   "sha256": "7f9a9aa90976440f0b2eb519bc4fc333d904a6ffad9f1850d3bbb31369480240"
   },
   "LI10": {
-   "path": "/images/blog/0ef5ae3c_large-intestine-meridian-10-acupuncture-point.webp"
+   "path": "/images/blog/0ef5ae3c_large-intestine-meridian-10-acupuncture-point.webp",
+   "sha256": "e6e6e30243cfa42dfc8f79c30b68102708e84477ab9e735a7d8452ba25d2e345"
   },
   "LI11": {
    "path": "/images/blog/80726f9f_large-intestine-meridian-11-acupuncture-point.webp",
    "sha256": "2cee0f129f6ca49167ec38c09f8344267e5bc14745a479fe38a16e801c0f13b8"
   },
   "LI12": {
-   "path": "/images/blog/23720baa_large-intestine-meridian-12-acupuncture-point.webp"
+   "path": "/images/blog/23720baa_large-intestine-meridian-12-acupuncture-point.webp",
+   "sha256": "91a07f7404275ab29d6c2295efb81188f7b97630b66546dfe3ba71deec995840"
   },
   "LI13": {
-   "path": "/images/blog/df087181_large-intestine-meridian-13-acupuncture-point.webp"
+   "path": "/images/blog/df087181_large-intestine-meridian-13-acupuncture-point.webp",
+   "sha256": "40972469cda68bbeab2688a29cd7998589c99152b05d190fe8994c047f925922"
   },
   "LI14": {
-   "path": "/images/blog/7d971eec_large-intestine-meridian-14-acupuncture-point.webp"
+   "path": "/images/blog/7d971eec_large-intestine-meridian-14-acupuncture-point.webp",
+   "sha256": "b4d49250d523d28213ca2a464f8e17b65dac7a4b0086914fc42e2663832f3ed3"
   },
   "LI15": {
-   "path": "/images/blog/1aaf3184_large-intestine-meridian-15-acupuncture-point.webp"
+   "path": "/images/blog/1aaf3184_large-intestine-meridian-15-acupuncture-point.webp",
+   "sha256": "3556e46132c74262db7668e1d18a7a99b887c0bb1b536a359270c80d76c9f949"
   },
   "LI16": {
-   "path": "/images/blog/bd2cca51_large-intestine-meridian-16-acupuncture-point.webp"
+   "path": "/images/blog/bd2cca51_large-intestine-meridian-16-acupuncture-point.webp",
+   "sha256": "d057d42624a16ca94375a964e9300e2e40bf1f5dd4f5712b0ed0a4bb7ae993df"
   },
   "LI17": {
-   "path": "/images/blog/c871e47a_large-intestine-meridian-17-acupuncture-point.webp"
+   "path": "/images/blog/c871e47a_large-intestine-meridian-17-acupuncture-point.webp",
+   "sha256": "9591a63d8d80a8c95eface1d4df5dba3238bd14f59732df5d6ba23f81177e701"
   },
   "LI18": {
-   "path": "/images/blog/ca671018_large-intestine-meridian-18-acupuncture-point.webp"
+   "path": "/images/blog/ca671018_large-intestine-meridian-18-acupuncture-point.webp",
+   "sha256": "b5b9d7197a302ce1c9794e5b4920215e471e23bf9c4151a82ec89bfd191b8491"
   },
   "LI19": {
-   "path": "/images/blog/5a093205_large-intestine-meridian-19-acupuncture-point.webp"
+   "path": "/images/blog/5a093205_large-intestine-meridian-19-acupuncture-point.webp",
+   "sha256": "0f5d3cde9897bab127146d94e9aee59995f2a9dd9f26c5077fed7de5874f2616"
   },
   "LI20": {
-   "path": "/images/blog/387941cd_large-intestine-meridian-20-acupuncture-point.webp"
+   "path": "/images/blog/387941cd_large-intestine-meridian-20-acupuncture-point.webp",
+   "sha256": "131eaa9c5b19bc2fdc84e650ca77c689522ead97463a841514387d63183b5705"
   },
   "ST1": {
-   "path": "/images/blog/6776bd23_stomach-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/6776bd23_stomach-meridian-1-acupuncture-point.webp",
+   "sha256": "a999f4b9f7d83c56e8f6b49000988efa40e5a04839576327e7397c6146316a6b"
   },
   "ST2": {
-   "path": "/images/blog/a8319b1b_stomach-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/a8319b1b_stomach-meridian-2-acupuncture-point.webp",
+   "sha256": "e99930c789b25dbfac8bc1eb6b8116b6fd5a1ea221ba74d893a4838328b9074d"
   },
   "ST3": {
-   "path": "/images/blog/62052c22_stomach-meridian-3-acupuncture-point.webp"
+   "path": "/images/blog/62052c22_stomach-meridian-3-acupuncture-point.webp",
+   "sha256": "97b7d0ed7ee465a3f5daaa262eae346832adc345077df471d3f0106ef9ecdbe4"
   },
   "ST4": {
-   "path": "/images/blog/419d5732_stomach-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/419d5732_stomach-meridian-4-acupuncture-point.webp",
+   "sha256": "b354fdc2ca568ae174ab6d8692afa9fab959d8160e1b69d07052157955461f30"
   },
   "ST5": {
-   "path": "/images/blog/13279460_stomach-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/13279460_stomach-meridian-5-acupuncture-point.webp",
+   "sha256": "296f037f66218eb9eb1e06166d78e260ad1d4c8e333574528cddeaa1826def49"
   },
   "ST6": {
-   "path": "/images/blog/31f02c93_stomach-meridian-6-acupuncture-point.webp"
+   "path": "/images/blog/31f02c93_stomach-meridian-6-acupuncture-point.webp",
+   "sha256": "006b1ba6471f1536243f657811e54f19dde057c6a4f9774817a390687b1caaa7"
   },
   "ST7": {
-   "path": "/images/blog/a840c241_stomach-meridian-7-acupuncture-point.webp"
+   "path": "/images/blog/a840c241_stomach-meridian-7-acupuncture-point.webp",
+   "sha256": "7ba58052936fa370c123148034ba0e5c8a685f369b3ef67f454e6d97c94d44e2"
   },
   "ST8": {
-   "path": "/images/blog/d1e93d1e_stomach-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/d1e93d1e_stomach-meridian-8-acupuncture-point.webp",
+   "sha256": "6834f681c66f786361fe42d71e6a5e0ef867ea454b8480f48103cb9704ddad1e"
   },
   "ST9": {
-   "path": "/images/blog/624d7061_stomach-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/624d7061_stomach-meridian-9-acupuncture-point.webp",
+   "sha256": "9b41cc5a195fccfb2a43493a5cece6b83ba7a155069cbc50d3e1e32af05994bb"
   },
   "ST10": {
-   "path": "/images/blog/d4484c8c_stomach-meridian-10-acupuncture-point.webp"
+   "path": "/images/blog/d4484c8c_stomach-meridian-10-acupuncture-point.webp",
+   "sha256": "cb14b81cb26cfbf6c8170ea4d54e5d3cc08b5675197c067c947c1c568aeb2a03"
   },
   "ST11": {
-   "path": "/images/blog/ca5f2ab6_11.webp"
+   "path": "/images/blog/ca5f2ab6_11.webp",
+   "sha256": "6626007b665101b07cf85308907a7ba577c1d108a09dd7b799d9ae1d90a351c5"
   },
   "ST12": {
-   "path": "/images/blog/c42bfb45_stomach-meridian-12-acupuncture-point.webp"
+   "path": "/images/blog/c42bfb45_stomach-meridian-12-acupuncture-point.webp",
+   "sha256": "35fcfa4dc6563cc7c42022f2f52d7ad1e72f73e31a71b0dc695122de7cd93d6f"
   },
   "ST13": {
-   "path": "/images/blog/6c04e241_stomach-meridian-13-acupuncture-point.webp"
+   "path": "/images/blog/6c04e241_stomach-meridian-13-acupuncture-point.webp",
+   "sha256": "2e69d7a7568fbd53ace2a6dd63a82ad6855e8730bc30491be65e09c1538c38e6"
   },
   "ST14": {
-   "path": "/images/blog/a1ad89be_stomach-meridian-14-acupuncture-point.webp"
+   "path": "/images/blog/a1ad89be_stomach-meridian-14-acupuncture-point.webp",
+   "sha256": "099a76fb1cca318b0c006b70d1732ea93d59215f270b201fdb4a50175dc02bfd"
   },
   "ST15": {
-   "path": "/images/blog/4d24ca84_stomach-meridian-15-acupuncture-point.webp"
+   "path": "/images/blog/4d24ca84_stomach-meridian-15-acupuncture-point.webp",
+   "sha256": "c1c6ba048602beba8082bdddb61a82ebf25bdaa9f3298343076879afbe30682f"
   },
   "ST16": {
-   "path": "/images/blog/2f74f2c3_stomach-meridian-16-acupuncture-point.webp"
+   "path": "/images/blog/2f74f2c3_stomach-meridian-16-acupuncture-point.webp",
+   "sha256": "17e666795ad879db047a95d777b944bb0c3947386799f39f4e9994ed1af0d53e"
   },
   "ST17": {
-   "path": "/images/blog/b21148fe_stomach-meridian-17-acupuncture-point.webp"
+   "path": "/images/blog/b21148fe_stomach-meridian-17-acupuncture-point.webp",
+   "sha256": "efa447e54b68ef55681fda6a4223e6aaa4add20b21186932e6ebc773b5fddcec"
   },
   "ST18": {
-   "path": "/images/blog/87909bd0_stomach-meridian-18-acupuncture-point.webp"
+   "path": "/images/blog/87909bd0_stomach-meridian-18-acupuncture-point.webp",
+   "sha256": "46c29370464e9dcff5c77ee10eb6b97ce81f53724106904d14e626cd41156959"
   },
   "ST19": {
-   "path": "/images/blog/3770fc8d_stomach-meridian-19-acupuncture-point.webp"
+   "path": "/images/blog/3770fc8d_stomach-meridian-19-acupuncture-point.webp",
+   "sha256": "0a016028e4a6da3d619de120b2f9a9def3d58d9e28c20dd8c322db2883fa2d34"
   },
   "ST20": {
-   "path": "/images/blog/b9568796_stomach-meridian-20-acupuncture-point.webp"
+   "path": "/images/blog/b9568796_stomach-meridian-20-acupuncture-point.webp",
+   "sha256": "0b5f939b45e4b23911f4245e781f67b05780c85ac74043f6884add2652704991"
   },
   "ST21": {
-   "path": "/images/blog/ab6b632e_stomach-meridian-21-acupuncture-point.webp"
+   "path": "/images/blog/ab6b632e_stomach-meridian-21-acupuncture-point.webp",
+   "sha256": "e31c9eea70a0b984ce46fc057952d9169463bd85db36589bd1ff486a0d9bcd82"
   },
   "ST22": {
-   "path": "/images/blog/4a33083d_stomach-meridian-22-acupuncture-point.webp"
+   "path": "/images/blog/4a33083d_stomach-meridian-22-acupuncture-point.webp",
+   "sha256": "e31b54457171e618350c307b93a3e1a327e4fcf504846d937245fa78c1fcc251"
   },
   "ST23": {
-   "path": "/images/blog/adece949_stomach-meridian-23-acupuncture-point.webp"
+   "path": "/images/blog/adece949_stomach-meridian-23-acupuncture-point.webp",
+   "sha256": "7a0904b1a4e2fa5c22f38f6d935d5099cccbe15633cd85b32fc4c3933d3a10a8"
   },
   "ST24": {
-   "path": "/images/blog/bc876075_stomach-meridian-24-acupuncture-point.webp"
+   "path": "/images/blog/bc876075_stomach-meridian-24-acupuncture-point.webp",
+   "sha256": "7f32d9c781c7e7d79c995159be32a8a74d8faaa586c83c400d56450c4c88cd5b"
   },
   "ST25": {
-   "path": "/images/blog/418023a8_stomach-meridian-25-acupuncture-point.webp"
+   "path": "/images/blog/418023a8_stomach-meridian-25-acupuncture-point.webp",
+   "sha256": "19302e6ad3b7431d2dcc48ce87afc8c103db8efd3fdf1dfe79dc70c6659aa824"
   },
   "ST26": {
-   "path": "/images/blog/e087dfe6_stomach-meridian-26-acupuncture-point.webp"
+   "path": "/images/blog/e087dfe6_stomach-meridian-26-acupuncture-point.webp",
+   "sha256": "dedd941a236631ffbca33c81dc4a2ccb133a8afb6199b6ae6d3cd994b119d9e7"
   },
   "ST27": {
-   "path": "/images/blog/c931ed15_stomach-meridian-27-acupuncture-point.webp"
+   "path": "/images/blog/c931ed15_stomach-meridian-27-acupuncture-point.webp",
+   "sha256": "88b9548d5f437cb4f351251a6a1f13ab5ea3fa68c961862d416dfccbb9587ec7"
   },
   "ST28": {
    "path": "/images/blog/30e05d15_stomach-meridian-28-acupuncture-point.webp",
+   "sha256": "6f903cd4b59b6b3c182837a5db8c14d7d5c7cd87f99e81abb6769d88c0594cc5",
    "note": "the caption on the source page reads ST-45; position and file name say 28"
   },
   "ST29": {
-   "path": "/images/blog/993faf1e_stomach-meridian-29-acupuncture-point.webp"
+   "path": "/images/blog/993faf1e_stomach-meridian-29-acupuncture-point.webp",
+   "sha256": "a001ed33036aa221f4a255a5adfe612c0da88e69126ebca23a81e056b1a5ba97"
   },
   "ST30": {
-   "path": "/images/blog/b782bcb6_stomach-meridian-30-acupuncture-point.webp"
+   "path": "/images/blog/b782bcb6_stomach-meridian-30-acupuncture-point.webp",
+   "sha256": "edc7711af1ac581f0e4b168d288fed27b5ad88b09913b14188a26e8e05e5e000"
   },
   "ST31": {
-   "path": "/images/blog/73aa7604_stomach-meridian-31-acupuncture-point.webp"
+   "path": "/images/blog/73aa7604_stomach-meridian-31-acupuncture-point.webp",
+   "sha256": "b685b8ec7a8268b7486d073dceec99ec8bd025875ae8a5ea67acea1bb226facb"
   },
   "ST32": {
-   "path": "/images/blog/d47843d5_stomach-meridian-32-acupuncture-point.webp"
+   "path": "/images/blog/d47843d5_stomach-meridian-32-acupuncture-point.webp",
+   "sha256": "295a19e1692490cc4a01f89562bfb4d1d3bc4049320572919c7f23db906ac46c"
   },
   "ST33": {
-   "path": "/images/blog/33335f4c_stomach-meridian-33-acupuncture-point.webp"
+   "path": "/images/blog/33335f4c_stomach-meridian-33-acupuncture-point.webp",
+   "sha256": "d3bed1b2e22cf492b4f18cfd93fa747ba12ee4557a42502788c90f8bd61e7d63"
   },
   "ST34": {
-   "path": "/images/blog/94889487_stomach-meridian-34-acupuncture-point.webp"
+   "path": "/images/blog/94889487_stomach-meridian-34-acupuncture-point.webp",
+   "sha256": "67c07dade16c73e65ff706478eaca5bb730d407ff7b23061a43505adf1e19610"
   },
   "ST35": {
-   "path": "/images/blog/bb7096f9_stomach-meridian-35-acupuncture-point.webp"
+   "path": "/images/blog/bb7096f9_stomach-meridian-35-acupuncture-point.webp",
+   "sha256": "686f3a55f81c482c5c16a4dcb0ab675f1e3316261e909e9749ca475486bd1791"
   },
   "ST36": {
    "path": "/images/blog/a7974f68_stomach-meridian-36-acupuncture-point.webp",
    "sha256": "11f02d47925e8775e0f22b298797d5c3bc046e7fa1f65bdae4d0062c7ed21765"
   },
   "ST37": {
-   "path": "/images/blog/affbfe50_stomach-meridian-37-acupuncture-point.webp"
+   "path": "/images/blog/affbfe50_stomach-meridian-37-acupuncture-point.webp",
+   "sha256": "014094154661c2de34ddb236c1f947e698cce926197ec453c8d037144997dc20"
   },
   "ST38": {
-   "path": "/images/blog/ec0653db_stomach-meridian-38-acupuncture-point.webp"
+   "path": "/images/blog/ec0653db_stomach-meridian-38-acupuncture-point.webp",
+   "sha256": "f3feec4353f840012e5fbc1fb975d76ccbd05c6f210951fcfd3152e90007a1d2"
   },
   "ST39": {
-   "path": "/images/blog/fee738f2_stomach-meridian-39-acupuncture-point.webp"
+   "path": "/images/blog/fee738f2_stomach-meridian-39-acupuncture-point.webp",
+   "sha256": "f4d1d3f04dbc76029d0920bdbe2481d817c82930a9e70e227d2a284608224b93"
   },
   "ST40": {
    "path": "/images/blog/59e84928_stomach-meridian-40-acupuncture-point.webp",
    "sha256": "3d34ed38626945ce9885816f6e92ef822a7f73b3ce677b3d9138b2090e7cf310"
   },
   "ST41": {
-   "path": "/images/blog/4f2dbcbf_stomach-meridian-41-acupuncture-point.webp"
+   "path": "/images/blog/4f2dbcbf_stomach-meridian-41-acupuncture-point.webp",
+   "sha256": "158c815513d3447591b7e97afbc7e2e9a71c8c7ba00d55e7f28e7a595387d98f"
   },
   "ST42": {
-   "path": "/images/blog/5c3aa284_stomach-meridian-42-acupuncture-point.webp"
+   "path": "/images/blog/5c3aa284_stomach-meridian-42-acupuncture-point.webp",
+   "sha256": "f19f7884bea5346d507e27ded62707149d87f1728572521eba873a141772646e"
   },
   "ST43": {
-   "path": "/images/blog/7138628e_stomach-meridian-43-acupuncture-point.webp"
+   "path": "/images/blog/7138628e_stomach-meridian-43-acupuncture-point.webp",
+   "sha256": "7b7a07dddb745135019fa0cccefd321c65061faedd36498c8eff0b8fb8c2a4b2"
   },
   "ST44": {
-   "path": "/images/blog/38a74baa_stomach-meridian-44-acupuncture-point.webp"
+   "path": "/images/blog/38a74baa_stomach-meridian-44-acupuncture-point.webp",
+   "sha256": "9a22a40273b24623d6b99887afc0503945064c7efb8004c42d69bf1a60f5df30"
   },
   "ST45": {
-   "path": "/images/blog/8c72cfb0_stomach-meridian-45-acupuncture-point.webp"
+   "path": "/images/blog/8c72cfb0_stomach-meridian-45-acupuncture-point.webp",
+   "sha256": "bd71ec247a11346fe01c76e14a0987c0564b2dc0d4cfa8dd57e9bf3ac67f9070"
   },
   "SP1": {
-   "path": "/images/blog/abca317a_spleen-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/abca317a_spleen-meridian-1-acupuncture-point.webp",
+   "sha256": "b5d50ade66a69d842f94086a6b9079b14d93e728b8f5fc3014b9b25b14e39b7a"
   },
   "SP2": {
-   "path": "/images/blog/a2047d49_spleen-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/a2047d49_spleen-meridian-2-acupuncture-point.webp",
+   "sha256": "1415a40db077e5152609626ff7eebb2860c55580d2914de61469a6d804aaf295"
   },
   "SP3": {
-   "path": "/images/blog/79fad9b8_spleen-meridian-3-acupuncture-point.webp"
+   "path": "/images/blog/79fad9b8_spleen-meridian-3-acupuncture-point.webp",
+   "sha256": "34a3f87fe97b35437c07666edb0707f02ff0ef6d5674ddd8e6aae571ff4a7042"
   },
   "SP4": {
-   "path": "/images/blog/f78178ce_spleen-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/f78178ce_spleen-meridian-4-acupuncture-point.webp",
+   "sha256": "78c11b430bb841f020f5e3e72545b052a34ecca03e61b599206190282cc33f54"
   },
   "SP5": {
-   "path": "/images/blog/1520127b_spleen-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/1520127b_spleen-meridian-5-acupuncture-point.webp",
+   "sha256": "d57dfbd6ab255a54b915d07c79bfe6298f959661fb2dd5dca0f06cf2fa92a49d"
   },
   "SP6": {
    "path": "/images/blog/522498bd_spleen-meridian-6-acupuncture-point.webp",
    "sha256": "d5baa6386787250799bd7de85f84c3bf9af9518ea7bc1f583a45dadd0e97e018"
   },
   "SP7": {
-   "path": "/images/blog/d7e6d9da_spleen-meridian-7-acupuncture-point.webp"
+   "path": "/images/blog/d7e6d9da_spleen-meridian-7-acupuncture-point.webp",
+   "sha256": "1b136d0135c2c08f1aeb1e9f6c73baac337b28378dcca60771b76a77ba6b1d5d"
   },
   "SP8": {
-   "path": "/images/blog/681d338d_spleen-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/681d338d_spleen-meridian-8-acupuncture-point.webp",
+   "sha256": "8f17a561087de5a635004101de26246de2d64acbe8f36bfadad3d5633023100e"
   },
   "SP9": {
    "path": "/images/blog/f1078fcc_Diagram-Showing-Where-the-SP-9-Acupuncture-Point-also-known-as-Lougu-or-Leaking-Valley-is-within-the-Spleen-Meridians.webp",
    "sha256": "7c39575b43e49c297238f289853f585a107ccd13bd89af2ae02504354e71cc0b"
   },
   "SP10": {
-   "path": "/images/blog/e4e25bba_spleen-meridian-10-acupuncture-point.webp"
+   "path": "/images/blog/e4e25bba_spleen-meridian-10-acupuncture-point.webp",
+   "sha256": "19ee0a79680411bc58e0ea9ab2af466ae5de71274b8eec443d5c237418239ff2"
   },
   "SP11": {
-   "path": "/images/blog/5e25131f_spleen-meridian-11-acupuncture-point.webp"
+   "path": "/images/blog/5e25131f_spleen-meridian-11-acupuncture-point.webp",
+   "sha256": "3abed863993385d9be94213f1e23053859dd5f446d579983ca47682a21544f6b"
   },
   "SP12": {
-   "path": "/images/blog/7fecc90d_spleen-meridian-12-acupuncture-point.webp"
+   "path": "/images/blog/7fecc90d_spleen-meridian-12-acupuncture-point.webp",
+   "sha256": "5b747676085dc2ba286d5a5cb21bf49bd800ef2baaa60478e7e461797a7e789a"
   },
   "SP13": {
-   "path": "/images/blog/1f6fe4e0_spleen-meridian-13-acupuncture-point.webp"
+   "path": "/images/blog/1f6fe4e0_spleen-meridian-13-acupuncture-point.webp",
+   "sha256": "b8490c8a70a572b32eac6ae1ed3c194fd81c3cd485ff806cfed4792205a47f23"
   },
   "SP14": {
-   "path": "/images/blog/af49a83c_spleen-meridian-14-acupuncture-point.webp"
+   "path": "/images/blog/af49a83c_spleen-meridian-14-acupuncture-point.webp",
+   "sha256": "d6657954193710ede1765b319f2852e47c0e23525657c8eb11cfd19c34e0ce98"
   },
   "SP15": {
-   "path": "/images/blog/63e81f61_spleen-meridian-15-acupuncture-point.webp"
+   "path": "/images/blog/63e81f61_spleen-meridian-15-acupuncture-point.webp",
+   "sha256": "39053925be09667d4f66aa4b909797ecd07d5a8a42ca5782649a1484d97289bc"
   },
   "SP16": {
-   "path": "/images/blog/03514237_spleen-meridian-16-acupuncture-point.webp"
+   "path": "/images/blog/03514237_spleen-meridian-16-acupuncture-point.webp",
+   "sha256": "d972bdb19e10d38262debd047733ecda68af1f10a37bd5179b32f276edd453d0"
   },
   "SP17": {
-   "path": "/images/blog/fc6b6020_spleen-meridian-17-acupuncture-point.webp"
+   "path": "/images/blog/fc6b6020_spleen-meridian-17-acupuncture-point.webp",
+   "sha256": "aac6b5fc4d0dde967a1cf94249ad62d0893ea16697ba5a2a8c2ae106ef10ab6c"
   },
   "SP18": {
-   "path": "/images/blog/a2bf8c4e_spleen-meridian-18-acupuncture-point.webp"
+   "path": "/images/blog/a2bf8c4e_spleen-meridian-18-acupuncture-point.webp",
+   "sha256": "8fb40da7bdbe9db6703b0a8fee19292bc1c9c840ad6ecabfddd13f29d4c980ae"
   },
   "SP19": {
-   "path": "/images/blog/9765beb2_spleen-meridian-19-acupuncture-point.webp"
+   "path": "/images/blog/9765beb2_spleen-meridian-19-acupuncture-point.webp",
+   "sha256": "88d0730463de6cc87fe76efc5349ae86778fbd9c271211ac9b3a2de75162955e"
   },
   "SP20": {
-   "path": "/images/blog/4f4eefc8_spleen-meridian-20-acupuncture-point.webp"
+   "path": "/images/blog/4f4eefc8_spleen-meridian-20-acupuncture-point.webp",
+   "sha256": "8ff1925038487bbb3e5dbda1c81d865dc2b668bc419ac6850b32a6b0a099007f"
   },
   "SP21": {
-   "path": "/images/blog/c105626f_spleen-meridian-21-acupuncture-point.webp"
+   "path": "/images/blog/c105626f_spleen-meridian-21-acupuncture-point.webp",
+   "sha256": "43c182b57bafc58107d2a74be60f73ce6ceafd9d40a7cd3a22a584c09c86db53"
   },
   "HT1": {
-   "path": "/images/blog/1288fa82_heart-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/1288fa82_heart-meridian-1-acupuncture-point.webp",
+   "sha256": "8ac535b0b36f9eca9e395a37752d157cff33ccae63c627ea6dc98b2d5105c153"
   },
   "HT2": {
-   "path": "/images/blog/ca0e5828_heart-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/ca0e5828_heart-meridian-2-acupuncture-point.webp",
+   "sha256": "fe3222f574921a37e0ff091282c5487a52184fed21f70eae219a54488e0ab366"
   },
   "HT3": {
-   "path": "/images/blog/0bf32caf_heart-meridian-3-acupuncture-point.webp"
+   "path": "/images/blog/0bf32caf_heart-meridian-3-acupuncture-point.webp",
+   "sha256": "9ece32605d7560138604df5c9046f82da63cc4d67b8b5c29802a6e3e76d1b53c"
   },
   "HT4": {
-   "path": "/images/blog/9a1bc724_heart-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/9a1bc724_heart-meridian-4-acupuncture-point.webp",
+   "sha256": "6258c657af295c9dda0f4ef433a2da470e841a32a8f39f0b139dd2b21a3ef104"
   },
   "HT5": {
-   "path": "/images/blog/e5a0f590_heart-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/e5a0f590_heart-meridian-5-acupuncture-point.webp",
+   "sha256": "5006d1c8425a4112d8468701b553eda56c777248c25b02398a8dbce9c36c2acd"
   },
   "HT6": {
-   "path": "/images/blog/25a2ce38_heart-meridian-6-acupuncture-point.webp"
+   "path": "/images/blog/25a2ce38_heart-meridian-6-acupuncture-point.webp",
+   "sha256": "e6bb9708bedaef3cd4fe105b2af49be3e704d0f384d3dfc659fd4b999fc9be90"
   },
   "HT7": {
    "path": "/images/blog/99a6f56c_heart-meridian-7-acupuncture-point.webp",
    "sha256": "04ff1fe226725e9a3b966d08f807a15da69e594c6c12fe73c5eff75eba002578"
   },
   "HT8": {
-   "path": "/images/blog/42cab170_heart-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/42cab170_heart-meridian-8-acupuncture-point.webp",
+   "sha256": "538610539efb53deb2db9e5a0aa41c0b541bd08d15f054a253472843a3cceb45"
   },
   "HT9": {
-   "path": "/images/blog/79cb344e_heart-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/79cb344e_heart-meridian-9-acupuncture-point.webp",
+   "sha256": "9f0021eace465e507577791b7db5c99b3008995a58543c84aed2fccaeae27e66"
   },
   "SI1": {
-   "path": "/images/blog/3df638a9_small-intestine-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/3df638a9_small-intestine-meridian-1-acupuncture-point.webp",
+   "sha256": "e04560af6ea6d2a4c5ed998315018e4e5c12b538bfb6e781dca90331fa3ce8b2"
   },
   "SI2": {
-   "path": "/images/blog/3955e862_small-intestine-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/3955e862_small-intestine-meridian-2-acupuncture-point.webp",
+   "sha256": "94f3730964219ba74bff2b031fbaf4ec6313a25e407c343aefe71503afba0f01"
   },
   "SI3": {
-   "path": "/images/blog/f350d5a0_small-intestine-meridian-3-acupuncture-point.webp"
+   "path": "/images/blog/f350d5a0_small-intestine-meridian-3-acupuncture-point.webp",
+   "sha256": "500119a596c08ed571dcfcadfb433f8185a2600b1d95819caaaac509031fb74f"
   },
   "SI4": {
-   "path": "/images/blog/136763d3_small-intestine-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/136763d3_small-intestine-meridian-4-acupuncture-point.webp",
+   "sha256": "f7c0b426a4fd36301300a8167ba137256412ca87cfd9588acb5a03b8a71a1dd4"
   },
   "SI5": {
-   "path": "/images/blog/fad713ce_small-intestine-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/fad713ce_small-intestine-meridian-5-acupuncture-point.webp",
+   "sha256": "a68a8f3889dc094b195af1fbf331bc279e56a4c8bf1a80873019b36aedc73764"
   },
   "SI6": {
-   "path": "/images/blog/9cefa753_small-intestine-meridian-6-acupuncture-point.webp"
+   "path": "/images/blog/9cefa753_small-intestine-meridian-6-acupuncture-point.webp",
+   "sha256": "486a8b8816b4164755b6f0eec8f09cab52588ea2cefd741dfa24c235ce2c318d"
   },
   "SI7": {
-   "path": "/images/blog/4a4ab5d4_small-intestine-meridian-7-acupuncture-point.webp"
+   "path": "/images/blog/4a4ab5d4_small-intestine-meridian-7-acupuncture-point.webp",
+   "sha256": "c79e872501fecdb4c06d0535de2a023fc87e7c510cb6b6e55427379611cd2c3c"
   },
   "SI8": {
-   "path": "/images/blog/e327134e_small-intestine-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/e327134e_small-intestine-meridian-8-acupuncture-point.webp",
+   "sha256": "9f4966db376cd581d09f699cddc2d1cb83e31e8e1f716b4a8a0a18dba3ab2a41"
   },
   "SI9": {
-   "path": "/images/blog/d3bd9458_small-intestine-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/d3bd9458_small-intestine-meridian-9-acupuncture-point.webp",
+   "sha256": "1e8851737b5f0da56b9458438622708eb9d4c7963adf78766e756c54a2f59326"
   },
   "SI10": {
-   "path": "/images/blog/97124c50_small-intestine-meridian-10-acupuncture-point.webp"
+   "path": "/images/blog/97124c50_small-intestine-meridian-10-acupuncture-point.webp",
+   "sha256": "5d7b275ecb3564c58e04ef87df0570d7bd44611a7ea71028556dd719373dd199"
   },
   "SI11": {
-   "path": "/images/blog/5203fb57_small-intestine-meridian-11-acupuncture-point.webp"
+   "path": "/images/blog/5203fb57_small-intestine-meridian-11-acupuncture-point.webp",
+   "sha256": "36661cce2a30d19ae804a163a6e76b4011d8a30938c38d1110a0adbab2ec7e62"
   },
   "SI12": {
-   "path": "/images/blog/8c66af58_small-intestine-meridian-12-acupuncture-point.webp"
+   "path": "/images/blog/8c66af58_small-intestine-meridian-12-acupuncture-point.webp",
+   "sha256": "3ec971d23f24b56e060c98d499c67b5119127b6143be9b7b1474ae5517907266"
   },
   "SI13": {
-   "path": "/images/blog/0c5dd334_13.webp"
+   "path": "/images/blog/0c5dd334_13.webp",
+   "sha256": "501f423ca5b40a191b998c3f316898cbdfbd6b362959eb49871025972ab7fec9"
   },
   "SI14": {
-   "path": "/images/blog/e4bca800_small-intestine-meridian-14-acupuncture-point.webp"
+   "path": "/images/blog/e4bca800_small-intestine-meridian-14-acupuncture-point.webp",
+   "sha256": "019dd7a56e7f451d1c2a9bba850f6f98434e796bb81da6c6dd5bb3832de1ca68"
   },
   "SI15": {
-   "path": "/images/blog/a0fc14e6_small-intestine-meridian-15-acupuncture-point.webp"
+   "path": "/images/blog/a0fc14e6_small-intestine-meridian-15-acupuncture-point.webp",
+   "sha256": "47451584ab7f18ba2af0e9295a2a9a0f9eb83d834e4548b59170a8f2d35d7f92"
   },
   "SI16": {
-   "path": "/images/blog/0d1b287a_small-intestine-meridian-16-acupuncture-point.webp"
+   "path": "/images/blog/0d1b287a_small-intestine-meridian-16-acupuncture-point.webp",
+   "sha256": "5a701637c085d61d685bfdde3c8f945cb7aea319c61c1afeb50dee5b0a703b51"
   },
   "SI17": {
-   "path": "/images/blog/ad06d48c_small-intestine-meridian-17-acupuncture-point.webp"
+   "path": "/images/blog/ad06d48c_small-intestine-meridian-17-acupuncture-point.webp",
+   "sha256": "209abd17ae703bbd3ebadf021055255e028044da33b5d8964e86de90e312fab1"
   },
   "SI18": {
-   "path": "/images/blog/6aea7089_small-intestine-meridian-18-acupuncture-point.webp"
+   "path": "/images/blog/6aea7089_small-intestine-meridian-18-acupuncture-point.webp",
+   "sha256": "fdb7df35106cc28520b8b2adec33b8eb1f625a4eecb2d6e58c1ce378783b4537"
   },
   "SI19": {
-   "path": "/images/blog/92b4da3a_small-intestine-meridian-19-acupuncture-point.webp"
+   "path": "/images/blog/92b4da3a_small-intestine-meridian-19-acupuncture-point.webp",
+   "sha256": "b0273d5a0de5b611523738459a63a55328d6bc21b3b2553d43c4ab1c954e2a29"
   },
   "BL1": {
-   "path": "/images/blog/d05dd8ff_bladder-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/d05dd8ff_bladder-meridian-1-acupuncture-point.webp",
+   "sha256": "10fcbd929f70c75ae99d62c5735a38a4bd05ee385c41f1e6fa34a48d27346e87",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL2": {
-   "path": "/images/blog/33d346d7_bladder-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/33d346d7_bladder-meridian-2-acupuncture-point.webp",
+   "sha256": "b38bbb18d67d9639fe8981ee0ad1a66798a7f84fc9076d373693e1437be05b5c",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL3": {
-   "path": "/images/blog/38ee68df_3.webp"
+   "path": "/images/blog/38ee68df_3.webp",
+   "sha256": "4b2b98f185d3a76d37e2e09086d83d1e43ca03f4836a9f1679568de41734e691",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL4": {
-   "path": "/images/blog/72997edd_bladder-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/72997edd_bladder-meridian-4-acupuncture-point.webp",
+   "sha256": "9bf652d6cf731faf9b4d7b6818d0e314f1d10942c4a76f45bbcb6facbf1749e7",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL5": {
-   "path": "/images/blog/cf5fb39e_bladder-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/cf5fb39e_bladder-meridian-5-acupuncture-point.webp",
+   "sha256": "2516b0c532ca5f1938979e0a0f4603ffc241a680e029d13de5795792087d91bb",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL6": {
-   "path": "/images/blog/d279a040_bladder-meridian-6-acupuncture-point.webp"
+   "path": "/images/blog/d279a040_bladder-meridian-6-acupuncture-point.webp",
+   "sha256": "2c4d0b0eddaa22aa4c56d34695d44c51ce2bdf73ae85c4ecf44f0a87cd88b4b2",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL7": {
-   "path": "/images/blog/a4060fd1_bladder-meridian-7-acupuncture-point.webp"
+   "path": "/images/blog/a4060fd1_bladder-meridian-7-acupuncture-point.webp",
+   "sha256": "3a67ecc7233c903b8ce31e845637322f03b66f006abdde4c4de7166954c3f663",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL8": {
-   "path": "/images/blog/11764ed0_bladder-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/11764ed0_bladder-meridian-8-acupuncture-point.webp",
+   "sha256": "109ad697dce78f8b59aefa1d90cbdbf9620161e782076d746fb15cbb8a22aa09",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL9": {
-   "path": "/images/blog/13ed8358_bladder-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/13ed8358_bladder-meridian-9-acupuncture-point.webp",
+   "sha256": "ed04ec7a769b79da54ad3529a96a41f10034e72fc0c130a3adb33374cf54c16a",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL10": {
-   "path": "/images/blog/fecde3cf_bladder-meridian-10-acupuncture-point.webp"
+   "path": "/images/blog/fecde3cf_bladder-meridian-10-acupuncture-point.webp",
+   "sha256": "3fbb66da683d2aba591a3de9c14184d95efb7dd496623d5309bd38bed5a81df9",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL11": {
-   "path": "/images/blog/6ae28dce_bladder-meridian-11-acupuncture-point.webp"
+   "path": "/images/blog/6ae28dce_bladder-meridian-11-acupuncture-point.webp",
+   "sha256": "b3b01033b9fa821b7ac12d63d7ed7a57b17f339ac944e7630f5c630cb0c70abf",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL12": {
-   "path": "/images/blog/64e82d5b_bladder-meridian-12-acupuncture-point.webp"
+   "path": "/images/blog/64e82d5b_bladder-meridian-12-acupuncture-point.webp",
+   "sha256": "f5b9ad2c23d62abd049326c8dd32b7251c0f9632118148a6c84fb19a29b74378",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL13": {
-   "path": "/images/blog/88b44197_bladder-meridian-13-acupuncture-point.webp"
+   "path": "/images/blog/88b44197_bladder-meridian-13-acupuncture-point.webp",
+   "sha256": "ff672a4448f2d7afb8a869ff50d724a3c36de4b75c12ca3cbb551e265d80491d",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL14": {
-   "path": "/images/blog/326c878a_bladder-meridian-14-acupuncture-point.webp"
+   "path": "/images/blog/326c878a_bladder-meridian-14-acupuncture-point.webp",
+   "sha256": "011f4718b8bcca860681d1539ac4a2b6ddca622b8e9d4a7d010d66e6cfac3b08",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL15": {
-   "path": "/images/blog/cc94d6c5_bladder-meridian-15-acupuncture-point.webp"
+   "path": "/images/blog/cc94d6c5_bladder-meridian-15-acupuncture-point.webp",
+   "sha256": "f8acfeefbc1e90c8e68e304039a2ba038e3ca6387ce255acb36a5e442fb93470",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL16": {
-   "path": "/images/blog/42849119_bladder-meridian-16-acupuncture-point.webp"
+   "path": "/images/blog/42849119_bladder-meridian-16-acupuncture-point.webp",
+   "sha256": "9da88a4e62aa52647f11c3a67f180c110b3fbdc39b8418864787035d5ba8bd19",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL17": {
-   "path": "/images/blog/04980d5d_bladder-meridian-17-acupuncture-point.webp"
+   "path": "/images/blog/04980d5d_bladder-meridian-17-acupuncture-point.webp",
+   "sha256": "472b83bd77888ad2d8999a10d7ec82f4e253e4f7dc8a5bc6b43afc259c416af5",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL18": {
-   "path": "/images/blog/daa9965e_bladder-meridian-18-acupuncture-point.webp"
+   "path": "/images/blog/daa9965e_bladder-meridian-18-acupuncture-point.webp",
+   "sha256": "febf4ee03af74a2ba69a68f98995377b1a8b795bfb41e2be7db3917b6318e750",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL19": {
-   "path": "/images/blog/0a061761_bladder-meridian-19-acupuncture-point.webp"
+   "path": "/images/blog/0a061761_bladder-meridian-19-acupuncture-point.webp",
+   "sha256": "00e0214042d1d6ca6c9fe6a1501d99a5b5f054594db98bc4fad0b8ed9ed93703",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL20": {
-   "path": "/images/blog/0c15f09f_bladder-meridian-20-acupuncture-point.webp"
+   "path": "/images/blog/0c15f09f_bladder-meridian-20-acupuncture-point.webp",
+   "sha256": "b14f25868accab9a6e27b8241d4979222aacbca8ea8faae590e884643edbd9bd",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL21": {
    "path": "/images/blog/d8321c2f_bladder-meridian-21-acupuncture-point.webp",
-   "note": "the caption on the source page reads BL-28; position and file name say 21"
+   "sha256": "e4f6d666e3e95af13546f695e8ad3277bde0a8369ba5fbf0871ddc45e2a11b6a",
+   "note": "the caption on the source page reads BL-28; position and file name say 21",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL22": {
-   "path": "/images/blog/8a24bac0_bladder-meridian-22-acupuncture-point.webp"
+   "path": "/images/blog/8a24bac0_bladder-meridian-22-acupuncture-point.webp",
+   "sha256": "21454a9785b53aa3d0cb250cd71f8d2df2775789adf1588fd2d2e0361d8e876e",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL23": {
    "path": "/images/blog/dcd97d24_bladder-meridian-23-acupuncture-point.webp",
-   "sha256": "44863f09a92d3d532b28223f38544dc8fae0a71610a046a8ddc827921dc0b771"
+   "sha256": "44863f09a92d3d532b28223f38544dc8fae0a71610a046a8ddc827921dc0b771",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL24": {
-   "path": "/images/blog/23f2b11b_bladder-meridian-24-acupuncture-point.webp"
+   "path": "/images/blog/23f2b11b_bladder-meridian-24-acupuncture-point.webp",
+   "sha256": "0c502fe86f5afddea2bfad67b2a815cdbec3e483bc9083dc7e0e6e1818be63d0",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL25": {
-   "path": "/images/blog/bbadd980_bladder-meridian-25-acupuncture-point.webp"
+   "path": "/images/blog/bbadd980_bladder-meridian-25-acupuncture-point.webp",
+   "sha256": "5a6e8f04ed56c34697c0644871b5c8f9a5c24b69bee0b357ffe800aa49b2010a",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL26": {
-   "path": "/images/blog/3f4b9bf2_bladder-meridian-26-acupuncture-point.webp"
+   "path": "/images/blog/3f4b9bf2_bladder-meridian-26-acupuncture-point.webp",
+   "sha256": "5e05e949e3c160ec1a5b82844f8cee42de01b4db8ec34a49926df9145cbda7c8",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL27": {
-   "path": "/images/blog/33e1c1a5_bladder-meridian-27-acupuncture-point.webp"
+   "path": "/images/blog/33e1c1a5_bladder-meridian-27-acupuncture-point.webp",
+   "sha256": "77fe91ed2bbfcda264ef04430642baa0ab8187dfa1bbb077fc01d7eade0bfc16",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL28": {
-   "path": "/images/blog/e13c68c1_bladder-meridian-28-acupuncture-point.webp"
+   "path": "/images/blog/e13c68c1_bladder-meridian-28-acupuncture-point.webp",
+   "sha256": "dfedc76abd250e88a10f58305221e607a63553a1190229af510bf92f020e571a",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL29": {
-   "path": "/images/blog/f547e088_bladder-meridian-29-acupuncture-point.webp"
+   "path": "/images/blog/f547e088_bladder-meridian-29-acupuncture-point.webp",
+   "sha256": "6a56fd4e240e91e48d34c03d19273606f4d48ae8cb22d9213ec2e4d674f1ecd5",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL30": {
-   "path": "/images/blog/cd65e65c_bladder-meridian-30-acupuncture-point.webp"
+   "path": "/images/blog/cd65e65c_bladder-meridian-30-acupuncture-point.webp",
+   "sha256": "8b6cf630316375c15f55f9cb18a40487b35463dd0ab7ab958eb24c00645f0963",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL31": {
-   "path": "/images/blog/7596af2c_bladder-meridian-31-acupuncture-point.webp"
+   "path": "/images/blog/7596af2c_bladder-meridian-31-acupuncture-point.webp",
+   "sha256": "d0af1aa9a38119cdbc554c53a490e39c9e7b3df126a8c501fba2e9156a584b2b",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL32": {
-   "path": "/images/blog/21552fb3_bladder-meridian-32-acupuncture-point.webp"
+   "path": "/images/blog/21552fb3_bladder-meridian-32-acupuncture-point.webp",
+   "sha256": "0de5914b0a22b9acea867cd5e0d1adcca006e5430771648446b06d61dba55190",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL33": {
-   "path": "/images/blog/d62c052a_bladder-meridian-33-acupuncture-point.webp"
+   "path": "/images/blog/d62c052a_bladder-meridian-33-acupuncture-point.webp",
+   "sha256": "53be79e0361a39816360042689f513f712235c0bc5d42c303e4e72ac056e0b43",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL34": {
-   "path": "/images/blog/0b261b9d_bladder-meridian-34-acupuncture-point.webp"
+   "path": "/images/blog/0b261b9d_bladder-meridian-34-acupuncture-point.webp",
+   "sha256": "140d41b54f9ee5dbe4b41f991413e1be45421dd9cb7d7380650c53b4c257b49e",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL35": {
-   "path": "/images/blog/ed8a8ba1_bladder-meridian-35-acupuncture-point.webp"
+   "path": "/images/blog/ed8a8ba1_bladder-meridian-35-acupuncture-point.webp",
+   "sha256": "21970f0b5dd411e0cd59619e55e97eb2b4bef85d80120620384fa4e11dc5f6c4",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL36": {
-   "path": "/images/blog/8231fb26_bladder-meridian-36-acupuncture-point.webp"
+   "path": "/images/blog/8231fb26_bladder-meridian-36-acupuncture-point.webp",
+   "sha256": "fa034928935a3be28db4ce90d87ad6a68d5d527e968392451106806f991f33f8",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL37": {
-   "path": "/images/blog/a41cd600_bladder-meridian-37-acupuncture-point.webp"
+   "path": "/images/blog/a41cd600_bladder-meridian-37-acupuncture-point.webp",
+   "sha256": "ae4385cf04aee7cee560f0e2d501cdd93d79edd758ec53fe3a54911af934c8f1",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL38": {
-   "path": "/images/blog/a6887a53_bladder-meridian-38-acupuncture-point.webp"
+   "path": "/images/blog/a6887a53_bladder-meridian-38-acupuncture-point.webp",
+   "sha256": "8af658755bd6b5c1426fcb0769dfdac6a82ccc6fbc29ae70340192ebccd5369f",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL39": {
-   "path": "/images/blog/bddc0170_bladder-meridian-39-acupuncture-point.webp"
+   "path": "/images/blog/bddc0170_bladder-meridian-39-acupuncture-point.webp",
+   "sha256": "d402b45b8c29892f9c0639188ff12980274b0954e21491bed45a1de64065f010",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL40": {
    "path": "/images/blog/742a0b00_bladder-meridian-40-acupuncture-point.webp",
-   "sha256": "b60cf6465932948b8bfc1cdfd330e05f6df1f2c0d383e780d42474025bdd3842"
+   "sha256": "b60cf6465932948b8bfc1cdfd330e05f6df1f2c0d383e780d42474025bdd3842",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL41": {
-   "path": "/images/blog/8d3bf647_bladder-meridian-41-acupuncture-point.webp"
+   "path": "/images/blog/8d3bf647_bladder-meridian-41-acupuncture-point.webp",
+   "sha256": "1c9149ed07fe717d327fb9de021aec6264182f9bf2931455e8bb510738c607e7",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL42": {
-   "path": "/images/blog/d4398ada_bladder-meridian-42-acupuncture-point.webp"
+   "path": "/images/blog/d4398ada_bladder-meridian-42-acupuncture-point.webp",
+   "sha256": "c12199e7c99bb12a67a15f519c21ca2bf713f60cc0c8b77122ec536107dc2d84",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL43": {
-   "path": "/images/blog/248828ce_bladder-meridian-43-acupuncture-point.webp"
+   "path": "/images/blog/248828ce_bladder-meridian-43-acupuncture-point.webp",
+   "sha256": "57bc2cbc6aad4a21bb5f83b7187dba82af78ff3390e481c1c65e2abf23fe8a16",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL44": {
-   "path": "/images/blog/337f302c_bladder-meridian-44-acupuncture-point.webp"
+   "path": "/images/blog/337f302c_bladder-meridian-44-acupuncture-point.webp",
+   "sha256": "255043aa6f44daec15a0b157495908347db3d5c73a3048b3f37740fe169f8780",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL45": {
-   "path": "/images/blog/7532e42b_bladder-meridian-45-acupuncture-point.webp"
+   "path": "/images/blog/7532e42b_bladder-meridian-45-acupuncture-point.webp",
+   "sha256": "e13cb8eff69f2576c49e2231578d693a3a15dc82ef739fee730ee5baa286bf70",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL46": {
-   "path": "/images/blog/c99281cb_bladder-meridian-46-acupuncture-point.webp"
+   "path": "/images/blog/c99281cb_bladder-meridian-46-acupuncture-point.webp",
+   "sha256": "066e76757248a725828a75dc52b2e24a72487eb6e425900d0acfc8bc78606515",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL47": {
-   "path": "/images/blog/a42aa565_bladder-meridian-47-acupuncture-point.webp"
+   "path": "/images/blog/a42aa565_bladder-meridian-47-acupuncture-point.webp",
+   "sha256": "bdb11ce6e7ec46d13ce60831f63908e68b1281870a2faa88915fdcdb9d2ec864",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL48": {
-   "path": "/images/blog/e4b18b99_bladder-meridian-48-acupuncture-point.webp"
+   "path": "/images/blog/e4b18b99_bladder-meridian-48-acupuncture-point.webp",
+   "sha256": "167b350ea223f7077b011c2c2997d58af28e0dd331235be6a0d7c2fc08fafacb",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL49": {
-   "path": "/images/blog/3813fa51_bladder-meridian-49-acupuncture-point.webp"
+   "path": "/images/blog/3813fa51_bladder-meridian-49-acupuncture-point.webp",
+   "sha256": "ed691ed4e649d027774674e5d9305c8b37c65aae03b34b4d8c0e671b927d4ca4",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL50": {
-   "path": "/images/blog/a3e70f7c_bladder-meridian-50-acupuncture-point.webp"
+   "path": "/images/blog/a3e70f7c_bladder-meridian-50-acupuncture-point.webp",
+   "sha256": "7f0b481fb0fc001313775564f673f00f7699aa00333c80ca85b562a0769a4522",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL51": {
-   "path": "/images/blog/484552fa_bladder-meridian-51-acupuncture-point.webp"
+   "path": "/images/blog/484552fa_bladder-meridian-51-acupuncture-point.webp",
+   "sha256": "5c467351b51343b2b2798cbffd145f7daf946da734020f10834eb950f237eae2",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL52": {
-   "path": "/images/blog/182ae82b_bladder-meridian-52-acupuncture-point.webp"
+   "path": "/images/blog/182ae82b_bladder-meridian-52-acupuncture-point.webp",
+   "sha256": "fd30896b8cf3c877c136584543011fb32614dbc333aef7714a6da4be6773d231",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL53": {
-   "path": "/images/blog/05f9afdf_bladder-meridian-53-acupuncture-point.webp"
+   "path": "/images/blog/05f9afdf_bladder-meridian-53-acupuncture-point.webp",
+   "sha256": "23df8d0dadca9fc80aa42986f3ab26c94ddcfac50d19bd38eb28ac52b987ed31",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL54": {
-   "path": "/images/blog/ec9d057a_bladder-meridian-54-acupuncture-point.webp"
+   "path": "/images/blog/ec9d057a_bladder-meridian-54-acupuncture-point.webp",
+   "sha256": "22401d03a151fce55313359a8b03cd40afbb20ed9f0f44f615601a6a4b594df7",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL55": {
-   "path": "/images/blog/ae7e5b03_bladder-meridian-55-acupuncture-point.webp"
+   "path": "/images/blog/ae7e5b03_bladder-meridian-55-acupuncture-point.webp",
+   "sha256": "633a266ddfcffc530b13caa362bf0149052fb758116d9e36e08e9254a473515f",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL56": {
-   "path": "/images/blog/614354a0_bladder-meridian-56-acupuncture-point.webp"
+   "path": "/images/blog/614354a0_bladder-meridian-56-acupuncture-point.webp",
+   "sha256": "e281bbad8828af284d3fb1cd3bf88e55125ff217068acbb3274fa181f9cf4c7d",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL57": {
-   "path": "/images/blog/d5b440aa_bladder-meridian-57-acupuncture-point.webp"
+   "path": "/images/blog/d5b440aa_bladder-meridian-57-acupuncture-point.webp",
+   "sha256": "b9f7ba404fb1a1607cebd85e52e44790903db59b2cb7aa2a18997c47d7108a3a",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL58": {
-   "path": "/images/blog/c3b4f027_bladder-meridian-58-acupuncture-point.webp"
+   "path": "/images/blog/c3b4f027_bladder-meridian-58-acupuncture-point.webp",
+   "sha256": "d1e3720cc63103b0b1edecaa67bda8b32256443926d0395fe40a49955d327562",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL59": {
-   "path": "/images/blog/844b958d_bladder-meridian-59-acupuncture-point.webp"
+   "path": "/images/blog/844b958d_bladder-meridian-59-acupuncture-point.webp",
+   "sha256": "3306022fa76b32fe932a8aa3214401834b2191b2ac13a694c9daa3042351fc6e",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL60": {
    "path": "/images/blog/b664cfd9_bladder-meridian-60-acupuncture-point.webp",
-   "sha256": "591561a54152d0562dd6672e1f96c050de06aa1fe020f8836f1934a75e8e8639"
+   "sha256": "591561a54152d0562dd6672e1f96c050de06aa1fe020f8836f1934a75e8e8639",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL61": {
-   "path": "/images/blog/fe081c0f_bladder-meridian-61-acupuncture-point.webp"
+   "path": "/images/blog/fe081c0f_bladder-meridian-61-acupuncture-point.webp",
+   "sha256": "e548ea4094a9287bd44443378e7b2fdd8290976a000ab701a197096d28f2cc6e",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL62": {
-   "path": "/images/blog/53e8bf58_bladder-meridian-62-acupuncture-point.webp"
+   "path": "/images/blog/53e8bf58_bladder-meridian-62-acupuncture-point.webp",
+   "sha256": "9f7df233e7ba80480f4a287e1c306946a73ad25a0708a4aca5d8c75254b847f0",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL63": {
-   "path": "/images/blog/8f5bf7d8_bladder-meridian-63-acupuncture-point.webp"
+   "path": "/images/blog/8f5bf7d8_bladder-meridian-63-acupuncture-point.webp",
+   "sha256": "2c88396e754846a191bae8861f4b8bc0db392676f6e7bd81f642edbb0ae344a1",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL64": {
-   "path": "/images/blog/c430ef5a_bladder-meridian-64-acupuncture-point.webp"
+   "path": "/images/blog/c430ef5a_bladder-meridian-64-acupuncture-point.webp",
+   "sha256": "2461f3289b27944578cf0846f9b8cdca89a8ccf967cdfa3c9fc2634db6a11016",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL65": {
    "path": "/images/blog/38ba0d6f_bladder-meridian-65-acupuncture-point.webp",
-   "note": "the caption on the source page reads BL-64; position and file name say 65"
+   "sha256": "b95af302d729c142c090595e7017acc398324fdaa8316fd4d7d4fba87f02e585",
+   "note": "the caption on the source page reads BL-64; position and file name say 65",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL66": {
-   "path": "/images/blog/1517effb_bladder-meridian-66-acupuncture-point.webp"
+   "path": "/images/blog/1517effb_bladder-meridian-66-acupuncture-point.webp",
+   "sha256": "8a6cd4fa601e5e94c58f9e340a7748457b1395ac7ad777d191ce17a403526d0a",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "BL67": {
    "path": "/images/blog/c7ac189e_bladder-meridian-67-acupuncture-point.webp",
-   "sha256": "9a48ba90faa041edc9fe359b929762b8820ca0e68cec04c8c4ab79faa402f67d"
+   "sha256": "9a48ba90faa041edc9fe359b929762b8820ca0e68cec04c8c4ab79faa402f67d",
+   "reject": "The drawing carries another point's Han characters (臑俞 of SI10, or 少澤 of SI1) on every Bladder diagram checked on 2026-10-17 (BL1, BL10, BL20, BL21, BL23, BL40, BL60, BL64, BL65, BL66), and draws back points on the front of the body"
   },
   "KI1": {
-   "path": "/images/blog/41568585_kidney-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/41568585_kidney-meridian-1-acupuncture-point.webp",
+   "sha256": "46435c43f5d66624ae2b00de0b19d722fac081541c661bd16c856810c38a8e8c"
   },
   "KI2": {
-   "path": "/images/blog/3a212f85_kidney-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/3a212f85_kidney-meridian-2-acupuncture-point.webp",
+   "sha256": "49a0504b37d3aa5e1124b5830709fa9f1a3198134ac06ae698dafedac323c3cf"
   },
   "KI3": {
    "path": "/images/blog/fb9fbc31_kidney-meridian-3-acupuncture-point.webp",
    "sha256": "7f478b37ddc151262c035814402961c99b1906cebcb5ed40bc338460dbf31fd4"
   },
   "KI4": {
-   "path": "/images/blog/0d57113c_kidney-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/0d57113c_kidney-meridian-4-acupuncture-point.webp",
+   "sha256": "acea1f405754aa346ef01d25900c82b343a8db2acd7b4ec63a6d203b050748f1"
   },
   "KI5": {
-   "path": "/images/blog/fb11e2a4_kidney-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/fb11e2a4_kidney-meridian-5-acupuncture-point.webp",
+   "sha256": "67500a3bfc7d6bc7293c74a8d4cfa1e7c04264692e1f353570940526687e4364"
   },
   "KI6": {
-   "path": "/images/blog/113e30d0_kidney-meridian-6-acupuncture-point.webp"
+   "path": "/images/blog/113e30d0_kidney-meridian-6-acupuncture-point.webp",
+   "sha256": "e74d1cb16cd46888893b78b811b14c32a44a887cb226f5b66f3e51813a2debf5"
   },
   "KI7": {
-   "path": "/images/blog/b2f2cd07_kidney-meridian-7-acupuncture-point.webp"
+   "path": "/images/blog/b2f2cd07_kidney-meridian-7-acupuncture-point.webp",
+   "sha256": "02420c79253032e2cb432661d31ec31a9d0ae21b1ba5dcafeb82046ea0f88bf0"
   },
   "KI8": {
-   "path": "/images/blog/fede6f12_kidney-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/fede6f12_kidney-meridian-8-acupuncture-point.webp",
+   "sha256": "7e408a8bca3c7981ef48acc3092a4e905a5480d5908ff2c0769503e0a3d2b936"
   },
   "KI9": {
-   "path": "/images/blog/28565fda_kidney-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/28565fda_kidney-meridian-9-acupuncture-point.webp",
+   "sha256": "2411ba9c43b4f708d298e24dafe6515febfc8dc4375ef343648bac2bf5870cb1"
   },
   "KI10": {
-   "path": "/images/blog/4917cb8e_kidney-meridian-10-acupuncture-point.webp"
+   "path": "/images/blog/4917cb8e_kidney-meridian-10-acupuncture-point.webp",
+   "sha256": "3e9a4f4bf613122543fc2b6ee9798dd20ea3317f37d73726e44c9a3894ea46d2"
   },
   "KI11": {
-   "path": "/images/blog/f465af97_kidney-meridian-11-acupuncture-point.webp"
+   "path": "/images/blog/f465af97_kidney-meridian-11-acupuncture-point.webp",
+   "sha256": "e488459f16c136dea22237525a519709a90ec2e330992884cb5c37eefed4d9fc"
   },
   "KI12": {
-   "path": "/images/blog/50e6a173_kidney-meridian-12-acupuncture-point.webp"
+   "path": "/images/blog/50e6a173_kidney-meridian-12-acupuncture-point.webp",
+   "sha256": "6e036cc8bebfcfe5b3c073fbe5c5f0f2717a3131a8af4732c9197ffd1f7bad84"
   },
   "KI13": {
-   "path": "/images/blog/557cb859_kidney-meridian-13-acupuncture-point.webp"
+   "path": "/images/blog/557cb859_kidney-meridian-13-acupuncture-point.webp",
+   "sha256": "e6e08a8f0ae167b69c2a7f51bf7ce7a7aa05e7f26bc40ab6fbf9f5d2ea321326"
   },
   "KI14": {
-   "path": "/images/blog/64c79fff_kidney-meridian-14-acupuncture-point.webp"
+   "path": "/images/blog/64c79fff_kidney-meridian-14-acupuncture-point.webp",
+   "sha256": "8bc4d28cdfa9ebe3b61cf3d289fcfcc49e23772eb8770af4fb6774d146441409"
   },
   "KI15": {
-   "path": "/images/blog/15963cad_kidney-meridian-15-acupuncture-point.webp"
+   "path": "/images/blog/15963cad_kidney-meridian-15-acupuncture-point.webp",
+   "sha256": "feb7ed7fbd853a5c7696a56a10e79235e4edab09bd04333f346a0ccf3caad1b1"
   },
   "KI16": {
-   "path": "/images/blog/087d1506_kidney-meridian-16-acupuncture-point.webp"
+   "path": "/images/blog/087d1506_kidney-meridian-16-acupuncture-point.webp",
+   "sha256": "c56c64be76f4a413d07716409fadcc5784d5efa31c5fd648368b123fd6746003"
   },
   "KI17": {
-   "path": "/images/blog/94da274b_kidney-meridian-17-acupuncture-point.webp"
+   "path": "/images/blog/94da274b_kidney-meridian-17-acupuncture-point.webp",
+   "sha256": "f7ea3c759e0a9acef399d327f3beaa26dbd6856e051640caa88d990ad5f72fdf"
   },
   "KI18": {
-   "path": "/images/blog/27d836f4_18.webp"
+   "path": "/images/blog/27d836f4_18.webp",
+   "sha256": "17283436c16edf82b295353423e8e34002fce5c71f5a365cad271d55005af4ef"
   },
   "KI19": {
-   "path": "/images/blog/1d6a7c52_kidney-meridian-19-acupuncture-point.webp"
+   "path": "/images/blog/1d6a7c52_kidney-meridian-19-acupuncture-point.webp",
+   "sha256": "31b68f6a2fc8e8f917c727d1ceb3d62b9fdc74831e7b4d23bd42b887bb6c911a"
   },
   "KI20": {
-   "path": "/images/blog/54a8f261_kidney-meridian-20-acupuncture-point.webp"
+   "path": "/images/blog/54a8f261_kidney-meridian-20-acupuncture-point.webp",
+   "sha256": "2d91b0077744b11dd35a6d78a793c3b1b8b062ce31e0fc9deb7c00d699711d29"
   },
   "KI21": {
-   "path": "/images/blog/21a484f1_kidney-meridian-21-acupuncture-point.webp"
+   "path": "/images/blog/21a484f1_kidney-meridian-21-acupuncture-point.webp",
+   "sha256": "78b6971133c35b85933033378d4bbc1a04088ae04ab75c173b9103bca034766e"
   },
   "KI22": {
-   "path": "/images/blog/41dfb516_kidney-meridian-22-acupuncture-point.webp"
+   "path": "/images/blog/41dfb516_kidney-meridian-22-acupuncture-point.webp",
+   "sha256": "ef1e1b110a59291351e5b63bfa04cfa1fa22900cb46dd7d37aaa1896329e5b24"
   },
   "KI23": {
-   "path": "/images/blog/96857ef5_kidney-meridian-23-acupuncture-point.webp"
+   "path": "/images/blog/96857ef5_kidney-meridian-23-acupuncture-point.webp",
+   "sha256": "5425bc8e57a3bb9e31d54e1c36f1494cfd8fd9082e2091b65545daea44102a05"
   },
   "KI24": {
-   "path": "/images/blog/b17e9000_kidney-meridian-24-acupuncture-point.webp"
+   "path": "/images/blog/b17e9000_kidney-meridian-24-acupuncture-point.webp",
+   "sha256": "47e6aa01a022991fab04a3b2d2c073f0d2089b44a4d82965d27709af36153f3a"
   },
   "KI25": {
-   "path": "/images/blog/6a6c5390_kidney-meridian-25-acupuncture-point.webp"
+   "path": "/images/blog/6a6c5390_kidney-meridian-25-acupuncture-point.webp",
+   "sha256": "754f9b7b59efcf5176ee4751757b2a7a7bd637f6443d851d06ba8eee54537899"
   },
   "KI26": {
-   "path": "/images/blog/241e6b3b_kidney-meridian-26-acupuncture-point.webp"
+   "path": "/images/blog/241e6b3b_kidney-meridian-26-acupuncture-point.webp",
+   "sha256": "4530e0276e1a3b727b1fdb249d42e33257b149176f064320cbf83c7253b214bd"
   },
   "KI27": {
-   "path": "/images/blog/f0ee7d85_kidney-meridian-27-acupuncture-point.webp"
+   "path": "/images/blog/f0ee7d85_kidney-meridian-27-acupuncture-point.webp",
+   "sha256": "5e0e6acd46e3ba11149097625f8b275a635c13b2d8f71cf6d8c765ceb8bcd14f"
   },
   "PC1": {
-   "path": "/images/blog/98306724_pericardium-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/98306724_pericardium-meridian-1-acupuncture-point.webp",
+   "sha256": "38a1e9faceb60a29ca93e68e28cf937dd30213a5ddf03060a162064caf7d0ccf"
   },
   "PC2": {
-   "path": "/images/blog/130ea4e9_pericardium-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/130ea4e9_pericardium-meridian-2-acupuncture-point.webp",
+   "sha256": "73afe1aa5ca9add033dfdc6f4e9b16a1d3379947538347584a7379904879fb98"
   },
   "PC3": {
-   "path": "/images/blog/0b64fce8_pericardium-meridian-3-acupuncture-point.webp"
+   "path": "/images/blog/0b64fce8_pericardium-meridian-3-acupuncture-point.webp",
+   "sha256": "523c3469820364d818d4b031d2913fbad7bb675a483a7b915a2fcef89a767b46"
   },
   "PC4": {
-   "path": "/images/blog/009c1ba3_pericardium-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/009c1ba3_pericardium-meridian-4-acupuncture-point.webp",
+   "sha256": "ebd0122b65ceddd6bd5e594bc079c96f2320ed49d7d4850a5c6514b9b286eda5"
   },
   "PC5": {
-   "path": "/images/blog/bb0cb03c_pericardium-meridian-5-acupuncture-point.webp"
+   "path": "/images/blog/bb0cb03c_pericardium-meridian-5-acupuncture-point.webp",
+   "sha256": "539ccd119479827c560534010dde6dd071b6facdf5c657a02b9fe8981f2c971c"
   },
   "PC6": {
    "path": "/images/blog/e189b341_pericardium-meridian-6-acupuncture-point.webp",
    "sha256": "c46680d8ecc53e63c98b20d607effc6600d90b8077ca8a4fe2171ecbdd3b0199"
   },
   "PC7": {
-   "path": "/images/blog/145b76f1_pericardium-meridian-7-acupuncture-point.webp"
+   "path": "/images/blog/145b76f1_pericardium-meridian-7-acupuncture-point.webp",
+   "sha256": "380b181795ee40faea3de55a49c7b99bc481791617c0c13282d4282d03ce7979"
   },
   "PC8": {
-   "path": "/images/blog/c77807a2_pericardium-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/c77807a2_pericardium-meridian-8-acupuncture-point.webp",
+   "sha256": "666867eb8575ed8c1c2636e5e6fab4f2d18ec2782beaefde3fa0184a6ecb0aa5"
   },
   "PC9": {
-   "path": "/images/blog/e8a44606_pericardium-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/e8a44606_pericardium-meridian-9-acupuncture-point.webp",
+   "sha256": "769fb5f9838a461619d999ed7a8a04415a13538bfbc091d026fc9e7a82143b69"
   },
   "TE1": {
-   "path": "/images/blog/a5420e96_triple-burner-meridian-1-acupuncture-point.webp"
+   "path": "/images/blog/a5420e96_triple-burner-meridian-1-acupuncture-point.webp",
+   "sha256": "c236ed8bbf5a4d80722d1b34377874a89746916731670828bc56d0c73ebcbc06"
   },
   "TE2": {
-   "path": "/images/blog/9899e668_triple-burner-meridian-2-acupuncture-point.webp"
+   "path": "/images/blog/9899e668_triple-burner-meridian-2-acupuncture-point.webp",
+   "sha256": "7a0789d621087028c7794fd8987bce8e281d711971d83ecc061a8d29da323684"
   },
   "TE3": {
-   "path": "/images/blog/3d0198be_triple-burner-meridian-3-acupuncture-point.webp"
+   "path": "/images/blog/3d0198be_triple-burner-meridian-3-acupuncture-point.webp",
+   "sha256": "68c22a821738441e99f61ae1b9ab69cabb6e2939c06f188911215e7b4ee5b19a"
   },
   "TE4": {
-   "path": "/images/blog/9975c447_triple-burner-meridian-4-acupuncture-point.webp"
+   "path": "/images/blog/9975c447_triple-burner-meridian-4-acupuncture-point.webp",
+   "sha256": "6afc840f079136676109783afbf595c74dba47e3996b076417200ab1566f26a6"
   },
   "TE5": {
    "path": "/images/blog/909d2bc6_triple-burner-meridian-5-acupuncture-point.webp",
    "sha256": "e637e4f8d933330f1abdefa2779e90f4ad59926349838ef6f10f580a91d51867"
   },
   "TE6": {
-   "path": "/images/blog/41f8024f_triple-burner-meridian-6-acupuncture-point.webp"
+   "path": "/images/blog/41f8024f_triple-burner-meridian-6-acupuncture-point.webp",
+   "sha256": "8a758c42ecfbb35a28279dcf0f85fba99807cb71d279cf047b356040782a5e83"
   },
   "TE7": {
-   "path": "/images/blog/84a6a2c5_triple-burner-meridian-7-acupuncture-point.webp"
+   "path": "/images/blog/84a6a2c5_triple-burner-meridian-7-acupuncture-point.webp",
+   "sha256": "d879af00327a43c958b1f13f9105bfd72da0adddd5bb4b4b2296c06fc6d04212"
   },
   "TE8": {
-   "path": "/images/blog/439091d9_triple-burner-meridian-8-acupuncture-point.webp"
+   "path": "/images/blog/439091d9_triple-burner-meridian-8-acupuncture-point.webp",
+   "sha256": "ae5ee65395fa093fa55f4045d124e0b2e668b3147e0e64e81b8bf8a29dfc56b1"
   },
   "TE9": {
-   "path": "/images/blog/858bc2f0_triple-burner-meridian-9-acupuncture-point.webp"
+   "path": "/images/blog/858bc2f0_triple-burner-meridian-9-acupuncture-point.webp",
+   "sha256": "1aae7fe607fbf8d2614db4c90dec2d8bdb13b9724350e142d20981c582eaa8a3"
   },
   "TE10": {
-   "path": "/images/blog/3659ff6a_triple-burner-meridian-10-acupuncture-point.webp"
+   "path": "/images/blog/3659ff6a_triple-burner-meridian-10-acupuncture-point.webp",
+   "sha256": "e8fbdbf0bb1e60843cb363d0f12f77814478d2367e5c4805664b4d5f17e8daca"
   },
   "TE11": {
-   "path": "/images/blog/0ef036e1_triple-burner-meridian-11-acupuncture-point.webp"
+   "path": "/images/blog/0ef036e1_triple-burner-meridian-11-acupuncture-point.webp",
+   "sha256": "147222eb9d9fb9147d28ea8a411a881c50cc563600d8ded402323d262ec7546e"
   },
   "TE12": {
-   "path": "/images/blog/ddb14b21_triple-burner-meridian-12-acupuncture-point.webp"
+   "path": "/images/blog/ddb14b21_triple-burner-meridian-12-acupuncture-point.webp",
+   "sha256": "b4e4e01d3326cc51a0b16fffa47dbc6938ee9d4bb449a90808b2e0313156632b"
   },
   "TE13": {
-   "path": "/images/blog/c9d43c5e_triple-burner-meridian-13-acupuncture-point.webp"
+   "path": "/images/blog/c9d43c5e_triple-burner-meridian-13-acupuncture-point.webp",
+   "sha256": "cb0897f4dc43588911a522a0d6052e41e404759f335200b5f0c40b2115f03757"
   },
   "TE14": {
-   "path": "/images/blog/d6ffee04_triple-burner-meridian-14-acupuncture-point.webp"
+   "path": "/images/blog/d6ffee04_triple-burner-meridian-14-acupuncture-point.webp",
+   "sha256": "c4f79c7e68ded08b6d5ce47a6454b67f686e29288e04ae9fb76f96ceb421d652"
   },
   "TE15": {
-   "path": "/images/blog/b79bf6c9_triple-burner-meridian-15-acupuncture-point.webp"
+   "path": "/images/blog/b79bf6c9_triple-burner-meridian-15-acupuncture-point.webp",
+   "sha256": "c628af3a6b5ee27ccc34c2e62fc5a6dd8e2f17cc89669aca710c06cb2950b2e6"
   },
   "TE16": {
-   "path": "/images/blog/31aff498_triple-burner-meridian-16-acupuncture-point.webp"
+   "path": "/images/blog/31aff498_triple-burner-meridian-16-acupuncture-point.webp",
+   "sha256": "a7db642dfb9a485fd7c19871c258ae75d053f56a7c807e7619033060d9b2cb5a"
   },
   "TE17": {
-   "path": "/images/blog/687be323_triple-burner-meridian-17-acupuncture-point.webp"
+   "path": "/images/blog/687be323_triple-burner-meridian-17-acupuncture-point.webp",
+   "sha256": "942fbdb10b1925e37f434d0240877e3d2c25b7e3d65cec8d3ea80b6e8c2e6474"
   },
   "TE18": {
-   "path": "/images/blog/79f26954_18.pngtriple-burner-meridian-18-acupuncture-point.webp"
+   "path": "/images/blog/79f26954_18.pngtriple-burner-meridian-18-acupuncture-point.webp",
+   "sha256": "f1da9300b05b2add21f24c68690d5de615fff7a0c357f8664c99f757999b35c2"
   },
   "TE19": {
-   "path": "/images/blog/7a0f8a2e_triple-burner-meridian-19-acupuncture-point.webp"
+   "path": "/images/blog/7a0f8a2e_triple-burner-meridian-19-acupuncture-point.webp",
+   "sha256": "40fd8b57bfb170d685e6bea13e00f61d08168b52909a64a4e8cb9d1cb145e2aa"
   },
   "TE20": {
-   "path": "/images/blog/3b713fd7_triple-burner-meridian-20-acupuncture-point.webp"
+   "path": "/images/blog/3b713fd7_triple-burner-meridian-20-acupuncture-point.webp",
+   "sha256": "2dec34091cc85205bf1c3221b8f6677d17d0a7e78da42b1fe6c2aef864d4c356"
   },
   "TE21": {
-   "path": "/images/blog/0ecd1052_triple-burner-meridian-21-acupuncture-point.webp"
+   "path": "/images/blog/0ecd1052_triple-burner-meridian-21-acupuncture-point.webp",
+   "sha256": "f9942b6827ba81b96c12c7a41e3c4ae384db52de0e761776127dc1efba0f1088"
   },
   "TE22": {
-   "path": "/images/blog/7bf12e48_triple-burner-meridian-22-acupuncture-point.webp"
+   "path": "/images/blog/7bf12e48_triple-burner-meridian-22-acupuncture-point.webp",
+   "sha256": "c4ba5c00adedf685ce8312abab9a882d6ffe4bb5f962e140830d499cf816cfa4"
   },
   "TE23": {
-   "path": "/images/blog/404fe952_triple-burner-meridian-23-acupuncture-point.webp"
+   "path": "/images/blog/404fe952_triple-burner-meridian-23-acupuncture-point.webp",
+   "sha256": "0bf67b7a76bd26e0aab7c02505c5a700199a2c4e187d9309f096674a2e9367b5"
   },
   "GB1": {
-   "path": "/images/blog/043098c8_1.webp"
+   "path": "/images/blog/043098c8_1.webp",
+   "sha256": "c94b060df2830117232b33831d1388f55f7ea9c866664eef5b0d522fcf5a5b1b",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB2": {
-   "path": "/images/blog/6df0bc54_2.webp"
+   "path": "/images/blog/6df0bc54_2.webp",
+   "sha256": "7fa0f1fb92d4f1fb28d9ac20535a363922813cd5920be5bb1067dd43f46afd77",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB3": {
-   "path": "/images/blog/902aa0f2_3.webp"
+   "path": "/images/blog/902aa0f2_3.webp",
+   "sha256": "262cbd516c13ada42db470c59e85f4e60aa2e130ac60bbc51164be46ca0f293d",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB4": {
-   "path": "/images/blog/a83e4dcf_4.webp"
+   "path": "/images/blog/a83e4dcf_4.webp",
+   "sha256": "c0301d452f7d7eef4106a17e86fb6498e08e24ebb39d6f6bf1858458a399f4dc",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB5": {
-   "path": "/images/blog/6116b9c7_5.webp"
+   "path": "/images/blog/6116b9c7_5.webp",
+   "sha256": "1e32579f4b1f60318d415824cbb2256c5abf1a699b3bc1bdc60cc3c66e69a553",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB6": {
-   "path": "/images/blog/91d494a4_6.webp"
+   "path": "/images/blog/91d494a4_6.webp",
+   "sha256": "9c74555283d168f7964f563c7355e7248b2813cda316807cca4dbef1bde277dc",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB7": {
-   "path": "/images/blog/80745b53_7.webp"
+   "path": "/images/blog/80745b53_7.webp",
+   "sha256": "ef2e8c919569d75c67a619c0f732c753a614c96d01e1a2356eb63c815737daef",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB8": {
-   "path": "/images/blog/e74c106a_8.webp"
+   "path": "/images/blog/e74c106a_8.webp",
+   "sha256": "8f08c5b364e5176239df049e9dd9ca624f07253bb660be2a43cfaba0f281783e",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB9": {
-   "path": "/images/blog/b02516a0_9.webp"
+   "path": "/images/blog/b02516a0_9.webp",
+   "sha256": "0053d74fa989c9cf4ada702add55989153c00ce2d41d2758822f11d09efb4ec1",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB10": {
-   "path": "/images/blog/731f5296_10.webp"
+   "path": "/images/blog/731f5296_10.webp",
+   "sha256": "f5d1f66e8f416826ab4376cb12589e0b039eb350785ed2bca6c7d894fb771f89",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB11": {
-   "path": "/images/blog/ece0edfc_11.webp"
+   "path": "/images/blog/ece0edfc_11.webp",
+   "sha256": "a54961b68f8e1cb1d8bd4e1b1c6a6aa3bab8e1fdaded03700062ecae3a774dc1",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB12": {
-   "path": "/images/blog/97d50a8c_12.webp"
+   "path": "/images/blog/97d50a8c_12.webp",
+   "sha256": "1b7fc55a4cf0def7a2138b0846542a82c53d88eed0ab1cab41046279c52ae561",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB13": {
-   "path": "/images/blog/f3674765_gallbladder-1-.webp"
+   "path": "/images/blog/f3674765_gallbladder-1-.webp",
+   "sha256": "082cf39704e249bb5d7f82eb7c3572c104e70c6fabf7c9890dab72f03f9fae52",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB14": {
-   "path": "/images/blog/0cfa99c4_14.webp"
+   "path": "/images/blog/0cfa99c4_14.webp",
+   "sha256": "5cfcfb5fa9ba52e70c92389fcb6e271afc16e670131de0c9943c9cd89edd11ce",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB15": {
-   "path": "/images/blog/14ab231f_15.webp"
+   "path": "/images/blog/14ab231f_15.webp",
+   "sha256": "6250776e91ad4e97bbd33d1cbd1a4bfdf4d5f91733b944b4ee57d343bfe23e0c",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB16": {
-   "path": "/images/blog/d9996c43_16.webp"
+   "path": "/images/blog/d9996c43_16.webp",
+   "sha256": "e6021edf484a085d9ea41a73b90cc5cf0e920c5394d015e381d10cb76605409d",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB17": {
-   "path": "/images/blog/ce944658_17.webp"
+   "path": "/images/blog/ce944658_17.webp",
+   "sha256": "42e16a80de86c3d33d788e13a99963db9773f25ccc4235c553abfead1ba3fbe7",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB18": {
-   "path": "/images/blog/1d2c45ac_18.webp"
+   "path": "/images/blog/1d2c45ac_18.webp",
+   "sha256": "25ec8ee0bc7840d0b0e723f8f117cd977f3d0757d409cded25164e5a0cbd1818",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB19": {
-   "path": "/images/blog/3ee462b3_19.webp"
+   "path": "/images/blog/3ee462b3_19.webp",
+   "sha256": "988731c92822f4752ad82141f7df7862292ded233d85d1cc74d76a456d3ee8f1",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB20": {
    "path": "/images/blog/17331a19_20.webp",
-   "sha256": "353e50e6a34416df0df0452b2f051f270718eddbf3a8845f5339e35001835254"
+   "sha256": "353e50e6a34416df0df0452b2f051f270718eddbf3a8845f5339e35001835254",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB21": {
    "path": "/images/blog/d48cfb02_gallbladder.webp",
-   "sha256": "85cb971a82c90d3f16bf756c18aeb5ebafcfbbd69577f5df97eafce87d35f073"
+   "sha256": "85cb971a82c90d3f16bf756c18aeb5ebafcfbbd69577f5df97eafce87d35f073",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB22": {
-   "path": "/images/blog/07b7bc74_22.webp"
+   "path": "/images/blog/07b7bc74_22.webp",
+   "sha256": "bdb70867a2491786822ac42833b44bc24f84ae669f729db79bb241e2380a8474",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB23": {
-   "path": "/images/blog/87d8d413_23.webp"
+   "path": "/images/blog/87d8d413_23.webp",
+   "sha256": "d30e471c07e3b5262cf65665f430259960ca3dd5cdc22196b962abba05944926",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB24": {
-   "path": "/images/blog/21b45e19_24.webp"
+   "path": "/images/blog/21b45e19_24.webp",
+   "sha256": "19b8014e9465910b33b86b4469a1493258d8a5b0b1f971cc568ececbabeb407b",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB25": {
-   "path": "/images/blog/b1629fcf_25.webp"
+   "path": "/images/blog/b1629fcf_25.webp",
+   "sha256": "3d3b8337491fd1f3204d76d80f228c86fc56fae4d0d480aa9df185ac56965db9",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB26": {
-   "path": "/images/blog/d7436abd_26.webp"
+   "path": "/images/blog/d7436abd_26.webp",
+   "sha256": "537199fc5464a548d47901126a686bf3925abab1487eb02343c8587ca44e498b",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB27": {
-   "path": "/images/blog/621159f0_27.webp"
+   "path": "/images/blog/621159f0_27.webp",
+   "sha256": "12a265efa4f13760e95945d9aec26850621ccbf59d71c6c2dc1b6ea502f820e5",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB28": {
-   "path": "/images/blog/2122bf97_28.webp"
+   "path": "/images/blog/2122bf97_28.webp",
+   "sha256": "2dec9c2301b5b3f7500c3ff41f79588826212568cb82547d8f821bb034e09dc3",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB29": {
-   "path": "/images/blog/61520b10_29.webp"
+   "path": "/images/blog/61520b10_29.webp",
+   "sha256": "40494a5dd2f6f6adc0c0b5bb9870592ebbb36cbbe3e10cdacbde5f84f11fbecc",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB30": {
-   "path": "/images/blog/d626c9f5_30.webp"
+   "path": "/images/blog/d626c9f5_30.webp",
+   "sha256": "227a7ed6874a9c9e5d0446f285c7e602fad81f87cd384288b70f9a9ae96a1c01",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB31": {
-   "path": "/images/blog/6cf2119c_31.webp"
+   "path": "/images/blog/6cf2119c_31.webp",
+   "sha256": "a1f59765595e6c486de759ada2b5385bb402675eaaa50d2e667b84f40585c755",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB32": {
-   "path": "/images/blog/79229808_32.webp"
+   "path": "/images/blog/79229808_32.webp",
+   "sha256": "4694de13c512afa120ed9d50d18b2c89c98a89d7b98febcd79560b7dc03a46a1",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB33": {
-   "path": "/images/blog/df713ecb_33.webp"
+   "path": "/images/blog/df713ecb_33.webp",
+   "sha256": "7f2301711192d11742d8386f1e209097688881449635d2dfa4dc2a4ad501b638",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB34": {
-   "path": "/images/blog/09f21c9f_34.webp"
+   "path": "/images/blog/09f21c9f_34.webp",
+   "sha256": "b63abfe9ece696b0de4204577c3b4342c034142ad2ff77dfcaffe51c51fae57d",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB35": {
-   "path": "/images/blog/6f0ea5d2_35.webp"
+   "path": "/images/blog/6f0ea5d2_35.webp",
+   "sha256": "6ad6667e4757b2c0036fcfb2a3bd1ab51388003cbd7989c5ac1cd6ec760c2f5d",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB36": {
-   "path": "/images/blog/79e63c69_36.webp"
+   "path": "/images/blog/79e63c69_36.webp",
+   "sha256": "99ab3be2719c5ef60f9ca0bad575d3e745d20da0371126b02d0527111ebbf4e5",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB37": {
-   "path": "/images/blog/609a83a6_37.webp"
+   "path": "/images/blog/609a83a6_37.webp",
+   "sha256": "a1ffd7f12fc8e187fbeb3a4af3727b7aa210a59b3a77bd8e57781aed3bc09186",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB38": {
-   "path": "/images/blog/db89070e_38.webp"
+   "path": "/images/blog/db89070e_38.webp",
+   "sha256": "78ceb79233803bf542472fe5204795597dd0e7e2e112eb3feed556afb1027841",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB39": {
-   "path": "/images/blog/11f26c01_39.webp"
+   "path": "/images/blog/11f26c01_39.webp",
+   "sha256": "873cb63986001296a186fb33d2e4f4f9d5810a8bfaa3b04ec8ce394896618870",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB40": {
-   "path": "/images/blog/bc375178_40.webp"
+   "path": "/images/blog/bc375178_40.webp",
+   "sha256": "c462742bbd12e79313100b3d8cc11233450d265c0a97ac7b2795bee3b7c700c2",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB41": {
-   "path": "/images/blog/95a21df7_41.webp"
+   "path": "/images/blog/95a21df7_41.webp",
+   "sha256": "1fbcd554b54a93e7d6ace27be1e9c9dffb1280c635e0644435793dd5503eb232",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB42": {
-   "path": "/images/blog/17f7fb61_42.webp"
+   "path": "/images/blog/17f7fb61_42.webp",
+   "sha256": "86423419db121d880349920c9ddd028f89690b3b15edae7002648d2662623541",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB43": {
-   "path": "/images/blog/819aa1ad_43.webp"
+   "path": "/images/blog/819aa1ad_43.webp",
+   "sha256": "dde7727e2d5080f886ebbcc829d95af23a0a5fe3e6947c30f9c7e2d14b993f95",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "GB44": {
-   "path": "/images/blog/cf582d19_44.webp"
+   "path": "/images/blog/cf582d19_44.webp",
+   "sha256": "0ac68f02cd3b8ca1baadb60ec62d6a50a2d89958ad53d528649b2436988a85ca",
+   "reject": "The drawing carries another point's Han characters (關衝 of TE1) on every Gallbladder diagram checked on 2026-10-17 (GB20, GB21, GB30, GB34), and GB21 is drawn on the chest instead of the top of the shoulder"
   },
   "LR1": {
-   "path": "/images/blog/ca640668_1.webp"
+   "path": "/images/blog/ca640668_1.webp",
+   "sha256": "90768825a29dbd71b5a3882457e1369b6cbf6bc1689d00b49f0b92b202318367"
   },
   "LR2": {
-   "path": "/images/blog/bfed0275_2.webp"
+   "path": "/images/blog/bfed0275_2.webp",
+   "sha256": "e759a1a70b6a83f2df59e682b847f2a74833841e7f59d86bd6c067d7e754946c"
   },
   "LR3": {
    "path": "/images/blog/ef21d1a4_3.webp",
    "sha256": "6950ac84462696ef89af96291cc535d11878890c65dd4e92b668aeb2fecec628"
   },
   "LR4": {
-   "path": "/images/blog/c9b19616_4.webp"
+   "path": "/images/blog/c9b19616_4.webp",
+   "sha256": "7113fce711ee940677afe613e70b164e7badb08934172e881ef7fcc13664fd9c"
   },
   "LR5": {
-   "path": "/images/blog/2ceb705a_5.webp"
+   "path": "/images/blog/2ceb705a_5.webp",
+   "sha256": "9e60312f31c83c83314a80df2e01bcc1b4182f240641d7a83dd57471dd4382bd"
   },
   "LR6": {
-   "path": "/images/blog/bae3e11a_6.webp"
+   "path": "/images/blog/bae3e11a_6.webp",
+   "sha256": "73272f1df29fd3713d2689a7b2a3fbacb284c3bd4ddf48d80110f9bd9cb43b4e"
   },
   "LR7": {
-   "path": "/images/blog/48367c7c_7.webp"
+   "path": "/images/blog/48367c7c_7.webp",
+   "sha256": "73a6685a51f9e94058aaf91a7a4aef7f28ba8d2ecb13360fa9e770ad36afabeb"
   },
   "LR8": {
-   "path": "/images/blog/ae3db359_8.webp"
+   "path": "/images/blog/ae3db359_8.webp",
+   "sha256": "920400e03b5c65cf18f71bfacb03df8b7bf0cdac781c3c173890a22e0b299587"
   },
   "LR9": {
-   "path": "/images/blog/5a34579b_9.webp"
+   "path": "/images/blog/5a34579b_9.webp",
+   "sha256": "e34a8c687c08015a34abb996e43acac33aa6149f54dc98abed1f9c8a8e1b9dfb"
   },
   "LR10": {
-   "path": "/images/blog/2d63d050_10.webp"
+   "path": "/images/blog/2d63d050_10.webp",
+   "sha256": "64f676a12fe10b5d11f14fa9db58917691d7eeec108cfe6ba2be70b173d8167a"
   },
   "LR11": {
-   "path": "/images/blog/bf863f57_11.webp"
+   "path": "/images/blog/bf863f57_11.webp",
+   "sha256": "836848fe8abb02c17168b0b9e2e47ba3b8a2929c7f8d6dbba1bc24c1cdefb2b8"
   },
   "LR12": {
-   "path": "/images/blog/cbba1d8d_12.webp"
+   "path": "/images/blog/cbba1d8d_12.webp",
+   "sha256": "936390ffe7365cdf4d5018e70a629f5ca2bf1aca5794b680d7258a4ee91eccb0"
   },
   "LR13": {
-   "path": "/images/blog/1e146890_13.webp"
+   "path": "/images/blog/1e146890_13.webp",
+   "sha256": "be16da4c8bc0625c84e55eba9c9fdd60f0edc4d494b5c602ba0aad7a6090ad9b"
   },
   "LR14": {
-   "path": "/images/blog/8d0bb7fe_14.webp"
+   "path": "/images/blog/8d0bb7fe_14.webp",
+   "sha256": "a0126d2337b1517e6f457ab258e2323004853f9b050677566b65e931fa4abd90"
   },
   "CV1": {
-   "path": "/images/blog/b8deb392_1.webp"
+   "path": "/images/blog/b8deb392_1.webp",
+   "sha256": "c13825f828e2e047b7b3cf62eda0c7af1afd9a016c89e2997b79da8e0e16b939"
   },
   "CV2": {
-   "path": "/images/blog/aa1e24c4_2.webp"
+   "path": "/images/blog/aa1e24c4_2.webp",
+   "sha256": "2e04a4816d15302fb5af56d76cab082375fb91a3e577e7c4d8c18c54972a7c89"
   },
   "CV3": {
    "path": "/images/blog/4729ca73_3.webp",
@@ -971,153 +1375,196 @@
    "sha256": "2339228c17c74462d1960893f2b5100ac12fb08a31728ea6f61f0bf2727f4347"
   },
   "CV5": {
-   "path": "/images/blog/01ab38c4_5.webp"
+   "path": "/images/blog/01ab38c4_5.webp",
+   "sha256": "b64fe31faed0dd2b91fdad0969b456996f746ce94f6b85a0804092388c066c7a"
   },
   "CV6": {
    "path": "/images/blog/84dc890b_6.webp",
    "sha256": "0e6325a924c8853626395b08b537a150f635e6f4a805fbdbacdd1f3e15ea5fd2"
   },
   "CV7": {
-   "path": "/images/blog/429491d2_7.webp"
+   "path": "/images/blog/429491d2_7.webp",
+   "sha256": "277bfc53a180dce17598cbf76c7dae212a4b4d7e9e0d3cd3cffa6fd8a12f3c7c"
   },
   "CV8": {
-   "path": "/images/blog/b6710e1c_8.webp"
+   "path": "/images/blog/b6710e1c_8.webp",
+   "sha256": "8c0cf34e25842df41b23f744b6c713a5496c63667ed502aaa946e690ff0574b6"
   },
   "CV9": {
-   "path": "/images/blog/599685e4_9.webp"
+   "path": "/images/blog/599685e4_9.webp",
+   "sha256": "6c840c5328956ad094386a4b89a5996c0b13301410fce14ecbf31301e1ac2074"
   },
   "CV10": {
-   "path": "/images/blog/2ff01b62_10.webp"
+   "path": "/images/blog/2ff01b62_10.webp",
+   "sha256": "3d9cf25f19991def049398962f87aa930cae8a84e698effce3ecc6eadd42acf8"
   },
   "CV11": {
-   "path": "/images/blog/27a11967_11.webp"
+   "path": "/images/blog/27a11967_11.webp",
+   "sha256": "707ad432464eeb55856571edc48e29c514c1a495cafc0face64fee8da1bc88e2"
   },
   "CV12": {
    "path": "/images/blog/5e361ce0_12.webp",
    "sha256": "323832a693c2ac21b45753eb4acfdfe7599353f919efa1e0cf4b6fa5bc1cb02f"
   },
   "CV13": {
-   "path": "/images/blog/22243e08_13.webp"
+   "path": "/images/blog/22243e08_13.webp",
+   "sha256": "26858f1f97a78c0a6036f8456e8a9bb91e31b4efd746e77140567c6161f80faf"
   },
   "CV14": {
-   "path": "/images/blog/e8798c83_14.webp"
+   "path": "/images/blog/e8798c83_14.webp",
+   "sha256": "2e2c1aba1c8e21c0c33c2d0a521f31727a003e2fc7842e24d362778ea1d08680"
   },
   "CV15": {
-   "path": "/images/blog/b35cb021_15.webp"
+   "path": "/images/blog/b35cb021_15.webp",
+   "sha256": "b3516be4f20a74a6a4d69be6d8bbb5aac803068d7177f07846a75bc3f200a4ae"
   },
   "CV16": {
-   "path": "/images/blog/b44fc10a_16.webp"
+   "path": "/images/blog/b44fc10a_16.webp",
+   "sha256": "e3995ac99979dfdb71f5486ee34dd59b208a3fcdb3b5a34f46428ca3b5fd34b4"
   },
   "CV17": {
    "path": "/images/blog/093a338b_17.webp",
    "sha256": "f7e96fa0ac75bb5f198c750b99a568c1490dab285a41df4aca40c0a217f5a4d2"
   },
   "CV18": {
-   "path": "/images/blog/98f74ec9_18.webp"
+   "path": "/images/blog/98f74ec9_18.webp",
+   "sha256": "6b50d2e66b4a90ec748c5b3b8296ecb46ee0b42f27a8978145fa967d2759b758"
   },
   "CV19": {
-   "path": "/images/blog/db787eda_19.webp"
+   "path": "/images/blog/db787eda_19.webp",
+   "sha256": "a60ddad155b8a7e2152dcd13e0d9b4a36a58c3a63d505128320e64284a96c16b"
   },
   "CV20": {
-   "path": "/images/blog/263932d3_20.webp"
+   "path": "/images/blog/263932d3_20.webp",
+   "sha256": "7e7541238082b76d560b57530458473b88dbe346ee7d7739c6aebc051afafa8b"
   },
   "CV21": {
-   "path": "/images/blog/b39549ab_21.webp"
+   "path": "/images/blog/b39549ab_21.webp",
+   "sha256": "874f7cea7e3ac6f90d94382bb03792a5c91756a84073828643e4fd906e037fc2"
   },
   "CV22": {
-   "path": "/images/blog/de7541bc_22.webp"
+   "path": "/images/blog/de7541bc_22.webp",
+   "sha256": "717193fa58b72684fb31ba1092bc569a88ac23c5cf76cbc4d57fef275eedc948"
   },
   "CV23": {
-   "path": "/images/blog/f0dcb14b_23.webp"
+   "path": "/images/blog/f0dcb14b_23.webp",
+   "sha256": "4736600be801842a547cb7178e70c552e2c7a7b52fcba2741448e693391a5a0a"
   },
   "CV24": {
-   "path": "/images/blog/ce40ed03_24.webp"
+   "path": "/images/blog/ce40ed03_24.webp",
+   "sha256": "e04ae845650b791955114f97e5e948a008410a2a57fec7fc17d25cfe0625cc54"
   },
   "GV1": {
-   "path": "/images/blog/590d9a35_1.webp"
+   "path": "/images/blog/590d9a35_1.webp",
+   "sha256": "d578630d93ca71a2f8cbc1b62f19895b4b79c94ee2fff9aa01a827358477eae4"
   },
   "GV2": {
-   "path": "/images/blog/20322162_2.webp"
+   "path": "/images/blog/20322162_2.webp",
+   "sha256": "8d57874df6b54aad2a349ccd5278ee95fc51626d98ed73629992a37bce963046"
   },
   "GV3": {
-   "path": "/images/blog/c48858dd_3.webp"
+   "path": "/images/blog/c48858dd_3.webp",
+   "sha256": "29e80615fc192230703384c576316adacc6f6f664c8c9e82327923f1313f6c33"
   },
   "GV4": {
-   "path": "/images/blog/f0b3047d_4.webp"
+   "path": "/images/blog/f0b3047d_4.webp",
+   "sha256": "0e95c27f6bed613a76fccc01e20c4a4a732be169d7e0e6032761087478bfaa94"
   },
   "GV5": {
-   "path": "/images/blog/706ae554_5.webp"
+   "path": "/images/blog/706ae554_5.webp",
+   "sha256": "7ca973a58b2ec293ffaf0f08fc4ce3be4d4f2bb6403ac154eb8f62fb74587f5c"
   },
   "GV6": {
-   "path": "/images/blog/8cf91811_6.webp"
+   "path": "/images/blog/8cf91811_6.webp",
+   "sha256": "e3848e19c28c4a292a1c1a23fa1c02313f5f47f85f314b4ea4b63ff3e5cfe0a7"
   },
   "GV7": {
-   "path": "/images/blog/87b73f97_7.webp"
+   "path": "/images/blog/87b73f97_7.webp",
+   "sha256": "c94e63ef15f5556d87b38a98e148d32355f17f48ef7a2279af1255765eda5e3e"
   },
   "GV8": {
-   "path": "/images/blog/ac81ceab_8.webp"
+   "path": "/images/blog/ac81ceab_8.webp",
+   "sha256": "068645d29a2f4d9079812062417c77bdf27935e7ae7fa4f68ec3c8646d28d455"
   },
   "GV9": {
-   "path": "/images/blog/f327fbf6_9.webp"
+   "path": "/images/blog/f327fbf6_9.webp",
+   "sha256": "84891428ec87d952d5a11aae56445b9dac177f5eaa3e3f99dfb9aae8c53555c4"
   },
   "GV10": {
-   "path": "/images/blog/76f4ae35_10.webp"
+   "path": "/images/blog/76f4ae35_10.webp",
+   "sha256": "19d958e64d499389a15d90be3af5a079484062c9012ed454099bc79f6df5905c"
   },
   "GV11": {
-   "path": "/images/blog/acf13633_11.webp"
+   "path": "/images/blog/acf13633_11.webp",
+   "sha256": "0d0747165b4a34639b83b28a5eff334aab7b27646dad6c4f77eb89363e0f0579"
   },
   "GV12": {
-   "path": "/images/blog/8112085a_12.webp"
+   "path": "/images/blog/8112085a_12.webp",
+   "sha256": "966935bb59afc8a4a73c18e1fac71e55280aaff7b76cb5dd9097ae0bb46034f3"
   },
   "GV13": {
-   "path": "/images/blog/fe9a7d2c_13.webp"
+   "path": "/images/blog/fe9a7d2c_13.webp",
+   "sha256": "6d35894f1979f443d154d1f7242d745c8d3960249db8e1bdd8c34d4d53271738"
   },
   "GV14": {
    "path": "/images/blog/bea01c74_14.webp",
    "sha256": "9cfca8b2fa2405fe7b4a81dbc2c8d9e3252f55670550eece91fe813f1d0f342f"
   },
   "GV15": {
-   "path": "/images/blog/468781b4_15.webp"
+   "path": "/images/blog/468781b4_15.webp",
+   "sha256": "979985037d79034845b5622b0b809b1a878449122585a97b297b213d9878ee55"
   },
   "GV16": {
-   "path": "/images/blog/4e05ded8_16.webp"
+   "path": "/images/blog/4e05ded8_16.webp",
+   "sha256": "04ab5f75f0647c4f5ac71da10c04a232e7745018810e8eadece608cc5886c072"
   },
   "GV17": {
-   "path": "/images/blog/7bb1f4b8_17.webp"
+   "path": "/images/blog/7bb1f4b8_17.webp",
+   "sha256": "7eabca86b14655120acdddb72b59204572d61852bca7ec20208536bde7770d16"
   },
   "GV18": {
-   "path": "/images/blog/a1a7a470_18.webp"
+   "path": "/images/blog/a1a7a470_18.webp",
+   "sha256": "d89f8065a40cf82c19815125ee4c3d037aa5cd1c5ca660489d01b8757fab77dd"
   },
   "GV19": {
-   "path": "/images/blog/e7acadc3_19.webp"
+   "path": "/images/blog/e7acadc3_19.webp",
+   "sha256": "ba9b8320ed36d22833536c027acf386018c3fec4db03172189090460a3697dca"
   },
   "GV20": {
    "path": "/images/blog/6a90e819_20.webp",
    "sha256": "f3325b2930aca0364323cd14ad9f883a56dc1fa578bb0669bc1a8b0f7fb8613b"
   },
   "GV21": {
-   "path": "/images/blog/da03f690_21.webp"
+   "path": "/images/blog/da03f690_21.webp",
+   "sha256": "3d1d3d17efadfb77e7a5acf04cc2763fd8871123b3f683ebe16e8191514a543a"
   },
   "GV22": {
-   "path": "/images/blog/893d8c61_22.webp"
+   "path": "/images/blog/893d8c61_22.webp",
+   "sha256": "859006d5c551f0784b915555973100243af6f751396384f9eb80b808b89223cd"
   },
   "GV23": {
-   "path": "/images/blog/74f9b0cb_23.webp"
+   "path": "/images/blog/74f9b0cb_23.webp",
+   "sha256": "a5d13f44f78d67ff25e27f0a6c8d5216dfdc5a19794b9ff159f0e8b4bc4b9bc7"
   },
   "GV24": {
-   "path": "/images/blog/ffed3cf1_24.webp"
+   "path": "/images/blog/ffed3cf1_24.webp",
+   "sha256": "5d9060e5dd508653ac3e78664400863ccaa229704d2bc7746690aaaaebe1f16d"
   },
   "GV25": {
-   "path": "/images/blog/2f8ca760_25.webp"
+   "path": "/images/blog/2f8ca760_25.webp",
+   "sha256": "2aec385f2715be392e47383a5475e1c0ecc77b038813f585195d2f273032380f"
   },
   "GV26": {
-   "path": "/images/blog/3e5d69e0_26.webp"
+   "path": "/images/blog/3e5d69e0_26.webp",
+   "sha256": "d423f1427a7a450dd0ad6b3512d531b43a242e6f7c32a25c409ebfef03a02e62"
   },
   "GV27": {
-   "path": "/images/blog/89cd0866_27.webp"
+   "path": "/images/blog/89cd0866_27.webp",
+   "sha256": "a3c407865b891807ef231c0e565a8da49d8cb18e4b2eba64b7f86412797a4d17"
   },
   "GV28": {
-   "path": "/images/blog/27182053_28.webp"
+   "path": "/images/blog/27182053_28.webp",
+   "sha256": "f9755f2ac147a0a6a68bb03c024d6c09f188dc26cabd051a0f621887bb58c6c3"
   }
  }
 }
