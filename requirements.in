@@ -3,50 +3,50 @@
 --index-url https://pypi.org/simple
 
 # Telegram
-python-telegram-bot[job-queue]==21.6   # job-queue: conversation timeouts (2.2d)
-python-dotenv==1.2.1
+python-telegram-bot[job-queue]==22.8   # job-queue: conversation timeouts (2.2d)
+python-dotenv==1.2.4
 
 # AI / LLM
 langchain==1.2.15
-langchain-core==1.3.2
+langchain-core==1.6.10
 langchain-community==0.4.1
 langchain-ollama==1.1.0
-langchain-redis==0.2.5
+langchain-redis==0.2.6
 langchain-anthropic        # lazily imported when USE_AI=anthropic
-ollama==0.6.1
-anthropic==0.97.0
+ollama==0.6.3
+anthropic==0.125.0
 
 # Google Calendar / Gmail
-google-api-python-client==2.149.0
-google-auth-httplib2==0.2.0
-google-auth-oauthlib==1.2.1
+google-api-python-client==2.201.0
+google-auth-httplib2==0.4.4
+google-auth-oauthlib==1.5.0
 
 # Settings (Phase 0.4) — zenflow/settings.py
-pydantic-settings==2.14.0
+pydantic-settings==2.15.0
 
 # Therapist web dashboard
-fastapi==0.115.0
-starlette==0.38.6
-uvicorn==0.30.6
+fastapi==0.115.2
+starlette==0.40.0
+uvicorn==0.54.0
 jinja2==3.1.6
-python-multipart==0.0.26
+python-multipart==0.0.32
 itsdangerous==2.2.0
-httpx==0.27.2
-pydantic==2.12.5
+httpx==0.28.1
+pydantic==2.14.1
 
 # Redis (cache + relay sessions + LangChain history backend)
-redis==5.1.1
+redis==7.4.1
 
 # Crypto: Fernet encryption of stored Google OAuth tokens (web/gcal.py). Was missing before 0.2.
-cryptography==46.0.5
+cryptography==50.0.2
 
 # Images (Phase 4.3b): acupoint image ingestion — resize, thumbnails, EXIF stripping
 pillow==12.3.0
 
 # S3 media store (Phase 4.3c) — imported only when ZF_STORAGE_S3=1
-boto3==1.43.96
+boto3==1.43.114
 
 # Schema migrations (Phase 12.2.3) and the Postgres driver for ZF_DB_URL (Phase 12.2.2)
 alembic==1.20.0
-SQLAlchemy==2.0.35
+SQLAlchemy==2.1.4
 psycopg[binary]==3.3.6
