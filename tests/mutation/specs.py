@@ -951,7 +951,8 @@ SPECS = [
     spec(
         id="9.9 backup encryption",
         file="zenflow/db_backup.py",
-        edits=[("token = fernet.encrypt(mem.serialize())", "token = mem.serialize()", False)],
+        # 12.2.7 moved the encryption below the SQLite/pg_dump branches; the spec follows it
+        edits=[("        data = fernet.encrypt(data)", "        data = bytes(data)", False)],
         tests=["tests/integration/test_encrypted_backups.py"],
     ),
     spec(

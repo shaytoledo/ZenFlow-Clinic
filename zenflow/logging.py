@@ -95,20 +95,26 @@ def redact(text: str) -> str:
 
 
 # ── Context ──────────────────────────────────────────────────────────────────────────────────
-_ctx: ContextVar[dict[str, Any]] = ContextVar("zenflow_log_context", default={})
+# The default is None, not {}: a ContextVar default is one dict shared by every context, so a
+# caller mutating what get() returned would leak fields into every request (ruff B039).
+_ctx: ContextVar[dict[str, Any] | None] = ContextVar("zenflow_log_context", default=None)
+
+
+def _current() -> dict[str, Any]:
+    return _ctx.get() or {}
 
 
 def get_context() -> dict[str, Any]:
-    return dict(_ctx.get())
+    return dict(_current())
 
 
 def bind(**fields: Any) -> None:
     """Add fields to the current context (request / job / task scope)."""
-    _ctx.set({**_ctx.get(), **fields})
+    _ctx.set({**_current(), **fields})
 
 
 def unbind(*keys: str) -> None:
-    cur = _ctx.get()
+    cur = _current()
     _ctx.set({k: v for k, v in cur.items() if k not in keys})
 
 
@@ -119,7 +125,7 @@ def clear_context() -> None:
 @contextlib.contextmanager
 def log_context(**fields: Any) -> Iterator[None]:
     """Temporarily add fields; restored on exit (also across exceptions)."""
-    token = _ctx.set({**_ctx.get(), **fields})
+    token = _ctx.set({**_current(), **fields})
     try:
         yield
     finally:
@@ -162,7 +168,7 @@ def _record_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
             }
         else:
             record.args = tuple(redact(a) if isinstance(a, str) else a for a in record.args)
-    record._zf_ctx = dict(_ctx.get())
+    record._zf_ctx = dict(_current())
     return record
 
 

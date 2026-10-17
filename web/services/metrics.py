@@ -57,7 +57,7 @@ async def snapshot(
 
 def jobs(hours: float = DEFAULT_WINDOW_HOURS) -> dict[str, Any]:
     """Queue depth by state, plus how long the oldest waiting job has waited (1.2, ADR-20)."""
-    counts = {status: 0 for status in JOB_STATUSES}
+    counts = dict.fromkeys(JOB_STATUSES, 0)
     for row in _conn().execute("SELECT status, COUNT(*) n FROM jobs GROUP BY status"):
         counts[str(row["status"])] = int(row["n"])
     done = (
@@ -87,7 +87,7 @@ def jobs(hours: float = DEFAULT_WINDOW_HOURS) -> dict[str, Any]:
 def followups(now_iso: str | None = None) -> dict[str, Any]:
     """Where every check-in stands, and how many are overdue to go out (6.1)."""
     now = now_iso or clock.iso_now()
-    counts = {status: 0 for status in FOLLOWUP_STATUSES}
+    counts = dict.fromkeys(FOLLOWUP_STATUSES, 0)
     for row in _conn().execute("SELECT status, COUNT(*) n FROM followups GROUP BY status"):
         counts[str(row["status"])] = int(row["n"])
     due = (
