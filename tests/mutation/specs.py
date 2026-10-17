@@ -978,6 +978,12 @@ SPECS = [
         tests=[f"{T_FPI}::test_what_is_not_the_expected_image_is_refused"],
     ),
     spec(
+        id="14.5 a rejected diagram is never fetched",
+        file="zenflow/fetch_point_images.py",
+        edits=[("            if reason:\n", "            if False:\n", False)],
+        tests=[f"{T_FPI}::test_a_rejected_diagram_is_never_requested"],
+    ),
+    spec(
         id="14.3 a download has a size limit",
         file="zenflow/fetch_point_images.py",
         edits=[("            if size > MAX_BYTES:", "            if False:", False)],
