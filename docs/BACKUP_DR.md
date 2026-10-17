@@ -20,8 +20,9 @@ backed up on purpose.
 Keep both in the owner's password manager, **off the machine that holds the backups**.
 Since 2026-10-12 they are generated into the git-ignored `keys/` folder (owner decision Q15,
 `python -m zenflow.keys`). That folder is on the same disk as the backups, so a second copy
-elsewhere is still needed. The host does not use them until `python -m zenflow.keys adopt`:
-until then its automatic backups are **not encrypted**.
+elsewhere is still needed. **Since 2026-10-17 the host uses them** (`keys adopt` + a token
+rotation, Q20), and every backup is encrypted once the key is set: the automatic one, the command,
+and the safety copies the key rotation and the timestamp migration take (14.6).
 
 ## The tools
 

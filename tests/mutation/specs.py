@@ -1001,6 +1001,14 @@ SPECS = [
         ],
         tests=[f"{T_FPI}::test_a_pinned_file_that_changed_at_the_source_is_refused"],
     ),
+    spec(
+        id="14.6 a backup is encrypted whenever the key is set",
+        file="zenflow/db_backup.py",
+        edits=[("    if encrypt is None:\n", "    if False:\n", False)],
+        tests=[
+            "tests/integration/test_encrypted_backups.py::test_every_backup_is_encrypted_once_the_key_is_set"
+        ],
+    ),
     # ── reference data (Phase 14) ──
     spec(
         id="14.1 an existing database receives new seed points",
