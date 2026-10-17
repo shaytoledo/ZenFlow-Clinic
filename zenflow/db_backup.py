@@ -73,12 +73,19 @@ def _pg_dump() -> bytes:
     return done.stdout
 
 
-def backup_database(suffix: str = "bak", *, encrypt: bool = False) -> str:
+def backup_database(suffix: str = "bak", *, encrypt: bool | None = None) -> str:
     """Copy the live database to ``<db>.<suffix>-<UTC timestamp>[.pgdump][.enc]``; return the path.
 
-    With `encrypt`, the copy is taken in memory and Fernet-encrypted before it is written. It
-    refuses up front when `BACKUP_ENCRYPTION_KEY` is not set.
+    The copy is taken in memory and Fernet-encrypted before it is written **whenever
+    `BACKUP_ENCRYPTION_KEY` is set** (14.6): the safety backups taken by the key rotation and the
+    timestamp migration were plaintext copies of every patient record even on a host with a key.
+    `encrypt=True` makes the key required (refused up front without it); `encrypt=False` asks for
+    a plaintext copy, which nothing in the app does.
     """
+    if encrypt is None:
+        from zenflow.settings import get_settings
+
+        encrypt = bool(get_settings().backup_encryption_key)
     stamp = now_utc().strftime("%Y%m%dT%H%M%SZ")
     dest_path = f"{dbmod.db_path()}.{suffix}-{stamp}"
     fernet = None
@@ -141,7 +148,7 @@ def backup_if_due() -> str | None:
     existing = automatic_backups()
     if existing and (now_utc() - _taken_at(existing[-1])).total_seconds() < hours * 3600:
         return None
-    path = backup_database(AUTO_SUFFIX, encrypt=bool(settings.backup_encryption_key))
+    path = backup_database(AUTO_SUFFIX)  # encrypted when the key is set
     for old in automatic_backups()[:-keep]:
         old.unlink(missing_ok=True)
     return path
@@ -149,12 +156,16 @@ def backup_if_due() -> str | None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Back up the database (SQLite or Postgres).")
-    parser.add_argument("--encrypt", action="store_true", help="encrypt the copy (9.9)")
+    parser.add_argument(
+        "--encrypt",
+        action="store_true",
+        help="require encryption (9.9); without it the copy is encrypted whenever the key is set",
+    )
     args = parser.parse_args(argv)
     from zenflow.file_crypto import EncryptionUnavailable
 
     try:
-        print(backup_database(encrypt=args.encrypt))  # noqa: T201 - CLI output
+        print(backup_database(encrypt=True if args.encrypt else None))  # noqa: T201 - CLI output
     except (EncryptionUnavailable, BackupUnavailable) as exc:
         print(f"refused: {exc}", file=sys.stderr)  # noqa: T201
         return 2

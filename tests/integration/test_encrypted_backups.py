@@ -49,6 +49,37 @@ def _backups() -> list[Path]:
 
 
 @pytest.mark.sqlite_only
+def test_every_backup_is_encrypted_once_the_key_is_set(backup_key, make_patient) -> None:
+    """14.6: the key rotation's safety backup was a plaintext copy of every patient record, on a
+    host whose key was set. Any backup, whoever takes it, is now encrypted when the key exists."""
+    import zenflow.rotate_token_key as rotate
+    from zenflow.db_backup import backup_database, main
+
+    make_patient(MARKER)
+    assert backup_database("bak").endswith(".enc"), "the default"
+    assert main([]) == 0, "the command without --encrypt"
+    plain = [p for p in _backups() if not p.name.endswith(".enc")]
+    assert plain == []
+    for path in _backups():
+        assert MARKER.encode() not in path.read_bytes()
+
+    from zenflow.token_key import _backup_database
+
+    assert _backup_database().endswith(".enc"), "what rotate_token_key and its CLI back up with"
+    assert rotate.main is not None
+
+
+@pytest.mark.sqlite_only
+def test_without_a_key_a_backup_is_still_taken_in_the_clear(no_backup_key, make_patient) -> None:
+    """A host with no key keeps its safety net: the copy is plaintext, as before."""
+    from zenflow.db_backup import backup_database
+
+    make_patient(MARKER)
+    path = backup_database("bak")
+    assert not path.endswith(".enc") and Path(path).is_file()
+
+
+@pytest.mark.sqlite_only
 def test_an_encrypted_backup_holds_the_database_and_no_plaintext(
     backup_key, make_patient, tmp_path
 ) -> None:
