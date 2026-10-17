@@ -84,7 +84,10 @@ class Actor(NamedTuple):
     user_agent: str | None = None
 
 
-_actor: ContextVar[Actor] = ContextVar("zenflow_audit_actor", default=Actor())
+#: no actor bound = the system. The default is None, not an Actor() instance: a ContextVar default
+#: is one object shared by every context (ruff B039).
+_SYSTEM = Actor()
+_actor: ContextVar[Actor | None] = ContextVar("zenflow_audit_actor", default=None)
 
 
 def _conn() -> sqlite3.Connection:
@@ -131,7 +134,7 @@ def restore_guard(conn: sqlite3.Connection) -> None:
 
 # ── who is acting ──
 def current_actor() -> Actor:
-    return _actor.get()
+    return _actor.get() or _SYSTEM
 
 
 def set_actor(

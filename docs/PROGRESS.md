@@ -264,6 +264,12 @@ The owner answered `docs/QUESTIONS_FOR_SHAI.md` on 2026-10-12. Each answer that 
 - **Done on the host:** the **25 diagrams the owner approved** were fetched (1.1 MB) and imported with credit, licence and source address; `ZF_POINT_IMAGES=1` in its `.env`. `.env.example` and the AWS task environment set it too.
 - **Not done:** the other 336 diagrams (about 15 MB) are a larger download than the one approved: owner question Q18. The 33 extra points have no diagram at this source.
 - **Tests:** offline, with a stub HTTP client: the manifest covers exactly the 361 WHO points; a wrong host, path or code in a manifest is refused; HTML, an oversized file, a 404 and a redirect are refused and leave nothing on disk; a changed pinned file is refused; 3 mutation specs VERIFIED |
+| 14.4 | Why CI fails: the weekly fix verification and Dependabot | [x] | 2026-10-17 | _pending_ | The owner asked why CI/CD fails. Every PR and every push to `master` was green; three other workflows were not.
+- **"Verify fixes" (weekly) failed since at least 2026-10-05**, two specs out of 106:
+  - `11.1 RecursionError` **survived**: the test nested JSON 5 000 deep. CPython's C recursion limit is lower on Windows than on Linux, so the input raised there and not on CI's Linux, and the revert went unnoticed. Now 50 000 deep (above every platform's limit); VERIFIED.
+  - `9.9 backup encryption` was **not found**: 12.2.7 moved the encryption line below the SQLite/pg_dump branches. The spec follows it; VERIFIED.
+- **Dependabot's dev-tools PR failed lint:** a newer ruff flags B039 (a mutable `ContextVar` default, in `zenflow/logging.py` and `web/services/audit.py`) and C420 (twice, in `web/services/metrics.py`). All four fixed; the defaults are now `None`, so no context can ever share one dict.
+- **Dependabot's own update job failed** to resolve `langchain-redis==0.2.5`: its resolver does not know which Python the project uses. `.python-version` now says 3.12 |
 
 ---
 

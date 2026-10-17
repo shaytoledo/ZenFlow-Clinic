@@ -141,10 +141,14 @@ def test_diagnosis_parser_never_raises_and_bounds_through_the_pipeline() -> None
         assert len(bounded["treatment_principles"]) <= _DIAG_TEXT_MAX
 
 
-@pytest.mark.parametrize("depth", [2000, 5000])
+@pytest.mark.parametrize("depth", [2000, 50_000])
 def test_deeply_nested_json_does_not_crash_either_parser(depth: int) -> None:
     """A recursive-descent JSON parser raises RecursionError (a RuntimeError, not JSONDecodeError)
-    on deep nesting. Both AI parsers must swallow it, not propagate a 500."""
+    on deep nesting. Both AI parsers must swallow it, not propagate a 500.
+
+    50 000 is above every platform's limit. CPython's C limit is much higher on Linux than on
+    Windows, so 5 000 raised on Windows only, and CI's weekly fix verification found the revert
+    of this fix surviving on Linux."""
     bomb = "[" * depth + "]" * depth
     assert _parse_points_response(bomb, "fuzz") == []
     assert isinstance(_parse_diagnosis_json(bomb), dict)
