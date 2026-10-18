@@ -227,7 +227,7 @@ class TestTelegramHttpConformance(ChannelConformance):
 
 class TestTelegramBotClientConformance(ChannelConformance):
     @pytest.fixture
-    async def harness(self) -> AsyncIterator[ChannelHarness]:  # type: ignore[override]
+    async def harness(self) -> AsyncIterator[ChannelHarness]:
         api = FakeBotApi()
         bot = Bot(TOKEN, request=api.request(), get_updates_request=api.request())
         await bot.initialize()
