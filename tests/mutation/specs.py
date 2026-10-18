@@ -1009,6 +1009,15 @@ SPECS = [
             "tests/integration/test_encrypted_backups.py::test_every_backup_is_encrypted_once_the_key_is_set"
         ],
     ),
+    spec(
+        id="14.8 the identity migration's backup is encrypted",
+        file="web/repositories/patient_repo.py",
+        anchor="def _backup(",
+        edits=[("    if get_settings().backup_encryption_key:\n", "    if False:\n", False)],
+        tests=[
+            "tests/integration/test_patient_migration.py::test_the_backup_is_encrypted_once_the_key_is_set"
+        ],
+    ),
     # ── reference data (Phase 14) ──
     spec(
         id="14.1 an existing database receives new seed points",
