@@ -212,6 +212,31 @@ def test_a_backup_is_taken_first(legacy, db: Path) -> None:
         ), "the backup holds the pre-migration ids"
 
 
+def test_the_backup_is_encrypted_once_the_key_is_set(legacy, db: Path, monkeypatch) -> None:
+    """14.8: the copy holds every patient record. With BACKUP_ENCRYPTION_KEY set it is encrypted
+    like every other backup; on the host it had been written in the clear."""
+    import zenflow.settings as settings_mod
+    from zenflow.file_crypto import require_fernet
+
+    monkeypatch.setenv("BACKUP_ENCRYPTION_KEY", "backup-key-" + "x" * 40)
+    settings_mod.reset_settings()
+    try:
+        _run()
+        (backup,) = db.parent.glob(f"{db.name}.pre-patient-identity-*")
+        assert backup.name.endswith(".enc")
+        assert b"SQLite format 3" not in backup.read_bytes()
+        assert require_fernet().decrypt(backup.read_bytes()).startswith(b"SQLite format 3")
+    finally:
+        settings_mod.reset_settings()
+
+
+@pytest.mark.skipif(__import__("os").name != "posix", reason="POSIX file modes")
+def test_the_backup_is_owner_only(legacy, db: Path) -> None:
+    _run()
+    (backup,) = db.parent.glob(f"{db.name}.pre-patient-identity-*")
+    assert backup.stat().st_mode & 0o777 == 0o600
+
+
 def test_an_empty_database_needs_no_backup(db: Path) -> None:
     dbmod.get_db().execute("DELETE FROM schema_migrations")
     _run()

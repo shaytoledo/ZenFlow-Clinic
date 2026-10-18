@@ -342,13 +342,29 @@ def migrate_legacy_ids(conn: sqlite3.Connection, db_file: Path | None) -> dict[s
 
 
 def _backup(conn: sqlite3.Connection, db_file: Path) -> Path:
+    """The database before the migration, taken through the open connection (a consistent copy).
+
+    It holds every patient record, so it is treated like every other backup (14.8): encrypted with
+    `BACKUP_ENCRYPTION_KEY` when the key is set, and owner-only from the first byte either way (A10).
+    It used to be a plaintext file created with the umask's permissions.
+    """
+    from bot.db import write_owner_only
+    from zenflow.settings import get_settings
+
     stamp = clock.now_utc().strftime("%Y%m%dT%H%M%SZ")
     dest_path = db_file.with_name(f"{db_file.name}.pre-patient-identity-{stamp}")
-    dest = sqlite3.connect(dest_path)
+    mem = sqlite3.connect(":memory:")
     try:
-        conn.backup(dest)
+        conn.backup(mem)
+        data = mem.serialize()
     finally:
-        dest.close()
+        mem.close()
+    if get_settings().backup_encryption_key:
+        from zenflow.file_crypto import SUFFIX, require_fernet
+
+        dest_path = dest_path.with_name(dest_path.name + SUFFIX)
+        data = require_fernet().encrypt(data)
+    write_owner_only(dest_path, data)
     return dest_path
 
 

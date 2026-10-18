@@ -376,7 +376,7 @@ Any message / /start → SELECTING (main menu)
 - Runs on SQLite (default) **or Postgres** (`ZF_DB_URL`; the whole suite runs on both in CI); schema owned by Alembic
 - Ready for several instances: no per-process registries, periodic work runs once across workers, bounded Redis pool
 - Bots by polling or by webhook (`ZF_WEBHOOK_MODE`), with `/healthz` on the bots process
-- Backups: automatic and encrypted on a single host; a restore drill (`python -m zenflow.restore_drill`); a verified data mover (`python -m zenflow.move_data`)
+- Backups: automatic and encrypted on a single host — every backup path encrypts once `BACKUP_ENCRYPTION_KEY` is set (14.6, 14.8), and this host has it since 2026-10-17; a restore drill (`python -m zenflow.restore_drill`); a verified data mover (`python -m zenflow.move_data`)
 - Containers (web / bots / worker) and the whole AWS deployment as Terraform (`infra/terraform/`) — validated in CI, **never applied**
 - Photo/voice relay between patient and therapist (`ZF_RELAY_MEDIA`; on for this clinic since 2026-10-12)
 - The acupoint reference: all 361 WHO points and 33 extra points, English and Hebrew
@@ -384,7 +384,6 @@ Any message / /start → SELECTING (main menu)
 
 ## Planned (waiting on the owner — `docs/QUESTIONS_FOR_SHAI.md`)
 - The move to AWS: shape A is decided; there is no AWS account and none is being opened now. What is left: `docs/AWS_MOVE_CHECKLIST.md`
-- The host adopting its own token and backup keys (`python -m zenflow.keys adopt` + a rotation): until then its backups are not encrypted
 - Point images for the Bladder and Gallbladder points and the extra points: the free set's drawings for BL and GB are wrong (rejected in the manifest, 14.5); 250 points have one
 - A clinician's read-through of the point texts; the WhatsApp channel
 - The AI stays on Ollama (owner decision Q3); `USE_AI=anthropic` exists if that changes
