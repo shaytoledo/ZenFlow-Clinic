@@ -297,9 +297,7 @@ async def open_window(fake_redis) -> None:
 class TestWhatsAppConformance(ChannelConformance):
     # pytest injects the fixtures this override asks for
     @pytest.fixture
-    def harness(  # type: ignore[override]
-        self, cloud: FakeCloudApi, open_window: None
-    ) -> ChannelHarness:
+    def harness(self, cloud: FakeCloudApi, open_window: None) -> ChannelHarness:
         return WhatsAppHarness(
             cloud,
             WhatsAppChannel(PHONE_ID, TOKEN, app_secret=APP_SECRET, transport=cloud.transport()),

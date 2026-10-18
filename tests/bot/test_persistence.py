@@ -148,6 +148,11 @@ class FakeTelegramApi(BaseRequest):
         self.calls: list[tuple[str, dict[str, Any]]] = []
         self._next = 1000
 
+    @property
+    def read_timeout(self) -> float | None:
+        """python-telegram-bot 22 makes this abstract: how long a read may take (none here)."""
+        return None
+
     async def initialize(self) -> None:
         return None
 

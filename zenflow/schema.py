@@ -39,12 +39,12 @@ class LegacyUtcNow(FunctionElement[str]):
     inherit_cache = True
 
 
-@compiles(LegacyUtcNow, "sqlite")  # type: ignore[no-untyped-call, untyped-decorator]
+@compiles(LegacyUtcNow, "sqlite")
 def _utc_now_sqlite(element: Any, compiler: Any, **kw: Any) -> str:
     return "datetime('now')"
 
 
-@compiles(LegacyUtcNow, "postgresql")  # type: ignore[no-untyped-call, untyped-decorator]
+@compiles(LegacyUtcNow, "postgresql")
 def _utc_now_postgres(element: Any, compiler: Any, **kw: Any) -> str:
     return "to_char(timezone('UTC', now()), 'YYYY-MM-DD HH24:MI:SS')"
 
