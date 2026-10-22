@@ -7,9 +7,9 @@ python-telegram-bot[job-queue]==22.8   # job-queue: conversation timeouts (2.2d)
 python-dotenv==1.2.4
 
 # AI / LLM
-langchain==1.2.15
-langchain-core==1.6.10
-langchain-community==0.4.1
+langchain==1.4.6
+langchain-core==1.6.12
+langchain-community==0.4.2
 langchain-ollama==1.1.0
 langchain-redis==0.2.6
 langchain-anthropic        # lazily imported when USE_AI=anthropic
@@ -22,11 +22,11 @@ google-auth-httplib2==0.4.4
 google-auth-oauthlib==1.5.0
 
 # Settings (Phase 0.4) — zenflow/settings.py
-pydantic-settings==2.15.0
+pydantic-settings==2.16.0
 
 # Therapist web dashboard
-fastapi==0.115.2
-starlette==0.40.0
+fastapi==0.133.1
+starlette==1.9.0
 uvicorn==0.54.0
 jinja2==3.1.6
 python-multipart==0.0.32
@@ -41,12 +41,12 @@ redis==7.4.1
 cryptography==50.0.2
 
 # Images (Phase 4.3b): acupoint image ingestion — resize, thumbnails, EXIF stripping
-pillow==12.3.0
+pillow==13.0.0
 
 # S3 media store (Phase 4.3c) — imported only when ZF_STORAGE_S3=1
 boto3==1.43.114
 
 # Schema migrations (Phase 12.2.3) and the Postgres driver for ZF_DB_URL (Phase 12.2.2)
 alembic==1.20.0
-SQLAlchemy==2.1.4
+SQLAlchemy==2.1.5
 psycopg[binary]==3.3.6
