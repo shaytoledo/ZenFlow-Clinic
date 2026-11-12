@@ -3,14 +3,14 @@
 -c requirements.txt
 
 black==26.10.1
-ruff==0.17.0
-mypy==2.4.0
+ruff==0.17.4
+mypy==2.4.1
 pre-commit==4.7.0
 pip-tools==7.6.2
 bandit==1.9.4
 
-pytest==8.4.2
-pytest-asyncio==1.4.0
+pytest==9.2.0
+pytest-asyncio==1.4.1.post1
 pytest-cov==7.1.0
 pytest-timeout==2.4.0  # per-test timeout so a hanging test fails fast in CI (11.7) instead of 6h
 fakeredis==2.40.0
@@ -18,10 +18,10 @@ freezegun==1.5.5
 
 # Browser tests (Phase 4.2e): drives the installed Chrome/Edge, no browser download
 # (pillow, used to compare snapshots, is a runtime dependency since 4.3b)
-playwright==1.64.0
+playwright==1.64.1
 
 types-redis
 types-requests
 
 # Fake AWS for the S3 storage tests (Phase 4.3c)
-moto[s3]==5.2.4
+moto[s3]==5.2.5
